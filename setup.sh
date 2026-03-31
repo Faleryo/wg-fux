@@ -26,9 +26,27 @@ uninstall() {
         sudo docker compose down -v || true
     fi
 
+    echo -e "[INFO] Désactivation du service Sentinel..."
+    sudo systemctl stop sentinel.service 2>/dev/null || true
+    sudo systemctl disable sentinel.service 2>/dev/null || true
+    sudo rm -f /etc/systemd/system/sentinel.service
+    sudo systemctl daemon-reload
+
     echo -e "[INFO] Suppression des fichiers de configuration API..."
     rm -f "$API_ENV"
     rm -rf "$API_DATA"
+
+    local swap_file="/swap_wgfux"
+    if [ -f "$swap_file" ]; then
+        read -rp "Voulez-vous supprimer le fichier Swap ($swap_file) créé par WG-FUX ? (y/N): " purge_swap
+        if [[ "$purge_swap" =~ ^[yY]$ ]]; then
+            echo -e "[INFO] Désactivation et suppression du Swap..."
+            sudo swapoff "$swap_file" 2>/dev/null || true
+            sudo rm -f "$swap_file"
+            sudo sed -i "\|# WG-FUX Swap|d" /etc/fstab 2>/dev/null || true
+            sudo sed -i "\|$swap_file|d" /etc/fstab 2>/dev/null || true
+        fi
+    fi
 
     read -rp "Voulez-vous supprimer TOUTES les configurations WireGuard dans $WG_DIR ? (y/N): " purge_wg
     if [[ "$purge_wg" =~ ^[yY]$ ]]; then
@@ -48,11 +66,19 @@ update_process() {
         echo -e "${RED}[ERROR] Fichier docker-compose.yml introuvable.${NC}"
         exit 1
     fi
+
+    # 💠 SRE Optimization: Check disk before build
+    local free_kb
+    free_kb=$(df -k / | awk 'NR==2 {print $4}')
+    if [ "$free_kb" -lt 2097152 ]; then # < 2GB free
+        echo -e "${YELLOW}[WARNING] Espace disque faible (< 2GB). Nettoyage de Docker pour libérer l'espace...${NC}"
+        sudo docker system prune -f || true
+    fi
     
     echo -e "[INFO] Reconstruction des images et redémarrage des services..."
     sudo docker compose up --build -d
     
-    echo -e "${GREEN}[SUCCESS] Mise à jour terminée. Le système utilise la dernière version du code.${NC}"
+    echo -e "${GREEN}[SUCCESS] Mise à jour terminée.${NC}"
     exit 0
 }
 
@@ -103,9 +129,14 @@ setup_swap() {
     if [ "$ram_mb" -lt 2048 ]; then
         echo -e "${YELLOW}[WARNING] Mémoire vive faible détectée (${ram_mb}MB).${NC}"
 
-        # 1. Vérification si Swap déjà actif
+        # 1. Vérification si Swap déjà actif (globale)
+        if swapon --show | grep -q "/"; then
+            echo -e "${BLUE}[INFO] Un swap est déjà actif sur le système. Poursuite...${NC}"
+            return 0
+        fi
+
         if [ -f "$swap_file" ]; then
-            echo -e "${BLUE}[INFO] Un fichier de swap existe déjà. Réactivation...${NC}"
+            echo -e "${BLUE}[INFO] Un fichier de swap existant ($swap_file) a été trouvé. Réactivation...${NC}"
             sudo swapon "$swap_file" 2>/dev/null || true
             return 0
         fi
@@ -140,7 +171,7 @@ setup_swap() {
             if sudo swapon "$swap_file"; then
                 # Persistance
                 if ! grep -q "$swap_file" /etc/fstab; then
-                    echo "$swap_file none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+                    echo -e "\n# WG-FUX Swap\n$swap_file none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
                 fi
                 echo -e "${GREEN}[SUCCESS] Swap de ${target_size_mb}MB activé.${NC}"
             else
