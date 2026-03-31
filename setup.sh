@@ -131,14 +131,18 @@ setup_swap() {
     if [ "$ram_mb" -lt 2048 ]; then
         echo -e "${YELLOW}[WARNING] Mémoire vive faible détectée (${ram_mb}MB).${NC}"
 
-        # 1. Vérification si Swap déjà actif (globale)
-        if swapon --show | grep -q "/"; then
-            echo -e "${BLUE}[INFO] Un swap est déjà actif sur le système. Poursuite...${NC}"
+        # 1. Vérification si Swap déjà actif (globale) et suffisant (> 1GB)
+        local swap_total_kb
+        swap_total_kb=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
+        local swap_total_mb=$((swap_total_kb / 1024))
+
+        if [ "$swap_total_mb" -gt 1024 ]; then
+            echo -e "${BLUE}[INFO] Un swap suffisant (${swap_total_mb}MB) est déjà actif. Poursuite...${NC}"
             return 0
         fi
 
         if [ -f "$swap_file" ]; then
-            echo -e "${BLUE}[INFO] Un fichier de swap existant ($swap_file) a été trouvé. Réactivation...${NC}"
+            echo -e "${BLUE}[INFO] Un fichier de swap WG-FUX ($swap_file) existe déjà. Réactivation...${NC}"
             sudo swapon "$swap_file" 2>/dev/null || true
             return 0
         fi

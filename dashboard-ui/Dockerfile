@@ -2,6 +2,7 @@
 # Stage 1: Build
 FROM node:20-slim AS builder
 WORKDIR /app
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 COPY dashboard-ui/package*.json ./
 RUN npm install
 COPY dashboard-ui/ .
