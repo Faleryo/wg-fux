@@ -21,6 +21,7 @@ const clientRoutes = require('./src/routes/clients');
 const systemRoutes = require('./src/routes/system');
 const ticketRoutes = require('./src/routes/tickets');
 const userRoutes = require('./src/routes/users');
+const { initializeDatabase } = require('./src/services/init');
 
 const app = express();
 const server = http.createServer(app);
@@ -160,10 +161,17 @@ app.use((err, req, res, next) => {
 
 // --- Startup ---
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
     console.log('----------------------------------------------------');
     console.log(`🚀 WG-FUX API Modular running on port ${PORT}`);
     console.log(`🛠️ Mode: ${process.env.NODE_ENV || 'production'}`);
     console.log('----------------------------------------------------');
-    startJobs(); // Start background tasks
+    
+    try {
+        await initializeDatabase();
+        startJobs(); // Start background tasks
+    } catch (err) {
+        console.error('❌ FATAL: API failed to initialize database:', err);
+        process.exit(1);
+    }
 });
