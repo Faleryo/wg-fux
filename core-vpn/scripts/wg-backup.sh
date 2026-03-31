@@ -10,7 +10,10 @@ FILES="/etc/wireguard /opt/wireguard-api/data /opt/wireguard-api/.env /root/wire
 [ -f /etc/nginx/sites-available/wireguard ] && FILES="$FILES /etc/nginx/sites-available/wireguard"
 
 echo "Création de la sauvegarde : $BACKUP_FILE..."
-tar -czf "$BACKUP_FILE" $FILES 2>/dev/null
+if ! sudo tar -czf "$BACKUP_FILE" -C / etc/wireguard; then
+    echo -e "${RED}[ERROR] Échec de la création de l'archive.${NC}"
+    exit 1
+fi
 
 if [ $? -eq 0 ]; then
     echo "Sauvegarde réussie à $BACKUP_FILE"

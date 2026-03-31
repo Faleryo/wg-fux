@@ -71,8 +71,10 @@ update_process() {
     local free_kb
     free_kb=$(df -k / | awk 'NR==2 {print $4}')
     if [ "$free_kb" -lt 2097152 ]; then # < 2GB free
-        echo -e "${YELLOW}[WARNING] Espace disque faible (< 2GB). Nettoyage de Docker pour libérer l'espace...${NC}"
-        sudo docker system prune -f || true
+        echo -e "${YELLOW}[WARNING] Espace disque faible (< 2GB). Nettoyage sécurisé de Docker...${NC}"
+        # On supprime les images inutilisées et le cache de build, mais on GARDE les volumes (données critiques)
+        sudo docker image prune -a -f || true
+        sudo docker builder prune -f || true
     fi
     
     echo -e "[INFO] Reconstruction des images et redémarrage des services..."
