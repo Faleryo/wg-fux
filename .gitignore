@@ -51,4 +51,8 @@ api-service/logs/
 .idea/
 *.swp
 *.bak
-/tmp/
+# Vibe-OS
+VIBE-OS.md
+_PROJECT_SKILL.md
+extract_scripts.py
+
