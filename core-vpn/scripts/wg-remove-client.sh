@@ -1,0 +1,35 @@
+#!/bin/bash
+# --- VIBE-OS : Remove Client ---
+
+SCRIPT_DIR="$(dirname "$0")"
+source "$SCRIPT_DIR/wg-common.sh"
+
+check_root
+load_config
+
+CONTAINER="$1"
+NAME="$2"
+
+validate_id "$CONTAINER"
+validate_id "$NAME"
+
+CLIENT_DIR="/etc/wireguard/clients/$CONTAINER/$NAME"
+
+if [ ! -d "$CLIENT_DIR" ]; then
+    log_warn "Client '$NAME' in container '$CONTAINER' does not exist. Already removed?"
+    exit 0 # Idempotence
+fi
+
+if [ -f "$CLIENT_DIR/public.key" ]; then
+    PUBKEY=$(cat "$CLIENT_DIR/public.key" | tr -d '[:space:]')
+    log_info "Removing peer $PUBKEY from $WG_INTERFACE..."
+    wg set "$WG_INTERFACE" peer "$PUBKEY" remove || log_warn "Failed to remove peer from interface (might already be gone)"
+fi
+
+rm -rf "$CLIENT_DIR"
+log_info "Client directory $CLIENT_DIR deleted."
+
+# Refresh QoS rules
+$SCRIPT_DIR/wg-apply-qos.sh || true
+
+log_info "Client '$NAME' removed successfully."

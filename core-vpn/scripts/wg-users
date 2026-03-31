@@ -1,0 +1,103 @@
+#!/bin/bash
+API_DIR="/opt/wireguard-api"
+USERS_FILE="$API_DIR/data/users.json"
+ENV_FILE="$API_DIR/.env"
+mkdir -p "$API_DIR/data"
+cd $API_DIR
+
+if [ "$1" = "list" ]; then
+    if [ -e "$USERS_FILE" ]; then
+        node -e "
+            const fs = require('fs');
+            try {
+                const users = JSON.parse(fs.readFileSync('data/users.json'));
+                console.log(String('Username').padEnd(20) + String('Role').padEnd(15) + 'Expiry');
+                console.log('-'.repeat(50));
+                users.forEach(u => {
+                    console.log(String(u.username).padEnd(20) + String(u.role).padEnd(15) + (u.expiry || 'Never'));
+                });
+            } catch(e) { console.log('Error reading users file'); }
+        "
+    else
+        echo "No users file found."
+    fi
+elif [ "$1" = "logout-all" ]; then
+    if [ ! -f "$ENV_FILE" ]; then echo "Error: .env file not found"; exit 1; fi
+    NEW_SECRET=$(openssl rand -hex 32)
+    sed -i "s/^JWT_SECRET=.*/JWT_SECRET=$NEW_SECRET/" "$ENV_FILE"
+    systemctl restart wireguard-api
+    echo "All users have been logged out (JWT Secret rotated)."
+elif [ "$1" = "add" ]; then
+    if [ -z "$2" ] || [ -z "$3" ]; then
+        echo "Usage: wg-users add <username> <password> [role] [expiry]"
+        echo "Role defaults to 'viewer'. Expiry format: YYYY-MM-DD or empty."
+        exit 1        
+    fi
+    export WG_API_USER="$2"
+    export ROLE="${4:-viewer}"
+    export EXPIRY="$5"
+    
+    echo "$3" | node -e "
+        const fs = require('fs');
+        const crypto = require('crypto');
+        const password = fs.readFileSync(0, 'utf-8').trim();
+        let users = [];
+        try { if (fs.existsSync('data/users.json')) users = JSON.parse(fs.readFileSync('data/users.json')); } catch(e) {}
+        
+        const username = process.env.WG_API_USER;
+        const role = process.env.ROLE;
+        const expiry = process.env.EXPIRY;
+        
+        if (users.find(u => u.username === username)) { console.log('User exists'); process.exit(1); }
+        
+        const salt = crypto.randomBytes(16).toString('hex');
+        const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+        const newUser = {username, hash, salt, role};
+        if (expiry) newUser.expiry = expiry;
+        
+        users.push(newUser);
+        fs.writeFileSync('data/users.json', JSON.stringify(users, null, 2));
+        console.log('User added');
+    "
+    unset WG_API_USER ROLE EXPIRY
+    chown wg-api:wg-api "$USERS_FILE" 2>/dev/null || true
+elif [ "$1" = "passwd" ]; then
+    if [ -z "$2" ] || [ -z "$3" ]; then
+        echo "Usage: wg-users passwd <username> <new_password>"
+        exit 1
+    fi
+    export TARGET_USER="$2"
+    echo "$3" | node -e "
+        const fs = require('fs');
+        const crypto = require('crypto');
+        const password = fs.readFileSync(0, 'utf-8').trim();
+        let users = [];
+        try { if (fs.existsSync('data/users.json')) users = JSON.parse(fs.readFileSync('data/users.json')); } catch(e) {}
+        const username = process.env.TARGET_USER;
+        const userIndex = users.findIndex(u => u.username === username);
+        if (userIndex === -1) { console.log('User not found'); process.exit(1); }
+        const salt = crypto.randomBytes(16).toString('hex');
+        const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+        users[userIndex].salt = salt;
+        users[userIndex].hash = hash;
+        fs.writeFileSync('data/users.json', JSON.stringify(users, null, 2));
+        console.log('Password updated');
+    "
+    unset TARGET_USER
+    chown wg-api:wg-api "$USERS_FILE" 2>/dev/null || true
+elif [ "$1" = "remove" ]; then
+    if [ -z "$2" ]; then echo "Usage: wg-users remove <username>"; exit 1; fi
+    export TARGET_USER="$2"
+    node -e "
+        const fs = require('fs');
+        let users = [];
+        try { if (fs.existsSync('data/users.json')) users = JSON.parse(fs.readFileSync('data/users.json')); } catch(e) {}
+        const newUsers = users.filter(u => u.username !== process.env.TARGET_USER);
+        fs.writeFileSync('data/users.json', JSON.stringify(newUsers, null, 2));
+        console.log('User removed');
+    "
+   unset TARGET_USER
+    chown wg-api:wg-api "$USERS_FILE" 2>/dev/null || true
+else
+    echo "Usage: wg-users {list|add|passwd|remove|logout-all}"
+fi
