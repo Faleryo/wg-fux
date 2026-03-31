@@ -226,10 +226,12 @@ router.get('/health', async (req, res) => {
     const iface = process.env.WG_INTERFACE || 'wg0';
     const interfaceExists = fs.existsSync(getInterfacePath(iface));
     const { success } = await runSystemCommand(WG_BIN, ['show', iface]);
+    const system = await getSystemStats();
     res.json({
-        status: (interfaceExists && success) ? 'healthy' : 'unhealthy',
+        status: (interfaceExists && success && parseFloat(system.disk) < 95) ? 'healthy' : 'unhealthy',
         service: interfaceExists ? 'active' : 'inactive',
         interface: success ? 'up' : 'down',
+        stats: system,
         jobs: getJobStatus(),
         version: '3.1.0-Platinum'
     });

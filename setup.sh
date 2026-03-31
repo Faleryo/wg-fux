@@ -30,7 +30,7 @@ uninstall() {
     rm -f "$API_ENV"
     rm -rf "$API_DATA"
 
-    read -p "Voulez-vous supprimer TOUTES les configurations WireGuard dans $WG_DIR ? (y/N): " purge_wg
+    read -rp "Voulez-vous supprimer TOUTES les configurations WireGuard dans $WG_DIR ? (y/N): " purge_wg
     if [[ "$purge_wg" =~ ^[yY]$ ]]; then
         echo -e "[INFO] Suppression de $WG_DIR..."
         sudo rm -rf "$WG_DIR"
@@ -56,9 +56,27 @@ update_process() {
     exit 0
 }
 
+git_upgrade() {
+    echo -e "${BLUE}[INFO] Récupération des dernières mises à jour depuis Git...${NC}"
+    git pull || { echo -e "${RED}[ERROR] Échec du git pull. Vérifiez votre connexion ou l'état du dépôt.${NC}"; exit 1; }
+    update_process
+}
+
+install_deps() {
+    echo -e "${BLUE}[INFO] Tentative d'installation des dépendances...${NC}"
+    if command -v apt-get &> /dev/null; then
+        sudo apt-get update
+        sudo apt-get install -y docker.io docker-compose-v2 wireguard-tools
+    else
+        echo -e "${RED}[ERROR] Gestionnaire de paquets 'apt' non trouvé. Veuillez installer manuellement : docker, docker-compose-v2, wireguard-tools.${NC}"
+        exit 1
+    fi
+}
+
 # Suppression auto des flags si nécessaire ou gestion par arguments
 if [ "$1" == "--uninstall" ]; then uninstall; fi
 if [ "$1" == "--update" ]; then update_process; fi
+if [ "$1" == "--upgrade" ]; then git_upgrade; fi
 
 echo -e "${GREEN}
 ██╗      ██╗ ██████╗       ███████╗██╗   ██╗██╗  ██╗
@@ -72,11 +90,13 @@ ${NC}"
 echo -e "1) Installer / Reconfigurer WG-FUX"
 echo -e "2) Désinstaller WG-FUX"
 echo -e "3) Mettre à jour (Appliquer les modifications de code)"
-read -rp "Choisissez une option [1-3]: " choice
+echo -e "4) Upgrade (Télécharger depuis GitHub & Mettre à jour)"
+read -rp "Choisissez une option [1-4]: " choice
 
 case $choice in
     2) uninstall ;;
     3) update_process ;;
+    4) git_upgrade ;;
     1) echo -e "${GREEN}[INFO] Initialisation de l'installation/configuration...${NC}" ;;
     *) echo -e "${RED}Option invalide.${NC}"; exit 1 ;;
 esac
@@ -96,8 +116,23 @@ check_dependency "docker" || DEPS_MISSING=1
 check_dependency "wg" || DEPS_MISSING=1
 
 if [ $DEPS_MISSING -eq 1 ]; then
-    echo -e "${RED}[FATAL] Dépendances manquantes. Veuillez installer docker, docker-compose-v2 et wireguard-tools.${NC}"
-    exit 1
+    echo -e "${YELLOW}[WARNING] Dépendances manquantes détectées.${NC}"
+    read -rp "Voulez-vous tenter une installation automatique via apt ? (y/N): " install_now
+    if [[ "$install_now" =~ ^[yY]$ ]]; then
+        install_deps
+        # Re-vérification
+        DEPS_MISSING=0
+        check_dependency "docker" || DEPS_MISSING=1
+        (docker compose version &>/dev/null) || DEPS_MISSING=1
+        check_dependency "wg" || DEPS_MISSING=1
+        if [ $DEPS_MISSING -eq 1 ]; then
+             echo -e "${RED}[FATAL] L'installation a échoué ou des dépendances manquent encore.${NC}"
+             exit 1
+        fi
+    else
+        echo -e "${RED}[FATAL] Dépendances manquantes. Veuillez installer docker, docker-compose-v2 et wireguard-tools.${NC}"
+        exit 1
+    fi
 fi
 
 # 2. Gestion de la configuration existante
@@ -113,10 +148,10 @@ fi
 # 3. Configuration Réseau
 echo -e "\n${GREEN}[STEP 1] Configuration Réseau${NC}"
 DETECTED_IP=$(curl -s --max-time 2 ifconfig.me || ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || echo "127.0.0.1")
-read -p "Entrez l'IP publique du serveur [$DETECTED_IP]: " SERVER_IP
+read -rp "Entrez l'IP publique du serveur [$DETECTED_IP]: " SERVER_IP
 SERVER_IP=${SERVER_IP:-$DETECTED_IP}
 
-read -p "Entrez le port WireGuard [51820]: " SERVER_PORT
+read -rp "Entrez le port WireGuard [51820]: " SERVER_PORT
 SERVER_PORT=${SERVER_PORT:-51820}
 
 # 4. Authentification Admin
@@ -162,8 +197,8 @@ done
 echo -e "\n${GREEN}[STEP 5] Écriture des fichiers de configuration${NC}"
 
 cat <<EOF | sudo tee "$WG_DIR/manager.conf" > /dev/null
-SERVER_IP=$SERVER_IP
-SERVER_PORT=$SERVER_PORT
+SERVER_IP="$SERVER_IP"
+SERVER_PORT="$SERVER_PORT"
 VPN_SUBNET=10.0.0.0/24
 VPN_SUBNET_V6=fd00::/64
 CLIENT_DNS=1.1.1.1
@@ -188,13 +223,37 @@ EOF
 
 cat <<EOF > "$API_ENV"
 PORT=3000
-JWT_SECRET=$JWT_SECRET
-SERVER_IP=$SERVER_IP
+JWT_SECRET="$JWT_SECRET"
+SERVER_IP="$SERVER_IP"
 WG_INTERFACE=wg0
-ADMIN_USER=$ADMIN_USER
-ADMIN_PASSWORD_HASH=$ADMIN_HASH
-ADMIN_PASSWORD_SALT=$SALT
+ADMIN_USER="$ADMIN_USER"
+ADMIN_PASSWORD_HASH="$ADMIN_HASH"
+ADMIN_PASSWORD_SALT="$SALT"
 EOF
+
+# 6. Sentinel & Alerts
+echo -e "\n${GREEN}[STEP 6] Sentinel Monitoring & Alerts (SRE)${NC}"
+read -rp "Voulez-vous activer les alertes Telegram via Bot API ? (y/N): " enable_telegram
+if [[ "$enable_telegram" =~ ^[yY]$ ]]; then
+    read -rp "Entrez le Telegram Bot Token: " TG_TOKEN
+    read -rp "Entrez le Telegram Chat ID: " TG_CHATID
+    echo "TELEGRAM_BOT_TOKEN=\"$TG_TOKEN\"" | sudo tee /etc/wireguard/sentinel.conf > /dev/null
+    echo "TELEGRAM_CHAT_ID=\"$TG_CHATID\"" | sudo tee -a /etc/wireguard/sentinel.conf > /dev/null
+    echo -e "${GREEN}[INFO] Configuration Telegram sauvegardée dans /etc/wireguard/sentinel.conf${NC}"
+else
+    echo -e "${YELLOW}[INFO] Alertes Telegram ignorées.${NC}"
+fi
+
+echo -e "\n${BLUE}[INFO] Installation du service Sentinel Watchdog...${NC}"
+sudo cp "$(pwd)/core-vpn/scripts/sentinel.service" /etc/systemd/system/sentinel.service
+# Mise à jour du chemin dans l'unité systemd si nécessaire
+sudo sed -i "s|WorkingDirectory=.*|WorkingDirectory=$(pwd)|" /etc/systemd/system/sentinel.service
+sudo sed -i "s|ExecStart=.*|ExecStart=/bin/bash $(pwd)/core-vpn/scripts/sentinel.sh|" /etc/systemd/system/sentinel.service
+
+sudo systemctl daemon-reload
+sudo systemctl enable sentinel.service
+sudo systemctl restart sentinel.service
+echo -e "${GREEN}[SUCCESS] Sentinel Watchdog est actif et surveille le système.${NC}"
 
 echo -e "${GREEN}[SUCCESS] Configuration terminée.${NC}"
 echo -e "${BLUE}[TIP] Après le lancement, vous pouvez activer la 2FA (TOTP) via le Dashboard ou l'endpoint /api/auth/2fa/setup.${NC}"

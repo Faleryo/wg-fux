@@ -1,0 +1,17 @@
+[Unit]
+Description=WG-FUX Sentinel Watchdog Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/faleryo/wg-fux
+ExecStart=/bin/bash /home/faleryo/wg-fux/core-vpn/scripts/sentinel.sh
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/wg-sentinel.log
+StandardError=append:/var/log/wg-sentinel.log
+
+[Install]
+WantedBy=multi-user.target

@@ -33,7 +33,7 @@ const loadSchedules = async () => {
             rule.minute = parseInt(minute);
             
             const job = schedule.scheduleJob(rule, () => {
-                console.log(`[JOB] Running scheduled optimization: ${task.profile}`);
+                // Logic for scheduled optimization
                 runSystemCommand('/usr/local/bin/wg-optimize.sh', [task.profile]);
             });
             scheduledJobs[task.id] = job;
