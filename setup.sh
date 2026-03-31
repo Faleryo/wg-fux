@@ -73,10 +73,70 @@ install_deps() {
     fi
 }
 
+detect_public_ip() {
+    local result
+    for service in "ifconfig.me" "api.ipify.org" "ident.me"; do
+        result=$(curl -s --max-time 3 "$service" 2>/dev/null)
+        if [[ $result =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            echo "$result"
+            return 0
+        fi
+    done
+
+    result=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+')
+    if [[ $result =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        echo "$result"
+        return 0
+    fi
+
+    echo "127.0.0.1"
+}
+
+setup_swap() {
+    local swap_file="/swap_wgfux"
+    local swap_size="5G"
+    local ram_kb
+    ram_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    local ram_mb=$((ram_kb / 1024))
+
+    if [ "$ram_mb" -lt 2048 ]; then
+        echo -e "${YELLOW}[WARNING] Mémoire vive faible détectée (${ram_mb}MB).${NC}"
+
+        # Si moins de 1GB, on force le swap car sinon npm install échouera
+        if [ "$ram_mb" -lt 1024 ]; then
+            echo -e "${BLUE}[INFO] RAM < 1GB. Activation automatique du Swap (${swap_size}) pour garantir la stabilité du build...${NC}"
+        else
+            read -rp "Voulez-vous créer un fichier Swap de ${swap_size} ? (y/N): " create_swap
+            [[ ! "$create_swap" =~ ^[yY]$ ]] && return 0
+        fi
+
+        if [ -f "$swap_file" ]; then
+            echo -e "${YELLOW}[INFO] Un fichier de swap existe déjà à $swap_file. Activation...${NC}"
+            sudo swapon "$swap_file" 2>/dev/null || true
+            return 0
+        fi
+
+        echo -e "${BLUE}[INFO] Création du fichier Swap de ${swap_size} (cela peut prendre un moment)...${NC}"
+        sudo fallocate -l "$swap_size" "$swap_file" || sudo dd if=/dev/zero of="$swap_file" bs=1M count=5120
+        sudo chmod 600 "$swap_file"
+        sudo mkswap "$swap_file"
+        sudo swapon "$swap_file"
+
+        # Persistance
+        if ! grep -q "$swap_file" /etc/fstab; then
+            echo "$swap_file none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+        fi
+        echo -e "${GREEN}[SUCCESS] Swap activé et configuré.${NC}"
+    fi
+}
+
 # Suppression auto des flags si nécessaire ou gestion par arguments
 if [ "$1" == "--uninstall" ]; then uninstall; fi
 if [ "$1" == "--update" ]; then update_process; fi
 if [ "$1" == "--upgrade" ]; then git_upgrade; fi
+
+# 0. Initialisation du matériel (Swap si RAM < 2GB)
+setup_swap
 
 echo -e "${GREEN}
 ██╗      ██╗ ██████╗       ███████╗██╗   ██╗██╗  ██╗
@@ -147,7 +207,7 @@ fi
 
 # 3. Configuration Réseau
 echo -e "\n${GREEN}[STEP 1] Configuration Réseau${NC}"
-DETECTED_IP=$(curl -s --max-time 2 ifconfig.me || ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || echo "127.0.0.1")
+DETECTED_IP=$(detect_public_ip)
 read -rp "Entrez l'IP publique du serveur [$DETECTED_IP]: " SERVER_IP
 SERVER_IP=${SERVER_IP:-$DETECTED_IP}
 

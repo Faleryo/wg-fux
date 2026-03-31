@@ -7,10 +7,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'ui-vendor': ['framer-motion', 'lucide-react', 'recharts'],
-        },
+        // manualChunks disabled for Rolldown compatibility
       },
     },
   },

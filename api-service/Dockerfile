@@ -49,7 +49,7 @@ RUN mkdir -p /app/data /etc/wireguard/clients && \
 ENV WG_INTERFACE=wg0
 ENV PORT=3000
 ENV NODE_ENV=production
-ENV JWT_SECRET=change_me_immediately_random_string_12345
+# JWT_SECRET must be provided via environment variables (.env)
 
 EXPOSE 3000
 

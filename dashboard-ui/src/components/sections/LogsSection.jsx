@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
-import axios from 'axios';
+import { axiosInstance as axios, getWsUri } from '../../lib/api';
+import { useWebSocket } from '../../lib/useWebSocket';
 
 const LogsSection = () => {
   const { theme } = useTheme();
@@ -28,9 +29,21 @@ const LogsSection = () => {
 
   useEffect(() => {
     fetchLogs();
-    const interval = setInterval(fetchLogs, 30000);
-    return () => clearInterval(interval);
   }, [activeTab]);
+
+  // WebSocket for Live Streaming
+  const wsUrl = activeTab === 'access' ? getWsUri('logs-api') : getWsUri('logs-wg');
+  useWebSocket(wsUrl, {
+    onMessage: (msg) => {
+        if (typeof msg !== 'string') return;
+        const newLog = { 
+            time: new Date().toISOString(), 
+            message: msg, 
+            status: 'LIVE' 
+        };
+        setLogs(prev => [newLog, ...prev.slice(0, 100)]);
+    }
+  });
 
   const filteredLogs = logs.filter(log => 
     JSON.stringify(log).toLowerCase().includes(searchTerm.toLowerCase())

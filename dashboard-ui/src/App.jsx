@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { axiosInstance, getWsUri } from './lib/api';
+import { useWebSocket } from './lib/useWebSocket';
 import { RefreshCw } from 'lucide-react';
 import { useTheme } from './context/ThemeContext';
 import { useToast } from './context/ToastContext';
@@ -85,20 +86,15 @@ const WireGuardDashboard = ({ onLogout }) => {
   }, [activeSection]);
 
   // WebSocket for real-time notifications
-  useEffect(() => {
-    const ws = new WebSocket(getWsUri('status'));
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'client_event') {
-          const { event: type, client } = data;
-          addToast(`${client.name} (${client.container}) ${type === 'connected' ? 'est connecté' : 'est déconnecté'}`, type === 'connected' ? 'success' : 'info');
-          fetchData();
-        }
-      } catch (e) { }
-    };
-    return () => ws.close();
-  }, []);
+  const { data: wsEvent } = useWebSocket(getWsUri('status'), {
+    onMessage: (data) => {
+      if (data.type === 'client_event') {
+        const { event: type, client } = data;
+        addToast(`${client.name} (${client.container}) ${type === 'connected' ? 'est connecté' : 'est déconnecté'}`, type === 'connected' ? 'success' : 'info');
+        fetchData();
+      }
+    }
+  });
 
   // Initial and Periodic Fetch
   useEffect(() => {
