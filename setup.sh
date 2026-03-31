@@ -77,10 +77,20 @@ update_process() {
         sudo docker builder prune -f || true
     fi
     
+    
     echo -e "[INFO] Reconstruction des images et redémarrage des services..."
     sudo docker compose up --build -d
     
-    echo -e "${GREEN}[SUCCESS] Mise à jour terminée.${NC}"
+    local ip_final="${SERVER_IP:-$(detect_public_ip)}"
+    echo -e "\n${GREEN}==================================================${NC}"
+    echo -e "${GREEN}        WG-FUX EST PRÊT À L'ACTION !            ${NC}"
+    echo -e "${GREEN}==================================================${NC}"
+    echo -e "Dashboard URL (SSL) : ${BLUE}https://$ip_final${NC}"
+    echo -e "Dashboard URL (HTTP): ${BLUE}http://$ip_final${NC}"
+    echo -e "${YELLOW}[NOTE] Si vous utilisez le SSL auto-signé, votre navigateur${NC}"
+    echo -e "${YELLOW}affichera une alerte de sécurité. C'est normal.${NC}"
+    echo -e "${GREEN}==================================================${NC}\n"
+    
     exit 0
 }
 
@@ -188,6 +198,50 @@ setup_swap() {
             echo -e "${RED}[ERROR] Échec physique de création du swap. Nettoyage...${NC}"
             sudo rm -f "$swap_file"
         fi
+    fi
+}
+
+setup_ssl() {
+    local ssl_dir="infra/ssl"
+    if [ ! -d "$ssl_dir" ]; then mkdir -p "$ssl_dir"; fi
+
+    if [ ! -f "$ssl_dir/server.crt" ] || [ ! -f "$ssl_dir/server.key" ]; then
+        echo -e "${YELLOW}[INFO] Génération d'un certificat SSL auto-signé (Secours)...${NC}"
+        # Utilisation de l'IP détectée si SERVER_IP n'est pas encore défini
+        local ip_for_cert="${SERVER_IP:-$(detect_public_ip)}"
+        
+        if openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout "$ssl_dir/server.key" \
+            -out "$ssl_dir/server.crt" \
+            -subj "/C=FR/ST=Sentinel/L=Sentinel/O=WG-FUX/OU=Dashboard/CN=$ip_for_cert" 2>/dev/null; then
+            echo -e "${GREEN}[SUCCESS] SSL auto-signé généré dans $ssl_dir.${NC}"
+        else
+            echo -e "${RED}[ERROR] Échec de la génération SSL. Vérifiez qu'openssl est installé.${NC}"
+        fi
+    else
+        echo -e "${BLUE}[INFO] Certificats SSL existants trouvés.${NC}"
+    fi
+}
+
+setup_firewall() {
+    local port="${SERVER_PORT:-51820}"
+    echo -e "${BLUE}[INFO] Configuration du pare-feu (Ports: 80, 443, $port/udp)...${NC}"
+
+    if command -v ufw &> /dev/null; then
+        echo -e "[INFO] Utilisation de UFW..."
+        sudo ufw allow 80/tcp 2>/dev/null || true
+        sudo ufw allow 443/tcp 2>/dev/null || true
+        sudo ufw allow "$port"/udp 2>/dev/null || true
+        sudo ufw allow 22/tcp 2>/dev/null || true # Safety for SSH
+        echo -e "${GREEN}[SUCCESS] Règles UFW appliquées.${NC}"
+    elif command -v iptables &> /dev/null; then
+        echo -e "[INFO] Utilisation de iptables..."
+        sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
+        sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
+        sudo iptables -I INPUT -p udp --dport "$port" -j ACCEPT 2>/dev/null || true
+        echo -e "${GREEN}[SUCCESS] Règles iptables appliquées.${NC}"
+    else
+        echo -e "${YELLOW}[WARNING] Aucun gestionnaire de pare-feu (ufw/iptables) détecté. Ouvrez les ports manuellement.${NC}"
     fi
 }
 
@@ -375,6 +429,11 @@ sudo systemctl daemon-reload
 sudo systemctl enable sentinel.service
 sudo systemctl restart sentinel.service
 echo -e "${GREEN}[SUCCESS] Sentinel Watchdog est actif et surveille le système.${NC}"
+
+# 7. Finalisation de l'infrastructure (SSL & Firewall)
+echo -e "\n${GREEN}[STEP 7] Finalisation de l'infrastructure${NC}"
+setup_ssl
+setup_firewall
 
 echo -e "${GREEN}[SUCCESS] Configuration terminée.${NC}"
 echo -e "${BLUE}[TIP] Après le lancement, vous pouvez activer la 2FA (TOTP) via le Dashboard ou l'endpoint /api/auth/2fa/setup.${NC}"
