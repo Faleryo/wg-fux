@@ -77,6 +77,9 @@ update_process() {
         sudo docker builder prune -f || true
     fi
     
+    # 💠 SRE: Ensure SSL and Firewall are ready before starting Docker
+    setup_ssl
+    setup_firewall
     
     echo -e "[INFO] Reconstruction des images et redémarrage des services..."
     sudo docker compose up --build -d
@@ -430,11 +433,7 @@ sudo systemctl enable sentinel.service
 sudo systemctl restart sentinel.service
 echo -e "${GREEN}[SUCCESS] Sentinel Watchdog est actif et surveille le système.${NC}"
 
-# 7. Finalisation de l'infrastructure (SSL & Firewall)
-echo -e "\n${GREEN}[STEP 7] Finalisation de l'infrastructure${NC}"
-setup_ssl
-setup_firewall
-
-echo -e "${GREEN}[SUCCESS] Configuration terminée.${NC}"
+# 7. Finalisation & Lancement
+echo -e "\n${GREEN}[SUCCESS] Configuration terminée.${NC}"
 echo -e "${BLUE}[TIP] Après le lancement, vous pouvez activer la 2FA (TOTP) via le Dashboard ou l'endpoint /api/auth/2fa/setup.${NC}"
 update_process
