@@ -94,39 +94,63 @@ detect_public_ip() {
 
 setup_swap() {
     local swap_file="/swap_wgfux"
-    local swap_size="5G"
+    local target_size_mb=4096 # Standard for low RAM
     local ram_kb
     ram_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     local ram_mb=$((ram_kb / 1024))
 
+    # Activation automatique si RAM < 2GB
     if [ "$ram_mb" -lt 2048 ]; then
         echo -e "${YELLOW}[WARNING] Mémoire vive faible détectée (${ram_mb}MB).${NC}"
 
-        # Si moins de 1GB, on force le swap car sinon npm install échouera
-        if [ "$ram_mb" -lt 1024 ]; then
-            echo -e "${BLUE}[INFO] RAM < 1GB. Activation automatique du Swap (${swap_size}) pour garantir la stabilité du build...${NC}"
-        else
-            read -rp "Voulez-vous créer un fichier Swap de ${swap_size} ? (y/N): " create_swap
-            [[ ! "$create_swap" =~ ^[yY]$ ]] && return 0
-        fi
-
+        # 1. Vérification si Swap déjà actif
         if [ -f "$swap_file" ]; then
-            echo -e "${YELLOW}[INFO] Un fichier de swap existe déjà à $swap_file. Activation...${NC}"
+            echo -e "${BLUE}[INFO] Un fichier de swap existe déjà. Réactivation...${NC}"
             sudo swapon "$swap_file" 2>/dev/null || true
             return 0
         fi
 
-        echo -e "${BLUE}[INFO] Création du fichier Swap de ${swap_size} (cela peut prendre un moment)...${NC}"
-        sudo fallocate -l "$swap_size" "$swap_file" || sudo dd if=/dev/zero of="$swap_file" bs=1M count=5120
-        sudo chmod 600 "$swap_file"
-        sudo mkswap "$swap_file"
-        sudo swapon "$swap_file"
+        # 2. Calcul de l'espace disque disponible (/)
+        local free_kb
+        free_kb=$(df -k / | awk 'NR==2 {print $4}')
+        local free_mb=$((free_kb / 1024))
+        local safety_margin=1024
+        local available_for_swap=$((free_mb - safety_margin))
 
-        # Persistance
-        if ! grep -q "$swap_file" /etc/fstab; then
-            echo "$swap_file none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+        if [ "$available_for_swap" -lt 512 ]; then
+            echo -e "${RED}[ERROR] Espace disque critique (${free_mb}MB libre). Impossible de créer un Swap.${NC}"
+            echo -e "${YELLOW}[TIP] Libérez de l'espace disque pour permettre le build Docker.${NC}"
+            return 0
         fi
-        echo -e "${GREEN}[SUCCESS] Swap activé et configuré.${NC}"
+
+        # Ajuster la taille du swap selon l'espace disponible
+        if [ "$target_size_mb" -gt "$available_for_swap" ]; then
+            target_size_mb=$available_for_swap
+            echo -e "${YELLOW}[INFO] Espace disque restreint. Ajustement du Swap à ${target_size_mb}MB.${NC}"
+        fi
+
+        echo -e "${BLUE}[INFO] Création du fichier Swap de ${target_size_mb}MB...${NC}"
+        
+        # Tentative de création avec fallocate puis dd en secours
+        if sudo fallocate -l "${target_size_mb}M" "$swap_file" 2>/dev/null || \
+           sudo dd if=/dev/zero of="$swap_file" bs=1M count="$target_size_mb" status=progress; then
+            
+            sudo chmod 600 "$swap_file"
+            sudo mkswap "$swap_file"
+            if sudo swapon "$swap_file"; then
+                # Persistance
+                if ! grep -q "$swap_file" /etc/fstab; then
+                    echo "$swap_file none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+                fi
+                echo -e "${GREEN}[SUCCESS] Swap de ${target_size_mb}MB activé.${NC}"
+            else
+                echo -e "${RED}[ERROR] Échec de l'activation du swap. Nettoyage...${NC}"
+                sudo rm -f "$swap_file"
+            fi
+        else
+            echo -e "${RED}[ERROR] Échec physique de création du swap. Nettoyage...${NC}"
+            sudo rm -f "$swap_file"
+        fi
     fi
 }
 
