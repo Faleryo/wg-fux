@@ -290,7 +290,7 @@ const WireGuardDashboard = ({ onLogout }) => {
         uptime={uptime}
       />
 
-      <main className="flex-1 p-4 md:p-12 overflow-y-auto custom-scrollbar relative z-10 w-full">
+      <main className="flex-1 min-w-0 p-4 md:p-12 overflow-y-auto custom-scrollbar relative z-10">
         {/* Modern Background Decorations */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-600/10 blur-[180px] -z-10 animate-pulse pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-600/5 blur-[150px] -z-10 pointer-events-none" />

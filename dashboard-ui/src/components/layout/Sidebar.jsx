@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import { useLang } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
-import axios from 'axios';
+import { axiosInstance } from '../../lib/api';
 import { cn } from '../../lib/utils';
 
 const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, uptime }) => {
@@ -29,9 +29,7 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
   const handleRestartServer = async () => {
     if (window.confirm('Êtes-vous sûr de vouloir redémarrer le service WireGuard ?')) {
       try {
-        await axios.post('/api/system/restart/wireguard', {}, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token')}` }
-        });
+        await axiosInstance.post('/system/restart/wireguard');
         addToast('Service WireGuard redémarré.', 'success');
       } catch (error) {
         console.error('Erreur:', error);
@@ -61,7 +59,7 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
       </AnimatePresence>
 
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-72 glass-panel flex flex-col h-screen transition-all duration-500 ease-in-out md:translate-x-0 md:relative md:z-auto",
+        "fixed inset-y-0 left-0 z-50 w-72 shrink-0 glass-panel flex flex-col h-screen transition-all duration-500 ease-in-out md:translate-x-0 md:relative md:z-auto",
         isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0"
       )}>
         {/* Branding */}

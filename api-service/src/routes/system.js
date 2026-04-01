@@ -11,7 +11,7 @@ const { auth, requireAdmin } = require('../middleware/auth');
 const { runCommand, runSystemCommand } = require('../services/shell');
 const { getWireGuardStats, getSystemStats, formatBytes, getInterfacePath } = require('../services/system');
 const { getJobStatus } = require('../services/jobs');
-const { getScriptPath, executeScript } = require('../services/config');
+const { getScriptPath } = require('../services/config');
 
 const WG_BIN = process.env.WG_BIN || 'wg';
 const WG_QUICK_BIN = process.env.WG_QUICK_BIN || 'wg-quick';
@@ -175,8 +175,12 @@ router.post('/speedtest', auth, requireAdmin, async (req, res) => {
     if (isSpeedtestRunning) return res.status(429).json({ error: 'Test en cours' });
     isSpeedtestRunning = true;
     try {
-        const result = await executeScript('wg-speedtest.sh', [], { json: true });
-        res.json(result.data);
+        // wg-speedtest.sh is expected to output JSON on stdout
+        const { success, stdout, error } = await runSystemCommand(getScriptPath('wg-speedtest.sh'), []);
+        if (!success) return res.status(500).json({ error: error || 'Speedtest failed' });
+        let data = {};
+        try { data = JSON.parse(stdout); } catch { data = { raw: stdout }; }
+        res.json(data);
     } catch (e) {
         res.status(500).json({ error: e.message });
     } finally {
@@ -198,12 +202,13 @@ router.post('/optimize', auth, requireAdmin, async (req, res) => {
 router.get('/audit', auth, async (req, res) => {
     try {
         const stats = await getSystemStats();
-        const { stdout: fwStatus } = await runCommand('ufw', ['status']).catch(() => ({ stdout: 'inactive' }));
-        const { stdout: ipFwd } = await runCommand('sysctl', ['-n', 'net.ipv4.ip_forward']).catch(() => ({ stdout: '0' }));
+        // Use runSystemCommand — ufw/sysctl require elevated privileges
+        const { stdout: fwStatus } = await runSystemCommand('ufw', ['status']).catch(() => ({ stdout: 'inactive' }));
+        const { stdout: ipFwd } = await runSystemCommand('sysctl', ['-n', 'net.ipv4.ip_forward']).catch(() => ({ stdout: '0' }));
         
         res.json({
-            firewall: fwStatus.includes('active'),
-            ipForwarding: ipFwd.trim() === '1',
+            firewall: (fwStatus || '').includes('active'),
+            ipForwarding: (ipFwd || '').trim() === '1',
             fail2ban: true,
             disk: stats.disk + '%'
         });
