@@ -5,6 +5,7 @@ const { db, schema } = require('../../db');
 const { eq, and, lt } = require('drizzle-orm');
 const { runSystemCommand } = require('./shell');
 const { getWireGuardStats } = require('./system');
+const log = require('./logger');
 // BUG-FIX: Utiliser getScriptPath pour une résolution cohérente des scripts (comme clients.js)
 const { getScriptPath } = require('./config');
 

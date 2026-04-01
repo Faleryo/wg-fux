@@ -10,10 +10,11 @@ const url = require('url');
 const { spawn } = require('child_process');
 
 // Internal Imports
-const { auth } = require('./src/middleware/auth');
+const { auth, requireAdmin } = require('./src/middleware/auth');
 const { startJobs } = require('./src/services/jobs');
 const { SUDO, SUDO_ARGS } = require('./src/services/shell');
 const { getWireGuardStats, parseWireGuardDump } = require('./src/services/system');
+const log = require('./src/services/logger');
 
 // Route Imports
 const authRoutes = require('./src/routes/auth');
@@ -36,6 +37,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../dashboard-ui/dist')));
+
+// Structured HTTP Request Logger (remplace console.log manuel)
+app.use(log.requestMiddleware);
 
 // --- Security & Custom Metadata Headers ---
 app.use((req, res, next) => {
@@ -107,9 +111,48 @@ app.get('/api/stats', auth, async (req, res, next) => {
 });
 
 // BUG-FIX: 404 handler for unknown /api/* routes (must be before SPA catch-all)
-// Without this, a missing API route silently returns the frontend HTML → impossible to debug.
 app.use('/api', (req, res) => {
+    log.warn('http', `404 API endpoint not found`, { path: req.originalUrl, method: req.method });
     res.status(404).json({ error: 'API endpoint not found', path: req.originalUrl });
+});
+
+// ─── Debug Route (admin only) ─────────────────────────────────────────────────
+// GET /api/debug            → rapport de santé complet
+// GET /api/debug/logs       → circular buffer des 200 derniers logs
+// GET /api/debug/logs?level=ERROR&limit=50
+app.get('/api/debug', auth, requireAdmin, (req, res) => {
+    const os = require('os');
+    const logCounters = log.getCounters();
+    const osMem = os.totalmem();
+    const freeMem = os.freemem();
+    res.json({
+        timestamp: new Date().toISOString(),
+        uptime_s: Math.floor(process.uptime()),
+        node_version: process.version,
+        env: process.env.NODE_ENV || 'production',
+        log_level: process.env.LOG_LEVEL || 'INFO',
+        log_format: process.env.LOG_FORMAT || 'json',
+        memory: {
+            heap_used_mb: Math.round(process.memoryUsage().heapUsed / 1048576),
+            heap_total_mb: Math.round(process.memoryUsage().heapTotal / 1048576),
+            rss_mb: Math.round(process.memoryUsage().rss / 1048576),
+            os_free_mb: Math.round(freeMem / 1048576),
+            os_total_mb: Math.round(osMem / 1048576),
+            os_used_pct: Math.round((1 - freeMem / osMem) * 100)
+        },
+        cpu_load: os.loadavg(),
+        log_counters: logCounters,
+        routes_registered: app._router?.stack?.filter(r => r.route).length || 'unknown',
+    });
+});
+
+app.get('/api/debug/logs', auth, requireAdmin, (req, res) => {
+    const level = req.query.level?.toUpperCase() || null;
+    const limit = Math.min(200, parseInt(req.query.limit) || 100);
+    const since = req.query.since ? new Date(req.query.since) : null;
+    let entries = log.getBuffer(level, limit);
+    if (since) entries = entries.filter(e => new Date(e.ts) >= since);
+    res.json({ count: entries.length, level: level || 'ALL', entries });
 });
 
 // Root fallback to Dashboard (SPA)

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { db, schema } = require('../../db');
 const { eq } = require('drizzle-orm');
+const log = require('../services/logger');
 
 // ─── JWT User Cache (évite un hit DB par requête) ────────────────────────────
 // TTL de 60s : acceptable pour la révocation (max 60s de délai après suppression d'un user)
@@ -47,6 +48,7 @@ const auth = async (req, res, next) => {
         // Vérification via cache (évite hit DB systématique)
         const user = await getCachedUser(decoded.username);
         if (!user) {
+            log.warn('auth', 'JWT token for unknown/deleted user', { username: decoded.username, path: req.originalUrl });
             return res.status(401).json({ error: 'Revoked' });
         }
 
@@ -59,6 +61,7 @@ const auth = async (req, res, next) => {
         req.user = decoded;
         next();
     } catch (e) {
+        log.warn('auth', 'Invalid JWT token rejected', { path: req.originalUrl, err: e.message });
         return res.status(401).json({ error: 'Invalid token' });
     }
 };

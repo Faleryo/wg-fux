@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const util = require('util');
 const { db, schema } = require('../../db');
+const log = require('./logger');
 
 const pbkdf2Async = util.promisify(crypto.pbkdf2);
 
@@ -21,7 +22,7 @@ const logLoginAttempt = async (username, clientIp, userAgent, success) => {
             container: userAgent ? userAgent.substring(0, 100) : 'unknown'
         });
     } catch (e) {
-        console.error('[AUTH-SERVICE] Error logging login attempt:', e);
+        log.error('auth', 'Error logging login attempt', { err: e.message });
     }
 };
 
@@ -34,7 +35,7 @@ const verifyPassword = async (password, hash, salt) => {
         const generatedHash = hashBuffer.toString('hex');
         return crypto.timingSafeEqual(Buffer.from(hash.trim()), Buffer.from(generatedHash));
     } catch (e) {
-        console.error('[AUTH-SERVICE] Password verification failed:', e);
+        log.error('auth', 'Password verification failed', { err: e.message });
         return false;
     }
 };
