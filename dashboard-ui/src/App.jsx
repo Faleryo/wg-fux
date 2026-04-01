@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { axiosInstance, getWsUri } from './lib/api';
 import { useWebSocket } from './lib/useWebSocket';
+import ErrorBoundary from './components/ErrorBoundary';
+import ConfirmModal from './components/modals/ConfirmModal';
 import { Menu, Search } from 'lucide-react';
 import { useTheme } from './context/ThemeContext';
 import { useToast } from './context/ToastContext';
@@ -93,8 +95,10 @@ const WireGuardDashboard = ({ onLogout }) => {
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const [selectedClientForModal, setSelectedClientForModal] = useState(null);
   const [selectedClientForEdit, setSelectedClientForEdit] = useState(null);
+  const [selectedClientForModal, setSelectedClientForModal] = useState(null);
+  // ConfirmModal state
+  const [confirmModal, setConfirmModal] = useState({ open: false, client: null });
 
   const prevDataRef = useRef({ clients: [], timestamp: null });
 
@@ -116,11 +120,17 @@ const WireGuardDashboard = ({ onLogout }) => {
   }, []);
 
   // ── WebSocket for real-time peer activity ──────────────────────────────────
-  // The status WS sends system stats; some backends also emit peer events here.
-  // We handle multiple possible event shapes gracefully.
+  // onlinePeers alimenté par le WS status (broadcast toutes les 5s)
+  const [onlinePeers, setOnlinePeers] = useState([]);
+
   const { data: wsEvent } = useWebSocket(getWsUri('status'), {
     onMessage: (data) => {
       if (!data || typeof data !== 'object') return;
+      // Mise à jour live des peers en ligne (pour NetworkMap)
+      if (data.type === 'peer_status' && Array.isArray(data.onlinePeers)) {
+        setOnlinePeers(data.onlinePeers);
+        return;
+      }
       const isPeerEvent = data.type === 'client_event' || data.type === 'peer_connected' || data.type === 'peer_disconnected';
       if (isPeerEvent) {
         const name = data.name || data.client?.name || 'Peer';
@@ -273,15 +283,21 @@ const WireGuardDashboard = ({ onLogout }) => {
     document.body.removeChild(element);
   };
 
-  const handleDeleteClient = async (client) => {
-    if (window.confirm('Voulez-vous vraiment supprimer ce client ?')) {
-      try {
-        await axiosInstance.delete(`/clients/${client.container}/${client.name}`);
-        addToast('Client supprimé', 'success');
-        fetchData();
-        if (topologySelectedClient?.id === client.id) setTopologySelectedClient(null);
-      } catch { addToast('Erreur suppression', 'error'); }
-    }
+  // Remplace window.confirm() — ouvre le ConfirmModal premium
+  const handleDeleteClient = (client) => {
+    setConfirmModal({ open: true, client });
+  };
+
+  const executeDeleteClient = async () => {
+    const client = confirmModal.client;
+    setConfirmModal({ open: false, client: null });
+    if (!client) return;
+    try {
+      await axiosInstance.delete(`/clients/${client.container}/${client.name}`);
+      addToast('Client supprimé', 'success');
+      fetchData();
+      if (topologySelectedClient?.id === client.id) setTopologySelectedClient(null);
+    } catch { addToast('Erreur suppression', 'error'); }
   };
 
   const handleNavigate = (sectionId) => {
@@ -337,7 +353,11 @@ const WireGuardDashboard = ({ onLogout }) => {
       case 'topology':
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
-            <NetworkMap clients={clients} onSelectClient={setTopologySelectedClient} />
+            <NetworkMap
+              clients={clients}
+              onSelectClient={setTopologySelectedClient}
+              onlinePeers={onlinePeers}
+            />
           </div>
         );
       case 'users':    return <UsersSection onCreateUser={() => setShowCreateUserModal(true)} />;
@@ -409,7 +429,9 @@ const WireGuardDashboard = ({ onLogout }) => {
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             >
-              {renderSection()}
+              <ErrorBoundary sectionName={activeSection}>
+                {renderSection()}
+              </ErrorBoundary>
             </motion.div>
           </AnimatePresence>
         </div>
@@ -461,6 +483,23 @@ const WireGuardDashboard = ({ onLogout }) => {
           onSave={fetchData}
         />
       )}
+      {/* ConfirmModal — Remplace window.confirm() pour les suppressions */}
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        title="Supprimer le client"
+        message={
+          confirmModal.client ? (
+            <span>
+              Supprimer <strong className="text-white font-mono">{confirmModal.client.name}</strong>{' '}
+              du container <strong className="text-white font-mono">{confirmModal.client.container}</strong> ?
+            </span>
+          ) : 'Cette action est irréversible.'
+        }
+        confirmLabel="Supprimer définitivement"
+        intent="danger"
+        onConfirm={executeDeleteClient}
+        onCancel={() => setConfirmModal({ open: false, client: null })}
+      />
     </div>
   );
 };

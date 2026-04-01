@@ -4,6 +4,7 @@ const { db, schema } = require('../../db');
 const { eq } = require('drizzle-orm');
 const { userSchema } = require('../../db/validation');
 const { auth, requireAdmin } = require('../middleware/auth');
+const { invalidateUserCache } = require('../middleware/auth');
 const { hashPassword } = require('../services/auth');
 
 router.get('/', auth, requireAdmin, async (req, res) => {
@@ -53,6 +54,7 @@ router.patch('/:username', auth, requireAdmin, async (req, res) => {
         if (expiry !== undefined) updateData.expiry = expiry;
         
         await db.update(schema.users).set(updateData).where(eq(schema.users.username, username));
+        invalidateUserCache(username); // Purge cache JWT
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -62,6 +64,7 @@ router.delete('/:username', auth, requireAdmin, async (req, res) => {
     if (username === 'admin' || username === process.env.ADMIN_USER) return res.status(400).json({ error: 'Cannot delete root' });
     try {
         await db.delete(schema.users).where(eq(schema.users.username, username));
+        invalidateUserCache(username); // Purge cache JWT
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -69,6 +72,7 @@ router.delete('/:username', auth, requireAdmin, async (req, res) => {
 router.post('/:username/reset-2fa', auth, requireAdmin, async (req, res) => {
     try {
         await db.update(schema.users).set({ twoFactorSecret: null }).where(eq(schema.users.username, req.params.username));
+        invalidateUserCache(req.params.username); // Purge cache JWT
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });

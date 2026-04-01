@@ -4,11 +4,21 @@ const path = require('path');
 const fsPromises = require('fs').promises;
 const { db, schema } = require('../../db');
 const { eq, and, desc, onConflictDoUpdate } = require('drizzle-orm');
-const { clientSchema } = require('../../db/validation');
+const { clientSchema, clientPatchSchema, toggleSchema, bulkUpdateSchema, bulkDeleteSchema, moveClientSchema, containerSchema } = require('../../db/validation');
 const { auth, requireManager } = require('../middleware/auth');
 const { runSystemCommand } = require('../services/shell');
 const { getWireGuardStats, getClientDir, getInterfacePath, isValidName, parseWireGuardDump } = require('../services/system');
 const { getScriptPath } = require('../services/config');
+
+// Mutex simple pour éviter les race conditions lors de création simultanée de clients
+// (le flock shell protège l'attribution IP, ce mutex protège le flux Node.js)
+let isCreatingClient = false;
+const withClientMutex = async (fn) => {
+    if (isCreatingClient) throw new Error('Une création de client est déjà en cours. Réessayez dans quelques secondes.');
+    isCreatingClient = true;
+    try { return await fn(); }
+    finally { isCreatingClient = false; }
+};
 
 // --- Container Routes ---
 
@@ -33,8 +43,10 @@ router.get('/containers', auth, requireManager, async (req, res) => {
 });
 
 router.post('/containers', auth, requireManager, async (req, res) => {
-    const { name } = req.body;
-    if (!name || !isValidName(name)) return res.status(400).json({ error: 'Invalid name' });
+    // Validation Zod sur le nom du container
+    const parsed = containerSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+    const { name } = parsed.data;
     const { success, error } = await runSystemCommand(getScriptPath('wg-create-container.sh'), [name]);
     if (!success) return res.status(500).json({ error });
     res.json({ success: true });
@@ -82,7 +94,52 @@ router.get('/', auth, requireManager, async (req, res) => {
             };
         });
 
-        res.json(clients);
+        // Filtres
+        let filtered = clients;
+        const { container: containerFilter, status, search } = req.query;
+        if (containerFilter) filtered = filtered.filter(c => c.container === containerFilter);
+        if (status === 'online') filtered = filtered.filter(c => c.isOnline || (c.lastHandshake && Date.now()/1000 - c.lastHandshake < 180));
+        if (status === 'offline') filtered = filtered.filter(c => !c.isOnline && !(c.lastHandshake && Date.now()/1000 - c.lastHandshake < 180));
+        if (search) {
+            const q = search.toLowerCase();
+            filtered = filtered.filter(c => c.name?.toLowerCase().includes(q) || c.ip?.includes(q) || c.container?.toLowerCase().includes(q));
+        }
+
+        // Pagination (par défaut : tout, limite max 500)
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const pageSize = Math.min(500, Math.max(1, parseInt(req.query.limit) || filtered.length));
+        const total = filtered.length;
+        const paginated = parseInt(req.query.page) ? filtered.slice((page - 1) * pageSize, page * pageSize) : filtered;
+
+        res.json(parseInt(req.query.page) ? {
+            clients: paginated,
+            pagination: { page, limit: pageSize, total, totalPages: Math.ceil(total / pageSize) }
+        } : clients); // Compatibilité rétroactive : sans ?page= on retourne le tableau direct
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// GET /api/clients/export — Export CSV ou JSON de tous les clients
+router.get('/export', auth, requireManager, async (req, res) => {
+    try {
+        const format = req.query.format === 'json' ? 'json' : 'csv';
+        const allClients = await db.select().from(schema.clients);
+
+        if (format === 'json') {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Disposition', `attachment; filename="wg-clients-${Date.now()}.json"`);
+            return res.json(allClients);
+        }
+
+        const headers = ['name', 'container', 'ip', 'publicKey', 'expiry', 'quota', 'uploadLimit', 'createdAt'];
+        const rows = allClients.map(c =>
+            headers.map(h => `"${String(c[h] !== undefined ? c[h] : '').replace(/"/g, '""')}"`).join(',')
+        );
+        const csv = [headers.join(','), ...rows].join('\n');
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="wg-clients-${Date.now()}.csv"`);
+        res.send('\uFEFF' + csv); // BOM UTF-8 pour compatibilité Excel
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -92,47 +149,57 @@ router.post('/', auth, requireManager, async (req, res) => {
     try {
         const result = clientSchema.safeParse(req.body);
         if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
-        
+
         const { name, container, expiry, quota, uploadLimit } = result.data;
         const cleanExpiry = expiry || '';
 
-        const { success, error } = await runSystemCommand(getScriptPath('wg-create-client.sh'), [container, name, cleanExpiry, String(quota || ''), String(uploadLimit || '0')]);
-        if (!success) return res.status(500).json({ error });
+        // Mutex: protège contre les créations simultanées qui causeraient des conflits d'IP
+        const clientData = await withClientMutex(async () => {
+            const { success, error } = await runSystemCommand(getScriptPath('wg-create-client.sh'), [container, name, cleanExpiry, String(quota || ''), String(uploadLimit || '0')]);
+            if (!success) throw new Error(error || 'Script execution failed');
 
-        // Synchronous sync (awaitable for consistency, but we try a few times)
-        let publicKey = '', ip = '';
-        for (let i = 1; i <= 5; i++) {
-            try {
-                await new Promise(r => setTimeout(r, 500 * i));
-                const clientDir = getClientDir(container, name);
-                publicKey = await fsPromises.readFile(path.join(clientDir, 'public.key'), 'utf8').then(s => s.trim());
-                const conf = await fsPromises.readFile(path.join(clientDir, `${name}.conf`), 'utf8');
-                const ipMatch = conf.match(/Address\s*=\s*(.+)/);
-                ip = ipMatch ? ipMatch[1].split(',')[0].trim() : '';
-                if (publicKey) break;
-            } catch (e) {
-                if (i === 5) throw new Error(`FileSystem sync failed for ${name} in ${container}`);
+            let publicKey = '', ip = '';
+            for (let i = 1; i <= 5; i++) {
+                try {
+                    await new Promise(r => setTimeout(r, 500 * i));
+                    const clientDir = getClientDir(container, name);
+                    publicKey = await fsPromises.readFile(path.join(clientDir, 'public.key'), 'utf8').then(s => s.trim());
+                    const conf = await fsPromises.readFile(path.join(clientDir, `${name}.conf`), 'utf8');
+                    const ipMatch = conf.match(/Address\s*=\s*(.+)/);
+                    ip = ipMatch ? ipMatch[1].split(',')[0].trim() : '';
+                    if (publicKey) break;
+                } catch (e) {
+                    if (i === 5) throw new Error(`FileSystem sync failed for ${name} in ${container}`);
+                }
             }
-        }
+            return { publicKey, ip };
+        });
 
         await db.insert(schema.clients).values({
-            container, name, publicKey, ip,
+            container, name, publicKey: clientData.publicKey, ip: clientData.ip,
             expiry: cleanExpiry, quota: quota || 0, uploadLimit: uploadLimit || 0,
             createdAt: new Date()
         }).onConflictDoUpdate({
             target: schema.clients.publicKey,
             set: { name, container, expiry: cleanExpiry, quota: quota || 0, uploadLimit: uploadLimit || 0 }
         });
-        await db.insert(schema.usage).values({ publicKey, total: 0, daily: '{}' }).onConflictDoNothing();
+        await db.insert(schema.usage).values({ publicKey: clientData.publicKey, total: 0, daily: '{}' }).onConflictDoNothing();
 
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        const status = e.message.includes('en cours') ? 409 : 500;
+        res.status(status).json({ error: e.message });
+    }
 });
 
 router.post('/:container/:name/toggle', auth, requireManager, async (req, res) => {
+    // Validation Zod sur le body
+    const parsed = toggleSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+
     try {
         const { container, name } = req.params;
-        const { enabled } = req.body;
+        const { enabled } = parsed.data;
         const [client] = await db.select().from(schema.clients).where(and(eq(schema.clients.container, container), eq(schema.clients.name, name))).limit(1);
         if (!client) return res.status(404).json({ error: 'Client not found' });
         
@@ -173,7 +240,10 @@ router.delete('/:container/:name', auth, requireManager, async (req, res) => {
 
 router.patch('/:container/:name', auth, requireManager, async (req, res) => {
     const { container, name } = req.params;
-    const { expiry, quota, uploadLimit } = req.body;
+    // Validation Zod sur le patch
+    const parsed = clientPatchSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+    const { expiry, quota, uploadLimit } = parsed.data;
     try {
         const [client] = await db.select().from(schema.clients).where(and(eq(schema.clients.container, container), eq(schema.clients.name, name))).limit(1);
         if (!client) return res.status(404).json({ error: 'Client not found' });
@@ -208,8 +278,10 @@ router.patch('/:container/:name', auth, requireManager, async (req, res) => {
 });
 
 router.post('/bulk-update', auth, requireManager, async (req, res) => {
-    const { clients, update } = req.body;
-    if (!Array.isArray(clients)) return res.status(400).json({ error: 'Invalid list' });
+    // Validation Zod
+    const parsed = bulkUpdateSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+    const { clients, update } = parsed.data;
     let successCount = 0, failedCount = 0;
     for (const client of clients) {
         try {
@@ -231,8 +303,10 @@ router.post('/bulk-update', auth, requireManager, async (req, res) => {
 });
 
 router.post('/bulk-delete', auth, requireManager, async (req, res) => {
-    const { clients } = req.body;
-    if (!Array.isArray(clients)) return res.status(400).json({ error: 'Invalid list' });
+    // Validation Zod
+    const parsed = bulkDeleteSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+    const { clients } = parsed.data;
     let successCount = 0, failedCount = 0;
     for (const client of clients) {
         try {
@@ -249,7 +323,10 @@ router.post('/bulk-delete', auth, requireManager, async (req, res) => {
 });
 
 router.post('/move', auth, requireManager, async (req, res) => {
-    const { container, name, newContainer } = req.body;
+    // Validation Zod
+    const parsed = moveClientSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+    const { container, name, newContainer } = parsed.data;
     const { success, error } = await runSystemCommand(getScriptPath('wg-move-client.sh'), [container, name, newContainer]);
     if (!success) return res.status(500).json({ error });
     try {

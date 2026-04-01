@@ -3,7 +3,8 @@ if [ -f /etc/wireguard/manager.conf ]; then
     source /etc/wireguard/manager.conf
 fi
 STATE_FILE="/var/run/wg-monitor.state"
-DB_FILE="/home/faleryo/ai/api-service/data/wg-fux.db"
+# FIX: Chemin DB dynamique (même fix que wg-enforcer.sh)
+DB_FILE="${WG_DB_PATH:-${API_DATA_DIR:-/app/data}/wg-fux.db}"
 INTERFACE="${WG_INTERFACE:-wg0}"
 touch $STATE_FILE
 

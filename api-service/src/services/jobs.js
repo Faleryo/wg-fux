@@ -139,6 +139,28 @@ const startJobs = () => {
     loadSchedules();
     setInterval(updateUsage, 60000);
     setInterval(logTrafficHistory, 3600000);
+    // Job backup automatique quotidien à 3h00 du matin
+    scheduleAutomaticBackup();
+};
+
+/**
+ * Schedule automatic daily backup at 03:00
+ */
+const scheduleAutomaticBackup = () => {
+    const rule = new schedule.RecurrenceRule();
+    rule.hour = 3;
+    rule.minute = 0;
+    schedule.scheduleJob(rule, async () => {
+        console.log('[JOB] Backup automatique quotidien à 03:00...');
+        const result = await runSystemCommand(getScriptPath('wg-backup.sh'), [])
+            .catch(e => ({ success: false, error: e.message }));
+        if (result.success) {
+            console.log('[JOB] Backup créé avec succès.');
+        } else {
+            console.error('[JOB] Échec du backup automatique:', result.error);
+        }
+    });
+    console.log('[JOB] Backup automatique planifié quotidiennement à 03:00.');
 };
 
 const getJobStatus = () => ({

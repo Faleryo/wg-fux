@@ -98,6 +98,27 @@ update_process() {
     echo -e "[INFO] Reconstruction des images et redémarrage des services..."
     sudo docker compose up --build -d
     
+    # Vérification post-install : attendre que les containers soient healthy
+    echo -e "${BLUE}[INFO] Vérification de l'état des containers (max 120s)...${NC}"
+    local timeout=120
+    local waited=0
+    while [ $waited -lt $timeout ]; do
+        local unhealthy
+        unhealthy=$(sudo docker compose ps --format json 2>/dev/null | \
+            python3 -c "import sys,json; data=[json.loads(l) for l in sys.stdin if l.strip()]; \
+            bad=[c['Name'] for c in data if c.get('Health','') not in ('healthy','')]; print(' '.join(bad))" 2>/dev/null || echo "")
+        if [ -z "$unhealthy" ] || [ "$unhealthy" = " " ]; then
+            echo -e "${GREEN}[SUCCESS] Tous les containers sont opérationnels.${NC}"
+            break
+        fi
+        echo -e "${YELLOW}[INFO] Attente des containers: $unhealthy (${waited}s/${timeout}s)...${NC}"
+        sleep 10
+        waited=$((waited + 10))
+    done
+    if [ $waited -ge $timeout ]; then
+        echo -e "${YELLOW}[WARNING] Timeout atteint. Vérifiez avec: sudo docker compose ps${NC}"
+    fi
+    
     local ip_final="${SERVER_IP:-$(detect_public_ip)}"
     echo -e "\n${GREEN}==================================================${NC}"
     echo -e "${GREEN}        WG-FUX EST PRÊT À L'ACTION !            ${NC}"
@@ -230,9 +251,25 @@ setup_ssl() {
     local ssl_dir="infra/ssl"
     if [ ! -d "$ssl_dir" ]; then mkdir -p "$ssl_dir"; fi
 
+    # Tenter d'abord Let's Encrypt si un domaine est configuré et certbot disponible
+    if [ -n "$SERVER_DOMAIN" ] && command -v certbot &>/dev/null; then
+        echo -e "${BLUE}[INFO] Certbot détecté. Tentative Let's Encrypt pour $SERVER_DOMAIN...${NC}"
+        if certbot certonly --standalone --non-interactive --agree-tos --email "admin@$SERVER_DOMAIN" -d "$SERVER_DOMAIN" 2>/dev/null; then
+            # Installer un renouvellement automatique via cron
+            (crontab -l 2>/dev/null | grep -v 'certbot renew'; \
+             echo "0 3 * * 7 certbot renew --quiet && docker compose -f $(pwd)/docker-compose.yml restart nginx") | crontab -
+            echo -e "${GREEN}[SUCCESS] Certificat Let's Encrypt obtenu. Renouvellement auto planifié (dimanche 03:00).${NC}"
+            # Copier dans le bon répertoire
+            cp "/etc/letsencrypt/live/$SERVER_DOMAIN/fullchain.pem" "$ssl_dir/server.crt" 2>/dev/null || true
+            cp "/etc/letsencrypt/live/$SERVER_DOMAIN/privkey.pem" "$ssl_dir/server.key" 2>/dev/null || true
+            return 0
+        else
+            echo -e "${YELLOW}[WARNING] Let's Encrypt échoué (port 80 bloqué ou domaine invalide). Fallback SSL auto-signé.${NC}"
+        fi
+    fi
+
     if [ ! -f "$ssl_dir/server.crt" ] || [ ! -f "$ssl_dir/server.key" ]; then
         echo -e "${YELLOW}[INFO] Génération d'un certificat SSL auto-signé (Secours)...${NC}"
-        # Utilisation de l'IP détectée si SERVER_IP n'est pas encore défini
         local ip_for_cert="${SERVER_IP:-$(detect_public_ip)}"
         
         if openssl req -x509 -nodes -days 365 -newkey rsa:2048 \

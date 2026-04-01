@@ -2,9 +2,37 @@ const jwt = require('jsonwebtoken');
 const { db, schema } = require('../../db');
 const { eq } = require('drizzle-orm');
 
+// ─── JWT User Cache (évite un hit DB par requête) ────────────────────────────
+// TTL de 60s : acceptable pour la révocation (max 60s de délai après suppression d'un user)
+const userCache = new Map(); // Map<username, { user, expiresAt }>
+const CACHE_TTL_MS = 60_000;
+
+const getCachedUser = async (username) => {
+    const now = Date.now();
+    const cached = userCache.get(username);
+    if (cached && cached.expiresAt > now) {
+        return cached.user;
+    }
+    // Cache miss ou expiré → hit DB
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.username, username)).limit(1);
+    if (user) {
+        userCache.set(username, { user, expiresAt: now + CACHE_TTL_MS });
+    } else {
+        userCache.delete(username); // Utilisateur supprimé → purger le cache
+    }
+    return user || null;
+};
+
+// Purge de l'entrée cache lors d'une mise à jour/suppression
+const invalidateUserCache = (username) => {
+    userCache.delete(username);
+};
+
+// ─── Auth Middleware ──────────────────────────────────────────────────────────
 const auth = async (req, res, next) => {
-    // White-list: Installation status and Login
-    if (req.originalUrl.endsWith('/install/status') || req.originalUrl.endsWith('/auth/login')) {
+    // White-list stricte : Installation status et Login uniquement
+    const url = req.originalUrl.split('?')[0]; // ignorer query string
+    if (url.endsWith('/api/install/status') || url.endsWith('/api/auth/login')) {
         return next();
     }
 
@@ -15,18 +43,19 @@ const auth = async (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
-        // Security logic: check if user exists and is not expired
-        const [user] = await db.select().from(schema.users).where(eq(schema.users.username, decoded.username)).limit(1);
+
+        // Vérification via cache (évite hit DB systématique)
+        const user = await getCachedUser(decoded.username);
         if (!user) {
             return res.status(401).json({ error: 'Revoked' });
         }
-        
-        // Check account expiry (supports YYYY-MM-DD and ISO format)
+
+        // Check expiry du compte
         if (user.expiry && new Date(user.expiry) < new Date()) {
+            invalidateUserCache(decoded.username); // Forcer re-fetch au prochain check
             return res.status(403).json({ error: 'Account expired' });
         }
-        
+
         req.user = decoded;
         next();
     } catch (e) {
@@ -47,5 +76,6 @@ const requireManager = (req, res, next) => {
 module.exports = {
     auth,
     requireAdmin,
-    requireManager
+    requireManager,
+    invalidateUserCache
 };

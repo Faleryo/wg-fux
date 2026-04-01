@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Activity, Server, Users, Plus, Minus, RefreshCw, Pause } from 'lucide-react';
+import { Activity, Server, Users, Plus, Minus, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import { cn, formatBytes } from '../../lib/utils';
 
-const NetworkMap = ({ clients, onSelectClient }) => {
+const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
   const containerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
@@ -13,14 +13,24 @@ const NetworkMap = ({ clients, onSelectClient }) => {
   const clickTimeoutRef = useRef(null);
   const { theme } = useTheme();
 
+  // Enrichir les clients avec les données de statut live (via onlinePeers du WS)
+  const enrichedClients = useMemo(() => {
+    const onlineSet = new Set(onlinePeers);
+    return [...clients].map(c => ({
+      ...c,
+      // Priorité : WS live > lastHandshake calculé > offline
+      isOnline: onlineSet.has(c.publicKey) || (c.lastHandshake && (Date.now()/1000 - c.lastHandshake) < 180),
+    }));
+  }, [clients, onlinePeers]);
+
   const sortedClients = useMemo(() => {
-    return [...clients].sort((a, b) => 
-      (a.container || '').localeCompare(b.container || '') || 
+    return [...enrichedClients].sort((a, b) =>
+      (a.container || '').localeCompare(b.container || '') ||
       (a.name || '').localeCompare(b.name || '')
     );
-  }, [clients]);
+  }, [enrichedClients]);
 
-  const uniqueContainers = useMemo(() => [...new Set(clients.map(c => c.container))].sort(), [clients]);
+  const uniqueContainers = useMemo(() => [...new Set(enrichedClients.map(c => c.container))].sort(), [enrichedClients]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -225,8 +235,21 @@ const NetworkMap = ({ clients, onSelectClient }) => {
 
                   <div className="space-y-3 font-mono text-[10px] text-slate-500">
                     <div className="flex justify-between"><span>Tact IP</span> <span className="text-slate-100">{client.ip}</span></div>
-                    <div className="flex justify-between"><span>Burst DL</span> <span className="text-emerald-400">{formatBytes(client.downloadRate)}/s</span></div>
-                    <div className="flex justify-between"><span>Burst UL</span> <span className="text-indigo-400">{formatBytes(client.uploadRate)}/s</span></div>
+                    <div className="flex justify-between"><span>Endpoint</span> <span className="text-slate-300 truncate max-w-[120px]">{client.endpoint || '—'}</span></div>
+                    <div className="flex justify-between"><span>Burst DL</span> <span className="text-emerald-400">{formatBytes(client.downloadRate || client.rx || 0)}/s</span></div>
+                    <div className="flex justify-between"><span>Burst UL</span> <span className="text-indigo-400">{formatBytes(client.uploadRate || client.tx || 0)}/s</span></div>
+                    {client.usageTotal > 0 && (
+                      <div className="flex justify-between border-t border-white/5 pt-2 mt-2">
+                        <span>Total usage</span>
+                        <span className="text-amber-400 font-bold">{formatBytes(client.usageTotal)}</span>
+                      </div>
+                    )}
+                    {client.lastHandshake > 0 && (
+                      <div className="flex justify-between">
+                        <span>Last seen</span>
+                        <span className="text-slate-400">{Math.floor((Date.now()/1000 - client.lastHandshake) / 60)}m ago</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </AnimatePresence>

@@ -192,6 +192,23 @@ setInterval(async () => {
 
 server.on('upgrade', (request, socket, head) => {
     const pathname = url.parse(request.url).pathname;
+    
+    // Auth JWT sur les WebSockets (empêche les connexions non authentifiées)
+    const token = request.headers['x-api-token'] || new URL(request.url, 'http://localhost').searchParams.get('token');
+    if (!token) {
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        socket.destroy();
+        return;
+    }
+    try {
+        const jwt = require('jsonwebtoken');
+        jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        socket.destroy();
+        return;
+    }
+
     if (pathname.startsWith('/api/logs-ws/')) {
         wssLogs.handleUpgrade(request, socket, head, ws => wssLogs.emit('connection', ws, request));
     } else if (pathname === '/api/status-ws') {

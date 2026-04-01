@@ -23,21 +23,24 @@ export const axiosInstance = axios.create({
 export const getWsUri = (type) => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const { hostname, port, host } = window.location;
+  // Inclure le token JWT pour l'auth WS côté serveur
+  const token = localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') || '';
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
 
   // Mode Développement
   if (port === '3000' || port === '5173') {
     const wsBase = `${protocol}//${hostname}:3000/api/logs-ws`;
-    if (type === 'logs-api') return `${wsBase}/api`;
-    if (type === 'logs-wg') return `${wsBase}/wireguard`;
-    if (type === 'status') return `${protocol}//${hostname}:3000/api/status-ws`;
+    if (type === 'logs-api') return `${wsBase}/api${tokenParam}`;
+    if (type === 'logs-wg') return `${wsBase}/wireguard${tokenParam}`;
+    if (type === 'status') return `${protocol}//${hostname}:3000/api/status-ws${tokenParam}`;
   }
 
   // Mode Production (Proxy Nginx)
   const wsBase = `${protocol}//${host}/api/logs-ws`;
-  if (type === 'logs-api') return `${wsBase}/api`;
-  if (type === 'logs-wg') return `${wsBase}/wireguard`;
-  if (type === 'status') return `${protocol}//${host}/api/status-ws`;
-  return `${protocol}//${host}/ws`;
+  if (type === 'logs-api') return `${wsBase}/api${tokenParam}`;
+  if (type === 'logs-wg') return `${wsBase}/wireguard${tokenParam}`;
+  if (type === 'status') return `${protocol}//${host}/api/status-ws${tokenParam}`;
+  return `${protocol}//${host}/ws${tokenParam}`;
 };
 
 // Intercepteur pour ajouter le token API

@@ -16,6 +16,12 @@ services:
         condition: service_healthy
     networks:
       - vpn-internal
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   api:
     build:

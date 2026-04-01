@@ -15,7 +15,10 @@ const logLoginAttempt = async (username, clientIp, userAgent, success) => {
             status: success ? 'success' : 'failure',
             name: username,
             realIp: clientIp,
-            virtualIp: `Login attempt from ${userAgent}`
+            // FIX: ne plus stocker userAgent dans virtualIp (champ sémantiquement incorrect)
+            // On stocke l'IP réelle dans realIp et l'agent dans container pour le log
+            virtualIp: '',
+            container: userAgent ? userAgent.substring(0, 100) : 'unknown'
         });
     } catch (e) {
         console.error('[AUTH-SERVICE] Error logging login attempt:', e);
