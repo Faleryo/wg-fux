@@ -194,10 +194,12 @@ router.patch('/:container/:name', auth, requireManager, async (req, res) => {
             updateData.uploadLimit = parseInt(uploadLimit) || 0;
             if (updateData.uploadLimit > 0) await fsPromises.writeFile(path.join(clientDir, 'upload_limit'), String(uploadLimit));
             else await fsPromises.unlink(path.join(clientDir, 'upload_limit')).catch(() => {});
-            runSystemCommand(getScriptPath('wg-apply-qos.sh'), []);
+            // BUG-FIX: await ajouté — promesse orpheline → échec silencieux
+            await runSystemCommand(getScriptPath('wg-apply-qos.sh'), []).catch(e => console.error('[AUDIT] wg-apply-qos failed:', e.message));
         }
         await db.update(schema.clients).set(updateData).where(eq(schema.clients.publicKey, client.publicKey));
-        runSystemCommand(getScriptPath('wg-enforcer.sh'), []);
+        // BUG-FIX: await ajouté — promesse orpheline → erreur silencieuse non trapée
+        await runSystemCommand(getScriptPath('wg-enforcer.sh'), []).catch(e => console.error('[AUDIT] wg-enforcer failed:', e.message));
         res.json({ success: true });
     } catch (e) { 
         console.error(`[ERROR] Failed to update client ${name}:`, e.message);
@@ -223,7 +225,8 @@ router.post('/bulk-update', auth, requireManager, async (req, res) => {
             successCount++;
         } catch(e) { failedCount++; }
     }
-    runSystemCommand(getScriptPath('wg-enforcer.sh'), []);
+    // BUG-FIX: await ajouté sur la commande bulk enforcer
+    await runSystemCommand(getScriptPath('wg-enforcer.sh'), []).catch(e => console.error('[AUDIT] bulk enforcer failed:', e.message));
     res.json({ success: successCount, failed: failedCount });
 });
 

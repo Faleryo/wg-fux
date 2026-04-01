@@ -26,9 +26,9 @@ const LoginPage = ({ onLogin }) => {
     try {
       const { data } = await axiosInstance.post('/auth/login', { username, password, token: totp });
       if (data.valid && data.token) {
-        localStorage.setItem('wg-user-role', data.role);
-        localStorage.setItem('wg-user-username', username);
-        onLogin(data.token, rememberMe);
+        // BUG-FIX: Passer role et username directement à onLogin (cohérent avec le nouveau contrat)
+        // App.jsx gère la persistance localStorage centralement
+        onLogin(data.token, rememberMe, data.role, username);
       } else {
         setError(data.error || 'Identifiants invalides');
       }

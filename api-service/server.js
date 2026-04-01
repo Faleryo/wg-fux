@@ -106,7 +106,13 @@ app.get('/api/stats', auth, async (req, res, next) => {
     } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Root fallback to Dashboard
+// BUG-FIX: 404 handler for unknown /api/* routes (must be before SPA catch-all)
+// Without this, a missing API route silently returns the frontend HTML → impossible to debug.
+app.use('/api', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found', path: req.originalUrl });
+});
+
+// Root fallback to Dashboard (SPA)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../dashboard-ui/dist/index.html'));
 });
@@ -168,8 +174,13 @@ const wsInterval = setInterval(() => {
 wssLogs.on('error', (err) => console.error('[WSS-ERROR] Logs:', err));
 wssStatus.on('error', (err) => console.error('[WSS-ERROR] Status:', err));
 
-wssLogs.on('close', () => clearInterval(wsInterval));
+// BUG-FIX: clearInterval lié au server HTTP et non wssLogs.
+// Si wssLogs se fermait (0 clients), le heartbeat de wssStatus était aussi annulé.
+server.on('close', () => clearInterval(wsInterval));
+// BUG-FIX: Interval réduit de 2s à 5s — évite de surcharger "wg show dump" en continu
+// (le frontend poll déjà toutes les 5s, pas besoin de broadcast plus rapide)
 setInterval(async () => {
+    if (wssStatus.clients.size === 0) return; // Skip si aucun client connecté
     try {
         const peers = await getWireGuardStats();
         const onlinePeers = peers.filter(p => p.isOnline).map(p => p.publicKey);
@@ -177,7 +188,7 @@ setInterval(async () => {
     } catch(e) {
         console.error('[AUDIT] WS status broadcast error:', e.message);
     }
-}, 2000);
+}, 5000);
 
 server.on('upgrade', (request, socket, head) => {
     const pathname = url.parse(request.url).pathname;

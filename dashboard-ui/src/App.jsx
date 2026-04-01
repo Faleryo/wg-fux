@@ -37,17 +37,19 @@ const App = () => {
     username: localStorage.getItem('wg-user-username')
   });
 
-  const handleLogin = (token, rememberMe) => {
+  // BUG-FIX: role et username passés directement en paramètres
+  // L'ancienne version lisait localStorage après setToken, créant une race condition
+  // si LoginPage n'avait pas encore écrit ces clés.
+  const handleLogin = (token, rememberMe, role, username) => {
     if (rememberMe) {
       localStorage.setItem('wg-api-token', token);
     } else {
       sessionStorage.setItem('wg-api-token', token);
     }
-    setSession({ 
-      token, 
-      role: localStorage.getItem('wg-user-role'), 
-      username: localStorage.getItem('wg-user-username') 
-    });
+    // Persist role/username pour les rechargements de page
+    if (role) localStorage.setItem('wg-user-role', role);
+    if (username) localStorage.setItem('wg-user-username', username);
+    setSession({ token, role: role || null, username: username || null });
   };
 
   const handleLogout = () => {

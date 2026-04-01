@@ -10,8 +10,10 @@ services:
       - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./infra/ssl:/etc/nginx/ssl:ro
     depends_on:
-      - api
-      - ui
+      api:
+        condition: service_healthy
+      ui:
+        condition: service_healthy
     networks:
       - vpn-internal
 
@@ -21,26 +23,29 @@ services:
       dockerfile: api-service/Dockerfile
     container_name: wg-fux-api
     restart: always
-    privileged: true
-    env_file:
-      - ./api-service/.env
+    # BUG-FIX: Suppression de "privileged: true" redondant avec cap_add
+    # privileged donne TOUS les caps — utiliser les caps ciblés est plus sécurisé
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
+      - NET_RAW
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
       - net.ipv6.conf.all.disable_ipv6=0
       - net.ipv6.conf.all.forwarding=1
+    env_file:
+      - ./api-service/.env
     volumes:
-      - ./api-service/data:/app/data
-      - ./api-service/scripts:/app/api-service/scripts
+      # BUG-FIX: Utiliser un volume nommé pour la DB (évite les erreurs de chemin relatif)
+      - wg_fux_data:/app/data
+      # BUG-FIX: Suppression du volume inutile api-service/scripts (résolution via getScriptPath interne)
       - ./core-vpn:/app/core-vpn
       - /etc/wireguard:/etc/wireguard
       - /lib/modules:/lib/modules:ro
     ports:
       - "51820:51820/udp"
-    # Port 3000 is now internal to vpn-internal network
+    # Port 3000 est interne au réseau vpn-internal
     networks:
       - vpn-internal
     healthcheck:
@@ -56,7 +61,7 @@ services:
       dockerfile: dashboard-ui/Dockerfile
     container_name: wg-fux-dashboard
     restart: always
-    # Port 80 is now internal to vpn-internal network
+    # Port 80 est interne au réseau vpn-internal
     depends_on:
       - api
     networks:
@@ -72,3 +77,9 @@ networks:
   vpn-internal:
     driver: bridge
     internal: false
+
+# BUG-FIX: Volume nommé Docker pour la persistance DB
+# Évite les erreurs si docker compose est lancé depuis un répertoire différent
+volumes:
+  wg_fux_data:
+    driver: local

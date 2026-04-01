@@ -5,6 +5,8 @@ const { db, schema } = require('../../db');
 const { eq, and, lt } = require('drizzle-orm');
 const { runSystemCommand } = require('./shell');
 const { getWireGuardStats } = require('./system');
+// BUG-FIX: Utiliser getScriptPath pour une résolution cohérente des scripts (comme clients.js)
+const { getScriptPath } = require('./config');
 
 const DATA_DIR = path.join(__dirname, '../../data');
 const SCHEDULE_FILE = path.join(DATA_DIR, 'optimization_schedule.json');
@@ -31,10 +33,11 @@ const loadSchedules = async () => {
             const rule = new schedule.RecurrenceRule();
             rule.hour = parseInt(hour);
             rule.minute = parseInt(minute);
-            
+
             const job = schedule.scheduleJob(rule, () => {
-                // Logic for scheduled optimization
-                runSystemCommand('/usr/local/bin/wg-optimize.sh', [task.profile]);
+                // BUG-FIX: Utiliser getScriptPath au lieu du chemin /usr/local/bin hardcodé
+                runSystemCommand(getScriptPath('wg-optimize.sh'), [task.profile])
+                    .catch(e => console.error('[JOB] Scheduled optimization failed:', e.message));
             });
             scheduledJobs[task.id] = job;
         });
@@ -88,7 +91,9 @@ const updateUsage = async () => {
                 });
             }
         }
-        runSystemCommand('/usr/local/bin/wg-enforcer.sh', []);
+        // BUG-FIX: await ajouté + .catch pour éviter les promesses orphelines et erreurs silencieuses
+        await runSystemCommand(getScriptPath('wg-enforcer.sh'), [])
+            .catch(e => console.error('[JOB] Enforcer failed during usage update:', e.message));
     } catch (e) {
         console.error('[JOB] Usage Update Error:', e);
     } finally {

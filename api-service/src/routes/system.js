@@ -68,16 +68,29 @@ router.get('/services', auth, async (req, res) => {
     const services = [
         { id: 'wireguard', name: 'WireGuard Core', unit: `wg-quick@${process.env.WG_INTERFACE}` },
         { id: 'api', name: 'API Server', unit: 'wireguard-api' },
-        { id: 'dashboard', name: 'Dashboard', unit: 'wireguard-dashboard' },
+        { id: 'dashboard', name: 'Dashboard UI', unit: 'wg-fux-dashboard' },
         { id: 'nginx', name: 'Web Server (Nginx)', unit: 'nginx' }
     ];
+    const fs = require('fs');
     const servicesStatus = await Promise.all(services.map(async (svc) => {
         let active = false;
         try {
             if (svc.id === 'wireguard') {
+                // Vérification via sysfs (plus fiable que l'existence du fichier conf)
                 active = fs.existsSync(`/sys/class/net/${process.env.WG_INTERFACE || 'wg0'}`);
-            } else {
+            } else if (svc.id === 'api') {
+                // L'API tourne si on répond à cette requête
                 active = true;
+            } else if (svc.id === 'nginx') {
+                // Vérification du socket unix nginx ou du processus
+                const { runCommand: rc } = require('../services/shell');
+                const { success } = await rc('pgrep', ['-x', 'nginx']).catch(() => ({ success: false }));
+                active = success;
+            } else if (svc.id === 'dashboard') {
+                // Vérifier si le container nginx de l'UI répond
+                const { runCommand: rc } = require('../services/shell');
+                const { success } = await rc('curl', ['-sf', '--max-time', '2', 'http://ui:80/']).catch(() => ({ success: false }));
+                active = success;
             }
         } catch (e) {
             console.error('[AUDIT] System health fetch failed:', e.message);
@@ -100,7 +113,13 @@ router.post('/restart/:id', auth, requireAdmin, async (req, res) => {
 
 router.post('/reload-peers', auth, requireAdmin, async (req, res) => {
     const iface = process.env.WG_INTERFACE || 'wg0';
-    const { success, error } = await runSystemCommand('/bin/bash', ['-c', `wg syncconf ${iface} <(wg-quick strip ${iface})`]);
+    // BUG-FIX: execFile ne supporte pas les process substitutions bash <(...)
+    // Solution: Utiliser deux commandes séquentielles au lieu de process substitution
+    const { success: stripOk, stdout: strippedConf, error: stripErr } = 
+        await runSystemCommand(WG_QUICK_BIN, ['strip', iface]);
+    if (!stripOk) return res.status(500).json({ error: stripErr || 'wg-quick strip failed' });
+    
+    const { success, error } = await runSystemCommand(WG_BIN, ['syncconf', iface, '/dev/stdin'], strippedConf);
     if (!success) return res.status(500).json({ error });
     res.json({ success: true });
 });

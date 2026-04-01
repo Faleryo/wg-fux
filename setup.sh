@@ -170,10 +170,15 @@ setup_swap() {
         fi
 
         if [ -f "$swap_file" ]; then
-            echo -e "${BLUE}[INFO] Fichier de swap WG-FUX ($swap_file) déjà prêt. Activation...${NC}"
-            sudo chmod 600 "$swap_file"
-            sudo mkswap "$swap_file" 2>/dev/null || true
-            sudo swapon "$swap_file" 2>/dev/null || true
+            echo -e "${BLUE}[INFO] Fichier de swap WG-FUX ($swap_file) déjà présent.${NC}"
+            # BUG-FIX: Vérifier si déjà monté avant de mkswap (reformater un swap actif est dangereux)
+            if swapon --show | grep -q "$swap_file"; then
+                echo -e "${BLUE}[INFO] Swap déjà actif. Rien à faire.${NC}"
+            else
+                sudo chmod 600 "$swap_file"
+                sudo mkswap "$swap_file" 2>/dev/null || true
+                sudo swapon "$swap_file" 2>/dev/null || true
+            fi
             return 0
         fi
 
@@ -360,7 +365,24 @@ SALT=$(openssl rand -hex 16)
 JWT_SECRET=$(openssl rand -hex 32)
 
 echo -e "${GREEN}[INFO] Génération du hash sécurisé (PBKDF2-SHA512 - 600k IT)...${NC}"
-ADMIN_HASH=$(docker run --rm node:20-slim -e "const crypto = require('crypto'); console.log(crypto.pbkdf2Sync('$ADMIN_PASS', '$SALT', 600000, 64, 'sha512').toString('hex'))")
+# BUG-FIX: Utiliser un fichier Node temporaire au lieu d'interpolation shell directe
+# L'ancienne méthode: docker run ... -e "... '$ADMIN_PASS' ..." cassait si le MDP contenait ' ou "
+BUF_SCRIPT=$(mktemp /tmp/wg-hash-XXXXXX.js)
+cat > "$BUF_SCRIPT" << 'NODESCRIPT'
+const crypto = require('crypto');
+const pass = process.env.WGFUX_PASS;
+const salt = process.env.WGFUX_SALT;
+if (!pass || !salt) { process.stderr.write('Missing WGFUX_PASS or WGFUX_SALT\n'); process.exit(1); }
+console.log(crypto.pbkdf2Sync(pass, salt, 600000, 64, 'sha512').toString('hex'));
+NODESCRIPT
+ADMIN_HASH=$(WGFUX_PASS="$ADMIN_PASS" WGFUX_SALT="$SALT" node "$BUF_SCRIPT" 2>/dev/null || \
+    docker run --rm -e "WGFUX_PASS=$ADMIN_PASS" -e "WGFUX_SALT=$SALT" \
+        -v "$BUF_SCRIPT:/tmp/hash.js:ro" node:20-slim node /tmp/hash.js)
+rm -f "$BUF_SCRIPT"
+if [ -z "$ADMIN_HASH" ]; then
+    echo -e "${RED}[ERROR] Échec de la génération du hash. Vérifiez que node ou docker est installé.${NC}"
+    exit 1
+fi
 
 # 5. WireGuard Keys
 echo -e "\n${GREEN}[STEP 3] Génération des clés WireGuard${NC}"
