@@ -29,8 +29,8 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
   const handleRestartServer = async () => {
     if (window.confirm('Êtes-vous sûr de vouloir redémarrer le service WireGuard ?')) {
       try {
-        await axios.post('/api/system/restart', {}, {
-          headers: { 'X-Api-Token': localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') }
+        await axios.post('/api/system/restart/wireguard', {}, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token')}` }
         });
         addToast('Service WireGuard redémarré.', 'success');
       } catch (error) {
@@ -145,7 +145,7 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
               <div className="space-y-2 mb-6">
                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-tight">
                   <span>Version</span>
-                  <span className="text-white font-mono bg-white/5 px-2 py-0.5 rounded-md">v3.0.0</span>
+                  <span className="text-white font-mono bg-white/5 px-2 py-0.5 rounded-md">v3.1.0-Plat</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-tight">
                   <span>{t('uptime')}</span>

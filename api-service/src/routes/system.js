@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const os = require('os');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
@@ -161,8 +162,16 @@ router.get('/congestion', auth, requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+router.get('/uptime', auth, (req, res) => {
+    const uptimeInSeconds = os.uptime();
+    const days = Math.floor(uptimeInSeconds / (3600 * 24));
+    const hours = Math.floor((uptimeInSeconds % (3600 * 24)) / 3600);
+    const minutes = Math.floor((uptimeInSeconds % 3600) / 60);
+    res.json({ uptime: `${days}d ${hours}h ${minutes}m` });
+});
+
 let isSpeedtestRunning = false;
-router.get('/speedtest', auth, requireAdmin, async (req, res) => {
+router.post('/speedtest', auth, requireAdmin, async (req, res) => {
     if (isSpeedtestRunning) return res.status(429).json({ error: 'Test en cours' });
     isSpeedtestRunning = true;
     try {

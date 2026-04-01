@@ -274,7 +274,7 @@ const WireGuardDashboard = ({ onLogout }) => {
     <div className="min-h-screen bg-slate-950 flex font-sans text-slate-200 antialiased overflow-hidden selection:bg-indigo-500/30">
       <Sidebar 
         activeSection={topologySelectedClient ? 'management' : activeSection} 
-        onSectionChange={(id) => { setActiveSection(id); setTopologySelectedClient(null); }} 
+        setActiveSection={(id) => { setActiveSection(id); setTopologySelectedClient(null); }} 
         onLogout={onLogout}
         uptime={uptime}
       />
