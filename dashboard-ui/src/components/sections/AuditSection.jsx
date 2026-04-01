@@ -15,7 +15,7 @@ const AuditSection = () => {
 
   const fetchAudit = () => {
     setLoading(true);
-    axios.get('/api/system/audit', {
+    axios.get('/system/audit', {
       headers: { 'X-Api-Token': localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') }
     }).then(res => {
       setData(res.data);
@@ -36,7 +36,7 @@ const AuditSection = () => {
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-center bg-slate-900/40 backdrop-blur-3xl p-8 rounded-[3rem] border border-white/5 shadow-2xl gap-8">
+      <div className="flex flex-col lg:flex-row justify-between items-center bg-slate-900/40 backdrop-blur-3xl p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-white/5 shadow-2xl gap-8">
         <div className="flex items-center gap-6">
            <div className={cn("p-5 rounded-[2rem] bg-white/5 shadow-2xl", `text-${theme}-400`)}>
               <ShieldCheck size={36} />
@@ -54,7 +54,7 @@ const AuditSection = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
          {/* Main Score Board */}
          <div className="xl:col-span-1 bg-slate-900/40 backdrop-blur-3xl rounded-[3rem] border border-white/10 p-10 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center">
             <div className="relative w-48 h-48 mb-8 flex items-center justify-center">

@@ -61,8 +61,8 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
       </AnimatePresence>
 
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-72 glass-panel flex flex-col h-screen transition-all duration-500 ease-in-out md:translate-x-0 md:relative",
-        isOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed inset-y-0 left-0 z-50 w-72 glass-panel flex flex-col h-screen transition-all duration-500 ease-in-out md:translate-x-0 md:relative md:z-auto",
+        isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0"
       )}>
         {/* Branding */}
         <div className="p-8 pb-10 flex justify-between items-start">
@@ -83,7 +83,9 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="md:hidden text-slate-500 hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all"><X size={24} /></button>
+          <button onClick={onClose} className="md:hidden text-slate-500 hover:text-white p-3 hover:bg-white/10 rounded-2xl transition-all border border-white/5 active:scale-90 shadow-xl">
+             <X size={24} />
+          </button>
         </div>
 
         {/* Navigation */}

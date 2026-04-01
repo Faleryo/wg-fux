@@ -11,7 +11,7 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="relative overflow-hidden glass-card p-6 group shadow-2xl"
+      className="relative overflow-hidden glass-card p-4 md:p-6 group shadow-2xl"
     >
       <div className={cn(
         "absolute -inset-1 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-1000",
@@ -59,9 +59,9 @@ export const CircularProgress = ({ value, label, color, icon: Icon }) => {
 
   return (
     <div className="relative flex flex-col items-center group cursor-help">
-      <div className="relative w-28 h-28 transform transition-transform duration-500 group-hover:scale-110">
+      <div className="relative w-20 h-20 md:w-28 md:h-28 transform transition-transform duration-500 group-hover:scale-110">
         <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl">
-          <circle cx="56" cy="56" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800/50" />
+          <circle cx="40 md:56" cy="40 md:56" r="32 md:radius" stroke="currentColor" strokeWidth="6 md:8" fill="transparent" className="text-slate-800/50" />
           <motion.circle 
             cx="56" cy="56" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent"
             initial={{ strokeDashoffset: circumference }}

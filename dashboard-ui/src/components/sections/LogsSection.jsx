@@ -18,7 +18,7 @@ const LogsSection = () => {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const endpoint = activeTab === 'access' ? '/api/logs' : '/api/system/security-logs';
+      const endpoint = activeTab === 'access' ? '/logs' : '/system/security-logs';
       const res = await axios.get(endpoint, {
         headers: { 'X-Api-Token': localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') }
       });

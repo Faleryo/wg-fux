@@ -48,9 +48,9 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
 
   return (
     <div className="space-y-10 animate-in slide-in-from-bottom-10 duration-700">
-      <div className="grid grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
         
-        <GlassCard className="col-span-12 xl:col-span-8 p-10 flex flex-col justify-between group overflow-hidden">
+        <GlassCard className="col-span-1 md:col-span-2 lg:col-span-12 xl:col-span-8 p-6 md:p-10 flex flex-col justify-between group overflow-hidden">
           <Server className="absolute -right-16 -bottom-16 text-white/[0.02] w-[400px] h-[400px] group-hover:scale-110 group-hover:rotate-6 transition-transform duration-1000 ease-in-out" />
 
           <div className="relative z-10">
@@ -103,7 +103,7 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
           </div>
         </GlassCard>
 
-        <div className="col-span-12 xl:col-span-4 flex flex-col gap-8">
+        <div className="col-span-1 md:col-span-2 lg:col-span-12 xl:col-span-4 flex flex-col gap-8">
            <GlassCard className="p-8 flex items-center justify-between group overflow-hidden bg-gradient-to-br from-emerald-500/10 to-teal-950/20 border-emerald-500/20">
                <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
