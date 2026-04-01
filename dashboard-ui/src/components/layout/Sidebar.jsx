@@ -61,7 +61,7 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
       </AnimatePresence>
 
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-72 bg-slate-950/80 backdrop-blur-3xl border-r border-white/5 flex flex-col h-screen shadow-2xl transition-all duration-500 ease-in-out md:translate-x-0 md:relative",
+        "fixed inset-y-0 left-0 z-50 w-72 glass-panel flex flex-col h-screen transition-all duration-500 ease-in-out md:translate-x-0 md:relative",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Branding */}
@@ -74,10 +74,13 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
               </div>
             </div>
             <div>
-              <h1 className="text-2xl font-black text-white italic tracking-tighter bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-black text-white italic tracking-tighter bg-gradient-to-br from-white via-slate-100 to-slate-500 bg-clip-text text-transparent">
                 {window.APP_TITLE || 'WG-FUX'}
               </h1>
-              <p className={cn("text-[8px] font-extrabold tracking-[0.25em] uppercase", `text-${theme}-500`)}>SHIELD CONTROLLER</p>
+              <div className="flex items-center gap-1.5">
+                 <p className={cn("text-[8px] font-extrabold tracking-[0.2em] uppercase opacity-70", `text-${theme}-500`)}>PLATINUM CORE</p>
+                 <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" title="Sentinel Active"></div>
+              </div>
             </div>
           </div>
           <button onClick={onClose} className="md:hidden text-slate-500 hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all"><X size={24} /></button>
@@ -124,7 +127,7 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
 
         {/* Status Widget */}
         <div className="p-6">
-          <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-2xl rounded-[2rem] p-6 border border-white/5 group">
+          <div className="relative overflow-hidden glass-card p-6 group">
             <Cpu className="absolute -right-6 -bottom-6 text-white opacity-[0.03] w-32 h-32 rotate-12 group-hover:rotate-45 transition-transform duration-700" />
             
             <div className="relative z-10">
@@ -134,9 +137,9 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
-                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{t('active_core')}</span>
+                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">SENTINEL ACTIVE</span>
                 </div>
-                <span className="text-[9px] font-mono text-slate-600 px-2 py-0.5 bg-white/5 rounded-md">{window.WG_INTERFACE || 'wg0'}</span>
+                <span className="text-[9px] font-mono text-slate-500 px-2 py-0.5 bg-white/5 rounded-md border border-white/5">{window.WG_INTERFACE || 'wg0'}</span>
               </div>
 
               <div className="space-y-2 mb-6">

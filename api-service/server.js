@@ -13,7 +13,7 @@ const { spawn } = require('child_process');
 const { auth } = require('./src/middleware/auth');
 const { startJobs } = require('./src/services/jobs');
 const { SUDO, SUDO_ARGS } = require('./src/services/shell');
-const { getWireGuardStats } = require('./src/services/system');
+const { getWireGuardStats, parseWireGuardDump } = require('./src/services/system');
 
 // Route Imports
 const authRoutes = require('./src/routes/auth');
@@ -21,6 +21,7 @@ const clientRoutes = require('./src/routes/clients');
 const systemRoutes = require('./src/routes/system');
 const ticketRoutes = require('./src/routes/tickets');
 const userRoutes = require('./src/routes/users');
+const sentinelRoutes = require('./src/routes/sentinel');
 const { initializeDatabase } = require('./src/services/init');
 
 const app = express();
@@ -28,7 +29,11 @@ const server = http.createServer(app);
 
 // --- Middleware ---
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors());
+app.use(cors({
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../dashboard-ui/dist')));
 
@@ -46,10 +51,15 @@ app.get('/api/install/status', (req, res) => res.json({ installed: true, version
 
 // --- Protected Routes ---
 app.use('/api/auth', authRoutes);
-app.use('/api/clients', auth, clientRoutes);
-app.use('/api/system', auth, systemRoutes);
-app.use('/api/tickets', auth, ticketRoutes);
-app.use('/api/users', auth, userRoutes);
+app.use('/api/clients', clientRoutes); // auth is handled inside clientRoutes
+app.use('/api/system', systemRoutes);  // auth is handled inside systemRoutes
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/sentinel', sentinelRoutes);
+
+// Compatibility Aliases for Dashboard
+app.get('/api/health', (req, res, next) => { req.url = '/health'; systemRoutes(req, res, next); });
+app.get('/api/stats', auth, (req, res, next) => { req.url = '/stats'; systemRoutes(req, res, next); });
 
 // Root fallback to Dashboard
 app.get('*', (req, res) => {
@@ -110,6 +120,9 @@ const wsInterval = setInterval(() => {
     });
 }, 30000);
 
+wssLogs.on('error', (err) => console.error('[WSS-ERROR] Logs:', err));
+wssStatus.on('error', (err) => console.error('[WSS-ERROR] Status:', err));
+
 wssLogs.on('close', () => clearInterval(wsInterval));
 setInterval(async () => {
     try {
@@ -117,7 +130,9 @@ setInterval(async () => {
         const peers = parseWireGuardDump(stdout);
         const onlinePeers = peers.filter(p => p.isOnline).map(p => p.publicKey);
         wssStatus.clients.forEach(c => c.readyState === 1 && c.send(JSON.stringify({ type: 'peer_status', onlinePeers })));
-    } catch(e) {}
+    } catch(e) {
+        console.error('[AUDIT] Server startup error:', e.message);
+    }
 }, 2000);
 
 server.on('upgrade', (request, socket, head) => {
@@ -141,12 +156,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// --- Routes ---
-app.use('/api/auth', authRoutes);
-app.use('/api/clients', clientRoutes);
-app.use('/api/system', systemRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/tickets', ticketRoutes);
+// Routes already registered above (Modular Structure)
 
 // --- Global Error Handling ---
 app.use((err, req, res, next) => {

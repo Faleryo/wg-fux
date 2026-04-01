@@ -8,10 +8,10 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
   
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      className="relative overflow-hidden bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl p-6 group hover:border-white/10 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/5 hover:-translate-y-1"
+      transition={{ delay, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      className="relative overflow-hidden glass-card p-6 group shadow-2xl"
     >
       <div className={cn(
         "absolute -inset-1 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-1000",
@@ -38,7 +38,8 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
           )}
         </div>
         
-        <p className="text-4xl font-black text-white font-mono tracking-tighter mb-2">{value}</p>
+        <p className="text-4xl font-black text-white font-mono tracking-tighter mb-2 group-hover:scale-105 transition-transform duration-500 origin-left">{value}</p>
+
         
         {sub && (
           <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">

@@ -16,7 +16,8 @@ import GlassCard from '../ui/Card';
 import VibeButton from '../ui/Button';
 import { LiveTelemetryChart } from '../dashboard/LiveTelemetryChart';
 
-const DashboardSection = ({ stats, trafficData, systemStats, clients, health, config, onRunSpeedtest, speedtest }) => {
+const DashboardSection = ({ stats, trafficData, systemStats, clients, health, config, onRunSpeedtest, speedtest, sentinel }) => {
+
   const { theme } = useTheme();
   const cpu = systemStats?.cpu || 0;
   const ram = systemStats?.memory || 0;
@@ -68,8 +69,8 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-16">
               <StatBlock label="Peers Actifs" value={stats.connectedClients || 0} sub="CONECTÉS" icon={Users} delay={0} />
-              <StatBlock label="Tunnel MTU" value={config.mtu || '1420'} icon={Activity} delay={0.1} />
-              <StatBlock label="Port Liaison" value={window.SERVER_PORT || '51820'} icon={Wifi} delay={0.2} />
+              <StatBlock label="Tunnel MTU" value={config?.mtu || '1420'} icon={Activity} delay={0.1} />
+              <StatBlock label="Port Liaison" value={config?.port || '51820'} icon={Wifi} delay={0.2} />
               <StatBlock 
                 label="Health Shield" 
                 value={health.status === 'healthy' ? 'Optimal' : 'Issues'} 
@@ -103,7 +104,22 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
         </GlassCard>
 
         <div className="col-span-12 xl:col-span-4 flex flex-col gap-8">
+           <GlassCard className="p-8 flex items-center justify-between group overflow-hidden bg-gradient-to-br from-emerald-500/10 to-teal-950/20 border-emerald-500/20">
+               <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", sentinel?.status === 'healthy' ? "bg-emerald-500 shadow-[0_0_10px_#10b981]" : "bg-red-500 shadow-[0_0_10px_#ef4444]")}></div>
+                    <p className="text-[10px] font-black text-emerald-500/80 uppercase tracking-widest">Sentinel Watchdog V2</p>
+                  </div>
+                  <h4 className="text-xl font-black text-white italic tracking-tight uppercase">{sentinel?.status === 'healthy' ? 'Secured' : (sentinel?.status === 'error' ? 'Offline' : 'Searching')}</h4>
+                  <p className="text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight">Last Pulse: {sentinel?.lastHeartbeat ? new Date(sentinel.lastHeartbeat).toLocaleTimeString() : 'Await Heartbeat'}</p>
+               </div>
+               <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-500 shadow-2xl group-hover:scale-110 transition-transform">
+                  <ShieldCheck size={28} />
+               </div>
+           </GlassCard>
+
            <GlassCard className="flex-1 p-10 flex flex-col justify-center gap-12 group overflow-hidden" hover={true}>
+
               <div className="absolute top-0 left-0 p-10 opacity-[0.02] text-white">
                  <Activity size={120} />
               </div>
@@ -220,7 +236,7 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
                         <div className="text-[9px] text-slate-500 font-bold uppercase">Mbps Burst</div>
                      </div>
                      <div className="col-span-2 pt-4 border-t border-white/5 flex justify-between items-center">
-                        <span className="text-[10px] font-mono text-slate-500 uppercase">{speedtest.data.ping.toFixed(1)}ms Latency</span>
+                        <span className="text-[10px] font-mono text-slate-500 uppercase">Latency: {speedtest.data?.ping ? `${speedtest.data.ping.toFixed(1)}ms` : 'N/A'}</span>
                         <VibeButton variant="ghost" size="sm" onClick={onRunSpeedtest} className="text-indigo-400 underline decoration-2 underline-offset-4">Restart</VibeButton>
                      </div>
                   </div>

@@ -42,7 +42,11 @@ elif [ "$1" = "add" ]; then
         const crypto = require('crypto');
         const password = fs.readFileSync(0, 'utf-8').trim();
         let users = [];
-        try { if (fs.existsSync('data/users.json')) users = JSON.parse(fs.readFileSync('data/users.json')); } catch(e) {}
+        try { 
+            if (fs.existsSync('data/users.json')) users = JSON.parse(fs.readFileSync('data/users.json')); 
+        } catch(e) {
+            console.error('[AUDIT] Failed to parse users.json:', e.message);
+        }
         
         const username = process.env.WG_API_USER;
         const role = process.env.ROLE;
@@ -72,7 +76,11 @@ elif [ "$1" = "passwd" ]; then
         const crypto = require('crypto');
         const password = fs.readFileSync(0, 'utf-8').trim();
         let users = [];
-        try { if (fs.existsSync('data/users.json')) users = JSON.parse(fs.readFileSync('data/users.json')); } catch(e) {}
+        try { 
+            if (fs.existsSync('data/users.json')) users = JSON.parse(fs.readFileSync('data/users.json')); 
+        } catch(e) {
+            console.error('[AUDIT] Failed to parse users.json:', e.message);
+        }
         const username = process.env.TARGET_USER;
         const userIndex = users.findIndex(u => u.username === username);
         if (userIndex === -1) { console.log('User not found'); process.exit(1); }
@@ -91,7 +99,11 @@ elif [ "$1" = "remove" ]; then
     node -e "
         const fs = require('fs');
         let users = [];
-        try { if (fs.existsSync('data/users.json')) users = JSON.parse(fs.readFileSync('data/users.json')); } catch(e) {}
+        try { 
+            if (fs.existsSync('data/users.json')) users = JSON.parse(fs.readFileSync('data/users.json')); 
+        } catch(e) {
+            console.error('[AUDIT] Failed to parse users.json:', e.message);
+        }
         const newUsers = users.filter(u => u.username !== process.env.TARGET_USER);
         fs.writeFileSync('data/users.json', JSON.stringify(newUsers, null, 2));
         console.log('User removed');

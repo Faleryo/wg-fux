@@ -361,12 +361,14 @@ else
 fi
 
 # 5. Écriture des fichiers
-echo -e "\n${GREEN}[STEP 4] Installation des scripts utilitaires${NC}"
+echo -e "\n${GREEN}[STEP 4] Préparation des scripts utilitaires${NC}"
+# Note: L'API utilise désormais getScriptPath pour une résolution interne robuste.
+# On garde les liens symboliques pour l'usage manuel dans le terminal.
 SCRIPT_DIR="$(pwd)/core-vpn/scripts"
 for script in "$SCRIPT_DIR"/wg-*.sh; do
     if [ -f "$script" ]; then
         target="/usr/local/bin/$(basename "$script")"
-        echo -e "[INFO] Création du lien symbolique pour $(basename "$script")..."
+        echo -e "[INFO] Lien symbolique : $(basename "$script") -> $target"
         sudo ln -sf "$script" "$target"
         sudo chmod +x "$target"
     fi

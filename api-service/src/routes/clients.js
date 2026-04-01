@@ -7,12 +7,13 @@ const { eq, and, desc, onConflictDoUpdate } = require('drizzle-orm');
 const { clientSchema } = require('../../db/validation');
 const { auth, requireManager } = require('../middleware/auth');
 const { runSystemCommand } = require('../services/shell');
-const { getWireGuardStats, getClientDir, getInterfacePath, isValidName } = require('../services/system');
+const { getWireGuardStats, getClientDir, getInterfacePath, isValidName, parseWireGuardDump } = require('../services/system');
+const { getScriptPath } = require('../services/config');
 
 // --- Container Routes ---
 
 router.get('/containers', auth, requireManager, async (req, res) => {
-    const dir = '/etc/wireguard/clients';
+    const dir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
     try {
         const files = await fsPromises.readdir(dir);
         const containers = [];
@@ -20,23 +21,28 @@ router.get('/containers', auth, requireManager, async (req, res) => {
             try {
                 const stat = await fsPromises.stat(path.join(dir, f));
                 if (stat.isDirectory()) containers.push(f);
-            } catch(e) {}
+            } catch(e) {
+                console.error(`[AUDIT] Failed to stat container ${f}:`, e.message);
+            }
         }
         res.json(containers);
-    } catch (e) { res.json([]); }
+    } catch (e) { 
+        console.error('[CRITICAL] Failed to read containers directory:', e.message);
+        res.status(500).json({ error: 'Failed to fetch containers' }); 
+    }
 });
 
 router.post('/containers', auth, requireManager, async (req, res) => {
     const { name } = req.body;
     if (!name || !isValidName(name)) return res.status(400).json({ error: 'Invalid name' });
-    const { success, error } = await runSystemCommand('/usr/local/bin/wg-create-container.sh', [name]);
+    const { success, error } = await runSystemCommand(getScriptPath('wg-create-container.sh'), [name]);
     if (!success) return res.status(500).json({ error });
     res.json({ success: true });
 });
 
 router.delete('/containers/:name', auth, requireManager, async (req, res) => {
     if (!isValidName(req.params.name)) return res.status(400).json({ error: 'Invalid name' });
-    const { success, error } = await runSystemCommand('/usr/local/bin/wg-remove-container.sh', [req.params.name]);
+    const { success, error } = await runSystemCommand(getScriptPath('wg-remove-container.sh'), [req.params.name]);
     if (!success) return res.status(500).json({ error });
     res.json({ success: true });
 });
@@ -90,33 +96,34 @@ router.post('/', auth, requireManager, async (req, res) => {
         const { name, container, expiry, quota, uploadLimit } = result.data;
         const cleanExpiry = expiry || '';
 
-        const { success, error } = await runSystemCommand('/usr/local/bin/wg-create-client.sh', [container, name, cleanExpiry, String(quota || ''), String(uploadLimit || '0')]);
+        const { success, error } = await runSystemCommand(getScriptPath('wg-create-client.sh'), [container, name, cleanExpiry, String(quota || ''), String(uploadLimit || '0')]);
         if (!success) return res.status(500).json({ error });
 
-        // Background sync
-        (async () => {
-            for (let i = 1; i <= 5; i++) {
-                try {
-                    await new Promise(r => setTimeout(r, 500 * i));
-                    const clientDir = getClientDir(container, name);
-                    const publicKey = await fsPromises.readFile(path.join(clientDir, 'public.key'), 'utf8').then(s => s.trim());
-                    const conf = await fsPromises.readFile(path.join(clientDir, `${name}.conf`), 'utf8');
-                    const ipMatch = conf.match(/Address\s*=\s*(.+)/);
-                    
-                    await db.insert(schema.clients).values({
-                        container, name, publicKey,
-                        ip: ipMatch ? ipMatch[1].split(',')[0].trim() : '',
-                        expiry: cleanExpiry, quota: quota || 0, uploadLimit: uploadLimit || 0,
-                        createdAt: new Date()
-                    }).onConflictDoUpdate({
-                        target: schema.clients.publicKey,
-                        set: { name, container, expiry: cleanExpiry, quota: quota || 0, uploadLimit: uploadLimit || 0 }
-                    });
-                    await db.insert(schema.usage).values({ publicKey, total: 0, daily: '{}' }).onConflictDoNothing();
-                    break;
-                } catch (e) {}
+        // Synchronous sync (awaitable for consistency, but we try a few times)
+        let publicKey = '', ip = '';
+        for (let i = 1; i <= 5; i++) {
+            try {
+                await new Promise(r => setTimeout(r, 500 * i));
+                const clientDir = getClientDir(container, name);
+                publicKey = await fsPromises.readFile(path.join(clientDir, 'public.key'), 'utf8').then(s => s.trim());
+                const conf = await fsPromises.readFile(path.join(clientDir, `${name}.conf`), 'utf8');
+                const ipMatch = conf.match(/Address\s*=\s*(.+)/);
+                ip = ipMatch ? ipMatch[1].split(',')[0].trim() : '';
+                if (publicKey) break;
+            } catch (e) {
+                if (i === 5) throw new Error(`FileSystem sync failed for ${name} in ${container}`);
             }
-        })();
+        }
+
+        await db.insert(schema.clients).values({
+            container, name, publicKey, ip,
+            expiry: cleanExpiry, quota: quota || 0, uploadLimit: uploadLimit || 0,
+            createdAt: new Date()
+        }).onConflictDoUpdate({
+            target: schema.clients.publicKey,
+            set: { name, container, expiry: cleanExpiry, quota: quota || 0, uploadLimit: uploadLimit || 0 }
+        });
+        await db.insert(schema.usage).values({ publicKey, total: 0, daily: '{}' }).onConflictDoNothing();
 
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -136,11 +143,12 @@ router.post('/:container/:name/toggle', auth, requireManager, async (req, res) =
             await fsPromises.unlink(path.join(clientDir, 'disabled')).catch(() => {});
             const config = await fsPromises.readFile(path.join(clientDir, `${name}.conf`), 'utf8');
             const addressMatch = config.match(/^Address\s*=\s*([^#\n]+)/m);
+            if (!addressMatch) throw new Error(`Invalid configuration file for ${name}`);
             const ips = addressMatch[1].trim().split(',').map(ip => ip.trim().split('/')[0]).map(ip => ip.includes(':') ? `${ip}/128` : `${ip}/32`).join(',');
-            await runSystemCommand('/usr/local/bin/wg-toggle.sh', [process.env.WG_INTERFACE, 'peer', publicKey, 'allowed-ips', ips]);
+            await runSystemCommand(getScriptPath('wg-toggle.sh'), [process.env.WG_INTERFACE, 'peer', publicKey, 'allowed-ips', ips]);
         } else {
             await fsPromises.writeFile(path.join(clientDir, 'disabled'), new Date().toISOString());
-            await runSystemCommand('/usr/local/bin/wg-toggle.sh', [process.env.WG_INTERFACE, 'peer', publicKey, 'remove']);
+            await runSystemCommand(getScriptPath('wg-toggle.sh'), [process.env.WG_INTERFACE, 'peer', publicKey, 'remove']);
         }
         
         await db.update(schema.clients).set({ enabled: !!enabled }).where(eq(schema.clients.publicKey, publicKey));
@@ -150,7 +158,7 @@ router.post('/:container/:name/toggle', auth, requireManager, async (req, res) =
 
 router.delete('/:container/:name', auth, requireManager, async (req, res) => {
     const { container, name } = req.params;
-    const { success, error } = await runSystemCommand('/usr/local/bin/wg-remove-client.sh', [container, name]);
+    const { success, error } = await runSystemCommand(getScriptPath('wg-remove-client.sh'), [container, name]);
     if (!success) return res.status(500).json({ error });
 
     try {
@@ -186,12 +194,15 @@ router.patch('/:container/:name', auth, requireManager, async (req, res) => {
             updateData.uploadLimit = parseInt(uploadLimit) || 0;
             if (updateData.uploadLimit > 0) await fsPromises.writeFile(path.join(clientDir, 'upload_limit'), String(uploadLimit));
             else await fsPromises.unlink(path.join(clientDir, 'upload_limit')).catch(() => {});
-            runSystemCommand('/usr/local/bin/wg-apply-qos.sh', []);
+            runSystemCommand(getScriptPath('wg-apply-qos.sh'), []);
         }
         await db.update(schema.clients).set(updateData).where(eq(schema.clients.publicKey, client.publicKey));
-        runSystemCommand('/usr/local/bin/wg-enforcer.sh', []);
+        runSystemCommand(getScriptPath('wg-enforcer.sh'), []);
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: 'Failed to update client' }); }
+    } catch (e) { 
+        console.error(`[ERROR] Failed to update client ${name}:`, e.message);
+        res.status(500).json({ error: e.message || 'Failed to update client' }); 
+    }
 });
 
 router.post('/bulk-update', auth, requireManager, async (req, res) => {
@@ -212,7 +223,7 @@ router.post('/bulk-update', auth, requireManager, async (req, res) => {
             successCount++;
         } catch(e) { failedCount++; }
     }
-    runSystemCommand('/usr/local/bin/wg-enforcer.sh', []);
+    runSystemCommand(getScriptPath('wg-enforcer.sh'), []);
     res.json({ success: successCount, failed: failedCount });
 });
 
@@ -223,7 +234,7 @@ router.post('/bulk-delete', auth, requireManager, async (req, res) => {
     for (const client of clients) {
         try {
             const [dbClient] = await db.select().from(schema.clients).where(and(eq(schema.clients.container, client.container), eq(schema.clients.name, client.name))).limit(1);
-            const { success } = await runSystemCommand('/usr/local/bin/wg-remove-client.sh', [client.container, client.name]);
+            const { success } = await runSystemCommand(getScriptPath('wg-remove-client.sh'), [client.container, client.name]);
             if (success && dbClient) {
                 await db.delete(schema.usage).where(eq(schema.usage.publicKey, dbClient.publicKey));
                 await db.delete(schema.clients).where(eq(schema.clients.publicKey, dbClient.publicKey));
@@ -236,7 +247,7 @@ router.post('/bulk-delete', auth, requireManager, async (req, res) => {
 
 router.post('/move', auth, requireManager, async (req, res) => {
     const { container, name, newContainer } = req.body;
-    const { success, error } = await runSystemCommand('/usr/local/bin/wg-move-client.sh', [container, name, newContainer]);
+    const { success, error } = await runSystemCommand(getScriptPath('wg-move-client.sh'), [container, name, newContainer]);
     if (!success) return res.status(500).json({ error });
     try {
         await db.update(schema.clients).set({ container: newContainer }).where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)));
@@ -254,7 +265,10 @@ router.get('/:container/:name/history', auth, requireManager, async (req, res) =
             .orderBy(desc(schema.logs.timestamp))
             .limit(limit).offset(offset);
         res.json(history);
-    } catch (e) { res.json([]); }
+    } catch (e) { 
+        console.error(`[ERROR] Failed to fetch history for ${name}:`, e.message);
+        res.json([]); 
+    }
 });
 
 router.get('/:container/:name/history-hours', auth, requireManager, async (req, res) => {
@@ -265,7 +279,10 @@ router.get('/:container/:name/history-hours', auth, requireManager, async (req, 
         const history = await db.select().from(schema.logs).where(and(eq(schema.logs.type, 'snapshot'), eq(schema.logs.name, client.publicKey)))
             .orderBy(desc(schema.logs.timestamp)).limit(72);
         res.json(history.map(h => ({ time: h.timestamp, rx: h.usageDaily, tx: h.usageTotal })));
-    } catch (e) { res.json([]); }
+    } catch (e) { 
+        console.error(`[ERROR] Failed to fetch hourly history for ${name}:`, e.message);
+        res.json([]); 
+    }
 });
 
 module.exports = router;

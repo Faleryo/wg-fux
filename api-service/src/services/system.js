@@ -1,6 +1,7 @@
 const fsPromises = require('fs').promises;
 const path = require('path');
 const { runCommand, runSystemCommand } = require('./shell');
+const { executeScript } = require('./scripts');
 
 /**
  * Format bytes to human readable string
@@ -52,40 +53,18 @@ const getSystemStats = async () => {
 };
 
 /**
- * Parses WireGuard dump output into structured JSON
+ * Parses WireGuard dump output into structured JSON (Now handled by the script itself)
  */
-const parseWireGuardDump = (stdout) => {
-    if (!stdout) return [];
-    const now = Math.floor(Date.now() / 1000);
-    return stdout.trim().split('\n').map(line => {
-        const parts = line.split('\t');
-        if (parts.length < 8) return null;
-        const lastSeen = parseInt(parts[4]) || 0;
-        return {
-            publicKey: parts[0],
-            preSharedKey: parts[1],
-            endpoint: parts[2],
-            allowedIps: parts[3],
-            lastSeen,
-            rx: parseInt(parts[5]) || 0,
-            tx: parseInt(parts[6]) || 0,
-            isOnline: (now - lastSeen) < 180,
-            keepalive: parts[7]
-        };
-    }).filter(Boolean);
+const parseWireGuardDump = (data) => {
+    return Array.isArray(data) ? data : [];
 };
 
 /**
  * Retrieves WireGuard statistics...
  */
 const getWireGuardStats = async () => {
-    try {
-        const { stdout } = await runSystemCommand('/usr/local/bin/wg-stats.sh', ['show', process.env.WG_INTERFACE, 'dump']);
-        return stdout;
-    } catch (e) {
-        console.error('[SYSTEM-SERVICE] Error getting WG stats:', e);
-        return "";
-    }
+    const result = await executeScript('wg-stats.sh', [process.env.WG_INTERFACE || 'wg0'], { json: true });
+    return result.success ? result.data : [];
 };
 
 /**

@@ -1,102 +1,58 @@
 #!/bin/bash
+# --- VIBE-OS : Sentinel Watchdog V2 (Elite SRE) ---
 
-# 💠 VIBE-OS Sentinel Watchdog
-# Role: SRE - Monitoring, Auto-Heal & Telegram Alerts
-# Devise: "Le silence du terminal est suspect."
+SCRIPT_DIR="$(dirname "$0")"
+source "$SCRIPT_DIR/wg-common.sh"
 
-CONF_FILE="/etc/wireguard/sentinel.conf"
 LOG_FILE="/var/log/wg-sentinel.log"
-# Détecter la commande Docker Compose (v2 vs v1)
+HEARTBEAT_URL="http://localhost:3000/api/sentinel/heartbeat"
+HEALTH_URL="http://localhost:3000/api/system/health"
+
+# Docker command detection
 DOCKER_CMD="docker compose"
-if ! $DOCKER_CMD version &>/dev/null; then
-    DOCKER_CMD="docker-compose"
-fi
-
-API_URL="http://localhost:3000/api/system/health"
-
-# Rotation simple des logs (max 10k lignes)
-if [ -f "$LOG_FILE" ] && [ "$(wc -l < "$LOG_FILE" 2>/dev/null || echo 0)" -gt 10000 ]; then
-    tail -n 5000 "$LOG_FILE" > "${LOG_FILE}.tmp" && mv "${LOG_FILE}.tmp" "$LOG_FILE"
-fi
-
-# Cooldown alertes (600s = 10min)
-COOLDOWN=600
-LAST_ALERT_FILE="/tmp/sentinel_last_alert"
-
-# Vérification des dépendances
-for cmd in "curl" "docker"; do
-    if ! command -v "$cmd" &>/dev/null; then
-        log_event "[FATAL] Dépendance manquante : $cmd"
-        exit 1
-    fi
-done
-
-# Charger la configuration
-if [ -f "$CONF_FILE" ]; then
-    # shellcheck source=/dev/null
-    source "$CONF_FILE"
-fi
+if ! $DOCKER_CMD version &>/dev/null; then DOCKER_CMD="docker-compose"; fi
 
 log_event() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+    local msg="$1"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $msg" >> "$LOG_FILE"
 }
 
-send_telegram() {
-    local now
-    now=$(date +%s)
-    local last_alert
-    last_alert=$(cat "$LAST_ALERT_FILE" 2>/dev/null || echo 0)
-
-    # Ne pas spammer si l'alerte est trop récente (sauf pour le démarrage)
-    if [[ "$1" != "🚀"* ]] && (( now - last_alert < COOLDOWN )); then
-        log_event "[INFO] Alerte Telegram mise en sourdine (Cooldown)."
-        return 0
-    fi
-
-    if [[ -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_CHAT_ID" ]]; then
-        local message="$1"
-        if curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            -d "text=💠 Sentinel Watchdog : ${message}" > /dev/null; then
-            echo "$now" > "$LAST_ALERT_FILE"
-        fi
-    fi
-}
-
-check_health() {
-    local response
-    if ! response=$(curl -s --max-time 10 "$API_URL"); then
-        log_event "[CRITICAL] API non répondante. Tentative d'Auto-Heal..."
-        send_telegram "⚠️ API non répondante. Redémarrage des services..."
-        $DOCKER_CMD -f "$(pwd)/docker-compose.yml" restart api ui
-        return 1
-    fi
-
-    local status
-    status=$(echo "$response" | grep -oP '"status":"\K[^"]+')
+send_heartbeat() {
+    local status="$1"
+    local cpu=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}')
+    local mem=$(free -m | awk '/Mem:/ {print $3}')
+    local disk=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
     
-    if [[ "$status" != "healthy" ]]; then
-        log_event "[WARNING] Système instable détecté ($status). Analyse..."
-        local interface
-        interface=$(echo "$response" | grep -oP '"interface":"\K[^"]+')
-        
-        if [[ "$interface" != "up" ]]; then
-            log_event "[AUTO-HEAL] Interface WireGuard down. Redémarrage de l'interface..."
-            send_telegram "🔧 Interface WireGuard down. Tentative de restauration..."
-            # Ici on pourrait appeler un script interne ou redémarrer le conteneur
-            $DOCKER_CMD -f "$(pwd)/docker-compose.yml" restart api
-        fi
+    local payload=$(printf '{"status":"%s","stats":{"cpu":"%s","mem":"%s","disk":"%s"},"timestamp":"%s"}' \
+        "$status" "$cpu" "$mem" "$disk" "$(date -Is)")
+    
+    curl -s -X POST -H "Content-Type: application/json" -d "$payload" "$HEARTBEAT_URL" > /dev/null
+}
+
+check_system() {
+    # 1. API Health Check
+    if ! response=$(curl -s --max-time 5 "$HEALTH_URL"); then
+        log_event "[CRITICAL] API unreachable. Restarting infrastructure..."
+        $DOCKER_CMD restart api ui || log_event "[ERROR] Failed to restart containers"
+        send_heartbeat "recovering"
         return 1
     fi
 
+    # 2. Database Integrity Check
+    if [[ "$response" == *"unhealthy"* ]]; then
+        log_event "[WARNING] System reports unhealthy state. Analyzing..."
+        # Add specific healing logic here if needed
+    fi
+
+    send_heartbeat "healthy"
     return 0
 }
 
-# Main loop
-log_event "[INFO] Sentinel Watchdog démarré."
-send_telegram "🚀 Sentinel Watchdog est maintenant actif sur votre serveur VPN."
+# --- Main Loop ---
+log_event "[INFO] Sentinel V2 started."
+send_heartbeat "starting"
 
 while true; do
-    check_health
-    sleep 60
+    check_system
+    sleep 30
 done

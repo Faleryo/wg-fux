@@ -100,7 +100,9 @@ async function migrate() {
                   name: entry.username,
                   realIp: entry.ip
               });
-          } catch(e) {}
+          } catch(e) {
+              console.error('[AUDIT] Client migration failed for ' + row.id + ':', e.message);
+          }
       }
   }
 

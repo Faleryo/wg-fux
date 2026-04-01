@@ -48,19 +48,26 @@ IP_SUFFIX=""
 {
   flock -x 200 || exit 1
   
-  used_ips=" 1 "
-  for client_conf in "/etc/wireguard/clients"/*/*/*.conf; do
-      if [ -f "$client_conf" ]; then
-          ip_val=$(awk -F'=' '/^Address/ {print $2; exit}' "$client_conf" | awk -F',' '{print $1}' | awk -F'/' '{print $1}' | tr -d ' ')
-          current_id=$(echo "$ip_val" | awk -F'.' '{print $4}')
-          if [[ "$current_id" =~ ^[0-9]+$ ]] && [ "$current_id" -gt 0 ]; then
-              used_ips="${used_ips}${current_id} "
-          fi
+  used_ips=" "
+  # Improved robust IP scanning across all containers
+  for client_conf in /etc/wireguard/clients/*/*/*.conf; do
+      [ -f "$client_conf" ] || continue
+      # Extract first IPv4 Address from the conf using a more precise regex
+      ip_val=$(grep -i "^Address" "$client_conf" | sed -n 's/^Address *= *\([^, \n]*\).*/\1/p' | cut -d'/' -f1 | tr -d '[:space:]')
+      if [[ "$ip_val" =~ ^([0-9]{1,3}\.){3}([0-9]{1,3})$ ]]; then
+          current_id=$(echo "$ip_val" | cut -d'.' -f4)
+          used_ips="${used_ips}${current_id} "
       fi
   done
+  
+  # Also check server IP to be safe
+  server_suffix=$(echo "${VPN_SUBNET%.*}" | cut -d'.' -f4)
+  [[ -z "$server_suffix" ]] && server_suffix="1"
+  used_ips="${used_ips}${server_suffix} "
 
-  for i in {2..254}; do
-      if [[ ! "$used_ips" =~ " $i " ]]; then
+  # Find first available suffix from 2 to 254
+  for ((i=2; i<=254; i++)); do
+      if [[ ! " ${used_ips} " =~ " ${i} " ]]; then
           IP_SUFFIX=$i
           break
       fi
@@ -125,7 +132,9 @@ echo "$ALLOWED_IPS_STR" > "$CLIENT_DIR/allowed_ips.txt"
 # Sync with interface
 if ip link show "$WG_INTERFACE" > /dev/null 2>&1; then
     ALLOWED_IPS_VAL=$(cat "$CLIENT_DIR/allowed_ips.txt")
-    wg set "$WG_INTERFACE" peer "$PUBKEY" preshared-key "$CLIENT_DIR/preshared.key" allowed-ips "$ALLOWED_IPS_VAL" || true
+    if ! wg set "$WG_INTERFACE" peer "$PUBKEY" preshared-key "$CLIENT_DIR/preshared.key" allowed-ips "$ALLOWED_IPS_VAL"; then
+        log_warn "Failed to apply peer '$NAME' to interface '$WG_INTERFACE'. Will be applied by enforcer later."
+    fi
 fi
 
 # QR Code

@@ -68,7 +68,12 @@ const updateUsage = async () => {
                 
                 let daily = {};
                 if (existingUsage && existingUsage.daily) {
-                    try { daily = JSON.parse(existingUsage.daily); } catch(e) {}
+                    try { 
+                        daily = JSON.parse(existingUsage.daily); 
+                    } catch(e) {
+                        console.error('[AUDIT] Failed to parse daily usage JSON:', e.message);
+                        daily = {};
+                    }
                 }
                 
                 daily[today] = (daily[today] || 0) + delta;

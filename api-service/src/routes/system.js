@@ -10,6 +10,7 @@ const { auth, requireAdmin } = require('../middleware/auth');
 const { runCommand, runSystemCommand } = require('../services/shell');
 const { getWireGuardStats, getSystemStats, formatBytes, getInterfacePath } = require('../services/system');
 const { getJobStatus } = require('../services/jobs');
+const { getScriptPath, executeScript } = require('../services/config');
 
 const WG_BIN = process.env.WG_BIN || 'wg';
 const WG_QUICK_BIN = process.env.WG_QUICK_BIN || 'wg-quick';
@@ -19,17 +20,13 @@ const SPEEDTEST_BIN = process.env.SPEEDTEST_BIN || 'speedtest-cli';
 
 router.get('/stats', auth, async (req, res) => {
     try {
-        const stdout = await getWireGuardStats();
+        const peers = await getWireGuardStats(); // Now returns Array of JSON objects
         let totalRx = 0, totalTx = 0, connectedCount = 0;
-        const now = Math.floor(Date.now() / 1000);
         
-        stdout.trim().split('\n').forEach(line => {
-            const parts = line.split('\t');
-            if (parts.length >= 8) {
-                totalRx += parseInt(parts[5]) || 0;
-                totalTx += parseInt(parts[6]) || 0;
-                if ((now - (parseInt(parts[4]) || 0)) < 180) connectedCount++;
-            }
+        peers.forEach(peer => {
+            totalRx += peer.rx || 0;
+            totalTx += peer.tx || 0;
+            if (peer.isOnline) connectedCount++;
         });
 
         const system = await getSystemStats();
@@ -81,7 +78,9 @@ router.get('/services', auth, async (req, res) => {
             } else {
                 active = true;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('[AUDIT] System health fetch failed:', e.message);
+        }
         return { ...svc, status: active ? 'active' : 'inactive' };
     }));
     res.json(servicesStatus);
@@ -191,19 +190,19 @@ router.get('/backups', auth, requireAdmin, async (req, res) => {
 });
 
 router.post('/backup', auth, requireAdmin, async (req, res) => {
-    const { success, error } = await runSystemCommand('/usr/local/bin/wg-backup.sh', []);
+    const { success, error } = await runSystemCommand(getScriptPath('wg-backup.sh'), []);
     if (!success) return res.status(500).json({ error });
     res.json({ success: true, message: 'Sauvegarde créée avec succès' });
 });
 
 router.post('/harden', auth, requireAdmin, async (req, res) => {
-    const { success, error } = await runSystemCommand('/usr/local/bin/wg-harden.sh', []);
+    const { success, error } = await runSystemCommand(getScriptPath('wg-harden.sh'), []);
     if (!success) return res.status(500).json({ error });
     res.json({ success: true, message: 'Système durci avec succès' });
 });
 
 router.post('/maintenance/check-expiry', auth, requireAdmin, async (req, res) => {
-    const { success, error } = await runSystemCommand('/usr/local/bin/wg-check-expiry.sh', []);
+    const { success, error } = await runSystemCommand(getScriptPath('wg-check-expiry.sh'), []);
     if (!success) return res.status(500).json({ error });
     res.json({ success: true, message: 'Vérification terminée' });
 });

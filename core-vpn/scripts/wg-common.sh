@@ -2,13 +2,23 @@
 
 # --- VIBE-OS : COMMON UTILITIES FOR WIREGUARD SCRIPTS ---
 
-set -e
+set -euo pipefail
 
 # Colors for logging
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+# Standard Exit Codes
+ERR_SUCCESS=0
+ERR_GENERAL=1
+ERR_PERMISSION=2
+ERR_NOT_FOUND=3
+ERR_INVALID_ARGS=4
+ERR_ALREADY_EXISTS=5
+ERR_SYSTEM_FAILURE=6
+ERR_SUBNET_EXHAUSTED=7
 
 # Logging functions
 log_info() {
@@ -20,14 +30,16 @@ log_warn() {
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]$(date +'%Y-%m-%d %H:%M:%S')${NC} $1" >&2
+    local msg=$1
+    local code=${2:-$ERR_GENERAL}
+    echo -e "${RED}[ERROR]$(date +'%Y-%m-%d %H:%M:%S')${NC} $msg" >&2
+    exit "$code"
 }
 
 # Ensure script is run as root (or with sudo)
 check_root() {
     if [ "$EUID" -ne 0 ]; then
-        log_error "Please run as root"
-        exit 1
+        log_error "Please run as root" "$ERR_PERMISSION"
     fi
 }
 

@@ -78,6 +78,8 @@ const WireGuardDashboard = ({ onLogout }) => {
   const [showEditClientModal, setShowEditClientModal] = useState(false);
   const [selectedClientForModal, setSelectedClientForModal] = useState(null);
   const [speedtest, setSpeedtest] = useState({ loading: false, data: null });
+  const [sentinelStatus, setSentinelStatus] = useState({ status: 'offline', lastHeartbeat: null, stats: {} });
+
 
   const prevDataRef = useRef({ clients: [], timestamp: null });
 
@@ -106,13 +108,27 @@ const WireGuardDashboard = ({ onLogout }) => {
         ]);
         setUptime(uptimeRes.data.uptime);
         setConfig(configRes.data);
-      } catch (e) { }
+      } catch (e) { 
+        console.error('[AUDIT] Failed to fetch static system data:', e.message);
+        addToast('Erreur de chargement des paramètres système', 'error');
+      }
     };
     fetchStaticData();
     fetchData();
     const intervalId = setInterval(fetchData, 5000);
-    return () => clearInterval(intervalId);
+    const sentinelId = setInterval(fetchSentinel, 15000);
+    return () => { clearInterval(intervalId); clearInterval(sentinelId); };
   }, []);
+
+  const fetchSentinel = async () => {
+    try {
+      const res = await axiosInstance.get('/sentinel/status');
+      setSentinelStatus(res.data);
+    } catch (e) {
+      console.warn('[AUDIT] Sentinel pulsator unreachable:', e.message);
+      setSentinelStatus(prev => ({ ...prev, status: 'error' }));
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -224,7 +240,8 @@ const WireGuardDashboard = ({ onLogout }) => {
 
     switch (activeSection) {
       case 'dashboard':
-        return <DashboardSection stats={stats} trafficData={trafficData} systemStats={systemStats} clients={clients} health={health} config={config} speedtest={speedtest} onRunSpeedtest={handleRunSpeedtest} />;
+        return <DashboardSection stats={stats} trafficData={trafficData} systemStats={systemStats} clients={clients} health={health} config={config} speedtest={speedtest} onRunSpeedtest={handleRunSpeedtest} sentinel={sentinelStatus} />;
+
       case 'management':
         return (
           <ContainersSection
@@ -264,8 +281,9 @@ const WireGuardDashboard = ({ onLogout }) => {
 
       <main className="flex-1 p-8 md:p-12 overflow-y-auto custom-scrollbar relative z-10">
         {/* Modern Background Decorations */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/5 blur-[150px] -z-10 animate-pulse" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-600/5 blur-[150px] -z-10" />
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-600/10 blur-[180px] -z-10 animate-pulse pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-600/5 blur-[150px] -z-10 pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-sky-600/5 blur-[200px] -z-10 pointer-events-none" />
 
         <div className="max-w-7xl mx-auto space-y-12">
            {renderSection()}
