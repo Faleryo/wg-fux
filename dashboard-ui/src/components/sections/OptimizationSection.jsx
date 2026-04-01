@@ -6,7 +6,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 import { cn } from '../../lib/utils';
-import axios from 'axios';
+import { axiosInstance } from '../../lib/api';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -26,9 +26,7 @@ const OptimizationSection = ({ systemStats }) => {
   const handleOptimize = async (profile) => {
     setLoading(true);
     try {
-      await axios.post(`/api/system/optimize`, { profile }, {
-        headers: { 'X-Api-Token': localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') }
-      });
+      await axiosInstance.post('/system/optimize', { profile });
       setCurrentProfile(profile);
       addToast(`Profil ${profile} appliqué`, 'success');
     } catch (e) { addToast('Erreur d\'optimisation', 'error'); }

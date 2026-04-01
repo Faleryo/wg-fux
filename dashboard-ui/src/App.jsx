@@ -79,6 +79,7 @@ const WireGuardDashboard = ({ onLogout }) => {
   const [selectedClientForModal, setSelectedClientForModal] = useState(null);
   const [speedtest, setSpeedtest] = useState({ loading: false, data: null });
   const [sentinelStatus, setSentinelStatus] = useState({ status: 'offline', lastHeartbeat: null, stats: {} });
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
 
   const prevDataRef = useRef({ clients: [], timestamp: null });
@@ -147,8 +148,9 @@ const WireGuardDashboard = ({ onLogout }) => {
         const prevClient = prevClients.find(p => p.publicKey === client.publicKey);
         let downloadRate = 0, uploadRate = 0;
         if (prevClient && timeDiff > 0) {
-          downloadRate = (client.downloadBytes - prevClient.downloadBytes) / timeDiff;
-          uploadRate = (client.uploadBytes - prevClient.uploadBytes) / timeDiff;
+          // Clamp to 0 to handle WireGuard counter resets (peer restart, wg reload)
+          downloadRate = Math.max(0, (client.downloadBytes - prevClient.downloadBytes) / timeDiff);
+          uploadRate = Math.max(0, (client.uploadBytes - prevClient.uploadBytes) / timeDiff);
         }
         return { ...client, downloadRate, uploadRate };
       });
@@ -180,7 +182,7 @@ const WireGuardDashboard = ({ onLogout }) => {
       setLoading(false);
     } catch (error) {
       console.error('Fetch error:', error);
-      if (clients.length > 0) setLoading(false);
+      setLoading(false); // Always unblock UI, even on first load error
     }
   };
 
@@ -247,14 +249,12 @@ const WireGuardDashboard = ({ onLogout }) => {
           <ContainersSection
             clients={clients}
             loading={loading}
-            onClientUpdate={fetchData}
-            onShowQRCode={(name, configText) => { setSelectedClientForModal({ name, config: configText }); setShowQRModal(true); }}
-            onDownloadConfig={handleDownloadConfig}
-            onToggleClient={handleToggleClient}
-            onDeleteClient={handleDeleteClient}
-            onEditClient={(client) => { setSelectedClientForModal(client); setShowEditClientModal(true); }}
-            onSelectClient={setTopologySelectedClient}
-            clientsHistory={clientsHistory}
+            onSelect={setTopologySelectedClient}
+            onQRCode={(name, configText) => { setSelectedClientForModal({ name, config: configText }); setShowQRModal(true); }}
+            onToggle={(container, name, enabled) => handleToggleClient(container, name, enabled)}
+            onDelete={handleDeleteClient}
+            onEdit={(client) => { setSelectedClientForModal(client); setShowEditClientModal(true); }}
+            onCreateClient={() => setShowCreateModal(true)}
           />
         );
       case 'users': return <UsersSection />;
@@ -306,11 +306,22 @@ const WireGuardDashboard = ({ onLogout }) => {
         <QRCodeModal 
           isOpen={showQRModal} 
           onClose={() => setShowQRModal(false)} 
-          clientName={selectedClientForModal?.name} 
-          configText={selectedClientForModal?.config} 
+          client={selectedClientForModal}
+          onDownload={handleDownloadConfig}
         />
       )}
-      {/* Edit modal should be implemented similarly or reused */}
+      {showCreateModal && (
+        <CreateClientModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onCreate={async (name, container, expiry, quota, uploadLimit) => {
+            await axiosInstance.post('/clients', { name, container, expiry, quota, uploadLimit });
+            fetchData();
+            addToast(`Peer ${name} créé avec succès`, 'success');
+          }}
+        />
+      )}
+      {/* Edit modal reuses CreateClientModal with pre-filled data - implement as needed */}
     </div>
   );
 };

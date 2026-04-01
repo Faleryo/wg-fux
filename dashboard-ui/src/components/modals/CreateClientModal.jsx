@@ -56,7 +56,8 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, initialContainer }) => {
           const date = new Date();
           if (expiryDuration.unit === 'days') date.setDate(date.getDate() + parseInt(expiryDuration.value));
           if (expiryDuration.unit === 'hours') date.setHours(date.getHours() + parseInt(expiryDuration.value));
-          expiry = date.toISOString();
+          // Server validation expects YYYY-MM-DD format only
+          expiry = date.toISOString().split('T')[0];
         }
 
         await onCreate(name, container, expiry, quota, uploadLimit);

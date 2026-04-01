@@ -41,6 +41,12 @@ router.post('/login', loginLimiter, async (req, res, next) => {
         const userAgent = req.headers['user-agent'] || 'Unknown';
 
         if (isValid) {
+            // Check account expiry
+            if (user.expiry && new Date(user.expiry) < new Date()) {
+                await logLoginAttempt(username, clientIp, userAgent, false);
+                return res.status(403).json({ valid: false, error: 'Compte expiré. Contactez un administrateur.' });
+            }
+
             if (user.twoFactorSecret) {
                 if (!totpToken) return res.status(403).json({ valid: false, error: '2FA_REQUIRED' });
                 if (!authenticator.check(totpToken, user.twoFactorSecret)) {

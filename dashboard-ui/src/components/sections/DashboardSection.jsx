@@ -8,9 +8,9 @@ import { useTheme } from '../../context/ThemeContext';
 import { cn, formatBytes } from '../../lib/utils';
 import { StatBlock, CircularProgress } from '../dashboard/StatCards';
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, PieChart, Pie, Cell 
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip
 } from 'recharts';
+
 import { motion } from 'framer-motion';
 import GlassCard from '../ui/Card';
 import VibeButton from '../ui/Button';

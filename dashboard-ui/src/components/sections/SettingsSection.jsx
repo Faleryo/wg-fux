@@ -7,7 +7,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 import { cn } from '../../lib/utils';
-import axios from 'axios';
+import { axiosInstance } from '../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const GlassInput = ({ label, value, onChange, badge, tooltip }) => {
@@ -57,17 +57,15 @@ const SettingsSection = () => {
   });
 
   useEffect(() => {
-    axios.get('/api/system/config', {
-      headers: { 'X-Api-Token': localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') }
-    }).then(res => setConfig(prev => ({ ...prev, ...res.data }))).catch(console.error);
+    axiosInstance.get('/system/config')
+      .then(res => setConfig(prev => ({ ...prev, ...res.data })))
+      .catch(console.error);
   }, []);
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      await axios.patch('/api/system/config', config, {
-        headers: { 'X-Api-Token': localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') }
-      });
+      await axiosInstance.post('/system/config', config);
       addToast('Configuration appliquée avec succès', 'success');
     } catch (error) {
       addToast('Erreur lors de l\'application', 'error');
@@ -76,17 +74,8 @@ const SettingsSection = () => {
 
   const handleBackup = async () => {
     try {
-      const response = await axios.get('/api/system/backup', { 
-        responseType: 'blob',
-        headers: { 'X-Api-Token': localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') }
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `wg-fux-backup-${Date.now()}.tar.gz`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const response = await axiosInstance.post('/system/backup', {});
+      addToast('Sauvegarde créée avec succès', 'success');
     } catch (error) {
       addToast('Erreur lors du backup', 'error');
     }

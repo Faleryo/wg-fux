@@ -4,7 +4,7 @@ const schedule = require('node-schedule');
 const { db, schema } = require('../../db');
 const { eq, and, lt } = require('drizzle-orm');
 const { runSystemCommand } = require('./shell');
-const { getWireGuardStats, parseWireGuardDump } = require('./system');
+const { getWireGuardStats } = require('./system');
 
 const DATA_DIR = path.join(__dirname, '../../data');
 const SCHEDULE_FILE = path.join(DATA_DIR, 'optimization_schedule.json');
@@ -50,8 +50,7 @@ const updateUsage = async () => {
     if (isUpdatingUsage) return;
     isUpdatingUsage = true;
     try {
-        const stdout = await getWireGuardStats();
-        const peers = parseWireGuardDump(stdout);
+        const peers = await getWireGuardStats();
         const today = new Date().toISOString().split('T')[0];
         lastUsageUpdate = new Date();
 
@@ -104,8 +103,7 @@ const logTrafficHistory = async () => {
     if (isLoggingTraffic) return;
     isLoggingTraffic = true;
     try {
-        const stdout = await getWireGuardStats();
-        const peers = parseWireGuardDump(stdout);
+        const peers = await getWireGuardStats();
         const timestamp = new Date();
         lastTrafficLog = timestamp;
 

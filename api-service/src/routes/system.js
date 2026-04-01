@@ -184,6 +184,17 @@ router.post('/speedtest', auth, requireAdmin, async (req, res) => {
     }
 });
 
+router.post('/optimize', auth, requireAdmin, async (req, res) => {
+    const { profile } = req.body;
+    const validProfiles = ['gaming', 'streaming', 'auto'];
+    if (!profile || !validProfiles.includes(profile)) {
+        return res.status(400).json({ error: 'Invalid optimization profile' });
+    }
+    const { success, error } = await runSystemCommand(getScriptPath('wg-optimize.sh'), [profile]);
+    if (!success) return res.status(500).json({ error: error || 'Optimization failed' });
+    res.json({ success: true, profile, message: `Profile ${profile} applied` });
+});
+
 router.get('/audit', auth, async (req, res) => {
     try {
         const stats = await getSystemStats();
@@ -201,19 +212,28 @@ router.get('/audit', auth, async (req, res) => {
     }
 });
 
-router.get('/security-logs', auth, (req, res) => {
-    res.json([
-        { time: new Date().toISOString(), event: 'SECURITY_AUDIT', status: 'SUCCESS', message: 'Shield active', ip: 'Core' },
-        { time: new Date(Date.now() - 3600000).toISOString(), event: 'AUTH_GATE', status: 'OK', message: 'Access layers synchronized', ip: 'Sentinel' }
-    ]);
+// GET /security-logs is defined below with full implementation
+
+// Access logs (used by LogsSection 'access' tab)
+router.get('/logs', auth, async (req, res) => {
+    try {
+        const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+        const history = await db.select().from(schema.logs)
+            .where(eq(schema.logs.type, 'auth'))
+            .orderBy(desc(schema.logs.timestamp))
+            .limit(limit);
+        res.json(history.map(h => ({
+            time: h.timestamp,
+            username: h.name,
+            ip: h.realIp,
+            message: h.virtualIp,
+            status: h.status === 'success' ? 'SUCCESS' : 'FAILED'
+        })));
+    } catch(e) {
+        res.json([]);
+    }
 });
 
-router.get('/logs', auth, (req, res) => {
-    res.json([
-        { time: new Date().toISOString(), message: 'Gateway optimization complete', status: 'SUCCESS' },
-        { time: new Date(Date.now() - 60000).toISOString(), message: 'Sentinel heartbeat detected', status: 'CONNECTED' }
-    ]);
-});
 
 router.get('/backups', auth, requireAdmin, async (req, res) => {
     try {

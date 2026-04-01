@@ -11,6 +11,11 @@ export const useWebSocket = (url, options = {}) => {
   const reconnectCount = useRef(0);
   const maxReconnectDelay = 30000;
   const timeoutRef = useRef(null);
+  // Store callbacks in refs to avoid re-creating connect() on every render
+  const onMessageRef = useRef(options.onMessage);
+  const onOpenRef = useRef(options.onOpen);
+  useEffect(() => { onMessageRef.current = options.onMessage; }, [options.onMessage]);
+  useEffect(() => { onOpenRef.current = options.onOpen; }, [options.onOpen]);
 
   const connect = useCallback(() => {
     if (!url) return;
@@ -26,7 +31,7 @@ export const useWebSocket = (url, options = {}) => {
       ws.current.onopen = () => {
         setStatus('OPEN');
         reconnectCount.current = 0;
-        if (options.onOpen) options.onOpen();
+        if (onOpenRef.current) onOpenRef.current();
       };
 
       ws.current.onmessage = (event) => {
@@ -37,11 +42,11 @@ export const useWebSocket = (url, options = {}) => {
           message = event.data; // Handle raw logs/strings
         }
         setData(message);
-        if (options.onMessage) options.onMessage(message);
+        if (onMessageRef.current) onMessageRef.current(message);
       };
 
       ws.current.onclose = () => {
-        if (status !== 'CLOSED') setStatus('CLOSED');
+        setStatus('CLOSED');
         
         // Exponential backoff strategy
         const delay = Math.min(1000 * Math.pow(2, reconnectCount.current), maxReconnectDelay);
@@ -52,14 +57,14 @@ export const useWebSocket = (url, options = {}) => {
         }, delay);
       };
 
-      ws.current.onerror = (error) => {
+      ws.current.onerror = () => {
         // ws.close() will trigger onclose logic
-        ws.current.close();
+        if (ws.current) ws.current.close();
       };
     } catch (e) {
       setStatus('CLOSED');
     }
-  }, [url, options.onOpen, options.onMessage]);
+  }, [url]); // Only url as dependency — callbacks are stable via refs
 
   useEffect(() => {
     connect();

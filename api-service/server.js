@@ -37,6 +37,17 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../dashboard-ui/dist')));
 
+// --- Security & Custom Metadata Headers ---
+app.use((req, res, next) => {
+    res.setHeader('X-WG-Shield-Version', '3.1.0-Platinum');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
+
 // Rate Limiting
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -58,8 +69,42 @@ app.use('/api/users', userRoutes);
 app.use('/api/sentinel', sentinelRoutes);
 
 // Compatibility Aliases for Dashboard
-app.get('/api/health', (req, res, next) => { req.url = '/health'; systemRoutes(req, res, next); });
-app.get('/api/stats', auth, (req, res, next) => { req.url = '/stats'; systemRoutes(req, res, next); });
+app.get('/api/health', async (req, res, next) => {
+    const { getSystemStats, getInterfacePath } = require('./src/services/system');
+    const { runSystemCommand } = require('./src/services/shell');
+    const { getJobStatus } = require('./src/services/jobs');
+    const fs = require('fs');
+    const iface = process.env.WG_INTERFACE || 'wg0';
+    const interfaceExists = fs.existsSync(getInterfacePath(iface));
+    const { success } = await runSystemCommand(process.env.WG_BIN || 'wg', ['show', iface]).catch(() => ({ success: false }));
+    const system = await getSystemStats();
+    res.json({
+        status: (interfaceExists && success && parseFloat(system.disk) < 95) ? 'healthy' : 'unhealthy',
+        service: interfaceExists ? 'active' : 'inactive',
+        interface: success ? 'up' : 'down',
+        stats: system,
+        jobs: getJobStatus(),
+        version: '3.1.0-Platinum'
+    });
+});
+
+app.get('/api/stats', auth, async (req, res, next) => {
+    const { getWireGuardStats, getSystemStats, formatBytes } = require('./src/services/system');
+    try {
+        const peers = await getWireGuardStats();
+        let totalRx = 0, totalTx = 0, connectedCount = 0;
+        peers.forEach(peer => {
+            totalRx += peer.rx || 0;
+            totalTx += peer.tx || 0;
+            if (peer.isOnline) connectedCount++;
+        });
+        const system = await getSystemStats();
+        res.json({
+            network: { totalDownload: formatBytes(totalRx), totalUpload: formatBytes(totalTx), connectedClients: connectedCount },
+            system
+        });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 // Root fallback to Dashboard
 app.get('*', (req, res) => {
@@ -126,12 +171,11 @@ wssStatus.on('error', (err) => console.error('[WSS-ERROR] Status:', err));
 wssLogs.on('close', () => clearInterval(wsInterval));
 setInterval(async () => {
     try {
-        const stdout = await getWireGuardStats();
-        const peers = parseWireGuardDump(stdout);
+        const peers = await getWireGuardStats();
         const onlinePeers = peers.filter(p => p.isOnline).map(p => p.publicKey);
         wssStatus.clients.forEach(c => c.readyState === 1 && c.send(JSON.stringify({ type: 'peer_status', onlinePeers })));
     } catch(e) {
-        console.error('[AUDIT] Server startup error:', e.message);
+        console.error('[AUDIT] WS status broadcast error:', e.message);
     }
 }, 2000);
 
@@ -146,17 +190,9 @@ server.on('upgrade', (request, socket, head) => {
     }
 });
 
-// --- Security & Metadata Middleware ---
-app.use((req, res, next) => {
-    res.setHeader('X-WG-Shield-Version', '3.1.0-Platinum');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    next();
-});
-
-// Routes already registered above (Modular Structure)
+// --- Security & Metadata Middleware (must be before routes, applied via header hook) ---
+// NOTE: These headers are set early in the pipeline. helmet() above handles most of them;
+// we add custom headers here for all non-upgrade requests.
 
 // --- Global Error Handling ---
 app.use((err, req, res, next) => {

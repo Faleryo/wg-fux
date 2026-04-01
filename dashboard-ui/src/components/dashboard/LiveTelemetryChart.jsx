@@ -47,13 +47,13 @@ export const LiveTelemetryChart = () => {
                             <span className="text-xs text-indigo-400 font-bold flex items-center gap-1">
                                 <Download size={10} /> DOWNLOAD
                             </span>
-                            <span className="text-sm font-black text-white font-mono">{payload[0].value.toFixed(2)} MB</span>
+                            <span className="text-sm font-black text-white font-mono">{(payload[0]?.value ?? 0).toFixed(2)} MB</span>
                         </div>
                         <div className="flex items-center justify-between gap-8">
                             <span className="text-xs text-rose-400 font-bold flex items-center gap-1">
                                 <Upload size={10} /> UPLOAD
                             </span>
-                            <span className="text-sm font-black text-white font-mono">{payload[1].value.toFixed(2)} MB</span>
+                            <span className="text-sm font-black text-white font-mono">{(payload[1]?.value ?? 0).toFixed(2)} MB</span>
                         </div>
                     </div>
                 </div>
@@ -61,6 +61,7 @@ export const LiveTelemetryChart = () => {
         }
         return null;
     };
+
 
     if (loading) return (
         <div className="h-80 w-full flex items-center justify-center bg-slate-900/20 rounded-3xl animate-pulse">

@@ -18,10 +18,9 @@ const LogsSection = () => {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const endpoint = activeTab === 'access' ? '/logs' : '/system/security-logs';
-      const res = await axios.get(endpoint, {
-        headers: { 'X-Api-Token': localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') }
-      });
+      // axiosInstance baseURL='/api', system routes mounted under /api/system
+      const endpoint = activeTab === 'access' ? '/system/logs' : '/system/security-logs';
+      const res = await axios.get(endpoint);
       setLogs(res.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -31,8 +30,9 @@ const LogsSection = () => {
     fetchLogs();
   }, [activeTab]);
 
-  // WebSocket for Live Streaming
-  const wsUrl = activeTab === 'access' ? getWsUri('logs-api') : getWsUri('logs-wg');
+  // WebSocket for Live Streaming (only for real-time journalctl tabs)
+  // 'access' = DB logs, no live stream needed; 'security' = wireguard system logs live
+  const wsUrl = activeTab === 'security' ? getWsUri('logs-wg') : null;
   useWebSocket(wsUrl, {
     onMessage: (msg) => {
         if (typeof msg !== 'string') return;

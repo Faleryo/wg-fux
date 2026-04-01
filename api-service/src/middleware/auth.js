@@ -16,10 +16,15 @@ const auth = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
-        // Security logic: check if user exists
+        // Security logic: check if user exists and is not expired
         const [user] = await db.select().from(schema.users).where(eq(schema.users.username, decoded.username)).limit(1);
         if (!user) {
             return res.status(401).json({ error: 'Revoked' });
+        }
+        
+        // Check account expiry (supports YYYY-MM-DD and ISO format)
+        if (user.expiry && new Date(user.expiry) < new Date()) {
+            return res.status(403).json({ error: 'Account expired' });
         }
         
         req.user = decoded;

@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
-import axios from 'axios';
+import { axiosInstance as axios } from '../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AuditSection = () => {
@@ -15,12 +15,12 @@ const AuditSection = () => {
 
   const fetchAudit = () => {
     setLoading(true);
-    axios.get('/system/audit', {
-      headers: { 'X-Api-Token': localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') }
-    }).then(res => {
-      setData(res.data);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    axios.get('/system/audit')
+      .then(res => {
+        setData(res.data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   };
 
   useEffect(() => {

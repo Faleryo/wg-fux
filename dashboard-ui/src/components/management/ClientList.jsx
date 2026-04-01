@@ -100,7 +100,7 @@ export const ClientCard = ({ client, onSelect, onToggle, onEdit, onQRCode, onDel
                 variant="secondary" 
                 size="sm" 
                 icon={client.enabled ? Pause : Play} 
-                onClick={(e) => { e.stopPropagation(); onToggle(client.name, !client.enabled); }} 
+                onClick={(e) => { e.stopPropagation(); onToggle(client.container, client.name, !client.enabled); }} 
                  className="p-2" 
               />
               <VibeButton variant="danger" size="sm" icon={Trash2} onClick={(e) => { e.stopPropagation(); onDelete(client); }} className="p-2" />
@@ -261,7 +261,7 @@ export const ClientList = ({ clients, onSelect, onToggle, onEdit, onQRCode, onDe
                                <td className="px-8 py-5 text-right">
                                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                      <VibeButton variant="ghost" size="sm" icon={Edit} onClick={(e) => { e.stopPropagation(); onEdit(client); }} className="p-2" />
-                                     <VibeButton variant="secondary" size="sm" icon={client.enabled ? Pause : Play} onClick={(e) => { e.stopPropagation(); onToggle(client.name, !client.enabled); }} className="p-2" />
+                                     <VibeButton variant="secondary" size="sm" icon={client.enabled ? Pause : Play} onClick={(e) => { e.stopPropagation(); onToggle(client.container, client.name, !client.enabled); }} className="p-2" />
                                      <VibeButton variant="danger" size="sm" icon={Trash2} onClick={(e) => { e.stopPropagation(); onDelete(client); }} className="p-2" />
                                   </div>
                                </td>
