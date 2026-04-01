@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileText, Search, RefreshCw, 
-  Terminal, Shield, Globe, Clock, Download, X
+  Terminal, Shield, Globe, Clock, Download, X, Cpu, Server
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
@@ -19,15 +19,20 @@ const LogsSection = () => {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const endpoint = activeTab === 'access' ? '/system/logs' : '/system/security-logs';
+      let endpoint;
+      if (activeTab === 'access') endpoint = '/system/logs';
+      else if (activeTab === 'security') endpoint = '/system/security-logs';
+      else if (activeTab === 'system') endpoint = '/system/container-logs';
+
       const res = await axios.get(endpoint);
       const rawData = res.data || [];
-      // Normalise les deux formats que l'API peut retourner
+
+      // Normalise les différents formats que l'API peut retourner
       const normalized = rawData.map((item, i) => ({
         id: i,
         time: item.time || item.date || item.timestamp || new Date().toISOString(),
-        message: item.message || (item.username ? `${item.username} – ${item.virtualIp || ''}` : 'Événement système'),
-        ip: item.ip || item.realIp || 'Interne',
+        message: item.message || item.MESSAGE || (item.username ? `${item.username} – ${item.virtualIp || ''}` : 'Événement système'),
+        ip: item.ip || item.realIp || item.unit || item._SYSTEMD_UNIT || 'Système',
         status: item.status || item.type || 'LOGGED',
       }));
       setLogs(normalized);
@@ -90,9 +95,10 @@ const LogsSection = () => {
 
   const getStatusStyle = (status) => {
     const s = (status || '').toUpperCase();
-    if (s === 'SUCCESS' || s === 'CONNECTED') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+    if (s === 'SUCCESS' || s === 'CONNECTED' || s === 'INFO') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
     if (s === 'LIVE') return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 animate-pulse';
     if (s === 'FAILED' || s === 'ERROR') return 'bg-red-500/10 text-red-400 border-red-500/20';
+    if (s === 'WARN' || s === 'WARNING') return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
     return 'bg-slate-800/50 text-slate-400 border-white/5';
   };
 
@@ -104,6 +110,12 @@ const LogsSection = () => {
     a.download = `wg-fux-logs-${activeTab}-${new Date().toISOString().split('T')[0]}.log`;
     a.click();
   };
+
+  const tabs = [
+    { id: 'access',   label: 'Accès Peers',    icon: Globe },
+    { id: 'security', label: 'Sécurité',        icon: Shield },
+    { id: 'system',   label: 'Journal Système', icon: Server },
+  ];
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
@@ -142,10 +154,7 @@ const LogsSection = () => {
 
       {/* Tabs */}
       <div className="flex gap-2 flex-wrap">
-        {[
-          { id: 'access', label: 'Accès Peers', icon: Globe },
-          { id: 'security', label: 'Sécurité Système', icon: Shield }
-        ].map(tab => (
+        {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -163,6 +172,16 @@ const LogsSection = () => {
           </button>
         ))}
       </div>
+
+      {/* System tab notice */}
+      {activeTab === 'system' && (
+        <div className="flex items-center gap-3 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+          <Cpu size={16} className="text-amber-400 flex-shrink-0" />
+          <p className="text-[10px] font-bold text-amber-400/80 uppercase tracking-widest">
+            Logs des conteneurs Docker — wg-fux-api · wg-fux-dashboard · wg-sentinel-proxy
+          </p>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-slate-900/40 backdrop-blur-3xl rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl">

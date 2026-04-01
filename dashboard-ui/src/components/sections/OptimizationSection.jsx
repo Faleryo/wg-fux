@@ -105,7 +105,7 @@ const OptimizationSection = ({ systemStats }) => {
                    currentProfile === profile.id ? `border-${profile.color}-500/50 shadow-2xl shadow-${profile.color}-500/10` : "border-white/5 hover:border-white/10"
                  )}>
                     <div className={cn(
-                      "absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12",
+                      "absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12 pointer-events-none",
                       `text-${profile.color}-500`
                     )}>
                        <profile.icon size={120} />
