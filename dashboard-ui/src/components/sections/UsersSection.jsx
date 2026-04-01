@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import GlassCard from '../ui/Card';
 import VibeButton from '../ui/Button';
 
-const UsersSection = () => {
+const UsersSection = ({ onCreateUser }) => {
   const { theme } = useTheme();
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,6 +33,16 @@ const UsersSection = () => {
     user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleDelete = async (username) => {
+    if (!window.confirm(`Supprimer l'opérateur "${username}" ?`)) return;
+    try {
+      await axiosInstance.delete(`/users/${username}`);
+      fetchUsers();
+    } catch (err) {
+      console.error('Erreur suppression:', err);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
       {/* Header Liquid Glass */}
@@ -47,7 +57,7 @@ const UsersSection = () => {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6 w-full lg:w-auto items-center">
+        <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto items-center">
           <div className="relative group w-full md:w-auto">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors" size={20} />
             <input 
@@ -58,7 +68,7 @@ const UsersSection = () => {
               className="pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/20 focus:bg-white/10 text-sm text-white w-full md:w-80 transition-all font-mono"
             />
           </div>
-          <VibeButton variant="primary" icon={Plus} className="w-full md:w-auto">
+          <VibeButton variant="primary" icon={Plus} className="w-full md:w-auto" onClick={onCreateUser}>
             Créer un Accès
           </VibeButton>
         </div>
@@ -118,12 +128,10 @@ const UsersSection = () => {
                                 Active
                              </div>
                          </td>
-                         <td className="px-10 py-6 text-right">
-                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                               <VibeButton variant="ghost" size="sm" icon={Edit} className="p-2.5" />
-                               <VibeButton variant="danger" size="sm" icon={Trash2} className="p-2.5" />
-                               <VibeButton variant="ghost" size="sm" icon={ChevronRight} className="p-2.5" />
-                            </div>
+                         <td className="px-6 py-6 text-right">
+                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                <VibeButton variant="danger" size="sm" icon={Trash2} className="p-2.5" onClick={(e) => { e.stopPropagation(); handleDelete(user.username); }} />
+                             </div>
                          </td>
                       </motion.tr>
                     ))}

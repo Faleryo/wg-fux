@@ -1,74 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50 transition-colors duration-300;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  @apply bg-slate-950 text-slate-200;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
+/* ============================================
+   SCROLLBAR
+   ============================================ */
 @layer utilities {
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+  }
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.5);
+    background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: var(--neon-color, #4f46e5);
-    border-radius: 3px;
-    box-shadow: 0 0 10px var(--neon-color, #4f46e5);
+    border-radius: 10px;
+    opacity: 0.4;
   }
-  
-  .neon-text-glow {
-    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
-  }
-  
-  .neon-border-glow {
-    box-shadow: 0 0 15px -3px var(--neon-color), 0 0 6px -2px var(--neon-color);
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    opacity: 1;
   }
 
-  .glass-neon {
-    @apply bg-slate-950/40 backdrop-blur-2xl border border-white/10;
-    box-shadow: 
-      inset 0 0 32px rgba(0,0,0,0.2), 
-      0 12px 48px -12px rgba(0,0,0,0.8),
-      0 0 1px 0 rgba(255,255,255,0.15),
-      0 0 20px -10px var(--neon-color);
-  }
-
+  /* ============================================
+     GLASS EFFECTS
+     ============================================ */
   .glass-panel {
-    @apply bg-slate-900/60 backdrop-blur-3xl border-r border-white/5;
-    box-shadow: 10px 0 30px -15px rgba(0,0,0,0.5);
+    @apply bg-slate-900/70 backdrop-blur-3xl border-r border-white/5;
+    box-shadow: 10px 0 30px -15px rgba(0,0,0,0.6);
   }
 
-  .glass-input {
-    @apply bg-white/5 border border-white/10 rounded-xl px-4 py-2 outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all;
-  }
-
-  .neon-glow-indigo { filter: drop-shadow(0 0 8px #6366f1); }
-  .neon-glow-cyan { filter: drop-shadow(0 0 8px #06b6d4); }
-  .neon-glow-rose { filter: drop-shadow(0 0 8px #f43f5e); }
-  .neon-glow-emerald { filter: drop-shadow(0 0 8px #10b981); }
-  
   .glass-card {
-    @apply bg-indigo-500/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden;
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1.5rem;
+    overflow: hidden;
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   .glass-card:hover {
-    @apply bg-indigo-500/10 border-white/20;
-    transform: translateY(-4px) scale(1.01);
-    box-shadow: 0 30px 60px -15px rgba(0,0,0,0.6);
+    background: rgba(30, 41, 59, 0.55);
+    border-color: rgba(255, 255, 255, 0.14);
+    transform: translateY(-3px);
+    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
   }
 
-  .premium-gradient {
-    background: radial-gradient(circle at top left, var(--neon-color), transparent 70%),
-                radial-gradient(circle at bottom right, #4338ca, transparent 70%);
+  .glass-input {
+    @apply bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all text-white text-sm;
+  }
+
+  /* ============================================
+     NEON GLOWS
+     ============================================ */
+  .neon-text-glow {
+    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+  }
+
+  .neon-border-glow {
+    box-shadow: 0 0 15px -3px var(--neon-color), 0 0 6px -2px var(--neon-color);
+  }
+
+  .neon-glow-indigo { filter: drop-shadow(0 0 8px #6366f1); }
+  .neon-glow-cyan   { filter: drop-shadow(0 0 8px #06b6d4); }
+  .neon-glow-rose   { filter: drop-shadow(0 0 8px #f43f5e); }
+  .neon-glow-emerald{ filter: drop-shadow(0 0 8px #10b981); }
+
+  /* ============================================
+     ANIMATIONS
+     ============================================ */
+  @keyframes scanner-loop {
+    0%   { top: -10%; opacity: 0; }
+    5%   { opacity: 0.3; }
+    95%  { opacity: 0.3; }
+    100% { top: 110%; opacity: 0; }
+  }
+
+  @keyframes neon-pulse {
+    0%, 100% { opacity: 1; filter: brightness(1) saturate(1); }
+    50%       { opacity: 0.9; filter: brightness(1.2) saturate(1.2); }
+  }
+
+  @keyframes loading {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-8px); }
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 
   .scanner-line {
@@ -83,31 +124,85 @@ body {
     opacity: 0.3;
   }
 
-  @keyframes scanner-loop {
-    0% { top: -10%; opacity: 0; }
-    5% { opacity: 0.3; }
-    95% { opacity: 0.3; }
-    100% { top: 110%; opacity: 0; }
+  .animate-neon-pulse   { animation: neon-pulse 3s infinite ease-in-out; }
+  .animate-float        { animation: float 4s ease-in-out infinite; }
+  .animate-shimmer      { 
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
   }
 
-  @keyframes neon-pulse {
-    0%, 100% { opacity: 1; filter: brightness(1) saturate(1); }
-    50% { opacity: 0.9; filter: brightness(1.2) saturate(1.2); }
+  /* ============================================
+     PREMIUM GRADIENT
+     ============================================ */
+  .premium-gradient {
+    background: 
+      radial-gradient(circle at top left, var(--neon-color), transparent 60%),
+      radial-gradient(circle at bottom right, #4338ca, transparent 60%);
   }
 
-  .animate-neon-pulse {
-    animation: neon-pulse 3s infinite ease-in-out;
+  /* ============================================
+     RANGE INPUT STYLING
+     ============================================ */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.08);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--neon-color, #6366f1);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--neon-color, #6366f1);
+    transition: transform 0.2s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  /* ============================================
+     SELECT STYLING
+     ============================================ */
+  select option {
+    background: #0f172a;
+    color: #e2e8f0;
   }
 }
 
-:root {
-  --neon-color: #4f46e5;
-}
+/* ============================================
+   THEME CSS VARIABLES
+   ============================================ */
+:root { --neon-color: #6366f1; }
 
-.theme-indigo { --neon-color: #6366f1; }
-.theme-cyan { --neon-color: #06b6d4; }
-.theme-rose { --neon-color: #f43f5e; }
+.theme-indigo  { --neon-color: #6366f1; }
+.theme-cyan    { --neon-color: #06b6d4; }
+.theme-rose    { --neon-color: #f43f5e; }
 .theme-emerald { --neon-color: #10b981; }
-.theme-amber { --neon-color: #f59e0b; }
-.theme-purple { --neon-color: #a855f7; }
-.theme-sky { --neon-color: #0ea5e9; }
+.theme-amber   { --neon-color: #f59e0b; }
+.theme-purple  { --neon-color: #a855f7; }
+.theme-sky     { --neon-color: #0ea5e9; }
+
+/* ============================================
+   RESPONSIVE HELPERS
+   ============================================ */
+@media (max-width: 767px) {
+  /* Empêche le zoom sur les inputs iOS */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Table overflow hint on mobile */
+  .overflow-x-auto::after {
+    content: '';
+    display: block;
+    min-height: 1px;
+  }
+}

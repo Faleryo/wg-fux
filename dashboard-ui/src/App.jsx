@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { axiosInstance, getWsUri } from './lib/api';
 import { useWebSocket } from './lib/useWebSocket';
-import { RefreshCw } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useTheme } from './context/ThemeContext';
 import { useToast } from './context/ToastContext';
 import Sidebar from './components/layout/Sidebar';
@@ -16,10 +16,12 @@ import SettingsSection from './components/sections/SettingsSection';
 import OptimizationSection from './components/sections/OptimizationSection';
 import AuditSection from './components/sections/AuditSection';
 import ClientDetail from './components/management/ClientDetail';
+import NetworkMap from './components/dashboard/NetworkMap';
 
 // Modals
 import CreateClientModal from './components/modals/CreateClientModal';
 import QRCodeModal from './components/modals/QRCodeModal';
+import CreateUserModal from './components/modals/CreateUserModal';
 
 // --- MAIN WRAPPER ---
 const App = () => {
@@ -80,6 +82,7 @@ const WireGuardDashboard = ({ onLogout }) => {
   const [speedtest, setSpeedtest] = useState({ loading: false, data: null });
   const [sentinelStatus, setSentinelStatus] = useState({ status: 'offline', lastHeartbeat: null, stats: {} });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
 
 
   const prevDataRef = useRef({ clients: [], timestamp: null });
@@ -244,7 +247,7 @@ const WireGuardDashboard = ({ onLogout }) => {
       case 'dashboard':
         return <DashboardSection stats={stats} trafficData={trafficData} systemStats={systemStats} clients={clients} health={health} config={config} speedtest={speedtest} onRunSpeedtest={handleRunSpeedtest} sentinel={sentinelStatus} />;
 
-      case 'management':
+      case 'containers':
         return (
           <ContainersSection
             clients={clients}
@@ -257,7 +260,13 @@ const WireGuardDashboard = ({ onLogout }) => {
             onCreateClient={() => setShowCreateModal(true)}
           />
         );
-      case 'users': return <UsersSection />;
+      case 'topology':
+        return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
+            <NetworkMap clients={clients} onSelectClient={setTopologySelectedClient} />
+          </div>
+        );
+      case 'users': return <UsersSection onCreateUser={() => setShowCreateUserModal(true)} />;
       case 'logs': return <LogsSection />;
       case 'settings': return <SettingsSection />;
       case 'optimization': return <OptimizationSection systemStats={systemStats} />;
@@ -276,13 +285,14 @@ const WireGuardDashboard = ({ onLogout }) => {
       {/* Mobile Menu Button */}
       <button 
         onClick={() => setSidebarOpen(true)}
-        className="fixed top-6 left-6 z-40 p-3 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl md:hidden text-white shadow-2xl"
+        className="fixed top-4 left-4 z-40 p-2.5 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-xl md:hidden text-white shadow-2xl active:scale-95 transition-transform"
+        aria-label="Ouvrir le menu"
       >
-        <RefreshCw size={24} className="animate-pulse" />
+        <Menu size={22} />
       </button>
 
       <Sidebar 
-        activeSection={topologySelectedClient ? 'management' : activeSection} 
+        activeSection={topologySelectedClient ? 'containers' : activeSection} 
         setActiveSection={(id) => { setActiveSection(id); setTopologySelectedClient(null); }} 
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -290,7 +300,7 @@ const WireGuardDashboard = ({ onLogout }) => {
         uptime={uptime}
       />
 
-      <main className="flex-1 min-w-0 p-4 md:p-12 overflow-y-auto custom-scrollbar relative z-10">
+      <main className="flex-1 min-w-0 pt-16 md:pt-0 px-4 pb-4 md:p-12 overflow-y-auto custom-scrollbar relative z-10">
         {/* Modern Background Decorations */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-600/10 blur-[180px] -z-10 animate-pulse pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-600/5 blur-[150px] -z-10 pointer-events-none" />
@@ -321,7 +331,16 @@ const WireGuardDashboard = ({ onLogout }) => {
           }}
         />
       )}
-      {/* Edit modal reuses CreateClientModal with pre-filled data - implement as needed */}
+      {showCreateUserModal && (
+        <CreateUserModal
+          isOpen={showCreateUserModal}
+          onClose={() => setShowCreateUserModal(false)}
+          onCreate={async (username, password, role) => {
+            await axiosInstance.post('/users', { username, password, role });
+            addToast(`Opérateur ${username} créé avec succès`, 'success');
+          }}
+        />
+      )}
     </div>
   );
 };
