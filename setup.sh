@@ -24,6 +24,13 @@ uninstall() {
     if [ -f "docker-compose.yml" ]; then
         echo -e "[INFO] Arrêt des conteneurs et suppression des volumes..."
         sudo docker compose down -v || true
+        
+        read -rp "Voulez-vous supprimer les IMAGES Docker du projet (Libère ~6-10GB) ? (y/N): " purge_images
+        if [[ "$purge_images" =~ ^[yY]$ ]]; then
+            echo -e "[INFO] Suppression des images locales..."
+            sudo docker compose down --rmi local 2>/dev/null || true
+            sudo docker image prune -f 2>/dev/null || true
+        fi
     fi
 
     echo -e "[INFO] Désactivation du service Sentinel..."
@@ -35,6 +42,10 @@ uninstall() {
     echo -e "[INFO] Suppression des fichiers de configuration API..."
     rm -f "$API_ENV"
     rm -rf "$API_DATA"
+
+    # Nettoyage des liens symboliques
+    echo -e "[INFO] Nettoyage des outils utilitaires..."
+    sudo rm -f /usr/local/bin/wg-*.sh 2>/dev/null || true
 
     local swap_file="/swap_wgfux"
     if [ -f "$swap_file" ]; then
@@ -70,11 +81,14 @@ update_process() {
     # 💠 SRE Optimization: Check disk before build
     local free_kb
     free_kb=$(df -k / | awk 'NR==2 {print $4}')
-    if [ "$free_kb" -lt 2097152 ]; then # < 2GB free
-        echo -e "${YELLOW}[WARNING] Espace disque faible (< 2GB). Nettoyage sécurisé de Docker...${NC}"
-        # On supprime les images inutilisées et le cache de build, mais on GARDE les volumes (données critiques)
-        sudo docker image prune -a -f || true
-        sudo docker builder prune -f || true
+    if [ "$free_kb" -lt 5242880 ]; then # < 5GB free
+        echo -e "${YELLOW}[WARNING] Espace disque faible (< 5GB). Nettoyage agressif du cache Docker...${NC}"
+        # On supprime les images inutilisées ET le cache de build pour garantir le nouveau build
+        sudo docker system prune -f 2>/dev/null || true
+        sudo docker builder prune -a -f 2>/dev/null || true
+    else
+        # Nettoyage léger du cache superflu
+        sudo docker builder prune -f --filter "until=24h" 2>/dev/null || true
     fi
     
     # 💠 SRE: Ensure SSL and Firewall are ready before starting Docker
@@ -140,22 +154,25 @@ setup_swap() {
     ram_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     local ram_mb=$((ram_kb / 1024))
 
-    # Activation automatique si RAM < 2GB
-    if [ "$ram_mb" -lt 2048 ]; then
-        echo -e "${YELLOW}[WARNING] Mémoire vive faible détectée (${ram_mb}MB).${NC}"
+    # Activation automatique si RAM < 3GB (seuil relevé pour Docker builds)
+    if [ "$ram_mb" -lt 3072 ]; then
+        echo -e "${YELLOW}[WARNING] Mémoire vive réduite détectée (${ram_mb}MB).${NC}"
 
-        # 1. Vérification si Swap déjà actif (globale) et suffisant (> 1GB)
-        local swap_total_kb
-        swap_total_kb=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
-        local swap_total_mb=$((swap_total_kb / 1024))
+        # 1. Vérification intelligente de TOUT swap actif sur le système
+        local swap_active_mb
+        swap_active_mb=$(swapon --show=SIZE --bytes --noheadings | awk '{s+=$1} END {print s/1024/1024}')
+        swap_active_mb=${swap_active_mb:-0}
+        swap_active_mb=$(printf "%.0f" "$swap_active_mb")
 
-        if [ "$swap_total_mb" -gt 1024 ]; then
-            echo -e "${BLUE}[INFO] Un swap suffisant (${swap_total_mb}MB) est déjà actif. Poursuite...${NC}"
+        if [ "$swap_active_mb" -gt 1024 ]; then
+            echo -e "${BLUE}[INFO] Un swap total suffisant (${swap_active_mb}MB) est déjà présent. Esquive...${NC}"
             return 0
         fi
 
         if [ -f "$swap_file" ]; then
-            echo -e "${BLUE}[INFO] Un fichier de swap WG-FUX ($swap_file) existe déjà. Réactivation...${NC}"
+            echo -e "${BLUE}[INFO] Fichier de swap WG-FUX ($swap_file) déjà prêt. Activation...${NC}"
+            sudo chmod 600 "$swap_file"
+            sudo mkswap "$swap_file" 2>/dev/null || true
             sudo swapon "$swap_file" 2>/dev/null || true
             return 0
         fi

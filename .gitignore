@@ -55,4 +55,6 @@ api-service/logs/
 VIBE-OS.md
 _PROJECT_SKILL.md
 extract_scripts.py
+.agents/skills/vibe-os/
+.agents/workflows/
 
