@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { axiosInstance, getWsUri } from './lib/api';
 import { useWebSocket } from './lib/useWebSocket';
-import { Menu } from 'lucide-react';
+import { Menu, RefreshCw } from 'lucide-react';
 import { useTheme } from './context/ThemeContext';
 import { useToast } from './context/ToastContext';
 import Sidebar from './components/layout/Sidebar';
