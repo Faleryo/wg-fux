@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Server, Activity, Users, Wifi, Shield, ShieldCheck, 
   ArrowDown, ArrowUp, Cpu, Zap, HardDrive, Gauge, 
@@ -23,34 +23,43 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
   const ram = systemStats?.memory || 0;
   const disk = systemStats?.disk || 0;
 
-  const containerTraffic = clients.reduce((acc, client) => {
-    const container = client.container || 'Défaut';
-    const total = (client.downloadBytes || 0) + (client.uploadBytes || 0);
-    if (total > 0) {
-      if (!acc[container]) acc[container] = 0;
-      acc[container] += total;
-    }
-    return acc;
-  }, {});
-  
-  const pieData = Object.entries(containerTraffic)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value);
+  const pieData = useMemo(() => {
+    if (!clients || !Array.isArray(clients)) return [];
+    const containerTraffic = clients.reduce((acc, client) => {
+      const container = client.container || 'Défaut';
+      const total = (client.downloadBytes || 0) + (client.uploadBytes || 0);
+      if (total > 0) {
+        if (!acc[container]) acc[container] = 0;
+        acc[container] += total;
+      }
+      return acc;
+    }, {});
+    
+    return Object.entries(containerTraffic)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [clients]);
     
   const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-  const topClient = clients.reduce((prev, current) => {
-    const prevRate = (prev.downloadRate || 0) + (prev.uploadRate || 0);
-    const currRate = (current.downloadRate || 0) + (current.uploadRate || 0);
-    return currRate > prevRate ? current : prev;
-  }, { name: 'Aucun', downloadRate: 0, uploadRate: 0 });
-  const topClientRate = (topClient.downloadRate || 0) + (topClient.uploadRate || 0);
+  const { topClient, topClientRate } = useMemo(() => {
+    if (!clients || !Array.isArray(clients) || clients.length === 0) {
+       return { topClient: { name: 'Aucun', downloadRate: 0, uploadRate: 0 }, topClientRate: 0 };
+    }
+    const top = clients.reduce((prev, current) => {
+      const prevRate = (prev.downloadRate || 0) + (prev.uploadRate || 0);
+      const currRate = (current.downloadRate || 0) + (current.uploadRate || 0);
+      return currRate > prevRate ? current : prev;
+    }, { name: 'Aucun', downloadRate: 0, uploadRate: 0 });
+    const rate = (top.downloadRate || 0) + (top.uploadRate || 0);
+    return { topClient: top, topClientRate: rate };
+  }, [clients]);
 
   return (
     <div className="space-y-10 animate-in slide-in-from-bottom-10 duration-700">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <GlassCard className="col-span-1 md:col-span-2 lg:col-span-12 xl:col-span-8 p-6 md:p-10 flex flex-col justify-between group overflow-hidden relative">
+        <GlassCard className="col-span-1 lg:col-span-12 xl:col-span-8 p-6 md:p-10 flex flex-col justify-between group overflow-hidden relative">
           <Server className="absolute -right-20 -bottom-20 text-white/[0.01] w-[300px] h-[300px] md:w-[400px] md:h-[400px] group-hover:scale-110 group-hover:rotate-6 transition-transform duration-1000 ease-in-out pointer-events-none" />
 
           <div className="relative z-10">
@@ -83,7 +92,7 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
                <div className="bg-slate-950/40 backdrop-blur-3xl p-8 rounded-[2rem] border border-white/5 flex items-center justify-between group/rx hover:border-emerald-500/30 transition-all duration-500 shadow-inner">
                   <div>
                     <p className="text-[10px] font-black text-emerald-500/70 uppercase tracking-widest mb-2">Total Download (RX)</p>
-                    <p className="text-4xl font-mono font-black text-white tracking-tighter">{stats.totalUpload || '0 B'}</p>
+                    <p className="text-4xl font-mono font-black text-white tracking-tighter">{stats?.totalDownload || '0 B'}</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-500 group-hover/rx:scale-110 group-hover/rx:rotate-12 transition-transform shadow-2xl">
                     <ArrowDown size={32} />
@@ -92,7 +101,7 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
                <div className="bg-slate-950/40 backdrop-blur-3xl p-8 rounded-[2rem] border border-white/5 flex items-center justify-between group/tx hover:border-indigo-500/30 transition-all duration-500 shadow-inner">
                   <div>
                     <p className="text-[10px] font-black text-indigo-500/70 uppercase tracking-widest mb-2">Total Upload (TX)</p>
-                    <p className="text-4xl font-mono font-black text-white tracking-tighter">{stats.totalDownload || '0 B'}</p>
+                    <p className="text-4xl font-mono font-black text-white tracking-tighter">{stats?.totalUpload || '0 B'}</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-indigo-500/10 text-indigo-500 group-hover/tx:scale-110 group-hover/tx:rotate-12 transition-transform shadow-2xl">
                     <ArrowUp size={32} />
@@ -102,7 +111,7 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
           </div>
         </GlassCard>
 
-        <div className="col-span-1 md:col-span-2 lg:col-span-12 xl:col-span-4 flex flex-col gap-8">
+        <div className="col-span-1 lg:col-span-12 xl:col-span-4 flex flex-col gap-8">
            <GlassCard className="p-8 flex items-center justify-between group overflow-hidden bg-gradient-to-br from-emerald-500/10 to-teal-950/20 border-emerald-500/20">
                <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
@@ -213,12 +222,12 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
                </div>
                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-8">System Speedtest</h3>
                
-               {speedtest.loading ? (
+               {speedtest?.loading ? (
                   <div className="flex flex-col items-center justify-center py-6 gap-4">
                      <RefreshCw size={48} className={cn("animate-spin", `text-${theme}-600`)} />
                      <p className="text-[10px] font-black text-white animate-pulse uppercase tracking-[0.4em]">Optimisation...</p>
                   </div>
-               ) : speedtest.data ? (
+               ) : speedtest?.data ? (
                   <div className="grid grid-cols-2 gap-6 relative z-10">
                      <div className="space-y-1">
                         <div className="flex items-center gap-2 text-emerald-400">

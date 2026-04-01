@@ -70,9 +70,18 @@ const NetworkMap = ({ clients, onSelectClient }) => {
   };
 
   const getContainerColor = (container) => {
-    const colors = ['emerald', 'indigo', 'rose', 'amber', 'cyan', 'purple'];
-    const idx = uniqueContainers.indexOf(container) % colors.length;
-    return colors[idx];
+    const colorMap = {
+      emerald: '#10b981',
+      indigo: '#6366f1',
+      rose: '#f43f5e',
+      amber: '#f59e0b',
+      cyan: '#06b6d4',
+      purple: '#a855f7',
+      sky: '#0ea5e9'
+    };
+    const colors = ['emerald', 'indigo', 'rose', 'amber', 'cyan', 'purple', 'sky'];
+    const colorName = colors[uniqueContainers.indexOf(container) % colors.length];
+    return { name: colorName, hex: colorMap[colorName] };
   };
 
   if (dimensions.width === 0) return <div ref={containerRef} className="col-span-12 w-full h-[calc(100vh-100px)]" />;
@@ -128,12 +137,12 @@ const NetworkMap = ({ clients, onSelectClient }) => {
                   x2={x} y2={y}
                   initial={{ pathLength: 0, opacity: 0 }}
                   animate={{ pathLength: 1, opacity: isOnline ? 0.6 : 0.1 }}
-                  stroke={isOnline ? (hasTraffic ? `var(--color-${color}-500)` : "rgba(255, 255, 255, 0.2)") : "rgba(255, 255, 255, 0.05)"}
+                  stroke={isOnline ? (hasTraffic ? color.hex : "rgba(255, 255, 255, 0.2)") : "rgba(255, 255, 255, 0.05)"}
                   strokeWidth={isOnline ? (hasTraffic ? "2" : "1.5") : "1"}
                   strokeDasharray={isOnline ? "0" : "5,5"}
                 />
                 {isOnline && (
-                  <circle r={hasTraffic ? "3" : "2"} fill={hasTraffic ? `var(--color-${color}-400)` : "#818cf8"}>
+                  <circle r={hasTraffic ? "3" : "2"} fill={hasTraffic ? color.hex : "#818cf8"}>
                     <animateMotion
                       dur={hasTraffic ? `${Math.max(0.4, 4 - Math.log10(client.downloadRate + client.uploadRate + 1))}s` : "4s"}
                       repeatCount="indefinite"
@@ -184,12 +193,12 @@ const NetworkMap = ({ clients, onSelectClient }) => {
               <div className={cn(
                 "w-16 h-16 backdrop-blur-md border-[3px] rounded-2xl flex items-center justify-center transition-all duration-500 group-hover/node:scale-125 shadow-2xl",
                 isOnline
-                  ? `bg-slate-900/80 border-${color}-500/50 group-hover/node:bg-${color}-900/90 group-hover/node:border-${color}-400 group-hover/node:shadow-${color}-600/20`
+                  ? `bg-slate-900/80 border-${color.name}-500/50 group-hover/node:bg-${color.name}-900/90 group-hover/node:border-${color.name}-400 group-hover/node:shadow-${color.name}-600/20`
                   : 'bg-slate-950/80 border-white/5 group-hover/node:bg-slate-900 group-hover/node:border-white/20'
               )}>
                 <Users size={28} className={cn(
                   "transition-all duration-300",
-                  isOnline ? `text-${color}-400 group-hover/node:text-white group-hover/node:rotate-6` : 'text-slate-700 group-hover/node:text-slate-400'
+                  isOnline ? `text-${color.name}-400 group-hover/node:text-white group-hover/node:rotate-6` : 'text-slate-700 group-hover/node:text-slate-400'
                 )} />
                 {isOnline && (
                   <span className={cn("absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full border-4 border-slate-950", `bg-emerald-500 shadow-[0_0_15px_#10b981]`)}></span>
@@ -204,7 +213,7 @@ const NetworkMap = ({ clients, onSelectClient }) => {
                   <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
                     <div>
                       <span className="text-md font-black text-white tracking-tight block truncate max-w-[140px]">{client.name}</span>
-                      <span className={cn("text-[9px] font-black uppercase tracking-widest", `text-${color}-400`)}>{client.container}</span>
+                      <span className={cn("text-[9px] font-black uppercase tracking-widest", `text-${color.name}-400`)}>{client.container}</span>
                     </div>
                     <div className={cn(
                       "px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase",
@@ -250,12 +259,15 @@ const NetworkMap = ({ clients, onSelectClient }) => {
       <div className="absolute bottom-8 left-8 hidden md:flex flex-col gap-3 p-6 bg-slate-950/40 backdrop-blur-2xl border border-white/5 rounded-[2rem] z-20">
          <span className="text-[10px] font-black text-white uppercase tracking-widest mb-2 opacity-60">Goupes Tactiques</span>
          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-           {uniqueContainers.map(c => (
-              <div key={c} className="flex items-center gap-3">
-                 <span className={cn("w-2 h-2 rounded-full", `bg-${getContainerColor(c)}-500 shadow-[0_0_8px_currentColor]`)}></span>
-                 <span className="text-[9px] font-bold text-slate-400 font-mono uppercase truncate max-w-[80px]">{c}</span>
-              </div>
-           ))}
+           {uniqueContainers.map(c => {
+              const color = getContainerColor(c);
+              return (
+                <div key={c} className="flex items-center gap-3">
+                   <span className={cn("w-2 h-2 rounded-full", `bg-${color.name}-500 shadow-[0_0_8px_currentColor]`)}></span>
+                   <span className="text-[9px] font-bold text-slate-400 font-mono uppercase truncate max-w-[80px]">{c}</span>
+                </div>
+              );
+           })}
          </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 ---
-name: Vibe-OS Master Skill (Universal v2.1)
+name: Vibe-OS Master Skill (Universal v3.0 - Platinum Hardening)
 description: Cadre architectural agentique de pointe pour transformer toute idée technique en un produit premium, déployable et documenté.
 ---
 
@@ -27,6 +27,13 @@ description: Cadre architectural agentique de pointe pour transformer toute idé
   5. GHOST SCAN RÉCURSIF : Audit systématique des imports et des indices de tableaux Shell/SQL.
   6. ATOMIC_CHECKPOINT : Interdiction de passer à l'action suivante sans cocher la case correspondante dans `task.md`.
 </sentinel_platinum_rules>
+
+<vibe_platinum_v3_bricks>
+  1. DOM-INTEGRITY : Validation stricte des propriétés HTML/SVG. Interdiction de syntaxe responsive CSS (md:) dans les attributs natifs (cx, cy, r, etc.).
+  2. SRE-SMOKE-TEST : Avant de conclure toute tâche infra/réseau, valider la connectivité réelle (`curl -I`, `docker compose ps`, `logs`).
+  3. Z-LAYER-PROTOCOL : Audit systématique de l'interactivité. Tout calque décoratif ou de flou doit porter `pointer-events-none`.
+  4. BOOTSTRAP-RECOVERY : Auto-détection des dépendances de configuration. Si `.env` ou `SSL` manquent, l'agent doit générer un `mock-init` pour garantir la stabilité.
+</vibe_platinum_v3_bricks>
 
 <safety_mandates>
   - SÉCURITÉ : Validation stricte (Zod si JS/TS, Typing fort ailleurs), 0 secrets en clair.
