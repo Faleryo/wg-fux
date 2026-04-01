@@ -1,7 +1,8 @@
 import React from 'react';
 import { 
   Users, Activity, Database, ArrowDown, ArrowUp, QrCode, Edit, Trash2, 
-  Pause, Play, ChevronRight, Search, Plus, List, LayoutGrid, Package, Clock
+  Pause, Play, ChevronRight, Search, Plus, List, LayoutGrid, Package, Clock,
+  Download, AlertTriangle, Timer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
@@ -13,6 +14,12 @@ export const ClientCard = ({ client, onSelect, onToggle, onEdit, onQRCode, onDel
   const { theme } = useTheme();
   const isOnline = (Date.now() / 1000 - client.lastHandshake) < 180;
   const progress = client.quota > 0 ? Math.min(100, (client.usageTotal / (client.quota * 1024 * 1024 * 1024)) * 100) : 0;
+
+  // Expiry helpers
+  const isExpired = client.expiry && new Date(client.expiry) < new Date();
+  const isExpiringSoon = !isExpired && client.expiry && (
+    (new Date(client.expiry) - new Date()) / (1000 * 60 * 60 * 24) <= 7
+  );
 
   const getContainerColor = (container) => {
     const colors = ['emerald', 'indigo', 'rose', 'amber', 'cyan', 'purple'];
@@ -42,12 +49,23 @@ export const ClientCard = ({ client, onSelect, onToggle, onEdit, onQRCode, onDel
                <span className="text-[9px] font-mono text-slate-500 font-bold">{client.ip}</span>
              </div>
           </div>
-          <VibeButton 
-            variant="ghost"
-            size="sm"
-            icon={ChevronRight}
-            onClick={(e) => { e.stopPropagation(); onSelect(client); }}
-          />
+          {/* Expiry Badge */}
+          <div className="flex flex-col items-end gap-1.5">
+            {(isExpired || isExpiringSoon) && (
+              <span className={cn(
+                "text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest flex items-center gap-1",
+                isExpired
+                  ? "bg-red-500/20 text-red-400 border-red-500/30"
+                  : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+              )}>
+                <Timer size={8} />
+                {isExpired ? 'Expiré' : 'Bientôt'}
+              </span>
+            )}
+            <button onClick={(e) => { e.stopPropagation(); onSelect(client); }} className="p-1.5 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-all">
+              <ChevronRight size={14} />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-6">
@@ -216,6 +234,29 @@ export const ClientList = ({ clients, onSelect, onToggle, onEdit, onQRCode, onDe
   const [viewMode, setViewMode] = React.useState('containers'); // 'containers', 'grid', 'list'
   const { theme } = useTheme();
 
+  const handleExportCSV = () => {
+    const headers = ['Nom', 'Container', 'IP', 'Statut', 'DL Total', 'UL Total', 'Quota (GB)', 'Expiration'];
+    const rows = clients.map(c => {
+      const online = (Date.now() / 1000 - c.lastHandshake) < 180;
+      return [
+        c.name, c.container, c.ip,
+        online ? 'En ligne' : 'Hors ligne',
+        formatBytes(c.downloadBytes || 0),
+        formatBytes(c.uploadBytes  || 0),
+        c.quota > 0 ? `${c.quota}` : 'Illimité',
+        c.expiry ? new Date(c.expiry).toLocaleDateString('fr-FR') : 'Illimité'
+      ];
+    });
+    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `wg-fux-peers-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filteredClients = clients.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) || (c.ip || '').includes(search);
     return matchesSearch;
@@ -287,6 +328,13 @@ export const ClientList = ({ clients, onSelect, onToggle, onEdit, onQRCode, onDe
                  <List size={16} />
                </button>
             </div>
+            <button
+               onClick={handleExportCSV}
+               title="Exporter CSV"
+               className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/20 transition-all flex-shrink-0"
+             >
+               <Download size={16} />
+             </button>
             <VibeButton 
               variant="primary" 
               icon={Plus} 
