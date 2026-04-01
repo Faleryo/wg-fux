@@ -60,8 +60,8 @@ export const CircularProgress = ({ value, label, color, icon: Icon }) => {
   return (
     <div className="relative flex flex-col items-center group cursor-help">
       <div className="relative w-20 h-20 md:w-28 md:h-28 transform transition-transform duration-500 group-hover:scale-110">
-        <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl">
-          <circle cx="40 md:56" cy="40 md:56" r="32 md:radius" stroke="currentColor" strokeWidth="6 md:8" fill="transparent" className="text-slate-800/50" />
+        <svg viewBox="0 0 112 112" className="w-full h-full transform -rotate-90 drop-shadow-2xl">
+          <circle cx="56" cy="56" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
           <motion.circle 
             cx="56" cy="56" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent"
             initial={{ strokeDashoffset: circumference }}
@@ -73,12 +73,13 @@ export const CircularProgress = ({ value, label, color, icon: Icon }) => {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <Icon size={20} className="text-slate-400 mb-1 group-hover:text-white transition-colors duration-300" />
-          <span className="text-xl font-black text-white font-mono">{value}%</span>
+          <Icon size={18} className="text-slate-500 mb-1 group-hover:text-white transition-colors duration-300 md:hidden" />
+          <Icon size={24} className="text-slate-500 mb-1 group-hover:text-white transition-colors duration-300 hidden md:block" />
+          <span className="text-sm md:text-xl font-black text-white font-mono">{value}%</span>
         </div>
       </div>
-      <span className="mt-4 text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-slate-300 transition-colors duration-300">{label}</span>
-      <div className={cn("absolute -bottom-2 w-0 h-0.5 bg-current transition-all duration-500 group-hover:w-12", color.replace('text-', 'bg-'))}></div>
+      <span className="mt-4 text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-slate-300 transition-colors duration-300">{label}</span>
+      <div className={cn("absolute -bottom-2 w-0 h-0.5 bg-current transition-all duration-500 group-hover:w-12", color?.replace('text-', 'bg-'))}></div>
     </div>
   );
 };

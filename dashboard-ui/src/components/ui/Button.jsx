@@ -36,7 +36,7 @@ const VibeButton = ({
       disabled={disabled || loading}
       onClick={onClick}
       className={cn(
-        "relative flex items-center justify-center gap-3 font-black uppercase tracking-widest border transition-all duration-300 rounded-2xl shadow-xl",
+        "relative flex items-center justify-center gap-3 font-black uppercase tracking-widest border transition-all duration-300 rounded-2xl shadow-xl group",
         variants[variant],
         sizes[size],
         (disabled || loading) && "opacity-50 cursor-not-allowed grayscale",
@@ -50,7 +50,7 @@ const VibeButton = ({
       <span className="relative z-10">{children}</span>
       
       {/* Effet Liquid Sparkle sur Hover */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 hover:opacity-100 transition-opacity duration-1000"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
     </motion.button>
   );
 };

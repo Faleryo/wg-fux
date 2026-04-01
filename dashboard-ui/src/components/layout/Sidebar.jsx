@@ -128,18 +128,18 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
         </nav>
 
         {/* Status Widget */}
-        <div className="p-6">
-          <div className="relative overflow-hidden glass-card p-6 group">
-            <Cpu className="absolute -right-6 -bottom-6 text-white opacity-[0.03] w-32 h-32 rotate-12 group-hover:rotate-45 transition-transform duration-700" />
+        <div className="p-4 md:p-6 mt-auto">
+          <div className="relative overflow-hidden glass-card p-4 md:p-6 group border border-white/5 shadow-2xl">
+            <Cpu className="absolute -right-6 -bottom-6 text-white opacity-[0.02] w-32 h-32 rotate-12 group-hover:rotate-45 transition-transform duration-700 pointer-events-none" />
             
             <div className="relative z-10">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <span className="relative flex h-2 w-2">
+                  <span className="relative flex h-1.5 w-1.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                   </span>
-                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">SENTINEL ACTIVE</span>
+                  <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">SENTINEL ACTIVE</span>
                 </div>
                 <span className="text-[9px] font-mono text-slate-500 px-2 py-0.5 bg-white/5 rounded-md border border-white/5">{window.WG_INTERFACE || 'wg0'}</span>
               </div>

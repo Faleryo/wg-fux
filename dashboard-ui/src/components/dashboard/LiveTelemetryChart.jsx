@@ -95,53 +95,63 @@ export const LiveTelemetryChart = () => {
                 </div>
             </div>
 
-            <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data}>
-                        <defs>
-                            <linearGradient id="colorDown" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
-                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                            </linearGradient>
-                            <linearGradient id="colorUp" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4}/>
-                                <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
-                        <XAxis 
-                            dataKey="name" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fill: '#475569', fontSize: 10, fontWeight: 900 }} 
-                        />
-                        <YAxis 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fill: '#475569', fontSize: 10, fontWeight: 900 }}
-                            tickFormatter={(value) => `${value}MB`}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Area 
-                            type="monotone" 
-                            dataKey="down" 
-                            stroke="#6366f1" 
-                            strokeWidth={3}
-                            fillOpacity={1} 
-                            fill="url(#colorDown)" 
-                            animationDuration={2000}
-                        />
-                        <Area 
-                            type="monotone" 
-                            dataKey="up" 
-                            stroke="#f43f5e" 
-                            strokeWidth={3}
-                            fillOpacity={1} 
-                            fill="url(#colorUp)" 
-                            animationDuration={2000}
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
+            <div className="h-72 w-full relative">
+                {data.length === 0 ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/[0.02] rounded-3xl border border-dashed border-white/5">
+                        <Activity size={48} className="text-slate-800 mb-4" />
+                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">Initialisation des flux Sentinel...</p>
+                        <p className="text-[8px] font-bold text-slate-700 uppercase tracking-widest mt-2">(Données disponibles après le premier cycle d'audit)</p>
+                    </div>
+                ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={data}>
+                            <defs>
+                                <linearGradient id="colorDown" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                </linearGradient>
+                                <linearGradient id="colorUp" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4}/>
+                                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                            <XAxis 
+                                dataKey="name" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fill: '#475569', fontSize: 10, fontWeight: 900 }} 
+                            />
+                            <YAxis 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fill: '#475569', fontSize: 10, fontWeight: 900 }}
+                                tickFormatter={(value) => `${value}MB`}
+                            />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Area 
+                                type="monotone" 
+                                dataKey="down" 
+                                stroke="#6366f1" 
+                                strokeWidth={3}
+                                fillOpacity={1} 
+                                fill="url(#colorDown)" 
+                                animationDuration={2000}
+                                isAnimationActive={true}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="up" 
+                                stroke="#f43f5e" 
+                                strokeWidth={3}
+                                fillOpacity={1} 
+                                fill="url(#colorUp)" 
+                                animationDuration={2000}
+                                isAnimationActive={true}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                )}
             </div>
             
             <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">

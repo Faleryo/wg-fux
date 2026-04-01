@@ -50,8 +50,8 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
     <div className="space-y-10 animate-in slide-in-from-bottom-10 duration-700">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
         
-        <GlassCard className="col-span-1 md:col-span-2 lg:col-span-12 xl:col-span-8 p-6 md:p-10 flex flex-col justify-between group overflow-hidden">
-          <Server className="absolute -right-16 -bottom-16 text-white/[0.02] w-[400px] h-[400px] group-hover:scale-110 group-hover:rotate-6 transition-transform duration-1000 ease-in-out" />
+        <GlassCard className="col-span-1 md:col-span-2 lg:col-span-12 xl:col-span-8 p-6 md:p-10 flex flex-col justify-between group overflow-hidden relative">
+          <Server className="absolute -right-20 -bottom-20 text-white/[0.01] w-[300px] h-[300px] md:w-[400px] md:h-[400px] group-hover:scale-110 group-hover:rotate-6 transition-transform duration-1000 ease-in-out pointer-events-none" />
 
           <div className="relative z-10">
             <div className="flex items-start justify-between mb-16">
@@ -71,10 +71,9 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
               <StatBlock label="Peers Actifs" value={stats.connectedClients || 0} sub="CONECTÉS" icon={Users} delay={0} />
               <StatBlock label="Tunnel MTU" value={config?.mtu || '1420'} icon={Activity} delay={0.1} />
               <StatBlock label="Port Liaison" value={config?.port || '51820'} icon={Wifi} delay={0.2} />
-              <StatBlock 
-                label="Health Shield" 
-                value={health.status === 'healthy' ? 'Optimal' : 'Issues'} 
-                sub={health.status === 'healthy' ? 'STABLE' : 'CRITICAL'} 
+              <StatBlock label="Health Shield" 
+                value={health.status === 'healthy' ? 'Optimal' : 'Checking'} 
+                sub={health.status === 'healthy' ? 'STABLE' : 'PENDING'} 
                 icon={ShieldCheck} 
                 delay={0.3}
               />
