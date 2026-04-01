@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { axiosInstance, getWsUri } from './lib/api';
 import { useWebSocket } from './lib/useWebSocket';
-import { Menu, RefreshCw, Search } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
 import { useTheme } from './context/ThemeContext';
 import { useToast } from './context/ToastContext';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -113,14 +113,20 @@ const WireGuardDashboard = ({ onLogout }) => {
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
-  // ── WebSocket for real-time events ─────────────────────────────────────────
+  // ── WebSocket for real-time peer activity ──────────────────────────────────
+  // The status WS sends system stats; some backends also emit peer events here.
+  // We handle multiple possible event shapes gracefully.
   const { data: wsEvent } = useWebSocket(getWsUri('status'), {
     onMessage: (data) => {
-      if (data.type === 'client_event') {
-        const { event: type, client } = data;
+      if (!data || typeof data !== 'object') return;
+      const isPeerEvent = data.type === 'client_event' || data.type === 'peer_connected' || data.type === 'peer_disconnected';
+      if (isPeerEvent) {
+        const name = data.name || data.client?.name || 'Peer';
+        const container = data.container || data.client?.container || '';
+        const connected = data.type !== 'peer_disconnected' && (data.event === 'connected' || data.type === 'peer_connected');
         addToast(
-          `${client.name} (${client.container}) ${type === 'connected' ? 'vient de se connecter' : 'vient de se déconnecter'}`,
-          type === 'connected' ? 'success' : 'info'
+          `${name}${container ? ' (' + container + ')' : ''} ${connected ? 'connecté' : 'déconnecté'}`,
+          connected ? 'success' : 'info'
         );
         fetchData();
       }
@@ -291,7 +297,12 @@ const WireGuardDashboard = ({ onLogout }) => {
           onBack={() => setTopologySelectedClient(null)}
           onToggle={(name, enabled) => handleToggleClient(topologySelectedClient.container, name, enabled)}
           onDelete={() => handleDeleteClient(topologySelectedClient)}
-          onQRCode={() => { setSelectedClientForModal(topologySelectedClient); setShowQRModal(true); }}
+          onQRCode={(name, configText) => {
+            // ClientDetail calls onQRCode(client.name, client.config)
+            // Build the object QRCodeModal expects
+            setSelectedClientForModal({ name, config: configText || '' });
+            setShowQRModal(true);
+          }}
           onEdit={() => { setSelectedClientForEdit(topologySelectedClient); setShowEditModal(true); }}
         />
       );

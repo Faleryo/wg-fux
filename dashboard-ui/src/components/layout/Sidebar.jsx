@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Home, Package, Users, FileText, Activity, Gauge, ShieldCheck, Settings, 
-  LogOut, X, ChevronRight, ChevronLeft, Cpu, RefreshCw, Sun, Moon, PanelLeftClose, PanelLeftOpen
+  LogOut, X, ChevronRight, ChevronLeft, Cpu, RefreshCw, Sun, Moon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
