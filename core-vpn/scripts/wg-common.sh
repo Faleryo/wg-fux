@@ -74,10 +74,28 @@ validate_id() {
     fi
 }
 
+# Ensure necessary tools are available
+check_dependencies() {
+    local tools=("wg" "wg-quick" "qrencode" "ip" "grep" "awk")
+    for tool in "${tools[@]}"; do
+        if ! command -v "$tool" &> /dev/null; then
+            log_error "Missing dependency: $tool. Please install it." "$ERR_SYSTEM_FAILURE"
+        fi
+    done
+}
+
+# Centralized path management
+get_client_dir() {
+    local container=$1
+    local name=$2
+    echo "/etc/wireguard/clients/${container}/${name}"
+}
+
 # Safe command execution wrapper
 run_safe() {
-    "$@" || { log_error "Command failed: $*"; exit 1; }
+    "$@" || { log_error "Command failed: $*" "$ERR_SYSTEM_FAILURE"; }
 }
 
 # Export functions for subshells
-export -f log_info log_warn log_error check_root load_config validate_id run_safe
+export -f log_info log_warn log_error check_root load_config validate_id run_safe check_dependencies get_client_dir
+

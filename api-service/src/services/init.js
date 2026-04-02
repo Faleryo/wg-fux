@@ -66,6 +66,16 @@ async function initializeDatabase() {
         messages TEXT,
         updatedAt INTEGER DEFAULT (strftime('%s', 'now'))
       );
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp INTEGER DEFAULT (strftime('%s', 'now')),
+        actor TEXT NOT NULL,
+        action TEXT NOT NULL,
+        targetType TEXT NOT NULL,
+        targetName TEXT,
+        details TEXT,
+        ip TEXT
+      );
     `);
 
     // 2. Create Indexes if they don't exist
@@ -75,7 +85,10 @@ async function initializeDatabase() {
       CREATE UNIQUE INDEX IF NOT EXISTS pubkey_idx ON clients(publicKey);
       CREATE INDEX IF NOT EXISTS container_idx ON clients(container);
       CREATE INDEX IF NOT EXISTS log_timestamp_idx ON logs(timestamp);
+      CREATE INDEX IF NOT EXISTS audit_timestamp_idx ON audit_logs(timestamp);
+      CREATE INDEX IF NOT EXISTS audit_actor_idx ON audit_logs(actor);
     `);
+
 
     console.log('✅ Schema synchronization complete.');
 

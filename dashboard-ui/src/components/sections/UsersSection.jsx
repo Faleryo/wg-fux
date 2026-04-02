@@ -1,47 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Plus, Shield, Search, Trash2, Edit, CheckCircle2, ChevronRight, UserCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, Plus, Shield, Search, Trash2, UserCheck } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
-import { axiosInstance } from '../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlassCard from '../ui/Card';
 import VibeButton from '../ui/Button';
 
-const UsersSection = ({ onCreateUser }) => {
+const UsersSection = ({ users = [], loading = false, onCreateUser, onDelete }) => {
   const { theme } = useTheme();
-  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const res = await axiosInstance.get('/users');
-      setUsers(res.data);
-    } catch (error) {
-      console.error('Erreur lors de la récupération des utilisateurs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredUsers = users.filter(user => 
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const handleDelete = async (username) => {
-    if (!window.confirm(`Supprimer l'opérateur "${username}" ?`)) return;
-    try {
-      await axiosInstance.delete(`/users/${username}`);
-      fetchUsers();
-    } catch (err) {
-      console.error('Erreur suppression:', err);
-    }
-  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
@@ -130,7 +102,7 @@ const UsersSection = ({ onCreateUser }) => {
                          </td>
                          <td className="px-6 py-6 text-right">
                              <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                                <VibeButton variant="danger" size="sm" icon={Trash2} className="p-2.5" onClick={(e) => { e.stopPropagation(); handleDelete(user.username); }} />
+                                <VibeButton variant="danger" size="sm" icon={Trash2} className="p-2.5" onClick={(e) => { e.stopPropagation(); onDelete(user.username); }} />
                              </div>
                          </td>
                       </motion.tr>

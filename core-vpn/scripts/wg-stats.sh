@@ -9,14 +9,22 @@ source "$SCRIPT_DIR/wg-common.sh"
 
 check_root
 
-IFACE="${1:-wg0}"
+IFACE=""
 USE_JSON=0
 
 for arg in "$@"; do
     if [ "$arg" == "--json" ]; then
         USE_JSON=1
+    else
+        # The first non-flag argument is the interface
+        if [ -z "$IFACE" ]; then
+            IFACE="$arg"
+        fi
     fi
 done
+
+# Default to wg0 if no interface specified
+IFACE="${IFACE:-wg0}"
 
 if [ "$USE_JSON" -eq 1 ]; then
     if ! ip link show "$IFACE" > /dev/null 2>&1; then
@@ -45,7 +53,8 @@ if [ "$USE_JSON" -eq 1 ]; then
 
         is_online="false"
         # handshake=0 means never connected
-        if [ "$handshake" -gt 0 ] && [ $((NOW - handshake)) -lt 180 ]; then
+        actual_handshake=${handshake:-0}
+        if [ "$actual_handshake" -gt 0 ] && [ $((NOW - actual_handshake)) -lt 180 ]; then
             is_online="true"
         fi
 
@@ -59,7 +68,7 @@ if [ "$USE_JSON" -eq 1 ]; then
     "isOnline": %s,
     "keepalive": "%s",
     "lastSeen": %d
-  }' "$pub" "$endpoint" "$allowed_ips" "$handshake" "${rx:-0}" "${tx:-0}" "$is_online" "$keepalive" "$handshake"
+  }' "$pub" "$endpoint" "$allowed_ips" "${actual_handshake:-0}" "${rx:-0}" "${tx:-0}" "$is_online" "$keepalive" "${actual_handshake:-0}"
 
         FIRST=0
     done <<< "$DUMP"

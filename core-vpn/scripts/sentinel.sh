@@ -6,7 +6,7 @@ source "$SCRIPT_DIR/wg-common.sh"
 
 LOG_FILE="/var/log/wg-sentinel.log"
 HEARTBEAT_URL="http://localhost:3000/api/sentinel/heartbeat"
-HEALTH_URL="http://localhost:3000/api/system/health"
+HEALTH_URL="http://localhost:3000/api/health"
 
 # Docker command detection
 DOCKER_CMD="docker compose"

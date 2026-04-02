@@ -43,24 +43,50 @@ export const getWsUri = (type) => {
   return `${protocol}//${host}/ws${tokenParam}`;
 };
 
-// Intercepteur pour ajouter le token API
+// Intercepteur pour ajouter le token API et tracer le temps de réponse (dev)
 axiosInstance.interceptors.request.use(config => {
   const token = localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token');
   if (token) {
     config.headers['X-Api-Token'] = token;
   }
+  config.metadata = { startTime: new Date() };
   return config;
 });
 
-// Intercepteur pour gérer l'expiration de session (Auto-Logout)
+// Intercepteur pour gérer l'expiration de session (Auto-Logout) et logs de performance
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log performance in dev mode
+    if (window.location.port === '5173') {
+      const duration = new Date() - response.config.metadata.startTime;
+      console.log(`[API-PERF] ${response.config.method.toUpperCase()} ${response.config.url} took ${duration}ms`);
+    }
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401 && error.response.data?.error === 'Invalid token') {
-      localStorage.removeItem('wg-api-token');
-      sessionStorage.removeItem('wg-api-token');
-      window.location.reload();
+    const duration = error.config?.metadata ? new Date() - error.config.metadata.startTime : null;
+    const status = error.response?.status;
+    const errMsg = error.response?.data?.error || error.response?.data?.message;
+    
+    if (window.location.port === '5173') {
+      console.error(`[API-ERR] ${error.config?.method?.toUpperCase()} ${error.config?.url} failed after ${duration}ms:`, errMsg);
+    }
+
+    // Auto-logout on auth failure
+    const authFailures = ['Invalid token', 'Revoked', 'Unauthorized', 'Token expired'];
+    if ((status === 401 && authFailures.includes(errMsg)) || (status === 403 && errMsg === 'Account expired')) {
+      logOut();
     }
     return Promise.reject(error);
   }
 );
+
+function logOut() {
+  const keys = ['wg-api-token', 'wg-user-role', 'wg-user-username'];
+  keys.forEach(k => {
+    localStorage.removeItem(k);
+    sessionStorage.removeItem(k);
+  });
+  window.location.href = '/login';
+}
+

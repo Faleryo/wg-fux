@@ -21,7 +21,9 @@ router.get('/', auth, requireAdmin, async (req, res) => {
 router.post('/', auth, requireAdmin, async (req, res, next) => {
     try {
         const result = userSchema.safeParse(req.body);
-        if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
+        if (!result.success) {
+            return res.status(400).json({ error: result.error.issues?.[0]?.message || 'Validation failed' });
+        }
         
         const { username, password, role, expiry } = result.data;
         if (!password) return res.status(400).json({ error: 'Password required' });
@@ -37,7 +39,10 @@ router.post('/', auth, requireAdmin, async (req, res, next) => {
             expiry: expiry || null
         });
         res.json({ success: true });
-    } catch (e) { next(e); }
+    } catch (e) { 
+        console.error('[API-ERR] POST /api/users failed:', e.stack);
+        next(e); 
+    }
 });
 
 router.patch('/:username', auth, requireAdmin, async (req, res) => {

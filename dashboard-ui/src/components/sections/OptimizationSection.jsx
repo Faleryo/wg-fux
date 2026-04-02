@@ -14,9 +14,20 @@ const OptimizationSection = ({ systemStats }) => {
   const { theme } = useTheme();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [currentProfile, setCurrentProfile] = useState('auto');
+  const [currentProfile, setCurrentProfile] = useState('');
   const [cpuHistory, setCpuHistory] = useState([]);
   const [isEnabled, setIsEnabled] = useState(true);
+
+  useEffect(() => {
+    fetchActiveProfile();
+  }, []);
+
+  const fetchActiveProfile = async () => {
+    try {
+      const res = await axiosInstance.get('/system/optimize');
+      setCurrentProfile(res.data.profile);
+    } catch { /* Default to none */ }
+  };
 
   useEffect(() => {
     const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -28,27 +39,27 @@ const OptimizationSection = ({ systemStats }) => {
     try {
       await axiosInstance.post('/system/optimize', { profile });
       setCurrentProfile(profile);
-      addToast(`Profil ${profile} appliqué`, 'success');
-    } catch (e) { addToast('Erreur d\'optimisation', 'error'); }
+      addToast(`Profil ${profile.toUpperCase()} activé avec succès`, 'success');
+    } catch (e) { addToast('Échec de la synchronisation neurale', 'error'); }
     finally { setLoading(false); }
   };
 
   const profiles = [
-    { id: 'gaming', label: 'E-Sport / VoIP', desc: 'Priorité absolue aux petits paquets. Latence minimale garantie.', icon: Gamepad2, color: 'indigo' },
-    { id: 'streaming', label: 'Ultra-HD Stream', desc: 'Optimisation du débit séquentiel pour flux 4K/8K.', icon: Film, color: 'rose' },
-    { id: 'auto', label: 'Smart Engine', desc: 'Analyse heuristique et ajustement dynamique du MTU.', icon: Gauge, color: 'emerald' }
+    { id: 'gaming', label: 'E-Sport / Gaming', desc: 'Ultra-Low Latency. TCP Fast Open + Bufferbloat prevention.', icon: Gamepad2, color: 'indigo' },
+    { id: 'streaming', label: 'Ultra-HD Stream', desc: 'Throughput maximal. Optimisation BBR & MTU 1420.', icon: Film, color: 'rose' },
+    { id: 'auto', label: 'Smart Engine', desc: 'Analyse heuristique & ajustement dynamique du MTU.', icon: Gauge, color: 'emerald' }
   ];
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700">
       <div className="flex flex-col lg:flex-row justify-between items-center bg-slate-900/40 backdrop-blur-3xl p-8 rounded-[3rem] border border-white/5 shadow-2xl gap-8">
         <div className="flex items-center gap-6">
-           <div className={cn("p-5 rounded-[2rem] bg-white/5 shadow-2xl", `text-${theme}-400`)}>
-              <Zap size={36} />
+           <div className={cn("p-5 rounded-[2rem] bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 shadow-2xl")}>
+              <Zap size={36} className="animate-pulse" />
            </div>
            <div>
              <h2 className="text-4xl font-black text-white tracking-tighter italic uppercase">Neural Optimizer</h2>
-             <p className="text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60">Deep Packet Inspection & Flux Tuning</p>
+             <p className="text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60">Advanced Flow Shaping & Latency Control</p>
            </div>
         </div>
         <div className="flex items-center gap-4">
@@ -69,7 +80,7 @@ const OptimizationSection = ({ systemStats }) => {
             <div className="bg-slate-900/40 backdrop-blur-3xl rounded-[3rem] border border-white/10 p-8 shadow-2xl h-80 relative overflow-hidden group">
                <div className="flex justify-between items-center mb-8">
                   <h3 className="text-lg font-black text-white uppercase tracking-tighter flex items-center gap-3">
-                     <BarChart3 className={cn(`text-${theme}-400`)} /> CPU Load Variance
+                     <BarChart3 className={cn(`text-indigo-400`)} /> Kernel Load Variance
                   </h3>
                   <div className="flex items-center gap-2">
                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse border border-emerald-400" />
@@ -102,8 +113,15 @@ const OptimizationSection = ({ systemStats }) => {
                {profiles.map(profile => (
                  <div key={profile.id} className={cn(
                    "relative overflow-hidden bg-slate-900/40 backdrop-blur-3xl rounded-[2.5rem] border p-8 group transition-all duration-500",
-                   currentProfile === profile.id ? `border-${profile.color}-500/50 shadow-2xl shadow-${profile.color}-500/10` : "border-white/5 hover:border-white/10"
+                   currentProfile === profile.id 
+                     ? `border-${profile.color}-500/50 shadow-2xl shadow-${profile.color}-500/20 bg-${profile.color}-500/5` 
+                     : "border-white/5 hover:border-white/10"
                  )}>
+                    {currentProfile === profile.id && (
+                       <div className={cn("absolute top-6 right-6 px-3 py-1 rounded-full border text-[8px] font-black uppercase tracking-[0.2em] animate-pulse", `bg-${profile.color}-500/20 text-${profile.color}-400 border-${profile.color}-500/30`)}>
+                          Vecteur Actif
+                       </div>
+                    )}
                     <div className={cn(
                       "absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12 pointer-events-none",
                       `text-${profile.color}-500`
@@ -123,7 +141,7 @@ const OptimizationSection = ({ systemStats }) => {
                         currentProfile === profile.id ? `bg-${profile.color}-600 text-white shadow-${profile.color}-600/30` : "bg-white/5 text-slate-400 hover:text-white border border-white/5"
                       )}
                     >
-                       {currentProfile === profile.id ? 'Vecteur Actif' : 'Activer Profil'}
+                       {currentProfile === profile.id ? 'Optimisation Active' : 'Activer Profil'}
                     </button>
                  </div>
                ))}
@@ -132,7 +150,7 @@ const OptimizationSection = ({ systemStats }) => {
 
          <div className="xl:col-span-1 space-y-8">
             <div className="bg-slate-950/40 backdrop-blur-3xl rounded-[3rem] border border-white/5 p-8 shadow-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-8 opacity-10"><TrendingUp size={64} className={cn(`text-${theme}-600`)} /></div>
+                <div className="absolute top-0 right-0 p-8 opacity-10"><TrendingUp size={64} className={cn(`text-indigo-600`)} /></div>
                 <h3 className="text-lg font-black text-white uppercase mb-8 flex items-center gap-3"><ShieldCheck size={20} className="text-emerald-400" /> Metrics Tunnel</h3>
                 <div className="space-y-6">
                    {[

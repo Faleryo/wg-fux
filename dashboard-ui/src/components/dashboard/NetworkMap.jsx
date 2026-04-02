@@ -19,7 +19,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
     return [...clients].map(c => ({
       ...c,
       // Priorité : WS live > lastHandshake calculé > offline
-      isOnline: onlineSet.has(c.publicKey) || (c.lastHandshake && (Date.now()/1000 - c.lastHandshake) < 180),
+      isOnline: c.isOnline || onlineSet.has(c.publicKey),
     }));
   }, [clients, onlinePeers]);
 
@@ -134,7 +134,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
             const angle = (i * (2 * Math.PI)) / sortedClients.length - Math.PI / 2;
             const x = centerX + radius * Math.cos(angle);
             const y = centerY + radius * Math.sin(angle);
-            const isOnline = (Date.now() / 1000 - client.lastHandshake) < 180;
+            const isOnline = client.isOnline;
             const hasTraffic = (client.downloadRate + client.uploadRate) > 1024;
             const color = getContainerColor(client.container);
 
@@ -187,7 +187,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
           const angle = (i * (2 * Math.PI)) / sortedClients.length - Math.PI / 2;
           const x = centerX + radius * Math.cos(angle);
           const y = centerY + radius * Math.sin(angle);
-          const isOnline = (Date.now() / 1000 - client.lastHandshake) < 180;
+          const isOnline = client.isOnline;
           const color = getContainerColor(client.container);
 
           return (

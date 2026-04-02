@@ -11,7 +11,9 @@ set -euo pipefail
 # ── Configuration ──────────────────────────────────────────────────────────────
 COMPOSE_FILE="$(dirname "$(realpath "$0")")/../../docker-compose.yml"
 API_INTERNAL="http://localhost:3000"
-API_EXTERNAL="http://localhost/api"
+# BUG-FIX: Utiliser https par défaut pour le diagnostic local via Nginx
+API_EXTERNAL="https://localhost" 
+CURL_OPTS="-sk --max-time 5"
 DB_FILE="/app/data/wg-fux.db"
 WG_INTERFACE="${WG_INTERFACE:-wg0}"
 CLIENTS_DIR="/etc/wireguard/clients"
@@ -105,8 +107,8 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════════
 section "2. API Endpoints"
 
-# Health interne (sans auth)
-HEALTH_RESP=$(curl -sf --max-time 5 "$API_EXTERNAL/health" 2>/dev/null || echo "FAILED")
+# Health externe (sans auth)
+HEALTH_RESP=$(curl $CURL_OPTS "$API_EXTERNAL/api/health" 2>/dev/null || echo "FAILED")
 if [ "$HEALTH_RESP" = "FAILED" ]; then
   fail "GET /api/health → inaccessible"
 else
@@ -120,7 +122,7 @@ else
 fi
 
 # Login
-LOGIN_RESP=$(curl -sf --max-time 5 -X POST "$API_EXTERNAL/auth/login" \
+LOGIN_RESP=$(curl $CURL_OPTS -X POST "$API_EXTERNAL/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"username":"__diag_probe__","password":"x"}' 2>/dev/null || echo "FAILED")
 
@@ -133,7 +135,7 @@ else
 fi
 
 # Rate limit
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$API_EXTERNAL/clients" 2>/dev/null || echo "000")
+HTTP_CODE=$(curl $CURL_OPTS -o /dev/null -w "%{http_code}" "$API_EXTERNAL/api/clients" 2>/dev/null || echo "000")
 if [ "$HTTP_CODE" = "401" ]; then
   pass "GET /api/clients sans auth → 401 Unauthorized (correct)"
 elif [ "$HTTP_CODE" = "200" ]; then
@@ -143,7 +145,7 @@ else
 fi
 
 # Install status
-INSTALL_RESP=$(curl -sf --max-time 3 "$API_EXTERNAL/install/status" 2>/dev/null || echo "FAILED")
+INSTALL_RESP=$(curl $CURL_OPTS "$API_EXTERNAL/api/install/status" 2>/dev/null || echo "FAILED")
 if echo "$INSTALL_RESP" | grep -q "installed"; then
   pass "GET /api/install/status → OK"
 else
@@ -212,7 +214,7 @@ else
 fi
 
 # wg-stats test
-WG_STATS=$(docker exec wg-fux-api bash /usr/local/bin/wg-stats.sh --json 2>&1 || echo "FAILED")
+WG_STATS=$(docker exec wg-fux-api bash /usr/local/bin/wg-stats.sh "$WG_INTERFACE" --json 2>&1 || echo "FAILED")
 if echo "$WG_STATS" | python3 -c "import sys,json; data=json.load(sys.stdin); exit(0 if isinstance(data,list) else 1)" 2>/dev/null; then
   STATS_COUNT=$(echo "$WG_STATS" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "?")
   pass "wg-stats.sh --json → JSON valide ($STATS_COUNT peers)"
@@ -225,23 +227,32 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════════
 section "5. Base de données SQLite"
 
-DB_CHECK=$(docker exec wg-fux-api sqlite3 "$DB_FILE" ".tables" 2>&1 || echo "FAILED")
-if [ "$DB_CHECK" = "FAILED" ] || echo "$DB_CHECK" | grep -q "error\|Error"; then
-  fail "SQLite → inaccessible: ${DB_CHECK:0:100}"
+# Vérifier si sqlite3 est installé dans le container
+HAS_SQLITE=$(docker exec wg-fux-api which sqlite3 &>/dev/null && echo "yes" || echo "no")
+
+if [ "$HAS_SQLITE" = "no" ]; then
+  fail "SQLite3 binaire absent du container API (image non rebuild ?)"
 else
-  TABLES=$(echo "$DB_CHECK" | tr ' ' '\n' | grep -c '\S' || echo "0")
-  pass "SQLite → accessible ($TABLES tables: $DB_CHECK)"
+  DB_CHECK=$(docker exec wg-fux-api sqlite3 "$DB_FILE" ".tables" 2>&1 || echo "FAILED")
+  if [ "$DB_CHECK" = "FAILED" ] || echo "$DB_CHECK" | grep -q "error\|Error"; then
+    fail "SQLite → inaccessible: ${DB_CHECK:0:100}"
+  else
+    TABLES=$(echo "$DB_CHECK" | tr ' ' '\n' | grep -c '\S' || echo "0")
+    pass "SQLite → accessible ($TABLES tables: $DB_CHECK)"
+  fi
 fi
 
 # Counts
-for table in clients users logs usage; do
-  COUNT=$(docker exec wg-fux-api sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM $table;" 2>/dev/null || echo "ERR")
-  if [ "$COUNT" = "ERR" ]; then
-    warn "Table $table → inaccessible"
-  else
-    info "Table $table → $COUNT lignes"
-  fi
-done
+if [ "$HAS_SQLITE" = "yes" ]; then
+  for table in clients users logs usage; do
+    COUNT=$(docker exec wg-fux-api sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM $table;" 2>/dev/null || echo "ERR")
+    if [ "$COUNT" = "ERR" ]; then
+      warn "Table $table → inaccessible"
+    else
+      info "Table $table → $COUNT lignes"
+    fi
+  done
+fi
 
 # Intégrité DB
 INTEGRITY=$(docker exec wg-fux-api sqlite3 "$DB_FILE" "PRAGMA integrity_check;" 2>/dev/null || echo "FAILED")

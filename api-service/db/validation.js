@@ -63,7 +63,7 @@ const containerSchema = z.object({
 });
 
 const userSchema = z.object({
-  username: z.string().min(3).regex(identifierRegex, 'Format de nom d\'utilisateur invalide'),
+  username: z.string().min(2, 'Username doit faire au moins 2 caractères').regex(identifierRegex, 'Format de nom d\'utilisateur invalide'),
   password: z.string().min(6).optional(),
   role: z.enum(['admin', 'manager', 'viewer', 'user']).default('viewer'),
   expiry: z.string().regex(dateRegex).or(z.null()).optional(),

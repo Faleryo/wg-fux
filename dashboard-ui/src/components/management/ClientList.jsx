@@ -18,7 +18,7 @@ const getContainerColor = (name) => {
   return CONTAINER_COLORS[Math.abs(hash(name || '')) % CONTAINER_COLORS.length];
 };
 
-const isOnlineClient = (client) => (Date.now() / 1000 - (client.lastHandshake || 0)) < 180;
+const isOnlineClient = (client) => client.isOnline === true;
 const isExpired      = (expiry) => expiry && new Date(expiry) < new Date();
 const isExpiringSoon = (expiry) => {
   if (!expiry || isExpired(expiry)) return false;
@@ -26,7 +26,7 @@ const isExpiringSoon = (expiry) => {
 };
 
 // ─── Level 1 — Container Card ─────────────────────────────────────────────────
-const ContainerCard = ({ name, clients, color, onClick, idx }) => {
+const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }) => {
   const activeCount  = clients.filter(isOnlineClient).length;
   const totalDl      = clients.reduce((a, c) => a + (c.downloadRate  || 0), 0);
   const totalUl      = clients.reduce((a, c) => a + (c.uploadRate    || 0), 0);
@@ -39,117 +39,101 @@ const ContainerCard = ({ name, clients, color, onClick, idx }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: idx * 0.07, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileHover={{ y: -5 }}
+      transition={{ delay: idx * 0.05, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
     >
-      <GlassCard onClick={onClick} className="p-0 overflow-hidden cursor-pointer group">
-        {/* Color header strip */}
+      <GlassCard 
+        onClick={onClick} 
+        className="p-0 overflow-hidden cursor-pointer group relative border-white/5 hover:border-white/10"
+      >
+        {/* Animated accent gradient */}
         <div className={cn(
-          "relative h-2 w-full transition-all duration-500 group-hover:h-3",
-          `bg-${color}-500`
+          "absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-700 bg-gradient-to-br",
+          `from-${color}-500 to-transparent`
         )} />
 
-        <div className="p-6 space-y-5">
-          {/* Title row */}
+        <div className={cn(
+          "h-1.5 w-full transition-all duration-700 group-hover:h-2 opacity-80",
+          `bg-${color}-500 shadow-[0_0_10px_${color}-500]`
+        )} />
+
+        <div className="p-6 space-y-6 relative z-10">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className={cn(
-                "p-3 rounded-2xl border transition-all duration-300 group-hover:scale-110 group-hover:rotate-3",
+                "p-3 rounded-2xl border transition-all duration-500 group-hover:scale-110 group-hover:rotate-6",
                 `bg-${color}-500/10 text-${color}-400 border-${color}-500/20`
               )}>
-                <Package size={22} />
+                <Package size={24} />
               </div>
-              <div>
-                <h3 className="text-xl font-black text-white uppercase tracking-tight">{name}</h3>
-                <div className="flex items-center gap-2 mt-0.5">
+              <div className="min-w-0">
+                <h3 className="text-xl font-black text-white uppercase tracking-tight truncate">{name}</h3>
+                <div className="flex items-center gap-1.5 mt-0.5">
                   <span className={cn(
-                    "text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest",
-                    activeCount > 0
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                      : "bg-slate-800 text-slate-500 border-white/10"
+                    "text-[8px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest",
+                    activeCount > 0 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-800 text-slate-500"
                   )}>
-                    {activeCount}/{clients.length} actifs
+                    {activeCount}/{clients.length} EN LIGNE
                   </span>
-                  {quotaCritical > 0 && (
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full border bg-rose-500/10 text-rose-400 border-rose-500/20 flex items-center gap-1">
-                      <AlertTriangle size={8} />
-                      {quotaCritical} critique{quotaCritical > 1 ? 's' : ''}
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
-            <div className={cn(
-              "p-2 rounded-xl border transition-all duration-300 group-hover:translate-x-1",
-              `text-${color}-400 bg-${color}-500/5 border-${color}-500/10`
-            )}>
-              <ChevronRight size={18} />
-            </div>
-          </div>
-
-          {/* Peer activity bar — ratio of active peers */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-[9px] font-black text-slate-500 uppercase tracking-widest">
-              <span>Activité Peers</span>
-              <span>{clients.length > 0 ? Math.round((activeCount / clients.length) * 100) : 0}%</span>
-            </div>
-            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${clients.length > 0 ? (activeCount / clients.length) * 100 : 0}%` }}
-                transition={{ duration: 1, delay: idx * 0.1 + 0.3 }}
-                className={cn("h-full rounded-full", `bg-${color}-500`)}
-              />
-            </div>
-          </div>
-
-          {/* Traffic stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className={cn("p-3 rounded-2xl border", `bg-${color}-500/5 border-${color}-500/10`)}>
-              <div className="flex items-center gap-1.5 mb-1">
-                <ArrowDown size={11} className="text-emerald-400" />
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">DL Live</span>
-              </div>
-              <div className="text-sm font-mono font-black text-white">{formatBytes(totalDl)}/s</div>
-              <div className="text-[9px] text-slate-600 mt-0.5 font-mono">{formatBytes(totalDlBytes)} total</div>
-            </div>
-            <div className={cn("p-3 rounded-2xl border", `bg-${color}-500/5 border-${color}-500/10`)}>
-              <div className="flex items-center gap-1.5 mb-1">
-                <ArrowUp size={11} className="text-indigo-400" />
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">UL Live</span>
-              </div>
-              <div className="text-sm font-mono font-black text-white">{formatBytes(totalUl)}/s</div>
-              <div className="text-[9px] text-slate-600 mt-0.5 font-mono">{formatBytes(totalUlBytes)} total</div>
-            </div>
-          </div>
-
-          {/* Peer count footer */}
-          <div className="flex items-center justify-between pt-3 border-t border-white/5">
-            <div className="flex items-center gap-1.5 text-slate-500">
-              <Wifi size={13} />
-              <span className="text-[10px] font-black uppercase tracking-widest">
-                {clients.length} peer{clients.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className="flex -space-x-2">
-              {clients.slice(0, 5).map((c, i) => (
-                <div
-                  key={c.id || i}
-                  className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-black text-white border-2 border-slate-900",
-                    isOnlineClient(c) ? `bg-${color}-500` : "bg-slate-700"
-                  )}
-                  title={c.name}
-                >
-                  {c.name.charAt(0).toUpperCase()}
-                </div>
-              ))}
-              {clients.length > 5 && (
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-black text-slate-400 border-2 border-slate-900 bg-slate-800">
-                  +{clients.length - 5}
-                </div>
+            <div className="flex gap-2 items-center">
+              {clients.length === 0 && onDeleteContainer && (
+                 <button 
+                   onClick={(e) => { e.stopPropagation(); onDeleteContainer(name); }} 
+                   className={cn(
+                     "w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 text-slate-500 border-white/5"
+                   )}
+                 >
+                   <Trash2 size={14} />
+                 </button>
               )}
+              <div className={cn(
+                "w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 group-hover:bg-white/10",
+                `text-${color}-400 border-${color}-500/10`
+              )}>
+                <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+             <div className="space-y-1">
+               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Flux Sortant</span>
+               <div className="flex items-end gap-1.5">
+                 <span className="text-lg font-mono font-black text-white italic">{formatBytes(totalDl)}</span>
+                 <span className="text-[9px] text-slate-600 mb-1">/S</span>
+               </div>
+             </div>
+             <div className="space-y-1">
+               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Flux Entrant</span>
+               <div className="flex items-end gap-1.5">
+                 <span className="text-lg font-mono font-black text-white italic">{formatBytes(totalUl)}</span>
+                 <span className="text-[9px] text-slate-600 mb-1">/S</span>
+               </div>
+             </div>
+          </div>
+
+          <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-2">
+                {clients.slice(0, 3).map((c, i) => (
+                  <div key={i} className={cn(
+                    "w-6 h-6 rounded-lg border-2 border-slate-950 flex items-center justify-center text-[8px] font-black text-white",
+                    isOnlineClient(c) ? `bg-${color}-500 shadow-lg shadow-${color}-500/20` : "bg-slate-800"
+                  )}>
+                    {c.name.charAt(0)}
+                  </div>
+                ))}
+              </div>
+              {clients.length > 3 && <span className="text-[9px] font-black text-slate-600">+{clients.length - 3}</span>}
+            </div>
+            <div className="flex flex-col items-end">
+               <span className="text-[9px] font-mono text-slate-500 uppercase">Volume Total</span>
+               <span className="text-[10px] font-mono font-black text-white">{formatBytes(totalDlBytes + totalUlBytes)}</span>
             </div>
           </div>
         </div>
@@ -168,114 +152,79 @@ const ClientCard = ({ client, color, onSelect, onToggle, onEdit, onDelete }) => 
     : 0;
 
   return (
-    <GlassCard onClick={() => onSelect(client)} className="p-5 group cursor-pointer">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4 gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+    <GlassCard onClick={() => onSelect(client)} className="p-5 group cursor-pointer border-white/5 hover:border-white/20 transition-all duration-300">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-4">
           <div className={cn(
-            "w-11 h-11 rounded-2xl flex items-center justify-center text-base font-black text-white shadow-lg flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3",
-            online ? `bg-${color}-500 shadow-${color}-500/30` : "bg-slate-800 text-slate-500"
+             "w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black text-white shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6",
+             online ? `bg-${color}-500 shadow-${color}-500/30` : "bg-slate-800 text-slate-500"
           )}>
             {client.name.charAt(0).toUpperCase()}
           </div>
-          <div className="min-w-0">
+          <div>
             <h4 className="text-sm font-black text-white uppercase tracking-tight truncate">{client.name}</h4>
-            <span className="text-[9px] font-mono text-slate-500">{client.ip}</span>
+            <div className="flex items-center gap-2 mt-0.5">
+               <span className={cn("w-1.5 h-1.5 rounded-full", online ? "bg-emerald-500 animate-pulse" : "bg-slate-600")} />
+               <span className="text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest">{online ? 'Actif' : 'Offline'}</span>
+            </div>
           </div>
         </div>
-
-        {/* Status badges */}
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <div className={cn(
-            "flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest",
-            online
-              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-              : "bg-slate-800 text-slate-500 border-white/5"
-          )}>
-            <span className={cn("w-1 h-1 rounded-full", online ? "bg-emerald-400 animate-pulse" : "bg-slate-600")} />
-            {online ? "On" : "Off"}
-          </div>
-          {(expired || expiring) && (
-            <span className={cn(
-              "text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest flex items-center gap-1",
-              expired ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-amber-500/20 text-amber-400 border-amber-500/30"
-            )}>
-              <Timer size={8} />
-              {expired ? 'Expiré' : 'Soon'}
-            </span>
-          )}
+        <div className="text-right">
+           <span className="block text-[10px] font-mono font-bold text-white/40 mb-0.5">{client.ip}</span>
+           {(expired || expiring) && (
+             <span className={cn(
+               "text-[8px] font-extrabold px-2 py-0.5 rounded-lg border uppercase tracking-tighter",
+               expired ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+             )}>
+               {expired ? 'Expiré' : 'Bientôt'}
+             </span>
+           )}
         </div>
       </div>
 
-      {/* Traffic */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 group-hover:border-white/10 transition-colors">
-          <div className="flex items-center gap-1.5 mb-1 text-emerald-400/70">
-            <ArrowDown size={10} />
-            <span className="text-[8px] font-black uppercase">DL</span>
-          </div>
-          <div className="text-[11px] font-mono font-black text-white">{formatBytes(client.downloadRate)}/s</div>
+      <div className="space-y-4 mb-5">
+        <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5">
+           <div className="space-y-0.5">
+             <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Download</span>
+             <span className="text-xs font-mono font-black text-emerald-400">{formatBytes(client.downloadRate)}/s</span>
+           </div>
+           <div className="h-6 w-px bg-white/10" />
+           <div className="space-y-0.5 text-right">
+             <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Upload</span>
+             <span className="text-xs font-mono font-black text-indigo-400">{formatBytes(client.uploadRate)}/s</span>
+           </div>
         </div>
-        <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 group-hover:border-white/10 transition-colors">
-          <div className="flex items-center gap-1.5 mb-1 text-indigo-400/70">
-            <ArrowUp size={10} />
-            <span className="text-[8px] font-black uppercase">UL</span>
+
+        {client.quota > 0 && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-[9px] font-black uppercase text-slate-500">
+              <span>Quota Usage</span>
+              <span className={quotaPct > 80 ? "text-rose-400" : "text-white"}>{quotaPct.toFixed(1)}%</span>
+            </div>
+            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+               <div className={cn("h-full rounded-full", quotaPct > 80 ? "bg-rose-500" : `bg-${color}-500`)} style={{ width: `${quotaPct}%` }} />
+            </div>
           </div>
-          <div className="text-[11px] font-mono font-black text-white">{formatBytes(client.uploadRate)}/s</div>
-        </div>
+        )}
       </div>
 
-      {/* Quota bar */}
-      {client.quota > 0 && (
-        <div className="mb-4 space-y-1.5">
-          <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-500">
-            <span>Quota</span>
-            <span className={quotaPct > 80 ? "text-rose-400" : "text-white"}>{quotaPct.toFixed(0)}%</span>
-          </div>
-          <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-            <div
-              className={cn("h-full rounded-full transition-all duration-700", quotaPct > 80 ? "bg-rose-500" : `bg-${color}-500`)}
-              style={{ width: `${quotaPct}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="flex items-center justify-between pt-3 border-t border-white/5">
-        <ChevronRight size={14} className={cn("transition-all duration-300 group-hover:translate-x-1", `text-${color}-500/50 group-hover:text-${color}-400`)} />
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <button
-            onClick={(e) => { e.stopPropagation(); onEdit(client); }}
-            className="p-1.5 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-all"
-            title="Éditer"
-          >
-            <Edit size={13} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggle(client.container, client.name, !client.enabled); }}
-            className="p-1.5 rounded-xl hover:bg-white/10 text-slate-500 hover:text-amber-400 transition-all"
-            title={client.enabled ? 'Désactiver' : 'Activer'}
-          >
-            {client.enabled ? <Pause size={13} /> : <Play size={13} />}
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(client); }}
-            className="p-1.5 rounded-xl hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-all"
-            title="Supprimer"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
+      <div className="flex items-center justify-between pt-4 border-t border-white/5">
+         <div className="flex gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+            <button onClick={(e) => { e.stopPropagation(); onEdit(client); }} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"><Edit size={14} /></button>
+            <button onClick={(e) => { e.stopPropagation(); onToggle(client.container, client.name, !client.enabled); }} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-all">{client.enabled ? <Pause size={14} /> : <Play size={14} />}</button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(client); }} className="p-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all"><Trash2 size={14} /></button>
+         </div>
+         <div className={cn("p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300", `bg-${color}-500/10 text-${color}-400`)}>
+            <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+         </div>
       </div>
     </GlassCard>
   );
 };
 
 // ─── Main ClientList — 2-level navigation ─────────────────────────────────────
-export const ClientList = ({ clients = [], onSelect, onToggle, onEdit, onQRCode, onDelete, onCreateClient }) => {
+export const ClientList = ({ clients = [], allContainers = [], activeContainer = null, setActiveContainer, onSelect, onToggle, onEdit, onQRCode, onDelete, onDeleteContainer, onCreateClient, onCreateContainer }) => {
   const { theme } = useTheme();
-  const [selectedContainer, setSelectedContainer] = useState(null); // null = show container grid
   const [search, setSearch] = useState('');
 
   // Build container groups
@@ -285,22 +234,29 @@ export const ClientList = ({ clients = [], onSelect, onToggle, onEdit, onQRCode,
     acc[key].push(client);
     return acc;
   }, {});
+  
+  // Inject empty containers
+  if (Array.isArray(allContainers)) {
+      allContainers.forEach(c => {
+          if (!containerGroups[c]) containerGroups[c] = [];
+      });
+  }
 
   const containerEntries = Object.entries(containerGroups);
 
   // Clients for selected container (with search filter)
-  const containerClients = selectedContainer
-    ? (containerGroups[selectedContainer] || []).filter(c =>
+  const containerClients = activeContainer
+    ? (containerGroups[activeContainer] || []).filter(c =>
         !search ||
         c.name.toLowerCase().includes(search.toLowerCase()) ||
         (c.ip || '').includes(search)
       )
     : [];
 
-  const selectedColor = selectedContainer ? getContainerColor(selectedContainer) : theme;
+  const selectedColor = activeContainer ? getContainerColor(activeContainer) : theme;
 
   const handleExportCSV = () => {
-    const list = selectedContainer ? containerClients : clients;
+    const list = activeContainer ? containerClients : clients;
     const hdrs = ['Nom', 'Container', 'IP', 'Statut', 'DL', 'UL', 'Quota (GB)', 'Expiration'];
     const rows = list.map(c => [
       c.name, c.container, c.ip,
@@ -326,12 +282,12 @@ export const ClientList = ({ clients = [], onSelect, onToggle, onEdit, onQRCode,
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Back button when inside a container */}
           <AnimatePresence>
-            {selectedContainer && (
+            {activeContainer && (
               <motion.button
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -12 }}
-                onClick={() => { setSelectedContainer(null); setSearch(''); }}
+                onClick={() => { setActiveContainer(null); setSearch(''); }}
                 className={cn(
                   "flex items-center gap-2 px-3 py-2.5 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all flex-shrink-0",
                   `bg-${selectedColor}-500/10 text-${selectedColor}-400 border-${selectedColor}-500/20 hover:bg-${selectedColor}-500/20`
@@ -345,12 +301,12 @@ export const ClientList = ({ clients = [], onSelect, onToggle, onEdit, onQRCode,
 
           {/* Current breadcrumb */}
           <div className="min-w-0">
-            {selectedContainer ? (
+            {activeContainer ? (
               <div className="flex items-center gap-2">
                 <Package size={16} className={cn(`text-${selectedColor}-400`)} />
-                <span className="text-white font-black text-sm uppercase tracking-tight truncate">{selectedContainer}</span>
+                <span className="text-white font-black text-sm uppercase tracking-tight truncate">{activeContainer}</span>
                 <span className={cn("text-[9px] px-2 py-0.5 rounded-full border font-black uppercase", `bg-${selectedColor}-500/10 text-${selectedColor}-400 border-${selectedColor}-500/20`)}>
-                  {(containerGroups[selectedContainer] || []).length} peers
+                  {(containerGroups[activeContainer] || []).length} peers
                 </span>
               </div>
             ) : (
@@ -365,7 +321,7 @@ export const ClientList = ({ clients = [], onSelect, onToggle, onEdit, onQRCode,
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Search (only inside a container) */}
           <AnimatePresence>
-            {selectedContainer && (
+            {activeContainer && (
               <motion.div
                 initial={{ opacity: 0, width: 0 }}
                 animate={{ opacity: 1, width: 'auto' }}
@@ -383,23 +339,32 @@ export const ClientList = ({ clients = [], onSelect, onToggle, onEdit, onQRCode,
               </motion.div>
             )}
           </AnimatePresence>
-
-          <button
-            onClick={handleExportCSV}
-            title="Exporter CSV"
-            className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/20 transition-all flex-shrink-0"
-          >
-            <Download size={16} />
-          </button>
-          <VibeButton variant="primary" icon={Plus} onClick={onCreateClient} className="flex-shrink-0">
-            Nouveau Peer
-          </VibeButton>
+          {/* Global Actions */}
+          <div className="flex items-center gap-3">
+             <button
+                onClick={handleExportCSV}
+                className="hidden sm:flex items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 text-slate-400 hover:text-white transition-all group"
+                title="Exporter CSV"
+             >
+                <Download size={16} className="group-hover:-translate-y-0.5 transition-transform" />
+             </button>
+             <VibeButton variant="primary" icon={Plus} onClick={() => {
+                if (activeContainer) {
+                   onCreateClient(activeContainer);
+                } else {
+                   onCreateContainer();
+                }
+             }} className="flex-shrink-0">
+               <span className="hidden sm:inline">{activeContainer ? "Nouveau Peer" : "Nouveau Conteneur"}</span>
+               <span className="sm:hidden">Créer</span>
+             </VibeButton>
+          </div>
         </div>
       </GlassCard>
 
       {/* ── LEVEL 1 — Container Grid ──────────────────────────────────────── */}
       <AnimatePresence mode="wait">
-        {!selectedContainer ? (
+        {!activeContainer ? (
           <motion.div
             key="container-grid"
             initial={{ opacity: 0, y: 20 }}
@@ -412,22 +377,20 @@ export const ClientList = ({ clients = [], onSelect, onToggle, onEdit, onQRCode,
                 <div className="p-8 bg-white/5 rounded-full mb-6">
                   <Package size={64} className="text-slate-600" />
                 </div>
-                <h3 className="text-2xl font-black text-white tracking-widest uppercase mb-2">Aucun Conteneur</h3>
-                <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Créez un peer pour initialiser un conteneur</p>
-                <VibeButton variant="primary" icon={Plus} onClick={onCreateClient} className="mt-8">
-                  Initialiser Peer
-                </VibeButton>
+                <h3 className="text-2xl font-black text-white tracking-widest uppercase mb-2">Initialisation Requise</h3>
+                <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Créez votre premier conteneur depuis le bouton "+" ci-dessus</p>
               </GlassCard>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {containerEntries.map(([name, cClients], idx) => (
                   <ContainerCard
                     key={name}
                     name={name}
                     clients={cClients}
                     color={getContainerColor(name)}
+                    onDeleteContainer={onDeleteContainer}
                     idx={idx}
-                    onClick={() => setSelectedContainer(name)}
+                    onClick={() => setActiveContainer(name)}
                   />
                 ))}
               </div>
@@ -436,7 +399,7 @@ export const ClientList = ({ clients = [], onSelect, onToggle, onEdit, onQRCode,
         ) : (
           /* ── LEVEL 2 — Clients of selected container ────────────────────── */
           <motion.div
-            key={`container-${selectedContainer}`}
+            key={`container-${activeContainer}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -445,37 +408,44 @@ export const ClientList = ({ clients = [], onSelect, onToggle, onEdit, onQRCode,
           >
             {/* Container summary strip */}
             {(() => {
-              const cc = containerGroups[selectedContainer] || [];
+              const cc = containerGroups[activeContainer] || [];
               const active = cc.filter(isOnlineClient).length;
               return (
-                <div className={cn(
-                  "flex items-center gap-4 p-4 rounded-2xl border",
-                  `bg-${selectedColor}-500/5 border-${selectedColor}-500/15`
-                )}>
-                  <div className={cn("p-2.5 rounded-xl", `bg-${selectedColor}-500/10 text-${selectedColor}-400`)}>
-                    <Package size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="text-sm font-black text-white uppercase tracking-tight">{selectedContainer}</span>
-                      <span className={cn("text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest",
-                        active > 0
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : "bg-slate-800 text-slate-500 border-white/5"
-                      )}>
-                        {active}/{cc.length} actifs
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
-                        <ArrowDown size={9} />{formatBytes(cc.reduce((a, c) => a + (c.downloadRate || 0), 0))}/s
-                      </span>
-                      <span className="text-[9px] font-mono text-indigo-400 flex items-center gap-1">
-                        <ArrowUp size={9} />{formatBytes(cc.reduce((a, c) => a + (c.uploadRate || 0), 0))}/s
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <motion.div 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={cn(
+                    "flex flex-col md:flex-row items-start md:items-center gap-6 p-6 rounded-[2rem] border relative overflow-hidden group",
+                    `bg-${selectedColor}-500/5 border-${selectedColor}-500/15`
+                  )}
+                >
+                   <div className={cn("absolute inset-0 bg-gradient-to-r from-transparent to-white/[0.02] pointer-events-none")} />
+                   <div className={cn("p-4 rounded-2xl shadow-2xl", `bg-${selectedColor}-500/10 text-${selectedColor}-400`)}>
+                     <Package size={24} />
+                   </div>
+                   <div className="flex-1 min-w-0">
+                      <h2 className="text-xl font-black text-white italic uppercase tracking-tighter mb-1">{activeContainer}</h2>
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                           <Users size={12} /> {cc.length} Peers Total
+                        </span>
+                        <div className="h-1 w-1 rounded-full bg-slate-700" />
+                        <span className="flex items-center gap-1.5 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                           <Activity size={12} /> {active} Actifs
+                        </span>
+                      </div>
+                   </div>
+                   <div className="hidden md:flex gap-8 px-8 border-l border-white/10 font-mono">
+                      <div className="text-right">
+                         <span className="block text-[10px] font-black text-slate-500 uppercase mb-1">Download</span>
+                         <span className="text-xl font-black text-white">{formatBytes(cc.reduce((a, c) => a + (c.downloadRate || 0), 0))}/s</span>
+                      </div>
+                      <div className="text-right">
+                         <span className="block text-[10px] font-black text-slate-500 uppercase mb-1">Upload</span>
+                         <span className="text-xl font-black text-white">{formatBytes(cc.reduce((a, c) => a + (c.uploadRate || 0), 0))}/s</span>
+                      </div>
+                   </div>
+                </motion.div>
               );
             })()}
 

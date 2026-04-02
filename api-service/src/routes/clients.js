@@ -7,38 +7,48 @@ const { eq, and, desc, onConflictDoUpdate } = require('drizzle-orm');
 const { clientSchema, clientPatchSchema, toggleSchema, bulkUpdateSchema, bulkDeleteSchema, moveClientSchema, containerSchema } = require('../../db/validation');
 const { auth, requireManager } = require('../middleware/auth');
 const { runSystemCommand } = require('../services/shell');
-const { getWireGuardStats, getClientDir, getInterfacePath, isValidName, parseWireGuardDump } = require('../services/system');
+const { getWireGuardStats, getClientDir, getInterfacePath, isValidName, parseWireGuardDump, waitForFile } = require('../services/system');
 const { getScriptPath } = require('../services/config');
+const { auditLog } = require('../services/audit');
+
 
 // Mutex simple pour éviter les race conditions lors de création simultanée de clients
 // (le flock shell protège l'attribution IP, ce mutex protège le flux Node.js)
 let isCreatingClient = false;
 const withClientMutex = async (fn) => {
-    if (isCreatingClient) throw new Error('Une création de client est déjà en cours. Réessayez dans quelques secondes.');
+    if (isCreatingClient) {
+        const err = new Error('Une création de client est déjà en cours. Réessayez dans quelques secondes.');
+        err.code = 'MUTEX_LOCKED';
+        throw err;
+    }
     isCreatingClient = true;
     try { return await fn(); }
     finally { isCreatingClient = false; }
 };
+
 
 // --- Container Routes ---
 
 router.get('/containers', auth, requireManager, async (req, res) => {
     const dir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
     try {
+        try {
+            await fsPromises.access(dir);
+        } catch (e) {
+            return res.json([]); 
+        }
         const files = await fsPromises.readdir(dir);
         const containers = [];
-        for (const f of files) {
-            try {
-                const stat = await fsPromises.stat(path.join(dir, f));
-                if (stat.isDirectory()) containers.push(f);
-            } catch(e) {
-                console.error(`[AUDIT] Failed to stat container ${f}:`, e.message);
+        for (const file of files) {
+            const stats = await fsPromises.stat(path.join(dir, file));
+            if (stats.isDirectory()) {
+                containers.push(file);
             }
         }
         res.json(containers);
-    } catch (e) { 
-        console.error('[CRITICAL] Failed to read containers directory:', e.message);
-        res.status(500).json({ error: 'Failed to fetch containers' }); 
+    } catch (error) {
+        console.error('[API] Error listing containers:', error);
+        res.status(500).json({ error: 'Failed to list containers' });
     }
 });
 
@@ -49,21 +59,42 @@ router.post('/containers', auth, requireManager, async (req, res) => {
     const { name } = parsed.data;
     const { success, error } = await runSystemCommand(getScriptPath('wg-create-container.sh'), [name]);
     if (!success) return res.status(500).json({ error });
+
+    await auditLog({
+        actor: req.user.username,
+        action: 'create',
+        targetType: 'container',
+        targetName: name,
+        ip: req.ip
+    });
+
     res.json({ success: true });
 });
 
+
 router.delete('/containers/:name', auth, requireManager, async (req, res) => {
-    if (!isValidName(req.params.name)) return res.status(400).json({ error: 'Invalid name' });
-    const { success, error } = await runSystemCommand(getScriptPath('wg-remove-container.sh'), [req.params.name]);
+    const { name } = req.params;
+    if (!isValidName(name)) return res.status(400).json({ error: 'Invalid name' });
+    const { success, error } = await runSystemCommand(getScriptPath('wg-remove-container.sh'), [name]);
     if (!success) return res.status(500).json({ error });
+
+    await auditLog({
+        actor: req.user.username,
+        action: 'delete',
+        targetType: 'container',
+        targetName: name,
+        ip: req.ip
+    });
+
     res.json({ success: true });
 });
+
 
 // --- Client Routes ---
 
 router.get('/', auth, requireManager, async (req, res) => {
     try {
-        const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 200), 1000);
+        const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 10000), 10000);
         const offset = Math.max(0, parseInt(req.query.offset) || 0);
         const today = new Date().toISOString().split('T')[0];
         
@@ -88,6 +119,7 @@ router.get('/', auth, requireManager, async (req, res) => {
                 lastHandshake: stat ? stat.lastSeen : 0,
                 downloadBytes: stat ? stat.tx : 0,
                 uploadBytes: stat ? stat.rx : 0,
+                isOnline: stat ? stat.isOnline : false, // BUG-FIX: Inject status for frontend/filtering
                 endpoint: stat ? stat.endpoint : '',
                 usageTotal: usageData.total || 0,
                 usageDaily: (usageData.daily && usageData.daily[today]) ? usageData.daily[today] : 0
@@ -98,8 +130,8 @@ router.get('/', auth, requireManager, async (req, res) => {
         let filtered = clients;
         const { container: containerFilter, status, search } = req.query;
         if (containerFilter) filtered = filtered.filter(c => c.container === containerFilter);
-        if (status === 'online') filtered = filtered.filter(c => c.isOnline || (c.lastHandshake && Date.now()/1000 - c.lastHandshake < 180));
-        if (status === 'offline') filtered = filtered.filter(c => !c.isOnline && !(c.lastHandshake && Date.now()/1000 - c.lastHandshake < 180));
+        if (status === 'online') filtered = filtered.filter(c => c.isOnline);
+        if (status === 'offline') filtered = filtered.filter(c => !c.isOnline);
         if (search) {
             const q = search.toLowerCase();
             filtered = filtered.filter(c => c.name?.toLowerCase().includes(q) || c.ip?.includes(q) || c.container?.toLowerCase().includes(q));
@@ -158,22 +190,22 @@ router.post('/', auth, requireManager, async (req, res) => {
             const { success, error } = await runSystemCommand(getScriptPath('wg-create-client.sh'), [container, name, cleanExpiry, String(quota || ''), String(uploadLimit || '0')]);
             if (!success) throw new Error(error || 'Script execution failed');
 
-            let publicKey = '', ip = '';
-            for (let i = 1; i <= 5; i++) {
-                try {
-                    await new Promise(r => setTimeout(r, 500 * i));
-                    const clientDir = getClientDir(container, name);
-                    publicKey = await fsPromises.readFile(path.join(clientDir, 'public.key'), 'utf8').then(s => s.trim());
-                    const conf = await fsPromises.readFile(path.join(clientDir, `${name}.conf`), 'utf8');
-                    const ipMatch = conf.match(/Address\s*=\s*(.+)/);
-                    ip = ipMatch ? ipMatch[1].split(',')[0].trim() : '';
-                    if (publicKey) break;
-                } catch (e) {
-                    if (i === 5) throw new Error(`FileSystem sync failed for ${name} in ${container}`);
-                }
-            }
+            const clientDir = getClientDir(container, name);
+            const pubKeyFile = path.join(clientDir, 'public.key');
+            const confFile = path.join(clientDir, `${name}.conf`);
+
+            // WAIT-FOR-FILE: replacement for brittle setTimeout loop
+            const synced = await waitForFile(pubKeyFile);
+            if (!synced) throw new Error(`FileSystem sync failed for ${name} in ${container} (timeout waiting for public.key)`);
+
+            const publicKey = await fsPromises.readFile(pubKeyFile, 'utf8').then(s => s.trim());
+            const conf = await fsPromises.readFile(confFile, 'utf8');
+            const ipMatch = conf.match(/Address\s*=\s*([^#\n]+)/m);
+            const ip = ipMatch ? ipMatch[1].split(',')[0].trim() : '';
+            
             return { publicKey, ip };
         });
+
 
         await db.insert(schema.clients).values({
             container, name, publicKey: clientData.publicKey, ip: clientData.ip,
@@ -185,7 +217,17 @@ router.post('/', auth, requireManager, async (req, res) => {
         });
         await db.insert(schema.usage).values({ publicKey: clientData.publicKey, total: 0, daily: '{}' }).onConflictDoNothing();
 
+        await auditLog({
+            actor: req.user.username,
+            action: 'create',
+            targetType: 'client',
+            targetName: `${container}/${name}`,
+            details: { ip: clientData.ip, publicKey: clientData.publicKey, expiry: cleanExpiry },
+            ip: req.ip
+        });
+
         res.json({ success: true });
+
     } catch (e) {
         const status = e.message.includes('en cours') ? 409 : 500;
         res.status(status).json({ error: e.message });
@@ -219,9 +261,20 @@ router.post('/:container/:name/toggle', auth, requireManager, async (req, res) =
         }
         
         await db.update(schema.clients).set({ enabled: !!enabled }).where(eq(schema.clients.publicKey, publicKey));
+        
+        await auditLog({
+            actor: req.user.username,
+            action: 'toggle',
+            targetType: 'client',
+            targetName: `${container}/${name}`,
+            details: { enabled: !!enabled },
+            ip: req.ip
+        });
+
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
 
 router.delete('/:container/:name', auth, requireManager, async (req, res) => {
     const { container, name } = req.params;
@@ -233,10 +286,19 @@ router.delete('/:container/:name', auth, requireManager, async (req, res) => {
         if (client) {
             await db.delete(schema.usage).where(eq(schema.usage.publicKey, client.publicKey));
             await db.delete(schema.clients).where(eq(schema.clients.publicKey, client.publicKey));
+            
+            await auditLog({
+                actor: req.user.username,
+                action: 'delete',
+                targetType: 'client',
+                targetName: `${container}/${name}`,
+                ip: req.ip
+            });
         }
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
 
 router.patch('/:container/:name', auth, requireManager, async (req, res) => {
     const { container, name } = req.params;
@@ -268,14 +330,24 @@ router.patch('/:container/:name', auth, requireManager, async (req, res) => {
             await runSystemCommand(getScriptPath('wg-apply-qos.sh'), []).catch(e => console.error('[AUDIT] wg-apply-qos failed:', e.message));
         }
         await db.update(schema.clients).set(updateData).where(eq(schema.clients.publicKey, client.publicKey));
-        // BUG-FIX: await ajouté — promesse orpheline → erreur silencieuse non trapée
         await runSystemCommand(getScriptPath('wg-enforcer.sh'), []).catch(e => console.error('[AUDIT] wg-enforcer failed:', e.message));
+
+        await auditLog({
+            actor: req.user.username,
+            action: 'patch',
+            targetType: 'client',
+            targetName: `${container}/${name}`,
+            details: updateData,
+            ip: req.ip
+        });
+
         res.json({ success: true });
     } catch (e) { 
         console.error(`[ERROR] Failed to update client ${name}:`, e.message);
         res.status(500).json({ error: e.message || 'Failed to update client' }); 
     }
 });
+
 
 router.post('/bulk-update', auth, requireManager, async (req, res) => {
     // Validation Zod
@@ -299,8 +371,19 @@ router.post('/bulk-update', auth, requireManager, async (req, res) => {
     }
     // BUG-FIX: await ajouté sur la commande bulk enforcer
     await runSystemCommand(getScriptPath('wg-enforcer.sh'), []).catch(e => console.error('[AUDIT] bulk enforcer failed:', e.message));
+
+    await auditLog({
+        actor: req.user.username,
+        action: 'bulk-update',
+        targetType: 'system',
+        targetName: 'clients',
+        details: { count: successCount, update },
+        ip: req.ip
+    });
+
     res.json({ success: successCount, failed: failedCount });
 });
+
 
 router.post('/bulk-delete', auth, requireManager, async (req, res) => {
     // Validation Zod
@@ -319,8 +402,18 @@ router.post('/bulk-delete', auth, requireManager, async (req, res) => {
             } else { failedCount++; }
         } catch(e) { failedCount++; }
     }
+    await auditLog({
+        actor: req.user.username,
+        action: 'bulk-delete',
+        targetType: 'system',
+        targetName: 'clients',
+        details: { count: successCount },
+        ip: req.ip
+    });
+
     res.json({ success: successCount, failed: failedCount });
 });
+
 
 router.post('/move', auth, requireManager, async (req, res) => {
     // Validation Zod
@@ -331,9 +424,20 @@ router.post('/move', auth, requireManager, async (req, res) => {
     if (!success) return res.status(500).json({ error });
     try {
         await db.update(schema.clients).set({ container: newContainer }).where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)));
+        
+        await auditLog({
+            actor: req.user.username,
+            action: 'move',
+            targetType: 'client',
+            targetName: `${container}/${name}`,
+            details: { from: container, to: newContainer },
+            ip: req.ip
+        });
+
         res.json({ success: true });
     } catch(e) { res.status(500).json({ error: e.message }); }
 });
+
 
 router.get('/:container/:name/history', auth, requireManager, async (req, res) => {
     const { container, name } = req.params;
@@ -362,6 +466,29 @@ router.get('/:container/:name/history-hours', auth, requireManager, async (req, 
     } catch (e) { 
         console.error(`[ERROR] Failed to fetch hourly history for ${name}:`, e.message);
         res.json([]); 
+    }
+});
+
+router.get('/:container/:name/config', auth, requireManager, async (req, res) => {
+    try {
+        const { container, name } = req.params;
+        const [client] = await db.select().from(schema.clients).where(and(eq(schema.clients.container, container), eq(schema.clients.name, name))).limit(1);
+        if (!client) return res.status(404).json({ error: 'Client not found' });
+        
+        const clientDir = getClientDir(container, name);
+        const configPath = path.join(clientDir, `${name}.conf`);
+        try {
+            const configText = await fsPromises.readFile(configPath, 'utf8');
+            res.json({ config: configText });
+        } catch (err) {
+            if (err.code === 'ENOENT') {
+                return res.status(404).json({ error: 'Configuration file not found' });
+            }
+            throw err;
+        }
+    } catch (e) {
+        console.error(`[ERROR] Failed to fetch config for ${req.params.name}:`, e.message);
+        res.status(500).json({ error: 'Failed to fetch configuration' });
     }
 });
 

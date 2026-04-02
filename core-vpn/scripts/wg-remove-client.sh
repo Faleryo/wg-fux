@@ -22,8 +22,11 @@ fi
 
 if [ -f "$CLIENT_DIR/public.key" ]; then
     PUBKEY=$(cat "$CLIENT_DIR/public.key" | tr -d '[:space:]')
-    log_info "Removing peer $PUBKEY from $WG_INTERFACE..."
-    wg set "$WG_INTERFACE" peer "$PUBKEY" remove || log_warn "Failed to remove peer from interface (might already be gone)"
+    if [ -n "$PUBKEY" ]; then
+        log_info "Removing peer $PUBKEY from $WG_INTERFACE..."
+        # We don't want this to fail the whole script if the peer is already gone from wg interface
+        wg set "$WG_INTERFACE" peer "$PUBKEY" remove 2>/dev/null || log_warn "Peer $PUBKEY not found in $WG_INTERFACE (skipping interface removal)"
+    fi
 fi
 
 rm -rf "$CLIENT_DIR"

@@ -14,9 +14,11 @@ WG_INTERFACE=${WG_INTERFACE:-wg0}
 
 echo "Removing clients in $CONTAINER..."
 find "$TARGET_DIR" -name "public.key" 2>/dev/null | while read keyfile; do
-    PUBKEY=$(cat "$keyfile")
-    echo "Removing peer $PUBKEY"
-    wg set "$WG_INTERFACE" peer "$PUBKEY" remove
+    PUBKEY=$(cat "$keyfile" | tr -d '[:space:]')
+    if [ -n "$PUBKEY" ]; then
+        echo "Removing peer $PUBKEY from interface..."
+        wg set "$WG_INTERFACE" peer "$PUBKEY" remove 2>/dev/null || true
+    fi
 done
 rm -rf "$TARGET_DIR"
 # Refresh QoS rules to clean up deleted clients

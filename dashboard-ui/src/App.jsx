@@ -25,6 +25,7 @@ import NetworkMap from './components/dashboard/NetworkMap';
 
 // Modals
 import CreateClientModal from './components/modals/CreateClientModal';
+import CreateContainerModal from './components/modals/CreateContainerModal';
 import QRCodeModal from './components/modals/QRCodeModal';
 import CreateUserModal from './components/modals/CreateUserModal';
 import EditClientModal from './components/modals/EditClientModal';
@@ -77,6 +78,8 @@ const WireGuardDashboard = ({ onLogout }) => {
   const [activeSection, setActiveSection] = useState(localStorage.getItem('active-tab') || 'dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [clients, setClients] = useState([]);
+  const [allContainers, setAllContainers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({});
   const [systemStats, setSystemStats] = useState({ cpu: 0, memory: 0, disk: 0 });
   const [trafficData, setTrafficData] = useState([]);
@@ -84,6 +87,7 @@ const WireGuardDashboard = ({ onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [health, setHealth] = useState({ status: 'unknown' });
   const [topologySelectedClient, setTopologySelectedClient] = useState(null);
+  const [activeContainer, setActiveContainer] = useState(null); // Keeps track of which container is open
   const [config, setConfig] = useState({});
   const [uptime, setUptime] = useState('');
   const [speedtest, setSpeedtest] = useState({ loading: false, data: null });
@@ -92,6 +96,8 @@ const WireGuardDashboard = ({ onLogout }) => {
   // Modal states
   const [showQRModal, setShowQRModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateContainerModal, setShowCreateContainerModal] = useState(false);
+  const [targetContainerForCreate, setTargetContainerForCreate] = useState(null);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -191,19 +197,45 @@ const WireGuardDashboard = ({ onLogout }) => {
     }
   };
 
+  // ── Client & Container Management ───────────────────────────────────────────
+  const handleCreateContainer = async (name) => {
+    try {
+      await axiosInstance.post('/clients/containers', { name });
+      addToast(`Conteneur ${name} créé.`, 'success');
+      fetchData(); // Note: we'll also update ClientList to fetch containers directly
+    } catch (e) {
+      addToast(e.response?.data?.error || `Erreur lors de la création du conteneur ${name}`, 'error');
+    }
+  };
+
+  const handleCreateClient = async (name, container, expiry, quota, uploadLimit) => {
+    try {
+      await axiosInstance.post('/clients', { name, container, expiry, quota, uploadLimit });
+      fetchData();
+      addToast(`Peer ${name} créé avec succès`, 'success');
+    } catch (e) {
+      addToast(e.response?.data?.error || 'Erreur lors de la création du client', 'error');
+    }
+  };
+
   // ── Main Data Fetch ────────────────────────────────────────────────────────
   const fetchData = async () => {
     try {
-      const [clientsRes, statsRes, healthRes] = await Promise.all([
+      const [clientsRes, statsRes, healthRes, containersRes, usersRes] = await Promise.all([
         axiosInstance.get('/clients'),
-        axiosInstance.get('/stats'),
-        axiosInstance.get('/health').catch(() => ({ data: { status: 'unhealthy' } }))
+        axiosInstance.get('/system/stats').catch(() => ({ data: {} })),
+        axiosInstance.get('/system/health').catch(() => ({ data: { status: 'unhealthy' } })),
+        axiosInstance.get('/clients/containers').catch(() => ({ data: [] })),
+        axiosInstance.get('/users').catch(() => ({ data: [] }))
       ]);
 
       const now = Date.now();
       const fetchedClients = clientsRes.data || [];
       const { clients: prevClients, timestamp: prevTimestamp } = prevDataRef.current;
       const timeDiff = prevTimestamp ? (now - prevTimestamp) / 1000 : 0;
+      
+      setAllContainers(containersRes.data || []);
+      setUsers(usersRes.data || []);
 
       const clientsWithRates = fetchedClients.map(client => {
         const prevClient = prevClients.find(p => p.publicKey === client.publicKey);
@@ -235,6 +267,12 @@ const WireGuardDashboard = ({ onLogout }) => {
           newMap[c.id] = [...current, { time: timeLabel, dl: c.downloadRate || 0, ul: c.uploadRate || 0 }].slice(-20);
         });
         return newMap;
+      });
+
+      setTopologySelectedClient(prev => {
+        if (!prev) return null;
+        const updated = clientsWithRates.find(c => c.id === prev.id);
+        return updated ? { ...updated } : prev;
       });
 
       setLoading(false);
@@ -285,19 +323,50 @@ const WireGuardDashboard = ({ onLogout }) => {
 
   // Remplace window.confirm() — ouvre le ConfirmModal premium
   const handleDeleteClient = (client) => {
-    setConfirmModal({ open: true, client });
+    setConfirmModal({ open: true, type: 'delete-client', client });
+  };
+
+  const handleDeleteContainerPrompt = (containerName) => {
+    setConfirmModal({ open: true, type: 'delete-container', container: containerName });
+  };
+
+  const handleDeleteUser = async (username) => {
+    try {
+      await axiosInstance.delete(`/users/${username}`);
+      addToast(`Opérateur ${username} supprimé`, 'success');
+      fetchData();
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Erreur suppression', 'error');
+    }
   };
 
   const executeDeleteClient = async () => {
-    const client = confirmModal.client;
-    setConfirmModal({ open: false, client: null });
+    const { type, client, container } = confirmModal;
+    setConfirmModal({ open: false, client: null, container: null });
+    
+    if (type === 'delete-container' && container) {
+      try {
+        await axiosInstance.delete(`/clients/containers/${container}`);
+        addToast('Conteneur supprimé avec succès', 'success');
+        if (activeSection === 'containers') setActiveSection('containers');
+        fetchData();
+      } catch (err) { 
+        const msg = err.response?.data?.error || 'Erreur lors de la suppression du conteneur';
+        addToast(msg, 'error'); 
+      }
+      return;
+    }
+
     if (!client) return;
     try {
       await axiosInstance.delete(`/clients/${client.container}/${client.name}`);
       addToast('Client supprimé', 'success');
       fetchData();
       if (topologySelectedClient?.id === client.id) setTopologySelectedClient(null);
-    } catch { addToast('Erreur suppression', 'error'); }
+    } catch (err) { 
+      const msg = err.response?.data?.error || 'Erreur lors de la suppression du client';
+      addToast(msg, 'error'); 
+    }
   };
 
   const handleNavigate = (sectionId) => {
@@ -310,19 +379,22 @@ const WireGuardDashboard = ({ onLogout }) => {
   const renderSection = () => {
     if (topologySelectedClient) {
       return (
-        <ClientDetail
-          client={topologySelectedClient}
-          onBack={() => setTopologySelectedClient(null)}
-          onToggle={(name, enabled) => handleToggleClient(topologySelectedClient.container, name, enabled)}
-          onDelete={() => handleDeleteClient(topologySelectedClient)}
-          onQRCode={(name, configText) => {
-            // ClientDetail calls onQRCode(client.name, client.config)
-            // Build the object QRCodeModal expects
-            setSelectedClientForModal({ name, config: configText || '' });
-            setShowQRModal(true);
-          }}
-          onEdit={() => { setSelectedClientForEdit(topologySelectedClient); setShowEditModal(true); }}
-        />
+          <ClientDetail
+            client={topologySelectedClient}
+            onBack={() => setTopologySelectedClient(null)}
+            onToggle={(container, name, enabled) => handleToggleClient(container, name, enabled)}
+            onDelete={() => handleDeleteClient(topologySelectedClient)}
+            onQRCode={async (client) => {
+              try {
+                const res = await axiosInstance.get(`/clients/${client.container}/${client.name}/config`);
+                setSelectedClientForModal({ name: client.name, config: res.data.config || '' });
+                setShowQRModal(true);
+              } catch (err) {
+                addToast('Erreur chargement configuration', 'error');
+              }
+            }}
+            onEdit={() => { setSelectedClientForEdit(topologySelectedClient); setShowEditModal(true); }}
+          />
       );
     }
 
@@ -334,6 +406,7 @@ const WireGuardDashboard = ({ onLogout }) => {
             clients={clients} health={health} config={config}
             speedtest={speedtest} onRunSpeedtest={handleRunSpeedtest}
             sentinel={sentinelStatus}
+            onCreateClient={() => setShowCreateModal(true)}
             onNavigate={handleNavigate}
           />
         );
@@ -341,13 +414,27 @@ const WireGuardDashboard = ({ onLogout }) => {
         return (
           <ContainersSection
             clients={clients}
+            allContainers={allContainers}
             loading={loading}
+            activeContainer={activeContainer}
+            setActiveContainer={setActiveContainer}
             onSelect={setTopologySelectedClient}
-            onQRCode={(name, configText) => { setSelectedClientForModal({ name, config: configText }); setShowQRModal(true); }}
+            onQRCode={async (client) => { 
+                try {
+                   const res = await axiosInstance.get(`/clients/${client.container}/${client.name}/config`);
+                   setSelectedClientForModal({ name: client.name, config: res.data.config || '' }); 
+                   setShowQRModal(true); 
+                } catch { addToast('Erreur de configuration', 'error'); }
+            }}
             onToggle={(container, name, enabled) => handleToggleClient(container, name, enabled)}
             onDelete={handleDeleteClient}
+            onDeleteContainer={handleDeleteContainerPrompt}
             onEdit={(client) => { setSelectedClientForEdit(client); setShowEditModal(true); }}
-            onCreateClient={() => setShowCreateModal(true)}
+            onCreateClient={(container) => {
+               setTargetContainerForCreate(container);
+               setShowCreateModal(true);
+            }}
+            onCreateContainer={() => setShowCreateContainerModal(true)}
           />
         );
       case 'topology':
@@ -360,7 +447,7 @@ const WireGuardDashboard = ({ onLogout }) => {
             />
           </div>
         );
-      case 'users':    return <UsersSection onCreateUser={() => setShowCreateUserModal(true)} />;
+      case 'users':    return <UsersSection users={users} loading={loading} onRefresh={fetchData} onDelete={handleDeleteUser} onCreateUser={() => setShowCreateUserModal(true)} />;
       case 'logs':     return <LogsSection />;
       case 'settings': return <SettingsSection />;
       case 'optimization': return <OptimizationSection systemStats={systemStats} />;
@@ -454,15 +541,22 @@ const WireGuardDashboard = ({ onLogout }) => {
           onDownload={handleDownloadConfig}
         />
       )}
+      {showCreateContainerModal && (
+        <CreateContainerModal
+          isOpen={showCreateContainerModal}
+          onClose={() => setShowCreateContainerModal(false)}
+          onCreate={handleCreateContainer}
+        />
+      )}
       {showCreateModal && (
         <CreateClientModal
           isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onCreate={async (name, container, expiry, quota, uploadLimit) => {
-            await axiosInstance.post('/clients', { name, container, expiry, quota, uploadLimit });
-            fetchData();
-            addToast(`Peer ${name} créé avec succès`, 'success');
+          onClose={() => {
+            setShowCreateModal(false);
+            setTargetContainerForCreate(null);
           }}
+          onCreate={handleCreateClient}
+          targetContainer={targetContainerForCreate}
         />
       )}
       {showCreateUserModal && (
@@ -470,8 +564,13 @@ const WireGuardDashboard = ({ onLogout }) => {
           isOpen={showCreateUserModal}
           onClose={() => setShowCreateUserModal(false)}
           onCreate={async (username, password, role) => {
-            await axiosInstance.post('/users', { username, password, role });
-            addToast(`Opérateur ${username} créé avec succès`, 'success');
+            try {
+              await axiosInstance.post('/users', { username, password, role });
+              addToast(`Opérateur ${username} créé avec succès`, 'success');
+              fetchData();
+            } catch (err) {
+              addToast(err.response?.data?.error || 'Erreur lors de la création', 'error');
+            }
           }}
         />
       )}
@@ -486,19 +585,23 @@ const WireGuardDashboard = ({ onLogout }) => {
       {/* ConfirmModal — Remplace window.confirm() pour les suppressions */}
       <ConfirmModal
         isOpen={confirmModal.open}
-        title="Supprimer le client"
+        title={confirmModal.type === 'delete-container' ? "Supprimer le conteneur" : "Supprimer le client"}
         message={
-          confirmModal.client ? (
+          confirmModal.type === 'delete-container' ? (
+             <span>
+               Supprimer le conteneur vide <strong className="text-white font-mono">{confirmModal.container}</strong> ?
+             </span>
+          ) : confirmModal.client ? (
             <span>
               Supprimer <strong className="text-white font-mono">{confirmModal.client.name}</strong>{' '}
-              du container <strong className="text-white font-mono">{confirmModal.client.container}</strong> ?
+              du conteneur <strong className="text-white font-mono">{confirmModal.client.container}</strong> ?
             </span>
           ) : 'Cette action est irréversible.'
         }
         confirmLabel="Supprimer définitivement"
         intent="danger"
         onConfirm={executeDeleteClient}
-        onCancel={() => setConfirmModal({ open: false, client: null })}
+        onCancel={() => setConfirmModal({ open: false, client: null, container: null })}
       />
     </div>
   );

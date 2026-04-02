@@ -134,7 +134,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
             {[
               { icon: Edit, label: "Modifier", color: "indigo", onClick: () => onEdit(client) },
               { icon: client.enabled ? Pause : Play, label: client.enabled ? "Désactiver" : "Activer", color: "amber", onClick: () => onToggle(client.container, client.name, !client.enabled) },
-              { icon: QrCode, label: "QR Code", color: theme, onClick: () => onQRCode(client.name, client.config) },
+              { icon: QrCode, label: "QR Code", color: theme, onClick: () => onQRCode(client) },
               { icon: Trash2, label: "Supprimer", color: "rose", onClick: () => onDelete(client) }
             ].map((btn, i) => (
               <button 

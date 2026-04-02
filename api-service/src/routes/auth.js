@@ -10,6 +10,7 @@ const { loginSchema } = require('../../db/validation');
 const { auth, requireAdmin, requireManager } = require('../middleware/auth');
 const { verifyPassword, logLoginAttempt } = require('../services/auth');
 const { runSystemCommand } = require('../services/shell');
+const { getScriptPath } = require('../services/config');
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -19,7 +20,7 @@ const loginLimiter = rateLimit({
     legacyHeaders: false,
     handler: (req, res, next, options) => {
         const ip = req.ip;
-        runSystemCommand('/usr/local/bin/wg-send-msg.sh', [`⚠️ ALERTE SÉCURITÉ: 5 tentatives de connexion échouées depuis l'IP ${ip}`]);
+        runSystemCommand(getScriptPath('wg-send-msg.sh'), [`⚠️ ALERTE SÉCURITÉ: 5 tentatives de connexion échouées depuis l'IP ${ip}`]);
         res.status(options.statusCode).send(options.message);
     }
 });

@@ -120,7 +120,7 @@ const LogsSection = () => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900/40 backdrop-blur-3xl p-6 md:p-8 rounded-[2rem] border border-white/5 shadow-2xl gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-slate-900/40 backdrop-blur-3xl p-6 md:p-8 rounded-[2rem] border border-white/5 shadow-2xl gap-6">
         <div className="flex items-center gap-4 md:gap-6">
           <div className={cn("p-3 md:p-4 rounded-2xl bg-white/5 shadow-2xl flex-shrink-0", `text-${theme}-400`)}>
             <Terminal size={28} />

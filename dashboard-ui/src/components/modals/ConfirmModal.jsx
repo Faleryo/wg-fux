@@ -71,9 +71,9 @@ const ConfirmModal = ({
             className="relative w-full max-w-sm bg-slate-900/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl shadow-black/60 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Inner glow */}
+            {/* Inner glow (pointer-events-none to let clicks through) */}
             <div className={cn(
-              'absolute inset-0 rounded-[2.5rem] opacity-[0.06]',
+              'absolute inset-0 rounded-[2.5rem] opacity-[0.06] pointer-events-none',
               isDanger ? 'bg-gradient-to-br from-red-500 to-transparent' : 'bg-gradient-to-br from-amber-500 to-transparent'
             )} />
 
@@ -115,8 +115,8 @@ const ConfirmModal = ({
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex gap-3">
+            {/* Actions (relative z-10) */}
+            <div className="flex gap-3 relative z-10">
               <button
                 onClick={onCancel}
                 className="flex-1 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest transition-all border border-white/5 hover:border-white/10"

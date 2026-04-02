@@ -22,10 +22,13 @@ const clientRoutes = require('./src/routes/clients');
 const systemRoutes = require('./src/routes/system');
 const ticketRoutes = require('./src/routes/tickets');
 const userRoutes = require('./src/routes/users');
+
 const sentinelRoutes = require('./src/routes/sentinel');
 const { initializeDatabase } = require('./src/services/init');
 
 const app = express();
+app.set('trust proxy', 1); // Trust first-hop proxy (Nginx) for rate-limiting
+
 const server = http.createServer(app);
 
 // --- Middleware ---
@@ -67,47 +70,15 @@ app.get('/api/install/status', (req, res) => res.json({ installed: true, version
 // --- Protected Routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes); // auth is handled inside clientRoutes
+
 app.use('/api/system', systemRoutes);  // auth is handled inside systemRoutes
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/sentinel', sentinelRoutes);
 
-// Compatibility Aliases for Dashboard
-app.get('/api/health', async (req, res, next) => {
-    const { getSystemStats, getInterfacePath } = require('./src/services/system');
-    const { runSystemCommand } = require('./src/services/shell');
-    const { getJobStatus } = require('./src/services/jobs');
-    const fs = require('fs');
-    const iface = process.env.WG_INTERFACE || 'wg0';
-    const interfaceExists = fs.existsSync(getInterfacePath(iface));
-    const { success } = await runSystemCommand(process.env.WG_BIN || 'wg', ['show', iface]).catch(() => ({ success: false }));
-    const system = await getSystemStats();
-    res.json({
-        status: (interfaceExists && success && parseFloat(system.disk) < 95) ? 'healthy' : 'unhealthy',
-        service: interfaceExists ? 'active' : 'inactive',
-        interface: success ? 'up' : 'down',
-        stats: system,
-        jobs: getJobStatus(),
-        version: '3.1.0-Platinum'
-    });
-});
-
-app.get('/api/stats', auth, async (req, res, next) => {
-    const { getWireGuardStats, getSystemStats, formatBytes } = require('./src/services/system');
-    try {
-        const peers = await getWireGuardStats();
-        let totalRx = 0, totalTx = 0, connectedCount = 0;
-        peers.forEach(peer => {
-            totalRx += peer.rx || 0;
-            totalTx += peer.tx || 0;
-            if (peer.isOnline) connectedCount++;
-        });
-        const system = await getSystemStats();
-        res.json({
-            network: { totalDownload: formatBytes(totalRx), totalUpload: formatBytes(totalTx), connectedClients: connectedCount },
-            system
-        });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+// Docker Healthcheck Endpoint (Sécurisé : aucun payload sensible)
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'healthy', version: '3.1.0-Platinum', uptime: process.uptime() });
 });
 
 // BUG-FIX: 404 handler for unknown /api/* routes (must be before SPA catch-all)
@@ -268,13 +239,29 @@ server.on('upgrade', (request, socket, head) => {
 // --- Global Error Handling ---
 app.use((err, req, res, next) => {
     const isProd = process.env.NODE_ENV === 'production';
-    console.error(`[SENTINEL-ERROR] ${err.stack}`);
-    res.status(err.status || 500).json({ 
-        error: 'Service Error', 
-        message: isProd ? 'An internal error occurred. Please contact support.' : err.message,
-        code: err.code || 'INTERNAL_ERROR'
+    const statusCode = err.status || err.statusCode || 500;
+    const errorCode = err.code || 'INTERNAL_ERROR';
+
+    // Specialized logging for 5XX errors
+    if (statusCode >= 500) {
+        log.error('server', `Unhandled Exception: ${err.message}`, { 
+            stack: err.stack, 
+            path: req.path, 
+            method: req.method,
+            code: errorCode
+        });
+    } else {
+        log.warn('server', `Client Error: ${err.message}`, { path: req.path, method: req.method, status: statusCode });
+    }
+
+    res.status(statusCode).json({ 
+        error: isProd && statusCode >= 500 ? 'Service Error' : err.message, 
+        message: isProd && statusCode >= 500 ? 'An internal error occurred. Please contact support.' : err.message,
+        code: errorCode,
+        path: isProd ? undefined : req.path
     });
 });
+
 
 // --- Startup ---
 const PORT = process.env.PORT || 3000;

@@ -16,7 +16,7 @@ import GlassCard from '../ui/Card';
 import VibeButton from '../ui/Button';
 import { LiveTelemetryChart } from '../dashboard/LiveTelemetryChart';
 
-const DashboardSection = ({ stats, trafficData, systemStats, clients, health, config, onRunSpeedtest, speedtest, sentinel, onNavigate }) => {
+const DashboardSection = ({ stats, trafficData, systemStats, clients, health, config, onRunSpeedtest, speedtest, onCreateClient, sentinel, onNavigate }) => {
 
   const { theme } = useTheme();
   const cpu = systemStats?.cpu || 0;
@@ -102,7 +102,7 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
       {/* === ROW 1: Hero Banner + Right Stats ===
           Wrapper divs carry the col-span classes so the grid works correctly
           (GlassCard's motion.div wrapper cannot have col-span) */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-12 gap-6">
         
         {/* Hero Card — xl:col-span-8 */}
         <div className="xl:col-span-8">
@@ -169,8 +169,8 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
           </GlassCard>
         </div>
 
-        {/* Right sidebar cards — xl:col-span-4 */}
-        <div className="xl:col-span-4 flex flex-col gap-6">
+        {/* Right sidebar cards — lg:col-span-1 xl:col-span-4 */}
+        <div className="lg:col-span-1 xl:col-span-4 flex flex-col gap-6">
           {/* Sentinel */}
           <GlassCard className="p-6 flex items-center justify-between group bg-gradient-to-br from-emerald-500/10 to-teal-950/20 border-emerald-500/20">
             <div className="min-w-0">
@@ -220,9 +220,9 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
       </div>
 
       {/* === ROW 2: Telemetry + Pie + Speedtest === */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Telemetry — xl:col-span-2 */}
-        <div className="xl:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Telemetry — lg:col-span-2 xl:col-span-2 */}
+        <div className="lg:col-span-2 xl:col-span-2">
           <LiveTelemetryChart />
         </div>
 
@@ -278,14 +278,22 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
                   <div className="flex items-center gap-2 text-emerald-400">
                     <ArrowDown size={13} /> <span className="text-[9px] font-black uppercase">Down</span>
                   </div>
-                  <div className="text-2xl md:text-3xl font-mono font-black text-white">{(speedtest.data.download / 1000000).toFixed(0)}</div>
+                  <div className="text-2xl md:text-3xl font-mono font-black text-white">
+                    {speedtest.data.download > 1000 
+                      ? (speedtest.data.download / 1000000).toFixed(1) 
+                      : speedtest.data.download.toFixed(1)}
+                  </div>
                   <div className="text-[9px] text-slate-500 font-bold uppercase">Mbps</div>
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-indigo-400">
                     <ArrowUp size={13} /> <span className="text-[9px] font-black uppercase">Up</span>
                   </div>
-                  <div className="text-2xl md:text-3xl font-mono font-black text-white">{(speedtest.data.upload / 1000000).toFixed(0)}</div>
+                  <div className="text-2xl md:text-3xl font-mono font-black text-white">
+                    {speedtest.data.upload > 1000 
+                      ? (speedtest.data.upload / 1000000).toFixed(1) 
+                      : speedtest.data.upload.toFixed(1)}
+                  </div>
                   <div className="text-[9px] text-slate-500 font-bold uppercase">Mbps</div>
                 </div>
                 <div className="col-span-2 pt-3 border-t border-white/5 flex justify-between items-center">

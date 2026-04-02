@@ -88,6 +88,22 @@ const isValidName = (str) => /^[a-zA-Z0-9_\-]+$/.test(str);
 const isValidExpiry = (str) => !str || /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(str);
 const isValidNumber = (str) => !str || /^[0-9]+$/.test(String(str));
 
+/**
+ * Robustly wait for a file to exist on disk (retries with backoff)
+ */
+const waitForFile = async (filePath, retries = 5, delay = 500) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            await fsPromises.access(filePath);
+            return true;
+        } catch (e) {
+            if (i === retries - 1) return false;
+            await new Promise(r => setTimeout(r, delay * (i + 1))); // Exponential-ish backoff
+        }
+    }
+    return false;
+};
+
 module.exports = {
     getWireGuardStats,
     getSystemStats,
@@ -97,5 +113,7 @@ module.exports = {
     formatBytes,
     isValidName,
     isValidExpiry,
-    isValidNumber
+    isValidNumber,
+    waitForFile
 };
+

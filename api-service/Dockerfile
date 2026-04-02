@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     procps \
     net-tools \
+    sqlite3 \
+    speedtest-cli \
     && rm -rf /var/lib/apt/lists/*
 
 # Create wg-api user

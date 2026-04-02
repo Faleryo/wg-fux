@@ -207,6 +207,15 @@ router.post('/speedtest', auth, requireAdmin, async (req, res) => {
     }
 });
 
+router.get('/optimize', auth, async (req, res) => {
+    try {
+        const stateFile = '/etc/wireguard/active_profile';
+        if (!fs.existsSync(stateFile)) return res.json({ profile: 'default' });
+        const profile = await fsPromises.readFile(stateFile, 'utf8').then(s => s.trim());
+        res.json({ profile });
+    } catch (e) { res.json({ profile: 'default' }); }
+});
+
 router.post('/optimize', auth, requireAdmin, async (req, res) => {
     const { profile } = req.body;
     const validProfiles = ['gaming', 'streaming', 'auto'];
@@ -304,10 +313,29 @@ router.get('/security-logs', auth, requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.get('/health', async (req, res) => {
+
+// BUG-FIX: Route manquante pour /api/system/container-logs
+router.get('/container-logs', auth, requireAdmin, async (req, res) => {
+    try {
+        // En Docker, on ne peut pas facilement lire "docker logs" sans mapper le socket.
+        // Alternative : Utiliser la brique ARCH-MAP pour lire le buffer interne de notre logger.
+        const log = require('../services/logger');
+        const entries = log.getBuffer(null, 100);
+        res.json(entries.map(e => ({
+            date: e.ts,
+            level: e.level,
+            message: `[${e.svc}] ${e.msg}` + (e.path ? ` [${e.method} ${e.path}]` : '')
+        })));
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+
+router.get('/health', auth, async (req, res) => {
     const iface = process.env.WG_INTERFACE || 'wg0';
     const interfaceExists = fs.existsSync(getInterfacePath(iface));
-    const { success } = await runSystemCommand(WG_BIN, ['show', iface]);
+    const { success } = await runSystemCommand(WG_BIN, ['show', iface]).catch(() => ({ success: false }));
     const system = await getSystemStats();
     res.json({
         status: (interfaceExists && success && parseFloat(system.disk) < 95) ? 'healthy' : 'unhealthy',

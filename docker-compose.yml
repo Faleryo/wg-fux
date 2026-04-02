@@ -51,15 +51,17 @@ services:
       - /lib/modules:/lib/modules:ro
     ports:
       - "51820:51820/udp"
-    # Port 3000 est interne au réseau vpn-internal
+      - "127.0.0.1:3000:3000"
+    # Port 3000 est interne au réseau vpn-internal, mais exposé localement pour sentinel
     networks:
       - vpn-internal
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
+      interval: 15s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 30s
+
 
   ui:
     build:
@@ -74,10 +76,11 @@ services:
       - vpn-internal
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
-      interval: 30s
-      timeout: 10s
+      interval: 15s
+      timeout: 5s
       retries: 3
       start_period: 20s
+
 
 networks:
   vpn-internal:

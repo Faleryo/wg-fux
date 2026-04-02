@@ -126,6 +126,10 @@ const logTrafficHistory = async () => {
         
         const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
         await db.delete(schema.logs).where(and(eq(schema.logs.type, 'snapshot'), lt(schema.logs.timestamp, seventyTwoHoursAgo)));
+        
+        // SRE Hardening: Purge old auth logs (30 days)
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        await db.delete(schema.logs).where(and(eq(schema.logs.type, 'auth'), lt(schema.logs.timestamp, thirtyDaysAgo)));
     } catch (e) {
         console.error('[JOB] Traffic Log Error:', e);
     } finally {

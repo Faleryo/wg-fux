@@ -75,11 +75,28 @@ const tickets = sqliteTable('tickets', {
   ticketStatusIdx: index('ticket_status_idx').on(table.status),
 }));
 
+const auditLogs = sqliteTable('auditLogs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  timestamp: integer('timestamp', { mode: 'timestamp' }).default(new Date()),
+  actor: text('actor').notNull(),
+  action: text('action').notNull(),
+  targetType: text('targetType').notNull(),
+  targetName: text('targetName'),
+  details: text('details'),
+  ip: text('ip'),
+}, (table) => ({
+  auditTimestampIdx: index('audit_timestamp_idx').on(table.timestamp),
+  auditActorIdx: index('audit_actor_idx').on(table.actor),
+  auditActionIdx: index('audit_action_idx').on(table.action),
+}));
+
 module.exports = {
   users,
   containers,
   clients,
   usage,
   logs,
-  tickets
+  tickets,
+  auditLogs
 };
+

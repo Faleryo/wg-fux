@@ -5,11 +5,9 @@ import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
 import { axiosInstance } from '../../lib/api';
 
-const CreateClientModal = ({ isOpen, onClose, onCreate, initialContainer }) => {
+const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
   const { theme } = useTheme();
   const [name, setName] = useState('');
-  const [container, setContainer] = useState('');
-  const [containers, setContainers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [quota, setQuota] = useState(0);
   const [uploadLimit, setUploadLimit] = useState(0);
@@ -34,21 +32,15 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, initialContainer }) => {
   useEffect(() => {
     if (isOpen) {
       setName('');
-      axiosInstance.get('/containers').then(res => {
-        setContainers(res.data);
-        let active = '';
-        if (initialContainer && res.data.includes(initialContainer)) {
-          active = initialContainer;
-        } else if (res.data.length > 0) active = res.data[0];
-        setContainer(active);
-        if (active) generateSuggestion(active);
-      }).catch(e => console.error(e));
+      if (targetContainer) {
+         generateSuggestion(targetContainer);
+      }
     }
-  }, [isOpen, initialContainer]);
+  }, [isOpen, targetContainer]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (name.trim() && container) {
+    if (name.trim() && targetContainer) {
       setLoading(true);
       try {
         let expiry = '';
@@ -60,7 +52,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, initialContainer }) => {
           expiry = date.toISOString().split('T')[0];
         }
 
-        await onCreate(name, container, expiry, quota, uploadLimit);
+        await onCreate(name, targetContainer, expiry, quota, uploadLimit);
         onClose();
       } catch (error) {
         console.error('Erreur création client:', error);
@@ -97,18 +89,17 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, initialContainer }) => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">Groupe Tactique</label>
+                <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">Groupe Tactique (Conteneur)</label>
                 <div className="relative group">
-                   <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors" size={18} />
-                   <select
-                      value={container}
-                      onChange={e => { setContainer(e.target.value); generateSuggestion(e.target.value); }}
-                      className="w-full pl-12 pr-10 py-4 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/10 focus:bg-white/10 text-white font-bold uppercase tracking-widest transition-all appearance-none cursor-pointer"
-                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1rem' }}
-                    >
-                    {containers.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <Database className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                  <input
+                    type="text"
+                    value={targetContainer || 'Aucun'}
+                    disabled
+                    className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl text-slate-400 font-mono transition-all text-sm cursor-not-allowed opacity-50"
+                  />
                 </div>
+                <p className="mt-2 text-[9px] text-slate-500 italic">Le client sera ajouté dans ce conteneur en cours.</p>
               </div>
            </div>
 
@@ -179,7 +170,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, initialContainer }) => {
            </button>
            <button
              type="submit"
-             disabled={loading || !name.trim() || !container}
+             disabled={loading || !name.trim() || !targetContainer}
              className={cn(
                "flex-[2] py-4 text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed",
                `bg-${theme}-600 hover:bg-${theme}-500 shadow-${theme}-600/30`
