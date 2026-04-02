@@ -91,11 +91,11 @@ get_client_dir() {
     echo "/etc/wireguard/clients/${container}/${name}"
 }
 
-# Safe command execution wrapper
-run_safe() {
-    "$@" || { log_error "Command failed: $*" "$ERR_SYSTEM_FAILURE"; }
+# Safe math function using bc
+safe_math() {
+    echo "scale=2; $1" | bc 2>/dev/null || echo "0"
 }
 
 # Export functions for subshells
-export -f log_info log_warn log_error check_root load_config validate_id run_safe check_dependencies get_client_dir
+export -f log_info log_warn log_error check_root load_config validate_id run_safe check_dependencies get_client_dir safe_math
 

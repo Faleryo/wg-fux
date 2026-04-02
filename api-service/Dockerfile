@@ -13,7 +13,9 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     sqlite3 \
     speedtest-cli \
+    bc \
     && rm -rf /var/lib/apt/lists/*
+
 
 # Create wg-api user
 RUN useradd -m -s /bin/bash wg-api

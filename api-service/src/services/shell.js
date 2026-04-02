@@ -13,10 +13,8 @@ const SUDO_ARGS = isRoot ? [] : ['-n'];
  * Standardized Shell Command Wrapper
  * HARDENING: Binary existence check and structured logging
  */
-const runCommand = async (cmd, args = [], stdinData = null, options = {}) => {
-    const timeout = options.timeout || 10000;
+const runCommand = async (cmd, args = [], stdinData = null) => {
     const commandStr = `${cmd} ${args.join(' ')}`;
-
     
     // Safety check: binary existence (only for absolute paths or specific scripts)
     if (cmd.startsWith('/') || cmd.startsWith('./')) {
@@ -31,8 +29,7 @@ const runCommand = async (cmd, args = [], stdinData = null, options = {}) => {
     try {
         if (stdinData !== null) {
             return await new Promise((resolve) => {
-                const proc = spawn(cmd, args, { timeout: options.timeout || 15000 });
-
+                const proc = spawn(cmd, args, { timeout: 15000 });
                 let stdout = '', stderr = '';
                 proc.stdout.on('data', (d) => { stdout += d.toString(); });
                 proc.stderr.on('data', (d) => { stderr += d.toString(); });
@@ -56,8 +53,7 @@ const runCommand = async (cmd, args = [], stdinData = null, options = {}) => {
             });
         }
 
-        const { stdout, stderr } = await execFilePromise(cmd, args, { timeout, maxBuffer: 10 * 1024 * 1024 });
-
+        const { stdout, stderr } = await execFilePromise(cmd, args, { timeout: 10000, maxBuffer: 10 * 1024 * 1024 });
         if (stderr) log.warn('shell', `"${commandStr}" produced stderr: ${stderr.trim()}`);
         return { success: true, stdout: stdout.trim(), stderr: stderr.trim() };
     } catch (error) {
@@ -70,13 +66,12 @@ const runCommand = async (cmd, args = [], stdinData = null, options = {}) => {
 /**
  * Executes a command with sudo if necessary
  */
-const runSystemCommand = async (file, args = [], stdinData = null, options = {}) => {
+const runSystemCommand = async (file, args = [], stdinData = null) => {
     if (SUDO) {
-        return runCommand(SUDO, [...SUDO_ARGS, file, ...args], stdinData, options);
+        return runCommand(SUDO, [...SUDO_ARGS, file, ...args], stdinData);
     }
-    return runCommand(file, args, stdinData, options);
+    return runCommand(file, args, stdinData);
 };
-
 
 module.exports = {
     runCommand,

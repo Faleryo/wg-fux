@@ -1,8 +1,12 @@
 #!/bin/bash
 # --- VIBE-OS : Speedtest Script (Resilient Version) ---
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+
+source "$SCRIPT_DIR/wg-common.sh"
 
 INTERFACE="${WG_INTERFACE:-wg0}"
 LOG_FILE="/var/log/wg-speedtest.log"
+
 
 log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"

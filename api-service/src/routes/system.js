@@ -195,9 +195,7 @@ router.post('/speedtest', auth, requireAdmin, async (req, res) => {
     isSpeedtestRunning = true;
     try {
         // wg-speedtest.sh is expected to output JSON on stdout
-        // Increase timeout to 60s for slow connections
-        const { success, stdout, error } = await runSystemCommand(getScriptPath('wg-speedtest.sh'), [], null, { timeout: 60000 });
-
+        const { success, stdout, error } = await runSystemCommand(getScriptPath('wg-speedtest.sh'), []);
         if (!success) return res.status(500).json({ error: error || 'Speedtest failed' });
         let data = {};
         try { data = JSON.parse(stdout); } catch { data = { raw: stdout }; }
