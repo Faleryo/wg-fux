@@ -71,7 +71,7 @@ services:
       - /etc/wireguard:/etc/wireguard
       - /lib/modules:/lib/modules:ro
     ports:
-      - "51820:51820/udp"
+      - "${SERVER_PORT:-51820}:${SERVER_PORT:-51820}/udp"
       - "127.0.0.1:3000:3000"
     # Port 3000 est interne au réseau vpn-internal, mais exposé localement pour sentinel
     networks:
