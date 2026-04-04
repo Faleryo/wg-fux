@@ -83,6 +83,9 @@ fi
 BASE_DIR="/etc/wireguard/clients"
 CLIENT_DIR="$BASE_DIR/$CONTAINER/$NAME"
 mkdir -p "$CLIENT_DIR"
+# SRE Fix: Immediate chown to avoid race condition with API file access
+chown 1001:1001 "$CLIENT_DIR"
+chmod 775 "$CLIENT_DIR"
 
 # Key Gen
 wg genkey | tee "$CLIENT_DIR/private.key" | wg pubkey > "$CLIENT_DIR/public.key"

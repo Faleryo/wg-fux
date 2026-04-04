@@ -18,8 +18,9 @@ if [ -d "$TARGET_DIR" ]; then
 fi
 
 mkdir -p "$TARGET_DIR"
-chown root:wg-api "$TARGET_DIR"
-chmod 755 "$TARGET_DIR"
+# Use UID 1001 (wg-api) explicitly for Docker compatibility
+chown 1001:1001 "$TARGET_DIR"
+chmod 775 "$TARGET_DIR"
 
 # BLAST-RADIUS: Define resource limits metadata for the SRE engine
 LIMITS_FILE="$TARGET_DIR/limits.conf"
