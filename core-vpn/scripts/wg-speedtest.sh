@@ -1,4 +1,5 @@
 #!/bin/bash
+#!/bin/bash
 # --- VIBE-OS v6.2 : Speedtest Script (Resilient Version) ---
 # GHOST-SCAN FIX v6.2: Removed duplicate log() function (now uses log_info from wg-common.sh).
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")" 
