@@ -22,11 +22,11 @@ ERR_SUBNET_EXHAUSTED=7
 
 # Logging functions
 log_info() {
-    echo -e "${GREEN}[INFO]$(date +'%Y-%m-%d %H:%M:%S')${NC} $1"
+    echo -e "${GREEN}[INFO]$(date +'%Y-%m-%d %H:%M:%S')${NC} $1" >&2
 }
 
 log_warn() {
-    echo -e "${YELLOW}[WARN]$(date +'%Y-%m-%d %H:%M:%S')${NC} $1"
+    echo -e "${YELLOW}[WARN]$(date +'%Y-%m-%d %H:%M:%S')${NC} $1" >&2
 }
 
 log_error() {
