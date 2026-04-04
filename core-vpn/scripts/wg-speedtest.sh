@@ -47,7 +47,7 @@ if [ "$DIFF" -gt 0 ] && [ "$BYTES" -gt 0 ]; then
     printf '{"available": true, "source": "fallback", "download": %s, "upload": 0.0, "ping": %s, "bytes": %s}\n' "$BITS" "$LATENCY" "$BYTES"
 else
     log_warn "All bandwidth tests failed. Returning latency only."
-    printf '{"available": false, "source": "none", "ping": %s, "error": "test_failed"}\n' "$LATENCY"
+    printf '{"available": false, "source": "none", "download": 0.0, "upload": 0.0, "ping": %s, "error": "test_failed"}\n' "$LATENCY"
 fi
 
 exit 0

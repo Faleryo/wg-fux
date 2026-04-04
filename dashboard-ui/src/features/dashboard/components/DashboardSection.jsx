@@ -280,9 +280,9 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
                     <ArrowDown size={13} /> <span className="text-[9px] font-black uppercase">Down</span>
                   </div>
                   <div className={cn("text-2xl md:text-3xl font-mono font-black transition-colors", isDark ? "text-white" : "text-slate-900")}>
-                    {speedtest.data.download > 1000 
-                      ? (speedtest.data.download / 1000000).toFixed(1) 
-                      : speedtest.data.download.toFixed(1)}
+                    {(speedtest.data?.download || 0) > 1000 
+                      ? ((speedtest.data?.download || 0) / 1000000).toFixed(1) 
+                      : (speedtest.data?.download || 0).toFixed(1)}
                   </div>
                   <div className="text-[9px] text-slate-500 font-bold uppercase">Mbps</div>
                 </div>
@@ -291,9 +291,9 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
                     <ArrowUp size={13} /> <span className="text-[9px] font-black uppercase">Up</span>
                   </div>
                   <div className={cn("text-2xl md:text-3xl font-mono font-black transition-colors", isDark ? "text-white" : "text-slate-900")}>
-                    {speedtest.data.upload > 1000 
-                      ? (speedtest.data.upload / 1000000).toFixed(1) 
-                      : speedtest.data.upload.toFixed(1)}
+                    {(speedtest.data?.upload || 0) > 1000 
+                      ? ((speedtest.data?.upload || 0) / 1000000).toFixed(1) 
+                      : (speedtest.data?.upload || 0).toFixed(1)}
                   </div>
                   <div className="text-[9px] text-slate-500 font-bold uppercase">Mbps</div>
                 </div>
