@@ -36,7 +36,7 @@ dns:
     - 149.112.112.112
   all_servers: false
   fastest_addr: true
-  fastest_timeout: 3
+  fastest_timeout: 3s
   allowed_clients: []
   disallowed_clients: []
   blocked_hosts: []

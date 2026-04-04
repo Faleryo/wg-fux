@@ -618,6 +618,8 @@ EOF
 # SRE: Inclusion du SENTINEL_TOKEN pour le watchdog interne
 printf 'PORT=3000\nNODE_ENV="production"\nSENTINEL_TOKEN="%s"\nALLOWED_ORIGINS="http://%s,https://%s,http://localhost:3000,http://127.0.0.1:3000"\nJWT_SECRET="%s"\nSERVER_IP="%s"\nSERVER_PORT="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\n' \
   "$SENTINEL_TOKEN" "$SERVER_IP" "$SERVER_IP" "$JWT_SECRET" "$SERVER_IP" "$SERVER_PORT" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
+# BUG-FIX: Root .env for Docker Compose interpolation (interpolation requires .env in compose file dir)
+echo "SERVER_PORT=\"$SERVER_PORT\"" > .env
 unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS
 
 # 6. Sentinel & Alerts
