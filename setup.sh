@@ -90,15 +90,16 @@ preflight_scan() {
     fi
 
     # 5. WARN-2 : Vérification des permissions /etc/wireguard (critique en production)
+    # SRE: Changé de 700 à 755 pour permettre à l'utilisateur wg-api de traverser vers /etc/wireguard/clients
     if [ -d "$WG_DIR" ]; then
         local wg_perms; wg_perms=$(stat -c "%a %U:%G" "$WG_DIR")
         local wg_perm_octal; wg_perm_octal=$(echo "$wg_perms" | awk '{print $1}')
-        if [ "$wg_perm_octal" != "700" ] && [ "$wg_perm_octal" != "750" ]; then
-            log "WARNING" "/etc/wireguard permissions = $wg_perms (recommandé : 700 root:root)"
+        if [ "$wg_perm_octal" != "755" ]; then
+            log "WARNING" "/etc/wireguard permissions = $wg_perms (requis : 755 pour accès API)"
             log "WARNING" "Correction automatique des permissions..."
-            sudo chmod 700 "$WG_DIR"
+            sudo chmod 755 "$WG_DIR"
             sudo chown root:root "$WG_DIR"
-            log "SUCCESS" "/etc/wireguard sécurisé à 700 root:root"
+            log "SUCCESS" "/etc/wireguard configuré à 755 root:root"
         else
             log "SUCCESS" "/etc/wireguard permissions OK ($wg_perms)"
         fi
