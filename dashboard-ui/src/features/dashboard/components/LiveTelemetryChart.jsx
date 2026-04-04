@@ -31,7 +31,7 @@ export const LiveTelemetryChart = () => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 60000); // Check every minute
+        const interval = setInterval(fetchData, 10000); // 10s pour plus de réactivité
         return () => clearInterval(interval);
     }, []);
 

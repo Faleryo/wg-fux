@@ -88,4 +88,21 @@ body {
   scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
 }
 
+/* Mobile Responsiveness Improvements */
+@media (max-width: 768px) {
+  .glass-card {
+    border-radius: 1.5rem !important;
+    padding: 1rem !important;
+  }
+}
+
+.table-container {
+  @apply overflow-x-auto -mx-4 px-4;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  min-width: 600px; /* Force scroll on small screens for data tables */
+}
+
 

@@ -119,6 +119,7 @@ const logTrafficHistory = async () => {
         type: 'snapshot',
         status: 'captured',
         name: peer.publicKey, 
+        realIp: peer.endpoint || null,
         usageDaily: peer.rx,   // rx = bytes received by server from peer (peer's upload)
         usageTotal: peer.tx    // tx = bytes sent by server to peer (peer's download)
       });
@@ -179,7 +180,7 @@ const interfaceWatchdog = async () => {
 const startJobs = () => {
   loadSchedules();
   setInterval(updateUsage, 60000);
-  setInterval(logTrafficHistory, 3600000);
+  setInterval(logTrafficHistory, 60000); // 1 minute frequency for "Live" data
   // SRE Watchdog Pulse (toutes les 30s)
   setInterval(interfaceWatchdog, 30000);
   // Job backup automatique quotidien à 3h00 du matin

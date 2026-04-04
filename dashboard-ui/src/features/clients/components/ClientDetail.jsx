@@ -230,21 +230,21 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                         <span className="text-[10px] font-mono font-bold text-slate-400 group-hover:text-white transition-colors">{new Date(entry.time).toLocaleString()}</span>
                         <span className={cn(
                           "px-2 py-0.5 rounded-lg text-[8px] font-black tracking-widest uppercase border",
-                          entry.status === 'CONNECTED' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-800 text-slate-500 border-white/10"
+                          entry.realIp ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-800 text-slate-500 border-white/10"
                         )}>
-                          {entry.status}
+                          {entry.realIp ? 'DETECTÉ / ACTIF' : 'INACTIF'}
                         </span>
                      </div>
-                     <div className="grid grid-cols-2 gap-4 mt-4">
-                        <div className="space-y-1">
-                           <div className="text-[8px] font-black text-slate-500 uppercase">Traffic Daily</div>
-                           <div className="text-xs font-mono font-bold text-emerald-500">{formatBytes(entry.usageDaily)}</div>
-                        </div>
-                        <div className="space-y-1">
-                           <div className="text-[8px] font-black text-slate-500 uppercase">Traffic Total</div>
-                           <div className="text-xs font-mono font-bold text-indigo-400">{formatBytes(entry.usageTotal)}</div>
-                        </div>
-                     </div>
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                         <div className="space-y-1">
+                            <div className="text-[8px] font-black text-slate-500 uppercase">IP Réelle (Endpoint)</div>
+                            <div className="text-xs font-mono font-bold text-indigo-400">{entry.realIp || 'Masquée / N/A'}</div>
+                         </div>
+                         <div className="space-y-1 text-right">
+                            <div className="text-[8px] font-black text-slate-500 uppercase">Handshake Scan</div>
+                            <div className="text-[10px] font-mono font-bold text-emerald-500">{new Date(entry.timestamp).toLocaleTimeString()}</div>
+                         </div>
+                      </div>
                   </div>
                 ))
              )}

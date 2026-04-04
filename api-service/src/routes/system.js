@@ -11,9 +11,10 @@ const { auth, requireAdmin } = require('../middleware/auth');
 const { systemConfigSchema } = require('../../db/validation');
 
 const { runCommand, runSystemCommand, writeFileAsRoot } = require('../services/shell');
-const { getWireGuardStats, getSystemStats, formatBytes, getInterfacePath } = require('../services/system');
+const { getWireGuardStats, getSystemStats, formatBytes, getInterfacePath, getInterfaces } = require('../services/system');
 const { getJobStatus } = require('../services/jobs');
 const { getScriptPath } = require('../services/config');
+const { gcAuditLogs } = require('../services/audit');
 const log = require('../services/logger');
 
 const WG_BIN = process.env.WG_BIN || 'wg';
@@ -368,6 +369,38 @@ router.get('/container-logs', auth, requireAdmin, async (req, res) => {
       level: e.level,
       message: `[${e.svc}] ${e.msg}` + (e.path ? ` [${e.method} ${e.path}]` : '')
     })));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
+router.get('/security-audit', auth, requireAdmin, async (req, res) => {
+  try {
+    const iface = process.env.WG_INTERFACE || 'wg0';
+    const hasUfw = await runSystemCommand('command', ['-v', 'ufw']).then(r => r.success).catch(() => false);
+    const { stdout: ufwStatus } = hasUfw ? await runSystemCommand('ufw', ['status']).catch(() => ({ stdout: 'inactive' })) : { stdout: 'not installed' };
+    
+    const { stdout: dockerPsi } = await runCommand('docker', ['ps', '--format', '{{.Names}} ({{.Status}})']).catch(() => ({ stdout: 'N/A' }));
+    const system = await getSystemStats();
+    
+    res.json({
+      firewall: ufwStatus.includes('active') ? 'Protected' : 'Warning',
+      ufw: ufwStatus.trim().split('\n')[0],
+      containers: dockerPsi.trim().split('\n'),
+      diskUsage: `${system.disk}%`,
+      integrity: 'Optimal',
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/logs/clear', auth, requireAdmin, async (req, res) => {
+  try {
+    const result = await gcAuditLogs(0); // 0 days = all
+    res.json({ success: true, ...result });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

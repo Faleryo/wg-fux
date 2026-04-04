@@ -100,11 +100,11 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onDelete }) =
                                 Active
                              </div>
                          </td>
-                         <td className="px-6 py-6 text-right">
-                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                                <VibeButton variant="danger" size="sm" icon={Trash2} className="p-2.5" onClick={(e) => { e.stopPropagation(); onDelete(user.username); }} />
-                             </div>
-                         </td>
+                          <td className="px-6 py-6 text-right">
+                              <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform lg:translate-x-2 lg:group-hover:translate-x-0">
+                                 <VibeButton variant="danger" size="sm" icon={Trash2} className="p-2.5" onClick={(e) => { e.stopPropagation(); onDelete(user.username); }} />
+                              </div>
+                          </td>
                       </motion.tr>
                     ))}
                   </AnimatePresence>

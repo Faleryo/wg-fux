@@ -1,21 +1,23 @@
-import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, RefreshCw, CheckCircle2, AlertTriangle, 
-  X, HardDrive, Shield, Activity, Lock, Cpu, Globe 
+  X, HardDrive, Shield, Activity, Lock, Cpu, Globe, Trash2 
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
+import { useToast } from '../../../context/ToastContext';
 import { cn } from '../../../lib/utils';
 import { axiosInstance as axios } from '../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AuditSection = () => {
   const { theme, isDark } = useTheme();
+  const { addToast } = useToast();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
 
   const fetchAudit = () => {
     setLoading(true);
-    axios.get('/system/audit')
+    axios.get('/system/security-audit')
       .then(res => {
         setData(res.data);
         setLoading(false);
@@ -46,13 +48,35 @@ const AuditSection = () => {
              <p className="text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60">System Security Analysis Protocol</p>
            </div>
         </div>
-        <button 
-          onClick={fetchAudit} 
-          className={cn("p-5 border rounded-[2rem] transition-all group", isDark ? "bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10" : "bg-slate-50 border-black/5 text-slate-500 hover:text-slate-900 hover:bg-slate-100")}
-        >
-          <RefreshCw size={24} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-700'} />
-        </button>
-      </div>
+         <div className="flex gap-3">
+           <button 
+             onClick={async () => {
+               if (window.confirm("Voulez-vous vraiment effacer tous les journaux système et d'audit ?")) {
+                 setClearing(true);
+                 try {
+                   await axios.post('/system/logs/clear');
+                   addToast('Journaux effacés avec succès', 'success');
+                   fetchAudit();
+                 } catch {
+                   addToast("Erreur lors de l'effacement", "error");
+                 } finally {
+                   setClearing(false);
+                 }
+               }
+             }}
+             className={cn("flex items-center gap-2 px-6 py-4 border rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all", isDark ? "bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20" : "bg-white border-black/5 text-rose-600 hover:bg-rose-50")}
+           >
+             <Trash2 size={18} /> EFFACER LES LOGS
+           </button>
+
+           <button 
+             onClick={fetchAudit} 
+             className={cn("p-5 border rounded-[2rem] transition-all group", isDark ? "bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10" : "bg-slate-50 border-black/5 text-slate-500 hover:text-slate-900 hover:bg-slate-100")}
+           >
+             <RefreshCw size={24} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-700'} />
+           </button>
+         </div>
+       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
          {/* Main Score Board */}
