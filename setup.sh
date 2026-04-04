@@ -612,8 +612,9 @@ EOF
 
 # BUG-FIX: JWT_SECRET écrit directement via printf sans passer par une variable shell
 # intermédiaire exposée (protège contre set -x, ps aux, /proc/environ leaks)
-printf 'PORT=3000\nJWT_SECRET="%s"\nSERVER_IP="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\n' \
-  "$JWT_SECRET" "$SERVER_IP" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
+# BUG-FIX: Force ALLOWED_ORIGINS dynamique (Wildcard refusé en prod) et NODE_ENV=production pour corriger le crash API
+printf 'PORT=3000\nNODE_ENV="production"\nALLOWED_ORIGINS="http://%s,https://%s"\nJWT_SECRET="%s"\nSERVER_IP="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\n' \
+  "$SERVER_IP" "$SERVER_IP" "$JWT_SECRET" "$SERVER_IP" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
 unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS
 
 # 6. Sentinel & Alerts

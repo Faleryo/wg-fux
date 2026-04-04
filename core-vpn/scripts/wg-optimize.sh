@@ -278,7 +278,7 @@ elif [ "$PROFILE" = "restore" ] || [ "$PROFILE" = "default" ] || [ "$PROFILE" = 
     # Si non défini, on repasse sur le standard 1420
     TARGET_MTU=1420
     if [ -f "/etc/wireguard/manager.conf" ]; then
-        CONF_MTU=$(grep "SERVER_MTU" /etc/wireguard/manager.conf | cut -d'"' -f2)
+        CONF_MTU=$(grep "SERVER_MTU" /etc/wireguard/manager.conf | cut -d'=' -f2 | tr -d '"')
         TARGET_MTU=${CONF_MTU:-1420}
     fi
 
