@@ -1,7 +1,7 @@
 FROM node:20-bookworm-slim
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     wireguard-tools \
     iptables \
     iproute2 \
