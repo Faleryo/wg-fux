@@ -26,7 +26,8 @@ const ConfirmModal = ({
   confirmLabel = 'Supprimer',
   intent = 'danger',
 }) => {
-  const { theme } = useTheme();
+  const { mode } = useTheme();
+  const isDark = mode === 'dark';
   const confirmRef = useRef(null);
 
   // Focus trap sur le bouton Confirmer
@@ -61,14 +62,14 @@ const ConfirmModal = ({
           aria-labelledby="confirm-modal-title"
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-3xl" />
+          <div className={cn("absolute inset-0 backdrop-blur-sm transition-colors duration-700", isDark ? "bg-slate-950/60" : "bg-slate-200/40")} />
 
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-            className="relative w-full max-w-sm bg-slate-900/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl shadow-black/60 overflow-hidden"
+            className="relative w-full max-w-sm glass-panel border rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Inner glow (pointer-events-none to let clicks through) */}
@@ -80,7 +81,7 @@ const ConfirmModal = ({
             {/* Close */}
             <button
               onClick={onCancel}
-              className="absolute top-6 right-6 p-2 text-slate-600 hover:text-white rounded-xl hover:bg-white/5 transition-all"
+              className={cn("absolute top-6 right-6 p-2 rounded-xl transition-all", isDark ? "text-slate-600 hover:text-white hover:bg-white/5" : "text-slate-400 hover:text-slate-900 hover:bg-black/5")}
             >
               <X size={18} />
             </button>
@@ -94,12 +95,12 @@ const ConfirmModal = ({
             </div>
 
             {/* Title */}
-            <h2 id="confirm-modal-title" className="text-xl font-black text-white text-center uppercase tracking-tight mb-3">
+            <h2 id="confirm-modal-title" className={cn("text-xl font-black text-center uppercase tracking-tight mb-3 transition-colors", isDark ? "text-white" : "text-slate-900")}>
               {title}
             </h2>
 
             {/* Message */}
-            <div className="text-sm text-slate-400 text-center leading-relaxed mb-8">
+            <div className={cn("text-sm text-center leading-relaxed mb-8 transition-colors", isDark ? "text-slate-400" : "text-slate-500")}>
               {typeof message === 'string' ? (
                 <p>{message}</p>
               ) : message}
@@ -119,7 +120,12 @@ const ConfirmModal = ({
             <div className="flex gap-3 relative z-10">
               <button
                 onClick={onCancel}
-                className="flex-1 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest transition-all border border-white/5 hover:border-white/10"
+                className={cn(
+                  "flex-1 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border",
+                  isDark
+                    ? "bg-slate-800 hover:bg-slate-700 text-slate-300 border-white/5 hover:border-white/10"
+                    : "bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200"
+                )}
               >
                 Annuler
               </button>

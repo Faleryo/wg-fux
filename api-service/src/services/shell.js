@@ -14,69 +14,100 @@ const SUDO_ARGS = isRoot ? [] : ['-n'];
  * HARDENING: Binary existence check and structured logging
  */
 const runCommand = async (cmd, args = [], stdinData = null) => {
-    const commandStr = `${cmd} ${args.join(' ')}`;
+  const commandStr = `${cmd} ${args.join(' ')}`;
     
-    // Safety check: binary existence (only for absolute paths or specific scripts)
-    if (cmd.startsWith('/') || cmd.startsWith('./')) {
-        try {
-            await fs.access(cmd);
-        } catch (e) {
-            log.error('shell', `Command binary not found: ${cmd}`);
-            return { success: false, error: `Binary not found: ${cmd}`, code: 'ENOENT' };
-        }
-    }
-
+  // Safety check: binary existence and executability (only for absolute paths or specific scripts)
+  if (cmd.startsWith('/') || cmd.startsWith('./')) {
     try {
-        if (stdinData !== null) {
-            return await new Promise((resolve) => {
-                const proc = spawn(cmd, args, { timeout: 15000 });
-                let stdout = '', stderr = '';
-                proc.stdout.on('data', (d) => { stdout += d.toString(); });
-                proc.stderr.on('data', (d) => { stderr += d.toString(); });
-                proc.on('close', (code) => {
-                    if (code === 0) {
-                        if (stderr) log.warn('shell', `"${commandStr}" produced stderr: ${stderr.trim()}`);
-                        resolve({ success: true, stdout: stdout.trim(), stderr: stderr.trim() });
-                    } else {
-                        log.error('shell', `"${commandStr}" exited with code ${code}`, { stderr: stderr.trim() });
-                        resolve({ success: false, error: stderr.trim() || `Exit code ${code}`, code });
-                    }
-                });
-                proc.on('error', (err) => {
-                    log.error('shell', `"${commandStr}" failed to spawn: ${err.message}`);
-                    resolve({ success: false, error: err.message, code: err.code });
-                });
-                if (proc.stdin) {
-                    proc.stdin.write(stdinData);
-                    proc.stdin.end();
-                }
-            });
-        }
-
-        const { stdout, stderr } = await execFilePromise(cmd, args, { timeout: 10000, maxBuffer: 10 * 1024 * 1024 });
-        if (stderr) log.warn('shell', `"${commandStr}" produced stderr: ${stderr.trim()}`);
-        return { success: true, stdout: stdout.trim(), stderr: stderr.trim() };
-    } catch (error) {
-        const errorMessage = error.stderr ? error.stderr.trim() : error.message;
-        log.error('shell', `"${commandStr}" failed`, { error: errorMessage, code: error.code });
-        return { success: false, error: errorMessage, code: error.code };
+      const fsConst = require('fs').constants;
+      await fs.access(cmd, fsConst.F_OK | fsConst.X_OK);
+    } catch (e) {
+      log.error('shell', `Command binary not found or not executable: ${cmd}`);
+      return { success: false, error: `Binary not accessible: ${cmd}`, code: 'EACCES_OR_ENOENT' };
     }
+  }
+
+  try {
+    if (stdinData !== null) {
+      return await new Promise((resolve) => {
+        const proc = spawn(cmd, args, { timeout: 15000 });
+        let stdout = '', stderr = '';
+        proc.stdout.on('data', (d) => { stdout += d.toString(); });
+        proc.stderr.on('data', (d) => { stderr += d.toString(); });
+        proc.on('close', (code) => {
+          if (code === 0) {
+            if (stderr) log.warn('shell', `"${commandStr}" produced stderr: ${stderr.trim()}`);
+            resolve({ success: true, stdout: stdout.trim(), stderr: stderr.trim() });
+          } else {
+            log.error('shell', `"${commandStr}" exited with code ${code}`, { stderr: stderr.trim() });
+            resolve({ success: false, error: stderr.trim() || `Exit code ${code}`, code });
+          }
+        });
+        proc.on('error', (err) => {
+          log.error('shell', `"${commandStr}" failed to spawn: ${err.message}`);
+          resolve({ success: false, error: err.message, code: err.code });
+        });
+        if (proc.stdin) {
+          proc.stdin.write(stdinData);
+          proc.stdin.end();
+        }
+      });
+    }
+
+    const { stdout, stderr } = await execFilePromise(cmd, args, { timeout: 10000, maxBuffer: 10 * 1024 * 1024 });
+    if (stderr) log.warn('shell', `"${commandStr}" produced stderr: ${stderr.trim()}`);
+    return { success: true, stdout: stdout.trim(), stderr: stderr.trim() };
+  } catch (error) {
+    const errorMessage = error.stderr ? error.stderr.trim() : error.message;
+    log.error('shell', `"${commandStr}" failed`, { error: errorMessage, code: error.code });
+    return { success: false, error: errorMessage, code: error.code };
+  }
 };
 
 /**
  * Executes a command with sudo if necessary
  */
 const runSystemCommand = async (file, args = [], stdinData = null) => {
-    if (SUDO) {
-        return runCommand(SUDO, [...SUDO_ARGS, file, ...args], stdinData);
-    }
-    return runCommand(file, args, stdinData);
+  if (SUDO) {
+    return runCommand(SUDO, [...SUDO_ARGS, file, ...args], stdinData);
+  }
+  return runCommand(file, args, stdinData);
+};
+
+/**
+ * Write a file with sudo if necessary (via tee)
+ * HARDENING: Using tee avoids shell redirection issues with sudo
+ */
+const writeFileAsRoot = async (filePath, content) => {
+  const { success, error, code } = await runSystemCommand('tee', [filePath], content);
+  return { success, error, code };
+};
+
+/**
+ * Delete a file with sudo if necessary
+ */
+const unlinkAsRoot = async (filePath) => {
+  const { success, error, code } = await runSystemCommand('rm', ['-f', filePath]);
+  return { success, error, code };
+};
+
+/**
+ * Read a directory with sudo if necessary (using ls)
+ */
+const readdirAsRoot = async (dirPath) => {
+  const { success, stdout, error, code } = await runSystemCommand('ls', ['-1', dirPath]);
+  if (!success) return { success: false, error, code };
+  return { success: true, files: stdout.split('\n').filter(Boolean) };
 };
 
 module.exports = {
-    runCommand,
-    runSystemCommand,
-    SUDO,
-    SUDO_ARGS
+  runCommand,
+  runSystemCommand,
+  writeFileAsRoot,
+  unlinkAsRoot,
+  readdirAsRoot,
+  SUDO,
+  SUDO_ARGS
 };
+
 

@@ -50,12 +50,12 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
         <div>
           <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Identifiant</label>
           <div className="relative group">
-            <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors" size={18} />
+            <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors" size={18} />
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/20 focus:bg-white/10 text-white font-mono placeholder:text-slate-600 transition-all text-sm"
+              className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
               placeholder="ex: operateur01"
               autoFocus
             />
@@ -66,15 +66,15 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
         <div>
           <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Mot de Passe</label>
           <div className="relative group">
-            <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors" size={18} />
+            <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors" size={18} />
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-12 pr-12 py-4 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/20 focus:bg-white/10 text-white font-mono placeholder:text-slate-600 transition-all text-sm"
+              className="w-full pl-12 pr-12 py-4 glass-input rounded-2xl font-mono"
               placeholder="••••••••"
             />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
@@ -84,12 +84,12 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
         <div>
           <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Confirmer le Mot de Passe</label>
           <div className="relative group">
-            <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors" size={18} />
+            <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors" size={18} />
             <input
               type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/20 focus:bg-white/10 text-white font-mono placeholder:text-slate-600 transition-all text-sm"
+              className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
               placeholder="••••••••"
             />
           </div>

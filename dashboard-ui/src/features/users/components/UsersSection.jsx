@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Users, Plus, Shield, Search, Trash2, UserCheck } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
-import { cn } from '../../lib/utils';
+import { useTheme } from '../../../context/ThemeContext';
+import { cn } from '../../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import GlassCard from '../ui/Card';
-import VibeButton from '../ui/Button';
+import GlassCard from '../../../components/ui/Card';
+import VibeButton from '../../../components/ui/Button';
 
 const UsersSection = ({ users = [], loading = false, onCreateUser, onDelete }) => {
   const { theme } = useTheme();

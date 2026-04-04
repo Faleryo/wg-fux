@@ -8,7 +8,11 @@ services:
       - "443:443"
     volumes:
       - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./infra/ssl:/etc/nginx/ssl:ro
+      # CRITICAL-2 : Let's Encrypt — Certificats réels en production
+      # En développement local : monter ./infra/ssl pour les certs auto-signés
+      # En production VPS : les certificats sont gérés par le service certbot ci-dessous
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
     depends_on:
       api:
         condition: service_healthy
@@ -22,11 +26,30 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+  # CRITICAL-2 : Let's Encrypt Certbot (renouvellement automatique)
+  # Usage : docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d VOTRE_DOMAINE
+  certbot:
+    image: certbot/certbot:latest
+    container_name: wg-fux-certbot
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    # Renouvellement automatique : vérifie toutes les 12h
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
+    networks:
+      - vpn-internal
 
   api:
     build:
       context: .
       dockerfile: api-service/Dockerfile
+      network: host
     container_name: wg-fux-api
     restart: always
     # BUG-FIX: Suppression de "privileged: true" redondant avec cap_add
@@ -43,9 +66,7 @@ services:
     env_file:
       - ./api-service/.env
     volumes:
-      # BUG-FIX: Utiliser un volume nommé pour la DB (évite les erreurs de chemin relatif)
       - wg_fux_data:/app/data
-      # BUG-FIX: Suppression du volume inutile api-service/scripts (résolution via getScriptPath interne)
       - ./core-vpn:/app/core-vpn
       - /etc/wireguard:/etc/wireguard
       - /lib/modules:/lib/modules:ro
@@ -57,16 +78,23 @@ services:
       - vpn-internal
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 15s
+      interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 45s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
 
 
   ui:
     build:
       context: .
       dockerfile: dashboard-ui/Dockerfile
+      network: host
     container_name: wg-fux-dashboard
     restart: always
     # Port 80 est interne au réseau vpn-internal
@@ -76,19 +104,62 @@ services:
       - vpn-internal
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
-      interval: 15s
+      interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      start_period: 45s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+
+  adguard:
+    image: adguard/adguardhome:latest
+    container_name: wg-fux-dns
+    restart: always
+    ports:
+      - "3002:3000/tcp"
+      # PORT-CONFLICT-GUARD: Port 53 is NOT exposed to host to avoid conflict with systemd-resolved.
+      # DNS is served internally on 172.20.0.100 for WireGuard clients.
+    volumes:
+      - wg_fux_adguard_data:/opt/adguardhome/work
+      - wg_fux_adguard_conf:/opt/adguardhome/conf
+    networks:
+      vpn-internal:
+        ipv4_address: 172.20.0.100
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
 
 
 networks:
   vpn-internal:
     driver: bridge
     internal: false
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
 # BUG-FIX: Volume nommé Docker pour la persistance DB
 # Évite les erreurs si docker compose est lancé depuis un répertoire différent
 volumes:
   wg_fux_data:
+    driver: local
+  wg_fux_adguard_data:
+    driver: local
+  wg_fux_adguard_conf:
+    driver: local
+  # CRITICAL-2 : Volumes Let's Encrypt (persistance des certificats SSL)
+  certbot_certs:
+    driver: local
+  certbot_www:
     driver: local

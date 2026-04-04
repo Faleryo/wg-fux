@@ -76,12 +76,12 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
               <div>
                 <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">Nom du Client</label>
                 <div className="relative group">
-                  <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors" size={18} />
+                  <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors" size={18} />
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/10 focus:bg-white/10 text-white font-mono placeholder:text-slate-600 transition-all text-sm"
+                    className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
                     placeholder="ex: galaxy-s24"
                     autoFocus
                   />
@@ -96,7 +96,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
                     type="text"
                     value={targetContainer || 'Aucun'}
                     disabled
-                    className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl text-slate-400 font-mono transition-all text-sm cursor-not-allowed opacity-50"
+                    className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono cursor-not-allowed opacity-50"
                   />
                 </div>
                 <p className="mt-2 text-[9px] text-slate-500 italic">Le client sera ajouté dans ce conteneur en cours.</p>
@@ -110,7 +110,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Validité temporelle</label>
                   <label className="flex items-center gap-2 cursor-pointer group">
                     <input type="checkbox" checked={isUnlimited} onChange={(e) => setIsUnlimited(e.target.checked)} className={cn("w-4 h-4 rounded border-white/10 bg-slate-950", `text-${theme}-600 focus:ring-${theme}-500`)} />
-                    <span className="text-[10px] font-black uppercase text-slate-400 group-hover:text-white transition-colors">Illimité</span>
+                    <span className="text-[10px] font-black uppercase text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Illimité</span>
                   </label>
                 </div>
                 {!isUnlimited && (
@@ -121,13 +121,13 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
                           type="number"
                           value={expiryDuration.value}
                           onChange={(e) => setExpiryDuration({ ...expiryDuration, value: e.target.value })}
-                          className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-mono text-sm focus:outline-none focus:border-white/10 focus:bg-white/10 transition-all"
+                          className="w-full pl-12 pr-4 py-4 glass-input rounded-2xl font-mono"
                         />
                      </div>
                      <select 
                        value={expiryDuration.unit} 
                        onChange={(e) => setExpiryDuration({ ...expiryDuration, unit: e.target.value })} 
-                       className="px-4 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-bold uppercase tracking-widest text-[10px] focus:outline-none focus:bg-white/10 transition-all"
+                       className="px-4 py-4 glass-input rounded-2xl font-bold uppercase tracking-widest text-[10px]"
                      >
                        <option value="days">Jours</option>
                        <option value="hours">Heures</option>

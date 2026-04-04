@@ -1,15 +1,29 @@
 #!/bin/bash
-CONTAINER=$1
+# --- VIBE-OS : Create Container v6.3 (Frontier Explorer) ---
+set -euo pipefail
+
+CONTAINER="${1:-}"
+CPU_LIMIT="${2:-}"
+MEM_LIMIT="${3:-}"
+
 if [ -z "$CONTAINER" ]; then echo "Error: Container name required"; exit 1; fi
 if [[ ! "$CONTAINER" =~ ^[a-zA-Z0-9_\-]+$ ]]; then echo "Error: Invalid container name"; exit 1; fi
 
 BASE_DIR="/etc/wireguard/clients"
 TARGET_DIR="$BASE_DIR/$CONTAINER"
 
-if [ -d "$TARGET_DIR" ]; then echo "Container $CONTAINER already exists"; exit 0; fi
+if [ -d "$TARGET_DIR" ]; then 
+    echo "Container $CONTAINER already exists"
+    exit 0 
+fi
 
-    mkdir -p "$TARGET_DIR"
-    chown root:wg-api "$TARGET_DIR"
-    chmod 750 "$TARGET_DIR"
-    chmod 755 "$TARGET_DIR"
-    echo "Container $CONTAINER created at $TARGET_DIR"
+mkdir -p "$TARGET_DIR"
+chown root:wg-api "$TARGET_DIR"
+chmod 755 "$TARGET_DIR"
+
+# BLAST-RADIUS: Define resource limits metadata for the SRE engine
+LIMITS_FILE="$TARGET_DIR/limits.conf"
+echo "CPU_LIMIT=${CPU_LIMIT:-unlimited}" > "$LIMITS_FILE"
+echo "MEM_LIMIT=${MEM_LIMIT:-unlimited}" >> "$LIMITS_FILE"
+
+echo "Container $CONTAINER created at $TARGET_DIR with Blast Radius limits."

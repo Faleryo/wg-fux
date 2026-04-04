@@ -23,159 +23,197 @@ let lastTrafficLog = null;
  * Load optimization schedules from JSON file
  */
 const loadSchedules = async () => {
-    Object.keys(scheduledJobs).forEach(id => scheduledJobs[id].cancel());
-    scheduledJobs = {};
+  Object.keys(scheduledJobs).forEach(id => scheduledJobs[id].cancel());
+  scheduledJobs = {};
 
-    try {
-        const data = await fsPromises.readFile(SCHEDULE_FILE, 'utf8');
-        const tasks = JSON.parse(data);
-        tasks.forEach(task => {
-            const [hour, minute] = task.time.split(':');
-            const rule = new schedule.RecurrenceRule();
-            rule.hour = parseInt(hour);
-            rule.minute = parseInt(minute);
+  try {
+    const data = await fsPromises.readFile(SCHEDULE_FILE, 'utf8');
+    const tasks = JSON.parse(data);
+    tasks.forEach(task => {
+      const [hour, minute] = task.time.split(':');
+      const rule = new schedule.RecurrenceRule();
+      rule.hour = parseInt(hour);
+      rule.minute = parseInt(minute);
 
-            const job = schedule.scheduleJob(rule, () => {
-                // BUG-FIX: Utiliser getScriptPath au lieu du chemin /usr/local/bin hardcodé
-                runSystemCommand(getScriptPath('wg-optimize.sh'), [task.profile])
-                    .catch(e => console.error('[JOB] Scheduled optimization failed:', e.message));
-            });
-            scheduledJobs[task.id] = job;
-        });
-    } catch (e) { 
-        if (e.code !== 'ENOENT') console.error('[JOB] Error loading schedules:', e); 
-    }
+      const job = schedule.scheduleJob(rule, () => {
+        // BUG-FIX: Utiliser getScriptPath au lieu du chemin /usr/local/bin hardcodé
+        runSystemCommand(getScriptPath('wg-optimize.sh'), [task.profile])
+          .catch(e => console.error('[JOB] Scheduled optimization failed:', e.message));
+      });
+      scheduledJobs[task.id] = job;
+    });
+  } catch (e) { 
+    if (e.code !== 'ENOENT') console.error('[JOB] Error loading schedules:', e); 
+  }
 };
 
 /**
  * Update data usage in database based on WG stats
  */
 const updateUsage = async () => {
-    if (isUpdatingUsage) return;
-    isUpdatingUsage = true;
-    try {
-        const peers = await getWireGuardStats();
-        const today = new Date().toISOString().split('T')[0];
-        lastUsageUpdate = new Date();
+  if (isUpdatingUsage) return;
+  isUpdatingUsage = true;
+  try {
+    const peers = await getWireGuardStats();
+    const today = new Date().toISOString().split('T')[0];
+    lastUsageUpdate = new Date();
 
-        for (const peer of peers) {
-            const currentTotal = peer.rx + peer.tx;
-            const pubKey = peer.publicKey;
+    for (const peer of peers) {
+      const currentTotal = peer.rx + peer.tx;
+      const pubKey = peer.publicKey;
             
-            const lastSession = lastSeenStats[pubKey] || 0;
-            const delta = currentTotal >= lastSession ? currentTotal - lastSession : currentTotal;
-            lastSeenStats[pubKey] = currentTotal;
+      const lastSession = lastSeenStats[pubKey] || 0;
+      const delta = currentTotal >= lastSession ? currentTotal - lastSession : currentTotal;
+      lastSeenStats[pubKey] = currentTotal;
 
-            if (delta > 0) {
-                const [existingUsage] = await db.select().from(schema.usage).where(eq(schema.usage.publicKey, pubKey)).limit(1);
+      if (delta > 0) {
+        const [existingUsage] = await db.select().from(schema.usage).where(eq(schema.usage.publicKey, pubKey)).limit(1);
                 
-                let daily = {};
-                if (existingUsage && existingUsage.daily) {
-                    try { 
-                        daily = JSON.parse(existingUsage.daily); 
-                    } catch(e) {
-                        console.error('[AUDIT] Failed to parse daily usage JSON:', e.message);
-                        daily = {};
-                    }
-                }
-                
-                daily[today] = (daily[today] || 0) + delta;
-                const newTotal = (existingUsage ? existingUsage.total : 0) + delta;
-
-                await db.insert(schema.usage).values({
-                    publicKey: pubKey,
-                    total: newTotal,
-                    daily: JSON.stringify(daily)
-                }).onConflictDoUpdate({
-                    target: schema.usage.publicKey,
-                    set: { total: newTotal, daily: JSON.stringify(daily) }
-                });
-            }
+        let daily = {};
+        if (existingUsage && existingUsage.daily) {
+          try { 
+            daily = JSON.parse(existingUsage.daily); 
+          } catch(e) {
+            console.error('[AUDIT] Failed to parse daily usage JSON:', e.message);
+            daily = {};
+          }
         }
-        // BUG-FIX: await ajouté + .catch pour éviter les promesses orphelines et erreurs silencieuses
-        await runSystemCommand(getScriptPath('wg-enforcer.sh'), [])
-            .catch(e => console.error('[JOB] Enforcer failed during usage update:', e.message));
-    } catch (e) {
-        console.error('[JOB] Usage Update Error:', e);
-    } finally {
-        isUpdatingUsage = false;
+                
+        daily[today] = (daily[today] || 0) + delta;
+        const newTotal = (existingUsage ? existingUsage.total : 0) + delta;
+
+        await db.insert(schema.usage).values({
+          publicKey: pubKey,
+          total: newTotal,
+          daily: JSON.stringify(daily)
+        }).onConflictDoUpdate({
+          target: schema.usage.publicKey,
+          set: { total: newTotal, daily: JSON.stringify(daily) }
+        });
+      }
     }
+    // BUG-FIX: await ajouté + .catch pour éviter les promesses orphelines et erreurs silencieuses
+    await runSystemCommand(getScriptPath('wg-enforcer.sh'), [])
+      .catch(e => console.error('[JOB] Enforcer failed during usage update:', e.message));
+  } catch (e) {
+    console.error('[JOB] Usage Update Error:', e);
+  } finally {
+    isUpdatingUsage = false;
+  }
 };
 
 /**
  * Log hourly traffic snapshots for history charts
  */
 const logTrafficHistory = async () => {
-    if (isLoggingTraffic) return;
-    isLoggingTraffic = true;
-    try {
-        const peers = await getWireGuardStats();
-        const timestamp = new Date();
-        lastTrafficLog = timestamp;
+  if (isLoggingTraffic) return;
+  isLoggingTraffic = true;
+  try {
+    const peers = await getWireGuardStats();
+    const timestamp = new Date();
+    lastTrafficLog = timestamp;
 
-        for (const peer of peers) {
-            await db.insert(schema.logs).values({
-                timestamp,
-                type: 'snapshot',
-                status: 'captured',
-                name: peer.publicKey, 
-                usageDaily: peer.rx,
-                usageTotal: peer.tx
-            });
-        }
-        
-        const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
-        await db.delete(schema.logs).where(and(eq(schema.logs.type, 'snapshot'), lt(schema.logs.timestamp, seventyTwoHoursAgo)));
-        
-        // SRE Hardening: Purge old auth logs (30 days)
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        await db.delete(schema.logs).where(and(eq(schema.logs.type, 'auth'), lt(schema.logs.timestamp, thirtyDaysAgo)));
-    } catch (e) {
-        console.error('[JOB] Traffic Log Error:', e);
-    } finally {
-        isLoggingTraffic = false;
+    for (const peer of peers) {
+      await db.insert(schema.logs).values({
+        timestamp,
+        type: 'snapshot',
+        status: 'captured',
+        name: peer.publicKey, 
+        usageDaily: peer.rx,   // rx = bytes received by server from peer (peer's upload)
+        usageTotal: peer.tx    // tx = bytes sent by server to peer (peer's download)
+      });
     }
+        
+    const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
+    await db.delete(schema.logs).where(and(eq(schema.logs.type, 'snapshot'), lt(schema.logs.timestamp, seventyTwoHoursAgo)));
+        
+    // SRE Hardening: Purge old auth logs (30 days)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    await db.delete(schema.logs).where(and(eq(schema.logs.type, 'auth'), lt(schema.logs.timestamp, thirtyDaysAgo)));
+  } catch (e) {
+    console.error('[JOB] Traffic Log Error:', e);
+  } finally {
+    isLoggingTraffic = false;
+  }
 };
+
+/**
+ * Autonomic SRE Watchdog: Ensure WireGuard interface is UP
+ */
+const interfaceWatchdog = async () => {
+  const interfaceName = process.env.WG_INTERFACE || 'wg0';
+  try {
+    const { success: isUp } = await runSystemCommand('ip', ['link', 'show', interfaceName]);
+    if (!isUp) {
+      log.warn('sre', `Watchdog detected interface ${interfaceName} is DOWN. Attempting auto-healing...`);
+      
+      // 💠 SRE Alert: Notify admin via Telegram/Messenger script
+      await runSystemCommand(getScriptPath('wg-send-msg.sh'), [`🚨 ALERTE SRE: Interface ${interfaceName} détectée DOWN. Tentative d'auto-réparation en cours...`]).catch(() => {});
+
+      // FIX: Use wg-quick via sudo if needed, but in container it should be fine if privileged or cap_add
+      const { success: healed, error } = await runSystemCommand('wg-quick', ['up', interfaceName]);
+
+      
+      const { auditLog } = require('./audit');
+      await auditLog({
+        actor: 'sre-watchdog',
+        action: 'auto-healing',
+        targetType: 'interface',
+        targetName: interfaceName,
+        details: { success: healed, error: healed ? null : error },
+        ip: '127.0.0.1'
+      });
+
+      if (healed) log.info('sre', `Interface ${interfaceName} restored successfully.`);
+      else log.error('sre', `Auto-healing failed for ${interfaceName}: ${error}`);
+    }
+  } catch (e) {
+    log.error('sre', 'Watchdog execution error', { err: e.message });
+  }
+};
+
 
 /**
  * Start all recurring jobs
  */
 const startJobs = () => {
-    loadSchedules();
-    setInterval(updateUsage, 60000);
-    setInterval(logTrafficHistory, 3600000);
-    // Job backup automatique quotidien à 3h00 du matin
-    scheduleAutomaticBackup();
+  loadSchedules();
+  setInterval(updateUsage, 60000);
+  setInterval(logTrafficHistory, 3600000);
+  // SRE Watchdog Pulse (toutes les 30s)
+  setInterval(interfaceWatchdog, 30000);
+  // Job backup automatique quotidien à 3h00 du matin
+  scheduleAutomaticBackup();
 };
 
 /**
  * Schedule automatic daily backup at 03:00
  */
 const scheduleAutomaticBackup = () => {
-    const rule = new schedule.RecurrenceRule();
-    rule.hour = 3;
-    rule.minute = 0;
-    schedule.scheduleJob(rule, async () => {
-        console.log('[JOB] Backup automatique quotidien à 03:00...');
-        const result = await runSystemCommand(getScriptPath('wg-backup.sh'), [])
-            .catch(e => ({ success: false, error: e.message }));
-        if (result.success) {
-            console.log('[JOB] Backup créé avec succès.');
-        } else {
-            console.error('[JOB] Échec du backup automatique:', result.error);
-        }
-    });
-    console.log('[JOB] Backup automatique planifié quotidiennement à 03:00.');
+  const rule = new schedule.RecurrenceRule();
+  rule.hour = 3;
+  rule.minute = 0;
+  schedule.scheduleJob(rule, async () => {
+    console.log('[JOB] Backup automatique quotidien à 03:00...');
+    const result = await runSystemCommand(getScriptPath('wg-backup.sh'), [])
+      .catch(e => ({ success: false, error: e.message }));
+    if (result.success) {
+      console.log('[JOB] Backup créé avec succès.');
+    } else {
+      console.error('[JOB] Échec du backup automatique:', result.error);
+    }
+  });
+  console.log('[JOB] Backup automatique planifié quotidiennement à 03:00.');
 };
 
 const getJobStatus = () => ({
-    usageUpdate: { lastRun: lastUsageUpdate, status: isUpdatingUsage ? 'running' : 'idle' },
-    trafficLog: { lastRun: lastTrafficLog, status: isLoggingTraffic ? 'running' : 'idle' }
+  usageUpdate: { lastRun: lastUsageUpdate, status: isUpdatingUsage ? 'running' : 'idle' },
+  trafficLog: { lastRun: lastTrafficLog, status: isLoggingTraffic ? 'running' : 'idle' }
 });
 
 module.exports = {
-    startJobs,
-    loadSchedules,
-    getJobStatus,
-    SCHEDULE_FILE
+  startJobs,
+  loadSchedules,
+  getJobStatus,
+  SCHEDULE_FILE
 };

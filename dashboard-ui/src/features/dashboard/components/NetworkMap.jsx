@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Activity, Server, Users, Plus, Minus, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '../../context/ThemeContext';
-import { cn, formatBytes } from '../../lib/utils';
+import { useTheme } from '../../../context/ThemeContext';
+import { cn, formatBytes } from '../../../lib/utils';
 
 const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
   const containerRef = useRef(null);
@@ -11,7 +11,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
   const clickTimeoutRef = useRef(null);
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
   // Enrichir les clients avec les données de statut live (via onlinePeers du WS)
   const enrichedClients = useMemo(() => {
@@ -99,7 +99,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
   return (
     <div
       ref={containerRef}
-      className="col-span-12 w-full relative h-[calc(100vh-100px)] bg-slate-900/40 backdrop-blur-3xl rounded-3xl border border-white/5 overflow-hidden group select-none shadow-2xl cursor-grab active:cursor-grabbing"
+      className={cn("col-span-12 w-full relative h-[calc(100vh-100px)] backdrop-blur-3xl rounded-3xl border overflow-hidden group select-none shadow-2xl cursor-grab active:cursor-grabbing transition-all", isDark ? "bg-slate-900/40 border-white/5" : "bg-white/80 border-black/5")}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -111,7 +111,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
         style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
       >
         {/* Background Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
+        <div className={cn("absolute inset-0 bg-[size:60px_60px] pointer-events-none transition-colors", isDark ? "bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)]" : "bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)]")}></div>
 
         {/* Radar Sweeper */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -123,9 +123,9 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
 
         {/* Orbital Rings */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[30%] h-[30%] border border-white/5 rounded-full"></div>
-          <div className="w-[60%] h-[60%] border border-white/5 rounded-full"></div>
-          <div className="w-[85%] h-[85%] border border-white/10 rounded-full animate-pulse shadow-[inset_0_0_50px_rgba(255,255,255,0.02)]"></div>
+          <div className={cn("w-[30%] h-[30%] border rounded-full transition-colors", isDark ? "border-white/5" : "border-black/5")}></div>
+          <div className={cn("w-[60%] h-[60%] border rounded-full transition-colors", isDark ? "border-white/5" : "border-black/5")}></div>
+          <div className={cn("w-[85%] h-[85%] border rounded-full animate-pulse transition-colors", isDark ? "border-white/10 shadow-[inset_0_0_50px_rgba(255,255,255,0.02)]" : "border-black/10 shadow-[inset_0_0_50px_rgba(0,0,0,0.02)]")}></div>
         </div>
 
         {/* Connections Layer */}
@@ -147,7 +147,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
                   x2={x} y2={y}
                   initial={{ pathLength: 0, opacity: 0 }}
                   animate={{ pathLength: 1, opacity: isOnline ? 0.6 : 0.1 }}
-                  stroke={isOnline ? (hasTraffic ? color.hex : "rgba(255, 255, 255, 0.2)") : "rgba(255, 255, 255, 0.05)"}
+                  stroke={isOnline ? (hasTraffic ? color.hex : (isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)")) : (isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)")}
                   strokeWidth={isOnline ? (hasTraffic ? "2" : "1.5") : "1"}
                   strokeDasharray={isOnline ? "0" : "5,5"}
                 />
@@ -175,7 +175,8 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
             <div className={cn("absolute inset-0 rounded-[3.5rem] border border-white/20 animate-pulse")}></div>
           </div>
           <div className={cn(
-            "mt-8 px-6 py-2 bg-slate-950/90 backdrop-blur-3xl border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] opacity-0 group-hover/hub:opacity-100 transition-all duration-500 transform translate-y-4 group-hover/hub:translate-y-0 shadow-2xl",
+            "mt-8 px-6 py-2 backdrop-blur-3xl border rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] opacity-0 group-hover/hub:opacity-100 transition-all duration-500 transform translate-y-4 group-hover/hub:translate-y-0 shadow-2xl",
+            isDark ? "bg-slate-950/90 border-white/10" : "bg-white border-black/10",
             `text-${theme}-400 shadow-${theme}-500/10`
           )}>
             HUB-CORE-ALPHA
@@ -203,43 +204,43 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
               <div className={cn(
                 "w-16 h-16 backdrop-blur-md border-[3px] rounded-2xl flex items-center justify-center transition-all duration-500 group-hover/node:scale-125 shadow-2xl",
                 isOnline
-                  ? `bg-slate-900/80 border-${color.name}-500/50 group-hover/node:bg-${color.name}-900/90 group-hover/node:border-${color.name}-400 group-hover/node:shadow-${color.name}-600/20`
-                  : 'bg-slate-950/80 border-white/5 group-hover/node:bg-slate-900 group-hover/node:border-white/20'
+                  ? cn(isDark ? "bg-slate-900/80" : "bg-white/80", `border-${color.name}-500/50 group-hover/node:bg-${color.name}-900/90 group-hover/node:border-${color.name}-400 group-hover/node:shadow-${color.name}-600/20`)
+                  : cn(isDark ? "bg-slate-950/80 border-white/5 group-hover/node:bg-slate-900" : "bg-white border-black/5 group-hover/node:bg-slate-50", "group-hover/node:border-white/20")
               )}>
                 <Users size={28} className={cn(
                   "transition-all duration-300",
                   isOnline ? `text-${color.name}-400 group-hover/node:text-white group-hover/node:rotate-6` : 'text-slate-700 group-hover/node:text-slate-400'
                 )} />
                 {isOnline && (
-                  <span className={cn("absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full border-4 border-slate-950", `bg-emerald-500 shadow-[0_0_15px_#10b981]`)}></span>
+                  <span className={cn("absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full border-4", isDark ? "border-slate-950" : "border-white", `bg-emerald-500 shadow-[0_0_15px_#10b981]`)}></span>
                 )}
               </div>
 
               {/* Tactical Tooltip */}
               <AnimatePresence>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-8 w-64 bg-slate-950/90 backdrop-blur-3xl border border-white/10 rounded-2xl p-6 opacity-0 group-hover/node:opacity-100 transition-all duration-500 pointer-events-none scale-90 group-hover/node:scale-100 z-50 shadow-2xl origin-top">
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-950 border-t border-l border-white/10 rotate-45"></div>
+                <div className={cn("absolute top-full left-1/2 -translate-x-1/2 mt-8 w-64 backdrop-blur-3xl border rounded-2xl p-6 opacity-0 group-hover/node:opacity-100 transition-all duration-500 pointer-events-none scale-90 group-hover/node:scale-100 z-50 shadow-2xl origin-top", isDark ? "bg-slate-950/90 border-white/10" : "bg-white border-black/10")}>
+                  <div className={cn("absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rotate-45 border-t border-l", isDark ? "bg-slate-950 border-white/10" : "bg-white border-black/10")}></div>
                   
-                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+                  <div className={cn("flex items-center justify-between mb-6 pb-4 border-b", isDark ? "border-white/5" : "border-black/5")}>
                     <div>
-                      <span className="text-md font-black text-white tracking-tight block truncate max-w-[140px]">{client.name}</span>
+                      <span className={cn("text-md font-black tracking-tight block truncate max-w-[140px] transition-colors", isDark ? "text-white" : "text-slate-900")}>{client.name}</span>
                       <span className={cn("text-[9px] font-black uppercase tracking-widest", `text-${color.name}-400`)}>{client.container}</span>
                     </div>
                     <div className={cn(
                       "px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase",
-                      isOnline ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-900 text-slate-500 border-white/5'
+                      isOnline ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : (isDark ? 'bg-slate-900 text-slate-500 border-white/5' : 'bg-slate-100 text-slate-400 border-black/5')
                     )}>
                       {isOnline ? 'Active' : 'Offline'}
                     </div>
                   </div>
 
                   <div className="space-y-3 font-mono text-[10px] text-slate-500">
-                    <div className="flex justify-between"><span>Tact IP</span> <span className="text-slate-100">{client.ip}</span></div>
-                    <div className="flex justify-between"><span>Endpoint</span> <span className="text-slate-300 truncate max-w-[120px]">{client.endpoint || '—'}</span></div>
+                    <div className="flex justify-between"><span>Tact IP</span> <span className={isDark ? "text-slate-100" : "text-slate-900"}>{client.ip}</span></div>
+                    <div className="flex justify-between"><span>Endpoint</span> <span className={isDark ? "text-slate-300" : "text-slate-600"}>{client.endpoint || '—'}</span></div>
                     <div className="flex justify-between"><span>Burst DL</span> <span className="text-emerald-400">{formatBytes(client.downloadRate || client.rx || 0)}/s</span></div>
                     <div className="flex justify-between"><span>Burst UL</span> <span className="text-indigo-400">{formatBytes(client.uploadRate || client.tx || 0)}/s</span></div>
                     {client.usageTotal > 0 && (
-                      <div className="flex justify-between border-t border-white/5 pt-2 mt-2">
+                      <div className={cn("flex justify-between border-t pt-2 mt-2", isDark ? "border-white/5" : "border-black/5")}>
                         <span>Total usage</span>
                         <span className="text-amber-400 font-bold">{formatBytes(client.usageTotal)}</span>
                       </div>
@@ -259,13 +260,13 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
       </motion.div>
 
       {/* Control Overlay */}
-      <div className="absolute top-8 left-8 z-30 pointer-events-none">
-        <div className="flex items-center gap-4 p-4 bg-slate-950/40 backdrop-blur-2xl border border-white/5 rounded-3xl">
+      <div className="absolute top-8 left-8 z-30 pointer-events-none transition-all">
+        <div className={cn("flex items-center gap-4 p-4 backdrop-blur-2xl border rounded-3xl", isDark ? "bg-slate-950/40 border-white/5" : "bg-white/80 border-black/5 shadow-sm")}>
           <div className={cn("p-3 rounded-2xl shadow-2xl animate-pulse", `bg-${theme}-600 text-white`)}>
             <Activity size={24} />
           </div>
           <div>
-            <h3 className="text-xl font-black text-white tracking-tight uppercase">Tactical Radar</h3>
+            <h3 className={cn("text-xl font-black tracking-tight uppercase transition-colors", isDark ? "text-white" : "text-slate-900")}>Tactical Radar</h3>
             <p className={cn("text-[10px] font-black tracking-widest uppercase opacity-60", `text-${theme}-400`)}>Deep Space Network Monitoring</p>
           </div>
         </div>
@@ -273,14 +274,14 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
 
       {/* Zoom Controls */}
       <div className="absolute bottom-8 right-8 flex flex-col gap-3 z-30">
-        <button onClick={() => setView(v => ({ ...v, zoom: Math.min(v.zoom + 0.2, 4) }))} className="p-3 bg-slate-900/90 hover:bg-slate-800 text-white rounded-2xl border border-white/10 shadow-2xl transition-all"><Plus size={20} /></button>
-        <button onClick={() => setView(v => ({ ...v, zoom: Math.max(v.zoom - 0.2, 0.5) }))} className="p-3 bg-slate-900/90 hover:bg-slate-800 text-white rounded-2xl border border-white/10 shadow-2xl transition-all"><Minus size={20} /></button>
-        <button onClick={() => setView({ x: 0, y: 0, zoom: 1 })} className="p-3 bg-slate-900/90 hover:bg-slate-800 text-white rounded-2xl border border-white/10 shadow-2xl transition-all"><RefreshCw size={20} /></button>
+        <button onClick={() => setView(v => ({ ...v, zoom: Math.min(v.zoom + 0.2, 4) }))} className={cn("p-3 rounded-2xl border shadow-2xl transition-all", isDark ? "bg-slate-900/90 hover:bg-slate-800 text-white border-white/10" : "bg-white hover:bg-slate-50 text-slate-900 border-black/10")}><Plus size={20} /></button>
+        <button onClick={() => setView(v => ({ ...v, zoom: Math.max(v.zoom - 0.2, 0.5) }))} className={cn("p-3 rounded-2xl border shadow-2xl transition-all", isDark ? "bg-slate-900/90 hover:bg-slate-800 text-white border-white/10" : "bg-white hover:bg-slate-50 text-slate-900 border-black/10")}><Minus size={20} /></button>
+        <button onClick={() => setView({ x: 0, y: 0, zoom: 1 })} className={cn("p-3 rounded-2xl border shadow-2xl transition-all", isDark ? "bg-slate-900/90 hover:bg-slate-800 text-white border-white/10" : "bg-white hover:bg-slate-50 text-slate-900 border-black/10")}><RefreshCw size={20} /></button>
       </div>
 
       {/* Container Groups Legend */}
-      <div className="absolute bottom-8 left-8 hidden md:flex flex-col gap-3 p-6 bg-slate-950/40 backdrop-blur-2xl border border-white/5 rounded-[2rem] z-20">
-         <span className="text-[10px] font-black text-white uppercase tracking-widest mb-2 opacity-60">Goupes Tactiques</span>
+      <div className={cn("absolute bottom-8 left-8 hidden md:flex flex-col gap-3 p-6 backdrop-blur-2xl border rounded-[2rem] z-20 transition-all", isDark ? "bg-slate-950/40 border-white/5" : "bg-white/80 border-black/5 shadow-sm")}>
+         <span className={cn("text-[10px] font-black uppercase tracking-widest mb-2 opacity-60 transition-colors", isDark ? "text-white" : "text-slate-900")}>Goupes Tactiques</span>
          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
            {uniqueContainers.map(c => {
               const color = getContainerColor(c);

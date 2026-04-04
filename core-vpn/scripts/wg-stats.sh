@@ -58,6 +58,7 @@ if [ "$USE_JSON" -eq 1 ]; then
             is_online="true"
         fi
 
+        # DIAMOND STABILIZATION: Force default 0 for numeric fields to avoid printf errors
         printf '  {
     "publicKey": "%s",
     "endpoint": "%s",
@@ -68,7 +69,7 @@ if [ "$USE_JSON" -eq 1 ]; then
     "isOnline": %s,
     "keepalive": "%s",
     "lastSeen": %d
-  }' "$pub" "$endpoint" "$allowed_ips" "${actual_handshake:-0}" "${rx:-0}" "${tx:-0}" "$is_online" "$keepalive" "${actual_handshake:-0}"
+  }' "$pub" "$endpoint" "$allowed_ips" "${actual_handshake:-0}" "${rx:-0}" "${tx:-0}" "$is_online" "${keepalive:-0}" "${actual_handshake:-0}"
 
         FIRST=0
     done <<< "$DUMP"

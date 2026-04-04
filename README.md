@@ -31,10 +31,11 @@ cp api-service/.env.example api-service/.env
 
 | Composant | Technologie | Rôle |
 | :--- | :--- | :--- |
-| **API Core** | 🧩 Node.js | Moteur de gestion modulaire |
-| **Persistance** | 🗄️ SQLite | Base de données Platinum (WAL) |
-| **Dashboard** | ✨ Next.js | UI Premium (Liquid Glass) |
-| **Proxy** | 🛡️ Nginx | Reverse-proxy sécurisé |
+| **API Core** | 🧩 Node.js / Express | Moteur de gestion modulaire |
+| **Persistance** | 🗄️ SQLite (WAL) + Drizzle ORM | Base de données Platinum |
+| **Dashboard** | ⚡ React 18 + Vite 6 | UI Premium (Liquid Glass, feature-based) |
+| **DNS** | 🔒 AdGuard Home | Résolution DNS interne pour clients VPN |
+| **Proxy** | 🛡️ Nginx | Reverse-proxy sécurisé (TLS termination) |
 
 ---
 

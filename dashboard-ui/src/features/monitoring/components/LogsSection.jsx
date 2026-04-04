@@ -3,12 +3,12 @@ import {
   FileText, Search, RefreshCw, 
   Terminal, Shield, Globe, Clock, Download, X, Cpu, Server
 } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
-import { cn } from '../../lib/utils';
-import { axiosInstance as axios, getWsUri } from '../../lib/api';
+import { useTheme } from '../../../context/ThemeContext';
+import { cn } from '../../../lib/utils';
+import { axiosInstance as axios, getWsUri } from '../../../lib/api';
 
 const LogsSection = () => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,7 +99,7 @@ const LogsSection = () => {
     if (s === 'LIVE') return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 animate-pulse';
     if (s === 'FAILED' || s === 'ERROR') return 'bg-red-500/10 text-red-400 border-red-500/20';
     if (s === 'WARN' || s === 'WARNING') return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-    return 'bg-slate-800/50 text-slate-400 border-white/5';
+    return isDark ? 'bg-slate-800/50 text-slate-400 border-white/5' : 'bg-slate-100/50 text-slate-500 border-black/5';
   };
 
   const handleDownload = () => {
@@ -120,25 +120,25 @@ const LogsSection = () => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-slate-900/40 backdrop-blur-3xl p-6 md:p-8 rounded-[2rem] border border-white/5 shadow-2xl gap-6">
+      <div className={cn("flex flex-col lg:flex-row justify-between items-start lg:items-center backdrop-blur-3xl p-6 md:p-8 rounded-[2rem] border shadow-2xl gap-6 transition-all", isDark ? "bg-slate-900/40 border-white/5" : "bg-white/80 border-black/5")}>
         <div className="flex items-center gap-4 md:gap-6">
-          <div className={cn("p-3 md:p-4 rounded-2xl bg-white/5 shadow-2xl flex-shrink-0", `text-${theme}-400`)}>
+          <div className={cn("p-3 md:p-4 rounded-2xl shadow-2xl flex-shrink-0 transition-colors", isDark ? "bg-white/5" : "bg-black/5", `text-${theme}-400`)}>
             <Terminal size={28} />
           </div>
           <div>
-            <h2 className="text-2xl md:text-3xl font-black text-white tracking-tighter italic uppercase">Blackbox Protocol</h2>
+            <h2 className={cn("text-2xl md:text-3xl font-black tracking-tighter italic uppercase transition-colors", isDark ? "text-white" : "text-slate-900")}>Blackbox Protocol</h2>
             <p className="text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase opacity-60">System Event History</p>
           </div>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative group flex-1 sm:flex-none">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors" size={16} />
+            <Search className={cn("absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 transition-colors", isDark ? "group-focus-within:text-white" : "group-focus-within:text-slate-900")} size={16} />
             <input
               type="text"
               placeholder="Filtrer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-3 bg-white/5 border border-white/5 rounded-xl focus:outline-none focus:border-white/10 focus:bg-white/10 text-white font-mono placeholder:text-slate-700 transition-all text-sm w-full sm:w-56"
+              className={cn("pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:border-indigo-500/50 font-mono transition-all text-sm w-full sm:w-56", isDark ? "bg-white/5 border-white/5 text-white placeholder:text-slate-700" : "bg-white border-black/5 text-slate-900 placeholder:text-slate-400")}
             />
             {searchTerm && (
               <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
@@ -146,7 +146,7 @@ const LogsSection = () => {
               </button>
             )}
           </div>
-          <button onClick={fetchLogs} className="p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-all text-slate-400 hover:text-white flex-shrink-0" title="Rafraîchir">
+          <button onClick={fetchLogs} className={cn("p-3 border rounded-xl transition-all flex-shrink-0", isDark ? "bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10" : "bg-white border-black/5 text-slate-500 hover:text-slate-900 hover:bg-black/5")} title="Rafraîchir">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -162,7 +162,7 @@ const LogsSection = () => {
               'flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all',
               activeTab === tab.id
                 ? `bg-${theme}-600 text-white shadow-lg shadow-${theme}-600/20`
-                : 'text-slate-500 hover:text-white hover:bg-white/5 border border-white/5'
+                : cn("transition-all border", isDark ? "text-slate-500 hover:text-white hover:bg-white/5 border-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white border-black/5 shadow-sm")
             )}
           >
             <tab.icon size={14} /> {tab.label}
@@ -184,29 +184,29 @@ const LogsSection = () => {
       )}
 
       {/* Table */}
-      <div className="bg-slate-900/40 backdrop-blur-3xl rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl">
+      <div className={cn("backdrop-blur-3xl rounded-[2rem] border overflow-hidden shadow-2xl transition-all", isDark ? "bg-slate-900/40 border-white/5" : "bg-white border-black/5")}>
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-420px)] custom-scrollbar">
           <table className="w-full text-left min-w-[600px]">
-            <thead className="sticky top-0 z-10 bg-slate-950/80 backdrop-blur-xl">
-              <tr className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">
+            <thead className={cn("sticky top-0 z-10 backdrop-blur-xl transition-colors", isDark ? "bg-slate-950/80" : "bg-slate-50/80")}>
+              <tr className={cn("text-[10px] font-black uppercase tracking-widest border-b transition-colors", isDark ? "text-slate-500 border-white/5" : "text-slate-400 border-black/5")}>
                 <th className="px-6 py-5">Timestamp</th>
                 <th className="px-6 py-5">Événement</th>
                 <th className="px-6 py-5 hidden sm:table-cell">Source</th>
                 <th className="px-6 py-5">Statut</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 font-mono">
+            <tbody className={cn("divide-y font-mono transition-colors", isDark ? "divide-white/5" : "divide-black/5")}>
               {loading && logs.length === 0 ? (
                 <tr><td colSpan="4" className="text-center py-20 text-slate-500 italic opacity-40">Scanning archives...</td></tr>
               ) : filteredLogs.length === 0 ? (
                 <tr><td colSpan="4" className="text-center py-20 text-slate-500 italic opacity-40">Aucun enregistrement détecté</td></tr>
               ) : (
                 filteredLogs.map((log) => (
-                  <tr key={log.id} className="group hover:bg-white/5 transition-colors">
+                  <tr key={log.id} className={cn("group transition-colors", isDark ? "hover:bg-white/5" : "hover:bg-slate-50")}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <Clock size={12} className="text-slate-600 shrink-0" />
-                        <span className="text-[10px] text-slate-400 group-hover:text-white transition-colors">
+                        <span className={cn("text-[10px] transition-colors", isDark ? "text-slate-400 group-hover:text-white" : "text-slate-500 group-hover:text-slate-900")}>
                           {new Date(log.time).toLocaleString('fr-FR', { 
                             day: '2-digit', month: '2-digit', 
                             hour: '2-digit', minute: '2-digit', second: '2-digit' 
@@ -215,7 +215,7 @@ const LogsSection = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 max-w-xs">
-                      <div className="text-xs font-bold text-white tracking-tight truncate">{log.message}</div>
+                      <div className={cn("text-xs font-bold tracking-tight truncate transition-colors", isDark ? "text-white" : "text-slate-900")}>{log.message}</div>
                     </td>
                     <td className="px-6 py-4 hidden sm:table-cell">
                       <span className="text-[10px] text-slate-500 font-mono">{log.ip}</span>
@@ -237,7 +237,7 @@ const LogsSection = () => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/5 bg-slate-950/20 flex flex-wrap justify-between items-center gap-3">
+        <div className={cn("px-6 py-4 border-t transition-colors flex flex-wrap justify-between items-center gap-3", isDark ? "border-white/5 bg-slate-950/20" : "border-black/5 bg-slate-50")}>
           <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
             {filteredLogs.length} entrées · Blackbox v2.1
           </div>

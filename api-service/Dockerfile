@@ -14,23 +14,28 @@ RUN apt-get update && apt-get install -y \
     sqlite3 \
     speedtest-cli \
     bc \
+    iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 
 # Create wg-api user
 RUN useradd -m -s /bin/bash wg-api
 
-# Setup sudoers - Allow wg-api to run our specific scripts
-# Note: we use /usr/local/bin to isolate the scripts
-RUN echo "wg-api ALL=(ALL) NOPASSWD: /usr/local/bin/wg-*.sh" > /etc/sudoers.d/wg-api && \
+# Setup sudoers - Allow wg-api to run ONLY specific scripts and network binaries
+# SECURITY: Bare binaries (rm, ls, tee, test) removed — they allow privilege escalation
+# tee/rm operations are handled within the authorized .sh scripts themselves
+RUN echo "wg-api ALL=(ALL) NOPASSWD: /usr/local/bin/*.sh, /app/core-vpn/scripts/*.sh, /usr/bin/wg, /usr/bin/wg-quick, /usr/sbin/ufw, /usr/sbin/sysctl, /sbin/ip" > /etc/sudoers.d/wg-api && \
     chmod 0440 /etc/sudoers.d/wg-api
+
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy package files and install production dependencies only
+# --omit=dev exclut drizzle-kit/esbuild (devDependencies) qui causent ETXTBSY dans le container
+# npm install (pas npm ci) utilise prebuild-install pour better-sqlite3 (binaire précompilé = pas besoin de make/g++)
 COPY api-service/package*.json ./
-RUN npm install
+RUN npm install --omit=dev
 
 # Copy API source
 COPY api-service/db ./db
@@ -47,7 +52,9 @@ RUN chmod +x /app/entrypoint.sh
 
 # Create necessary directories and set permissions
 RUN mkdir -p /app/data /etc/wireguard/clients && \
-    chown -R wg-api:wg-api /app/data /etc/wireguard/clients
+    touch /var/log/wg-speedtest.log /var/log/wg-enforcer.log && \
+    chown -R wg-api:wg-api /app/data /etc/wireguard/clients /var/log/wg-speedtest.log /var/log/wg-enforcer.log && \
+    chmod 0644 /var/log/wg-speedtest.log /var/log/wg-enforcer.log
 
 # Environment defaults
 ENV WG_INTERFACE=wg0

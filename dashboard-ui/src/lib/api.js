@@ -57,10 +57,10 @@ axiosInstance.interceptors.request.use(config => {
 axiosInstance.interceptors.response.use(
   (response) => {
     // Log performance in dev mode
-    if (window.location.port === '5173') {
-      const duration = new Date() - response.config.metadata.startTime;
-      console.log(`[API-PERF] ${response.config.method.toUpperCase()} ${response.config.url} took ${duration}ms`);
-    }
+      const duration = response.config.metadata ? new Date() - response.config.metadata.startTime : 'unknown';
+      if (window.location.port === '5173' || response.status >= 500) {
+        console.log(`[API-PERF] ${response.config.method.toUpperCase()} ${response.config.url} took ${duration}ms`);
+      }
     return response;
   },
   (error) => {
@@ -68,7 +68,7 @@ axiosInstance.interceptors.response.use(
     const status = error.response?.status;
     const errMsg = error.response?.data?.error || error.response?.data?.message;
     
-    if (window.location.port === '5173') {
+    if (window.location.port === '5173' || status >= 400) {
       console.error(`[API-ERR] ${error.config?.method?.toUpperCase()} ${error.config?.url} failed after ${duration}ms:`, errMsg);
     }
 

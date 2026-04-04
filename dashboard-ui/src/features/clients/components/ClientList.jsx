@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { 
   Users, Activity, ArrowDown, ArrowUp, Edit, Trash2, 
   Pause, Play, ChevronRight, ChevronLeft, Search, Plus, 
-  Download, Timer, Package, Wifi, LayoutGrid, List, AlertTriangle
+  Download, Timer, Package, Wifi, LayoutGrid, List, AlertTriangle, QrCode
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '../../context/ThemeContext';
-import { cn, formatBytes } from '../../lib/utils';
-import GlassCard from '../ui/Card';
-import VibeButton from '../ui/Button';
+import { useTheme } from '../../../context/ThemeContext';
+import { cn, formatBytes } from '../../../lib/utils';
+import GlassCard from '../../../components/ui/Card';
+import VibeButton from '../../../components/ui/Button';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const CONTAINER_COLORS = ['indigo', 'emerald', 'rose', 'amber', 'cyan', 'purple'];
@@ -56,7 +56,7 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
 
         <div className={cn(
           "h-1.5 w-full transition-all duration-700 group-hover:h-2 opacity-80",
-          `bg-${color}-500 shadow-[0_0_10px_${color}-500]`
+          `bg-${color}-500 shadow-md shadow-${color}-500/50`
         )} />
 
         <div className="p-6 space-y-6 relative z-10">
@@ -143,7 +143,7 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
 };
 
 // ─── Level 2 — Client Card (inside a container) ───────────────────────────────
-const ClientCard = ({ client, color, onSelect, onToggle, onEdit, onDelete }) => {
+const ClientCard = ({ client, color, onSelect, onToggle, onEdit, onQRCode, onDelete }) => {
   const online   = isOnlineClient(client);
   const expired  = isExpired(client.expiry);
   const expiring = isExpiringSoon(client.expiry);
@@ -210,9 +210,10 @@ const ClientCard = ({ client, color, onSelect, onToggle, onEdit, onDelete }) => 
 
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
          <div className="flex gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-            <button onClick={(e) => { e.stopPropagation(); onEdit(client); }} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"><Edit size={14} /></button>
-            <button onClick={(e) => { e.stopPropagation(); onToggle(client.container, client.name, !client.enabled); }} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-all">{client.enabled ? <Pause size={14} /> : <Play size={14} />}</button>
-            <button onClick={(e) => { e.stopPropagation(); onDelete(client); }} className="p-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all"><Trash2 size={14} /></button>
+            <button onClick={(e) => { e.stopPropagation(); onEdit(client); }} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all" title="Modifier"><Edit size={14} /></button>
+            <button onClick={(e) => { e.stopPropagation(); onToggle(client.container, client.name, !client.enabled); }} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-all" title={client.enabled ? "Désactiver" : "Activer"}>{client.enabled ? <Pause size={14} /> : <Play size={14} />}</button>
+            <button onClick={(e) => { e.stopPropagation(); onQRCode(client); }} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400 transition-all" title="Configuration / QR Code"><QrCode size={14} /></button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(client); }} className="p-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all" title="Supprimer"><Trash2 size={14} /></button>
          </div>
          <div className={cn("p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300", `bg-${color}-500/10 text-${color}-400`)}>
             <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
@@ -479,6 +480,7 @@ export const ClientList = ({ clients = [], allContainers = [], activeContainer =
                         onSelect={onSelect}
                         onToggle={onToggle}
                         onEdit={onEdit}
+                        onQRCode={onQRCode}
                         onDelete={onDelete}
                       />
                     </motion.div>

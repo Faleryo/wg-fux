@@ -1,10 +1,10 @@
 import React from 'react';
-import { useTheme } from '../../context/ThemeContext';
-import { cn } from '../../lib/utils';
+import { useTheme } from '../../../context/ThemeContext';
+import { cn } from '../../../lib/utils';
 import { motion } from 'framer-motion';
 
 export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   
   return (
     <motion.div 
@@ -14,13 +14,14 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
       className="relative overflow-hidden glass-card p-4 md:p-6 group shadow-2xl"
     >
       <div className={cn(
-        "absolute -inset-1 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-1000",
+        "absolute -inset-1 bg-gradient-to-r from-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-1000",
+        isDark ? "via-white/5" : "via-black/5",
         `group-hover:via-${theme}-500/10`
       )}></div>
       
       <div className={cn(
         "absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12 group-hover:rotate-0",
-        `text-${theme}-500`
+        isDark ? `text-${theme}-500` : "text-slate-900"
       )}>
         {Icon && <Icon size={120} />}
       </div>
@@ -38,11 +39,11 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
           )}
         </div>
         
-        <p className="text-4xl font-black text-white font-mono tracking-tighter mb-2 group-hover:scale-105 transition-transform duration-500 origin-left">{value}</p>
+        <p className="text-4xl font-black text-slate-900 dark:text-white font-mono tracking-tighter mb-2 group-hover:scale-105 transition-transform duration-500 origin-left">{value}</p>
 
         
         {sub && (
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
+          <div className={cn("flex items-center gap-2 mt-4 pt-4 border-t transition-colors", isDark ? "border-white/5" : "border-black/5")}>
             <span className={cn("h-1.5 w-1.5 rounded-full animate-pulse", `bg-${theme}-500 shadow-[0_0_8px_currentColor]`)}></span>
             <span className={cn("text-[10px] font-black uppercase tracking-widest opacity-60", `text-${theme}-400`)}>{sub}</span>
           </div>
@@ -53,6 +54,7 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
 };
 
 export const CircularProgress = ({ value, label, color, icon: Icon }) => {
+  const { isDark } = useTheme();
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
@@ -61,7 +63,7 @@ export const CircularProgress = ({ value, label, color, icon: Icon }) => {
     <div className="relative flex flex-col items-center group cursor-help">
       <div className="relative w-20 h-20 md:w-28 md:h-28 transform transition-transform duration-500 group-hover:scale-110">
         <svg viewBox="0 0 112 112" className="w-full h-full transform -rotate-90 drop-shadow-2xl">
-          <circle cx="56" cy="56" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
+          <circle cx="56" cy="56" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className={cn("transition-colors", isDark ? "text-white/5" : "text-black/5")} />
           <motion.circle 
             cx="56" cy="56" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent"
             initial={{ strokeDashoffset: circumference }}
@@ -73,9 +75,9 @@ export const CircularProgress = ({ value, label, color, icon: Icon }) => {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <Icon size={18} className="text-slate-500 mb-1 group-hover:text-white transition-colors duration-300 md:hidden" />
-          <Icon size={24} className="text-slate-500 mb-1 group-hover:text-white transition-colors duration-300 hidden md:block" />
-          <span className="text-sm md:text-xl font-black text-white font-mono">{value}%</span>
+          <Icon size={18} className="text-slate-500 mb-1 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300 md:hidden" />
+          <Icon size={24} className="text-slate-500 mb-1 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300 hidden md:block" />
+          <span className="text-sm md:text-xl font-black text-slate-900 dark:text-white font-mono">{value}%</span>
         </div>
       </div>
       <span className="mt-4 text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-slate-300 transition-colors duration-300">{label}</span>

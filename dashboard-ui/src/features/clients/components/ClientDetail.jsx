@@ -5,9 +5,9 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '../../context/ThemeContext';
-import { cn, formatBytes } from '../../lib/utils';
-import { axiosInstance } from '../../lib/api';
+import { useTheme } from '../../../context/ThemeContext';
+import { cn, formatBytes } from '../../../lib/utils';
+import { axiosInstance } from '../../../lib/api';
 
 const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) => {
   const { theme } = useTheme();
@@ -50,8 +50,8 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
         .then(res => {
           const data = res.data.map((h, i) => {
             const prev = res.data[i - 1] || h;
-            const rxDiff = Math.max(0, h.rx - prev.rx);
-            const txDiff = Math.max(0, h.tx - prev.tx);
+            const rxDiff = i === 0 ? 0 : Math.max(0, h.rx - prev.rx);
+            const txDiff = i === 0 ? 0 : Math.max(0, h.tx - prev.tx);
             return {
               time: new Date(h.time).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit' }),
               download: rxDiff,

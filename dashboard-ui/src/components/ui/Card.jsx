@@ -18,8 +18,8 @@ const GlassCard = ({
     <div 
       onClick={onClick}
       className={cn(
-        "relative overflow-hidden bg-slate-900/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500",
-        hover && "hover:border-white/10 hover:shadow-indigo-500/5 hover:-translate-y-1",
+        "relative overflow-hidden glass-card rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500",
+        hover && "hover:shadow-indigo-500/5 hover:-translate-y-1",
         onClick && "cursor-pointer active:scale-95",
         className
       )}

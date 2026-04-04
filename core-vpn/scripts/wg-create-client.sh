@@ -1,19 +1,20 @@
 #!/bin/bash
-# --- VIBE-OS : Create Client ---
+# --- VIBE-OS : Create Client v6.2 (Elite SRE) ---
+set -euo pipefail
 
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$SCRIPT_DIR/wg-common.sh"
 
 check_root
 load_config
 
-CONTAINER="$1"
-NAME="$2"
-EXPIRY="$3"
-QUOTA="$4"
-UPLOAD_LIMIT="$5"
+CONTAINER="${1:-}"
+NAME="${2:-}"
+EXPIRY="${3:-}"
+QUOTA="${4:-}"
+UPLOAD_LIMIT="${5:-}"
 
-# Validations basiques (déjà validées par l'API, mais sécurité shell oblige)
+# Validations basiques
 validate_id "$CONTAINER"
 validate_id "$NAME"
 
@@ -33,7 +34,7 @@ if [ -d "/etc/wireguard/clients/$CONTAINER/$NAME" ]; then
 fi
 
 # Validation critique du serveur
-if [ -z "$SERVER_IP" ]; then
+if [ -z "${SERVER_IP:-}" ]; then
     log_error "SERVER_IP missing in manager.conf. Cannot generate Endpoint."
     exit 1
 fi
@@ -94,10 +95,17 @@ SERVER_PUBKEY=$(cat /etc/wireguard/server-public.key)
 
 CLIENT_IP="${VPN_SUBNET%.*}.$IP_SUFFIX"
 
-if [ -n "$VPN_SUBNET_V6" ]; then
+if [ -n "${VPN_SUBNET_V6:-}" ]; then
+    # Extraction robuste du préfixe avant l'ID client
     IPV6_PREFIX="${VPN_SUBNET_V6%/*}"
-    NET_PREFIX="${IPV6_PREFIX%:*}:"
-    [[ ! "$NET_PREFIX" =~ ::$ ]] && NET_PREFIX="${NET_PREFIX}:"
+    # On s'assure qu'on finit par un séparateur correct pour l'ID suffixe
+    if [[ "$IPV6_PREFIX" == *"::" ]]; then
+        NET_PREFIX="$IPV6_PREFIX"
+    elif [[ "$IPV6_PREFIX" == *: ]]; then
+        NET_PREFIX="$IPV6_PREFIX"
+    else
+        NET_PREFIX="${IPV6_PREFIX}::"
+    fi
     CLIENT_IPV6="${NET_PREFIX}${IP_SUFFIX}"
     ADDRESS_STR="$CLIENT_IP/24, $CLIENT_IPV6/64"
     ALLOWED_IPS_STR="$CLIENT_IP/32,$CLIENT_IPV6/128"
@@ -143,12 +151,13 @@ if command -v qrencode &> /dev/null; then
 fi
 
 # Permissions
-chown root:wg-api "$CLIENT_DIR" "$CLIENT_DIR/$NAME.conf" "$CLIENT_DIR/public.key"
-chmod 750 "$CLIENT_DIR"
-chmod 640 "$CLIENT_DIR/$NAME.conf" "$CLIENT_DIR/public.key"
+# Vibe-OS v6.3 fix: Allow wg-api user to write metadata (quota, expiry) to client dir
+chown -R 1001:1001 "$CLIENT_DIR"
+chmod 770 "$CLIENT_DIR"
+chmod 660 "$CLIENT_DIR/"*
 chown root:root "$CLIENT_DIR/private.key" "$CLIENT_DIR/preshared.key" && chmod 600 "$CLIENT_DIR/private.key" "$CLIENT_DIR/preshared.key"
 
 # Apply QoS
-$SCRIPT_DIR/wg-apply-qos.sh || true
+"$SCRIPT_DIR/wg-apply-qos.sh" || true
 
 log_info "Client '$NAME' created successfully with IP $CLIENT_IP"

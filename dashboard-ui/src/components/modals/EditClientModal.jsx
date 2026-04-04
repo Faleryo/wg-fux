@@ -147,7 +147,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
                 value={expiryDate}
                 onChange={(e) => setExpiryDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
-                className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-mono text-sm focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all"
+                className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
               />
             </div>
           )}

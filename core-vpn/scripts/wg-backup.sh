@@ -1,25 +1,22 @@
 #!/bin/bash
+# --- VIBE-OS v6.2 : WireGuard Backup ---
+# GHOST-SCAN FIX v6.2:
+#   - Fixed: $RED variable was undefined (now uses log_error from wg-common.sh).
+#   - Fixed: Dead-code ($? check after 'if !') removed.
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"  
+source "$SCRIPT_DIR/wg-common.sh"
+
 BACKUP_DIR="/var/backups/wireguard"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="${BACKUP_DIR}/wg-backup-${TIMESTAMP}.tar.gz"
 
 mkdir -p "$BACKUP_DIR"
 
-# Fichiers et dossiers à sauvegarder
-FILES="/etc/wireguard /opt/wireguard-api/data /opt/wireguard-api/.env /root/wireguard-credentials.txt"
-[ -f /etc/nginx/sites-available/wireguard ] && FILES="$FILES /etc/nginx/sites-available/wireguard"
-
-echo "Création de la sauvegarde : $BACKUP_FILE..."
+log_info "Création de la sauvegarde : $BACKUP_FILE..."
 if ! sudo tar -czf "$BACKUP_FILE" -C / etc/wireguard; then
-    echo -e "${RED}[ERROR] Échec de la création de l'archive.${NC}"
-    exit 1
+    log_error "Échec de la création de l'archive." "$ERR_SYSTEM_FAILURE"
 fi
 
-if [ $? -eq 0 ]; then
-    echo "Sauvegarde réussie à $BACKUP_FILE"
-    # Purge auto (plus de 7 jours)
-    find "$BACKUP_DIR" -name "wg-backup-*.tar.gz" -mtime +7 -delete
-else
-    echo "Erreur lors de la sauvegarde"
-    exit 1
-fi
+log_info "Sauvegarde réussie à $BACKUP_FILE"
+# Purge auto (plus de 7 jours)
+find "$BACKUP_DIR" -name "wg-backup-*.tar.gz" -mtime +7 -delete

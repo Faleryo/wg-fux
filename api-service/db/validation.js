@@ -1,7 +1,7 @@
 const { z } = require('zod');
 
 // Common Regex for identifiers (container, names)
-const identifierRegex = /^[a-zA-Z0-9_\-]+$/;
+const identifierRegex = /^[a-zA-Z0-9_-]+$/;
 const dateRegex = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
 const loginSchema = z.object({
@@ -78,9 +78,16 @@ const ticketSchema = z.object({
 const systemConfigSchema = z.object({
   port: z.union([z.number(), z.string()]).transform(v => parseInt(v)).refine(n => n >= 1 && n <= 65535, 'Port invalide').optional(),
   mtu: z.union([z.number(), z.string()]).transform(v => parseInt(v)).refine(n => n >= 576 && n <= 9000, 'MTU invalide').optional(),
-  dns: z.string().min(1).optional(),
+  dns: z.string().min(1).regex(/^[a-zA-Z0-9\s.,-]+$/, 'Format DNS invalide (caractères spéciaux interdits)').optional(),
   subnet: z.string().regex(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}$/, 'Subnet invalide').optional(),
-  keepalive: z.boolean().optional(),
+  keepalive: z.union([z.number(), z.string(), z.boolean()])
+    .transform(v => {
+      if (typeof v === 'boolean') return v ? 25 : 0;
+      const n = parseInt(v);
+      return isNaN(n) ? 0 : n;
+    })
+    .refine(n => n >= 0 && n <= 120, 'Keepalive doit être entre 0 et 120s')
+    .optional(),
 });
 
 module.exports = {

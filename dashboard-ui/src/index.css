@@ -4,294 +4,88 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   THEME STYLES (Light/Dark)
+   ============================================ */
 body {
   margin: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  @apply bg-slate-950 text-slate-200;
+  @apply transition-colors duration-500;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
-/* ============================================
-   SCROLLBAR
-   ============================================ */
-@layer utilities {
-  .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--neon-color, #4f46e5);
-    border-radius: 10px;
-    opacity: 0.4;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    opacity: 1;
-  }
+:root {
+  /* Canvas Background */
+  --bg-canvas: #f8fafc;
+  
+  /* Classic Light Glass Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-card: rgba(255, 255, 255, 0.4);
+  --glass-border: rgba(148, 163, 184, 0.15);
+  --glass-text: #0f172a;
+  --glass-text-muted: #64748b;
+  --glass-shadow: 0 10px 40px -15px rgba(15, 23, 42, 0.08);
+}
 
-  /* ============================================
-     GLASS EFFECTS
-     ============================================ */
+.dark {
+  /* Dark Canvas */
+  --bg-canvas: #020617;
+  --glass-bg: rgba(15, 23, 42, 0.85);
+  --glass-card: rgba(30, 41, 59, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-text: #ffffff;
+  --glass-text-muted: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 10px 0 30px -15px rgba(0,0,0,0.4);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-canvas);
+  color: var(--glass-text);
+  @apply transition-colors duration-700;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+.dark body {
+  color: #f1f5f9;
+}
+
+@layer components {
+  /* Glass Panels & Cards (Standardized Architecture) */
   .glass-panel {
-    @apply bg-slate-900/70 backdrop-blur-3xl border-r border-white/5;
-    box-shadow: 10px 0 30px -15px rgba(0,0,0,0.6);
+    @apply backdrop-blur-3xl transition-all duration-500;
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    color: var(--glass-text);
   }
 
   .glass-card {
-    background: rgba(30, 41, 59, 0.4);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 1.5rem;
-    overflow: hidden;
-    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-  }
-
-  .glass-card:hover {
-    background: rgba(30, 41, 59, 0.55);
-    border-color: rgba(255, 255, 255, 0.14);
-    transform: translateY(-3px);
-    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
+    @apply backdrop-blur-3xl border rounded-[1.5rem] transition-all duration-500;
+    background: var(--glass-card);
+    border-color: var(--glass-border);
+    color: var(--glass-text);
   }
 
   .glass-input {
-    @apply bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all text-white text-sm;
+    @apply rounded-xl px-4 py-2.5 outline-none transition-all text-sm border;
+    @apply bg-white/20 border-black/5 text-slate-900 focus:border-indigo-500/50 focus:bg-white;
   }
 
-  /* ============================================
-     NEON GLOWS
-     ============================================ */
-  .neon-text-glow {
-    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
-  }
-
-  .neon-border-glow {
-    box-shadow: 0 0 15px -3px var(--neon-color), 0 0 6px -2px var(--neon-color);
-  }
-
-  .neon-glow-indigo { filter: drop-shadow(0 0 8px #6366f1); }
-  .neon-glow-cyan   { filter: drop-shadow(0 0 8px #06b6d4); }
-  .neon-glow-rose   { filter: drop-shadow(0 0 8px #f43f5e); }
-  .neon-glow-emerald{ filter: drop-shadow(0 0 8px #10b981); }
-
-  /* ============================================
-     ANIMATIONS
-     ============================================ */
-  @keyframes scanner-loop {
-    0%   { top: -10%; opacity: 0; }
-    5%   { opacity: 0.3; }
-    95%  { opacity: 0.3; }
-    100% { top: 110%; opacity: 0; }
-  }
-
-  @keyframes neon-pulse {
-    0%, 100% { opacity: 1; filter: brightness(1) saturate(1); }
-    50%       { opacity: 0.9; filter: brightness(1.2) saturate(1.2); }
-  }
-
-  @keyframes loading {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50%       { transform: translateY(-8px); }
-  }
-
-  @keyframes shimmer {
-    0%   { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-
-  .scanner-line {
-    position: absolute;
-    width: 100%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--neon-color), transparent);
-    box-shadow: 0 0 10px var(--neon-color);
-    animation: scanner-loop 6s linear infinite;
-    z-index: 50;
-    pointer-events: none;
-    opacity: 0.3;
-  }
-
-  .animate-neon-pulse   { animation: neon-pulse 3s infinite ease-in-out; }
-  .animate-float        { animation: float 4s ease-in-out infinite; }
-  .animate-shimmer      { 
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
-  }
-
-  /* ============================================
-     PREMIUM GRADIENT
-     ============================================ */
-  .premium-gradient {
-    background: 
-      radial-gradient(circle at top left, var(--neon-color), transparent 60%),
-      radial-gradient(circle at bottom right, #4338ca, transparent 60%);
-  }
-
-  /* ============================================
-     RANGE INPUT STYLING
-     ============================================ */
-  input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-    height: 4px;
-    border-radius: 4px;
-    background: rgba(255,255,255,0.08);
-    outline: none;
-    cursor: pointer;
-  }
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--neon-color, #6366f1);
-    cursor: pointer;
-    box-shadow: 0 0 8px var(--neon-color, #6366f1);
-    transition: transform 0.2s;
-  }
-  input[type="range"]::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
-  }
-
-  /* ============================================
-     SELECT STYLING
-     ============================================ */
-  select option {
-    background: #0f172a;
-    color: #e2e8f0;
+  .dark .glass-input {
+    @apply bg-white/5 border-white/10 text-white focus:border-indigo-500/50 focus:bg-white/10;
   }
 }
 
-/* ============================================
-   THEME CSS VARIABLES
-   ============================================ */
-:root { --neon-color: #6366f1; }
-
-.theme-indigo  { --neon-color: #6366f1; }
-.theme-cyan    { --neon-color: #06b6d4; }
-.theme-rose    { --neon-color: #f43f5e; }
-.theme-emerald { --neon-color: #10b981; }
-.theme-amber   { --neon-color: #f59e0b; }
-.theme-purple  { --neon-color: #a855f7; }
-.theme-sky     { --neon-color: #0ea5e9; }
-
-/* ============================================
-   RESPONSIVE HELPERS
-   ============================================ */
-@media (max-width: 767px) {
-  /* Empêche le zoom sur les inputs iOS */
-  input, select, textarea {
-    font-size: 16px !important;
-  }
-
-  /* Table overflow hint on mobile */
-  .overflow-x-auto::after {
-    content: '';
-    display: block;
-    min-height: 1px;
-  }
+/* Custom scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
 }
 
-/* ============================================
-   SKELETON SHIMMER (improved)
-   ============================================ */
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
 
-.animate-shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(255,255,255,0.03) 0px,
-    rgba(255,255,255,0.08) 100px,
-    rgba(255,255,255,0.03) 200px
-  );
-  background-size: 400px 100%;
-  animation: shimmer 1.8s infinite linear;
-}
-
-/* ============================================
-   LIGHT MODE
-   ============================================ */
-html:not(.dark) body {
-  background-color: #eef2f7 !important;
-  color: #0f172a;
-}
-
-html:not(.dark) .glass-panel {
-  background: rgba(255, 255, 255, 0.85) !important;
-  border-color: rgba(0, 0, 0, 0.06) !important;
-  box-shadow: 4px 0 30px -10px rgba(0, 0, 0, 0.12) !important;
-  backdrop-filter: blur(32px);
-}
-
-html:not(.dark) .glass-card {
-  background: rgba(255, 255, 255, 0.65) !important;
-  border-color: rgba(0, 0, 0, 0.06) !important;
-}
-
-html:not(.dark) .glass-card:hover {
-  background: rgba(255, 255, 255, 0.90) !important;
-  border-color: rgba(0, 0, 0, 0.10) !important;
-  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.15) !important;
-}
-
-/* Text overrides */
-html:not(.dark) .text-white          { color: #0f172a  !important; }
-html:not(.dark) .text-slate-200      { color: #1e293b  !important; }
-html:not(.dark) .text-slate-300      { color: #334155  !important; }
-html:not(.dark) .text-slate-400      { color: #475569  !important; }
-html:not(.dark) .text-slate-500      { color: #64748b  !important; }
-html:not(.dark) .text-slate-600      { color: #94a3b8  !important; }
-
-/* Background overrides */
-html:not(.dark) .bg-slate-950        { background-color: #eef2f7 !important; }
-html:not(.dark) .bg-slate-900\/40,
-html:not(.dark) .bg-slate-900\/80    { background-color: rgba(255,255,255,0.7) !important; }
-html:not(.dark) [class*="bg-white\/5"]    { background-color: rgba(0,0,0,0.04) !important; }
-html:not(.dark) [class*="bg-white\/10"]   { background-color: rgba(0,0,0,0.06) !important; }
-html:not(.dark) [class*="bg-slate-950\/"] { background-color: rgba(238,242,247,0.8) !important; }
-html:not(.dark) .bg-slate-800        { background-color: #e2e8f0 !important; }
-
-/* Border overrides */
-html:not(.dark) [class*="border-white\/"] { border-color: rgba(0,0,0,0.07) !important; }
-
-/* Input overrides */
-html:not(.dark) input,
-html:not(.dark) select,
-html:not(.dark) textarea {
-  color: #0f172a !important;
-}
-
-html:not(.dark) .custom-scrollbar {
-  scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
-}
-
-/* Backdrop decoration in light mode: invisible */
-html:not(.dark) .bg-indigo-600\/10,
-html:not(.dark) .bg-emerald-600\/5,
-html:not(.dark) .bg-sky-600\/5 {
-  opacity: 0.3 !important;
-}
-
-/* Select option */
-html:not(.dark) select option {
-  background: #f1f5f9;
-  color: #0f172a;
-}

@@ -43,12 +43,12 @@ const CreateContainerModal = ({ isOpen, onClose, onCreate }) => {
             <div>
               <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">Nom du Conteneur (Groupe)</label>
               <div className="relative group">
-                <Package className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors" size={18} />
+                <Package className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors" size={18} />
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z0-9_\-]/g, ''))} // only allow safe chars
-                  className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/10 focus:bg-white/10 text-white font-mono placeholder:text-slate-600 transition-all text-sm"
+                  className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
                   placeholder="ex: famille, serveurs"
                   maxLength={30}
                   autoFocus

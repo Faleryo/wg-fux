@@ -50,8 +50,8 @@ load_config() {
         # We use a subshell to avoid polluting the current shell immediately,
         # but since we want the variables, we source it.
         # Hardening: only source if it belongs to root and is not world-writable.
-        if [ "$(stat -c '%u %a' "$CONFIG_FILE")" != "0 600" ] && [ "$(stat -c '%u %a' "$CONFIG_FILE")" != "0 640" ]; then
-           log_warn "Config file permissions are not optimal (should be 600 or 640 root). Current: $(stat -c '%a' "$CONFIG_FILE")"
+        if [ "$(stat -c '%u %a' "$CONFIG_FILE" 2>/dev/null)" != "0 600" ] && [ "$(stat -c '%u %a' "$CONFIG_FILE" 2>/dev/null)" != "0 640" ]; then
+           log_warn "Config file permissions are not optimal (should be 600 or 640 root). Current: $(stat -c '%a' "$CONFIG_FILE" 2>/dev/null)"
         fi
         source "$CONFIG_FILE"
     else
@@ -97,5 +97,5 @@ safe_math() {
 }
 
 # Export functions for subshells
-export -f log_info log_warn log_error check_root load_config validate_id run_safe check_dependencies get_client_dir safe_math
-
+# GHOST-SCAN FIX: 'run_safe' was never defined here — removed from export list.
+export -f log_info log_warn log_error check_root load_config validate_id check_dependencies get_client_dir safe_math

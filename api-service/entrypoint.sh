@@ -14,11 +14,12 @@ else
     echo "[BOOT] No configuration found at: ${CONFIG}"
 fi
 
-# BUG-FIX: Ensure SQLite DB belongs to wg-api
-echo "[BOOT] Ensuring database permissions for wg-api..."
+# BUG-FIX: Ensure SQLite DB and Client Configs belong to wg-api
+echo "[BOOT] Ensuring system permissions for wg-api..."
 mkdir -p /app/data
-chown -R wg-api:wg-api /app/data
-chmod -R u+rw /app/data
+mkdir -p /etc/wireguard/clients
+chown -R wg-api:wg-api /app/data /etc/wireguard/clients
+chmod -R u+rw /app/data /etc/wireguard/clients
 
-echo "[BOOT] Starting API Server..."
-exec node server.js
+echo "[BOOT] Starting API Server as wg-api..."
+exec runuser -u wg-api -- node server.js

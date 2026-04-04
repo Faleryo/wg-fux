@@ -1,5 +1,12 @@
 #!/bin/bash
-BACKUP_FILE=$1
+# --- VIBE-OS : Restore Config v6.2 ---
+set -euo pipefail
+
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$SCRIPT_DIR/wg-common.sh"
+
+BACKUP_FILE=${1:-}
+
 if [ -z "$BACKUP_FILE" ]; then
     echo "Usage: $0 <path_to_backup.tar.gz>"
     echo "Dernières sauvegardes :"

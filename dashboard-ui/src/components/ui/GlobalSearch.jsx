@@ -15,7 +15,7 @@ const NAV_ITEMS = [
 ];
 
 const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [query, setQuery] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
   const inputRef = useRef(null);
@@ -85,7 +85,7 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            className={cn("absolute inset-0 backdrop-blur-sm transition-colors duration-700", isDark ? "bg-slate-950/60" : "bg-slate-200/40")}
             onClick={onClose}
           />
 
@@ -95,10 +95,10 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ type: 'spring', damping: 28, stiffness: 350 }}
-            className="relative w-full max-w-xl bg-slate-900/95 backdrop-blur-3xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden"
+            className="relative w-full max-w-xl glass-panel border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden"
           >
             {/* Glow decoration */}
-            <div className={cn("absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-32 blur-[80px] opacity-30 pointer-events-none", `bg-${theme}-600`)} />
+            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-32 blur-[80px] opacity-30 pointer-events-none" style={{ background: `var(--theme-color, #4f46e5)` }} />
 
             {/* Input Row */}
             <div className="flex items-center gap-4 px-6 py-5 border-b border-white/5 relative z-10">
@@ -109,11 +109,11 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Rechercher peers, sections, IP..."
-                className="flex-1 bg-transparent text-white placeholder:text-slate-600 font-mono text-sm outline-none"
+                className={cn("flex-1 bg-transparent font-mono text-sm outline-none transition-colors", isDark ? "text-white placeholder:text-slate-600" : "text-slate-900 placeholder:text-slate-400")}
               />
               <div className="flex items-center gap-2 flex-shrink-0">
-                <kbd className="hidden sm:block px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-black text-slate-500 uppercase tracking-widest">ESC</kbd>
-                <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-all">
+                <kbd className={cn("hidden sm:block px-2 py-1 border rounded-lg text-[10px] font-black uppercase tracking-widest", isDark ? "bg-white/5 border-white/10 text-slate-500" : "bg-black/5 border-slate-200 text-slate-400")}>ESC</kbd>
+                <button onClick={onClose} className={cn("p-1.5 rounded-xl transition-all", isDark ? "hover:bg-white/10 text-slate-500 hover:text-white" : "hover:bg-black/5 text-slate-400 hover:text-slate-900")}>
                   <X size={16} />
                 </button>
               </div>
@@ -126,19 +126,19 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                   <div className={cn("inline-flex p-4 rounded-2xl mb-4", `bg-${theme}-600/10 text-${theme}-400`)}>
                     <Command size={28} />
                   </div>
-                  <p className="text-[11px] font-black text-white uppercase tracking-widest">Recherche Globale</p>
+                  <p className={cn("text-[11px] font-black uppercase tracking-widest", isDark ? "text-white" : "text-slate-900")}>Recherche Globale</p>
                   <p className="text-[10px] text-slate-600 mt-1">Peers · Sections · Adresses IP</p>
                   <div className="flex justify-center gap-4 mt-5">
                     {NAV_ITEMS.slice(0, 4).map(n => (
                       <button
                         key={n.id}
                         onClick={() => handleSelect(n)}
-                        className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-white/5 transition-all group"
+                        className={cn("flex flex-col items-center gap-2 p-3 rounded-2xl transition-all group", isDark ? "hover:bg-white/5" : "hover:bg-black/5")}
                       >
-                        <div className={cn("p-2.5 rounded-xl bg-white/5 group-hover:bg-white/10 transition-all", `text-${theme}-400`)}>
+                        <div className={cn("p-2.5 rounded-xl transition-all", isDark ? "bg-white/5 group-hover:bg-white/10" : "bg-black/5 group-hover:bg-black/10", `text-${theme}-400`)}>
                           <n.icon size={16} />
                         </div>
-                        <span className="text-[9px] font-black text-slate-500 group-hover:text-white uppercase tracking-widest transition-colors">{n.label}</span>
+                        <span className={cn("text-[9px] font-black uppercase tracking-widest transition-colors", isDark ? "text-slate-500 group-hover:text-white" : "text-slate-400 group-hover:text-slate-900")}>{n.label}</span>
                       </button>
                     ))}
                   </div>
@@ -164,15 +164,15 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                           )}
                         >
                           <div className={cn("p-2.5 rounded-xl transition-all flex-shrink-0",
-                            selectedIdx === idx ? `bg-${theme}-600 text-white` : `bg-white/5 text-${theme}-400 group-hover:bg-white/10`
+                            selectedIdx === idx ? `bg-${theme}-600 text-white` : cn(isDark ? "bg-white/5 group-hover:bg-white/10" : "bg-black/5 group-hover:bg-black/10", `text-${theme}-400`)
                           )}>
                             <item.icon size={16} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-black text-white uppercase tracking-tight truncate">{item.label}</div>
+                            <div className={cn("text-sm font-black uppercase tracking-tight truncate", isDark ? "text-white" : "text-slate-900")}>{item.label}</div>
                             <div className="text-[10px] text-slate-500 font-mono truncate">{item.desc}</div>
                           </div>
-                          <ArrowRight size={14} className="text-slate-600 group-hover:text-slate-400 flex-shrink-0" />
+                          <ArrowRight size={14} className={cn("transition-colors", isDark ? "text-slate-600 group-hover:text-slate-400" : "text-slate-400 group-hover:text-slate-600")} />
                         </button>
                       );
                     })}

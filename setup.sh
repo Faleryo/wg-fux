@@ -6,52 +6,141 @@
 
 set -e
 
-# Couleurs
+# Couleurs & Style
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m'
+CHECK_MARK="${GREEN}✔${NC}"
+CROSS_MARK="${RED}✘${NC}"
+INFO_MARK="${BLUE}ℹ${NC}"
+WARN_MARK="${YELLOW}⚠${NC}"
+
+# Fichiers & Logs
+LOG_FILE=".vibe/logs/setup.log"
+mkdir -p "$(dirname "$LOG_FILE")"
+exec 3>&1 # Dup stdout sur fd 3
+
+log() {
+    local level="$1"; shift
+    local msg="$*"
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    printf "[%s] [%s] %s\n" "$timestamp" "$level" "$msg" >> "$LOG_FILE"
+    case "$level" in
+        "ERROR") printf "${RED}${BOLD}[ERROR]${NC} %s\n" "$msg" >&3 ;;
+        "SUCCESS") printf "${GREEN}${BOLD}[SUCCESS]${NC} %s\n" "$msg" >&3 ;;
+        "WARNING") printf "${YELLOW}${BOLD}[WARNING]${NC} %s\n" "$msg" >&3 ;;
+        "INFO") printf "${BLUE}${BOLD}[INFO]${NC} %s\n" "$msg" >&3 ;;
+        *) printf "[%s] %s\n" "$level" "$msg" >&3 ;;
+    esac
+}
+
+# Gestion des erreurs
+cleanup() {
+    local exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        log "ERROR" "Le script s'est arrêté prématurément (Code: $exit_code)."
+    fi
+    # Nettoyage des fichiers temporaires (secrets)
+    rm -f /tmp/wg-hash-*.js /tmp/wg-env-*.tmp 2>/dev/null
+}
+trap cleanup EXIT
 
 # Répertoires
 API_ENV="api-service/.env"
 API_DATA="api-service/data"
 WG_DIR="/etc/wireguard"
 
+preflight_scan() {
+    log "INFO" "Lancement du Scan de Pré-vol (v6.4 Precision Scanner)..."
+    
+    # 1. Architecture CPU
+    local arch; arch=$(uname -m)
+    log "INFO" "Architecture : $arch"
+    
+    # 2. Mémoire Vive
+    local ram_kb; ram_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    local ram_mb=$((ram_kb / 1024))
+    if [ "$ram_mb" -lt 1024 ]; then
+        log "WARNING" "Mémoire vive faible (${ram_mb}MB). Le build Docker pourrait échouer sans swap."
+    else
+        log "SUCCESS" "Mémoire vive OK (${ram_mb}MB)."
+    fi
+    
+    # 3. Espace Disque (/)
+    local free_kb; free_kb=$(df -k / | awk 'NR==2 {print $4}')
+    local free_gb=$((free_kb / 1024 / 1024))
+    if [ "$free_gb" -lt 5 ]; then
+        log "WARNING" "Espace disque restreint (${free_gb}GB libres). 5GB minimum recommandés."
+    else
+        log "SUCCESS" "Espace disque OK (${free_gb}GB)."
+    fi
+    
+    # 4. Connectivité
+    if ping -c 1 8.8.8.8 &>/dev/null; then
+        log "SUCCESS" "Connectivité Internet OK."
+    else
+        log "ERROR" "Pas de connectivité Internet. Impossible de télécharger les dépendances."
+        exit 1
+    fi
+
+    # 5. WARN-2 : Vérification des permissions /etc/wireguard (critique en production)
+    if [ -d "$WG_DIR" ]; then
+        local wg_perms; wg_perms=$(stat -c "%a %U:%G" "$WG_DIR")
+        local wg_perm_octal; wg_perm_octal=$(echo "$wg_perms" | awk '{print $1}')
+        if [ "$wg_perm_octal" != "700" ] && [ "$wg_perm_octal" != "750" ]; then
+            log "WARNING" "/etc/wireguard permissions = $wg_perms (recommandé : 700 root:root)"
+            log "WARNING" "Correction automatique des permissions..."
+            sudo chmod 700 "$WG_DIR"
+            sudo chown root:root "$WG_DIR"
+            log "SUCCESS" "/etc/wireguard sécurisé à 700 root:root"
+        else
+            log "SUCCESS" "/etc/wireguard permissions OK ($wg_perms)"
+        fi
+    fi
+}
+
 uninstall() {
-    echo -e "${YELLOW}[WARNING] Désinstallation de WG-FUX...${NC}"
+    log "WARNING" "Désinstallation de WG-FUX lancée..."
     
     if [ -f "docker-compose.yml" ]; then
-        echo -e "[INFO] Arrêt des conteneurs et suppression des volumes..."
+        log "INFO" "Arrêt des conteneurs et suppression des volumes..."
         sudo docker compose down -v || true
         
-        read -rp "Voulez-vous supprimer les IMAGES Docker du projet (Libère ~6-10GB) ? (y/N): " purge_images
+        printf "${YELLOW}[?] Voulez-vous supprimer les IMAGES Docker du projet (Libère ~6-10GB) ? (y/N): ${NC}"
+        read -r purge_images
         if [[ "$purge_images" =~ ^[yY]$ ]]; then
-            echo -e "[INFO] Suppression des images locales..."
+            log "INFO" "Suppression des images locales..."
             sudo docker compose down --rmi local 2>/dev/null || true
             sudo docker image prune -f 2>/dev/null || true
         fi
     fi
 
-    echo -e "[INFO] Désactivation du service Sentinel..."
+    log "INFO" "Désactivation du service Sentinel..."
     sudo systemctl stop sentinel.service 2>/dev/null || true
     sudo systemctl disable sentinel.service 2>/dev/null || true
     sudo rm -f /etc/systemd/system/sentinel.service
     sudo systemctl daemon-reload
 
-    echo -e "[INFO] Suppression des fichiers de configuration API..."
+    log "INFO" "Suppression des fichiers de configuration API..."
     rm -f "$API_ENV"
     rm -rf "$API_DATA"
 
     # Nettoyage des liens symboliques
-    echo -e "[INFO] Nettoyage des outils utilitaires..."
+    log "INFO" "Nettoyage des outils utilitaires..."
     sudo rm -f /usr/local/bin/wg-*.sh 2>/dev/null || true
 
     local swap_file="/swap_wgfux"
     if [ -f "$swap_file" ]; then
-        read -rp "Voulez-vous supprimer le fichier Swap ($swap_file) créé par WG-FUX ? (y/N): " purge_swap
+        printf "${YELLOW}[?] Voulez-vous supprimer le fichier Swap ($swap_file) créé par WG-FUX ? (y/N): ${NC}"
+        read -r purge_swap
         if [[ "$purge_swap" =~ ^[yY]$ ]]; then
-            echo -e "[INFO] Désactivation et suppression du Swap..."
+            log "INFO" "Désactivation et suppression du Swap..."
             sudo swapoff "$swap_file" 2>/dev/null || true
             sudo rm -f "$swap_file"
             sudo sed -i "\|# WG-FUX Swap|d" /etc/fstab 2>/dev/null || true
@@ -59,35 +148,54 @@ uninstall() {
         fi
     fi
 
-    read -rp "Voulez-vous supprimer TOUTES les configurations WireGuard dans $WG_DIR ? (y/N): " purge_wg
+    printf "${YELLOW}[?] Voulez-vous supprimer TOUTES les configurations WireGuard dans $WG_DIR ? (y/N): ${NC}"
+    read -r purge_wg
     if [[ "$purge_wg" =~ ^[yY]$ ]]; then
-        echo -e "[INFO] Suppression de $WG_DIR..."
+        log "INFO" "Suppression de $WG_DIR..."
         sudo rm -rf "$WG_DIR"
     else
-        echo -e "[INFO] Conservation de $WG_DIR."
+        log "INFO" "Conservation de $WG_DIR."
     fi
 
-    echo -e "${GREEN}[SUCCESS] Désinstallation terminée.${NC}"
+    log "SUCCESS" "Désinstallation terminée."
     exit 0
 }
 
+restart_proxy() {
+    log "INFO" "Redémarrage du Proxy Sentinel (Nginx)..."
+    sudo docker compose restart nginx
+    log "SUCCESS" "Proxy redémarré. Les résolutions amont (Upstream) ont été rafraîchies."
+}
+
+health_audit() {
+    log "INFO" "Lancement de l'Audit de Santé (Watcher's Eye v6.4)..."
+    if [ -f "./.vibe/tools/vibe-audit-v6.3.sh" ]; then
+        chmod +x ./.vibe/tools/vibe-audit-v6.3.sh
+        ./.vibe/tools/vibe-audit-v6.3.sh
+    else
+        log "ERROR" "Script d'audit introuvable."
+    fi
+}
+
 update_process() {
-    echo -e "${BLUE}[INFO] Lancement de la mise à jour (Build & Restart)...${NC}"
+    log "INFO" "Lancement de la mise à jour (Build & Restart)..."
     if [ ! -f "docker-compose.yml" ]; then
-        echo -e "${RED}[ERROR] Fichier docker-compose.yml introuvable.${NC}"
+        log "ERROR" "Fichier docker-compose.yml introuvable."
         exit 1
     fi
+
+    # 💠 SRE: Backup current config before update
+    log "INFO" "Sauvegarde de la configuration actuelle (.env)..."
+    cp "$API_ENV" "${API_ENV}.bak" 2>/dev/null || true
 
     # 💠 SRE Optimization: Check disk before build
     local free_kb
     free_kb=$(df -k / | awk 'NR==2 {print $4}')
     if [ "$free_kb" -lt 5242880 ]; then # < 5GB free
-        echo -e "${YELLOW}[WARNING] Espace disque faible (< 5GB). Nettoyage agressif du cache Docker...${NC}"
-        # On supprime les images inutilisées ET le cache de build pour garantir le nouveau build
+        log "WARNING" "Espace disque faible (< 5GB). Nettoyage agressif du cache Docker..."
         sudo docker system prune -f 2>/dev/null || true
         sudo docker builder prune -a -f 2>/dev/null || true
     else
-        # Nettoyage léger du cache superflu
         sudo docker builder prune -f --filter "until=24h" 2>/dev/null || true
     fi
     
@@ -95,8 +203,17 @@ update_process() {
     setup_ssl
     setup_firewall
     
-    echo -e "[INFO] Reconstruction des images et redémarrage des services..."
-    sudo docker compose up --build -d
+    log "INFO" "Reconstruction des images (--no-cache) et redémarrage des services..."
+    if ! sudo DOCKER_BUILDKIT=1 docker compose build --no-cache; then
+        log "ERROR" "Échec de la reconstruction. Annulation..."
+        return 1
+    fi
+
+    if ! sudo docker compose up -d; then
+        log "ERROR" "Échec du lancement des services. Tentative de restauration de la config..."
+        mv "${API_ENV}.bak" "$API_ENV" 2>/dev/null || true
+        return 1
+    fi
     
     # Vérification post-install : attendre que les containers soient healthy
     echo -e "${BLUE}[INFO] Vérification de l'état des containers (max 120s)...${NC}"
@@ -133,18 +250,18 @@ update_process() {
 }
 
 git_upgrade() {
-    echo -e "${BLUE}[INFO] Récupération des dernières mises à jour depuis Git...${NC}"
-    git pull || { echo -e "${RED}[ERROR] Échec du git pull. Vérifiez votre connexion ou l'état du dépôt.${NC}"; exit 1; }
+    log "INFO" "Récupération des dernières mises à jour depuis Git..."
+    git pull || { log "ERROR" "Échec du git pull. Vérifiez votre connexion ou l'état du dépôt."; exit 1; }
     update_process
 }
 
 install_deps() {
-    echo -e "${BLUE}[INFO] Tentative d'installation des dépendances...${NC}"
+    log "INFO" "Tentative d'installation des dépendances..."
     if command -v apt-get &> /dev/null; then
         sudo apt-get update
-        sudo apt-get install -y docker.io docker-compose-v2 wireguard-tools
+        sudo apt-get install -y docker.io docker-compose-v2 wireguard-tools openssl curl
     else
-        echo -e "${RED}[ERROR] Gestionnaire de paquets 'apt' non trouvé. Veuillez installer manuellement : docker, docker-compose-v2, wireguard-tools.${NC}"
+        log "ERROR" "Gestionnaire de paquets 'apt' non trouvé. Veuillez installer manuellement : docker, docker-compose-v2, wireguard-tools, openssl, curl."
         exit 1
     fi
 }
@@ -177,7 +294,7 @@ setup_swap() {
 
     # Activation automatique si RAM < 3GB (seuil relevé pour Docker builds)
     if [ "$ram_mb" -lt 3072 ]; then
-        echo -e "${YELLOW}[WARNING] Mémoire vive réduite détectée (${ram_mb}MB).${NC}"
+        log "WARNING" "Mémoire vive réduite détectée (${ram_mb}MB)."
 
         # 1. Vérification intelligente de TOUT swap actif sur le système
         local swap_active_mb
@@ -186,15 +303,14 @@ setup_swap() {
         swap_active_mb=$(printf "%.0f" "$swap_active_mb")
 
         if [ "$swap_active_mb" -gt 1024 ]; then
-            echo -e "${BLUE}[INFO] Un swap total suffisant (${swap_active_mb}MB) est déjà présent. Esquive...${NC}"
+            log "INFO" "Un swap total suffisant (${swap_active_mb}MB) est déjà présent. Esquive..."
             return 0
         fi
 
         if [ -f "$swap_file" ]; then
-            echo -e "${BLUE}[INFO] Fichier de swap WG-FUX ($swap_file) déjà présent.${NC}"
-            # BUG-FIX: Vérifier si déjà monté avant de mkswap (reformater un swap actif est dangereux)
+            log "INFO" "Fichier de swap WG-FUX ($swap_file) déjà présent."
             if swapon --show | grep -q "$swap_file"; then
-                echo -e "${BLUE}[INFO] Swap déjà actif. Rien à faire.${NC}"
+                log "INFO" "Swap déjà actif. Rien à faire."
             else
                 sudo chmod 600 "$swap_file"
                 sudo mkswap "$swap_file" 2>/dev/null || true
@@ -211,99 +327,102 @@ setup_swap() {
         local available_for_swap=$((free_mb - safety_margin))
 
         if [ "$available_for_swap" -lt 512 ]; then
-            echo -e "${RED}[ERROR] Espace disque critique (${free_mb}MB libre). Impossible de créer un Swap.${NC}"
-            echo -e "${YELLOW}[TIP] Libérez de l'espace disque pour permettre le build Docker.${NC}"
+            log "ERROR" "Espace disque critique (${free_mb}MB libre). Impossible de créer un Swap."
+            log "INFO" "Libérez de l'espace disque pour permettre le build Docker."
             return 0
         fi
 
         # Ajuster la taille du swap selon l'espace disponible
         if [ "$target_size_mb" -gt "$available_for_swap" ]; then
             target_size_mb=$available_for_swap
-            echo -e "${YELLOW}[INFO] Espace disque restreint. Ajustement du Swap à ${target_size_mb}MB.${NC}"
+            log "INFO" "Espace disque restreint. Ajustement du Swap à ${target_size_mb}MB."
         fi
 
-        echo -e "${BLUE}[INFO] Création du fichier Swap de ${target_size_mb}MB...${NC}"
+        log "INFO" "Création du fichier Swap de ${target_size_mb}MB..."
         
         # Tentative de création avec fallocate puis dd en secours
         if sudo fallocate -l "${target_size_mb}M" "$swap_file" 2>/dev/null || \
-           sudo dd if=/dev/zero of="$swap_file" bs=1M count="$target_size_mb" status=progress; then
+           sudo dd if=/dev/zero of="$swap_file" bs=1M count="$target_size_mb" status=none; then
             
             sudo chmod 600 "$swap_file"
-            sudo mkswap "$swap_file"
+            sudo mkswap "$swap_file" > /dev/null
             if sudo swapon "$swap_file"; then
                 # Persistance
                 if ! grep -q "$swap_file" /etc/fstab; then
                     echo -e "\n# WG-FUX Swap\n$swap_file none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
                 fi
-                echo -e "${GREEN}[SUCCESS] Swap de ${target_size_mb}MB activé.${NC}"
+                log "SUCCESS" "Swap de ${target_size_mb}MB activé."
             else
-                echo -e "${RED}[ERROR] Échec de l'activation du swap. Nettoyage...${NC}"
+                log "ERROR" "Échec de l'activation du swap. Nettoyage..."
                 sudo rm -f "$swap_file"
             fi
         else
-            echo -e "${RED}[ERROR] Échec physique de création du swap. Nettoyage...${NC}"
+            log "ERROR" "Échec physique de création du swap. Nettoyage..."
             sudo rm -f "$swap_file"
         fi
     fi
 }
 
+# --- Gestion SSL & Let's Encrypt (v6.4) ---
 setup_ssl() {
-    local ssl_dir="infra/ssl"
-    if [ ! -d "$ssl_dir" ]; then mkdir -p "$ssl_dir"; fi
-
-    # Tenter d'abord Let's Encrypt si un domaine est configuré et certbot disponible
-    if [ -n "$SERVER_DOMAIN" ] && command -v certbot &>/dev/null; then
-        echo -e "${BLUE}[INFO] Certbot détecté. Tentative Let's Encrypt pour $SERVER_DOMAIN...${NC}"
-        if certbot certonly --standalone --non-interactive --agree-tos --email "admin@$SERVER_DOMAIN" -d "$SERVER_DOMAIN" 2>/dev/null; then
-            # Installer un renouvellement automatique via cron
-            (crontab -l 2>/dev/null | grep -v 'certbot renew'; \
-             echo "0 3 * * 7 certbot renew --quiet && docker compose -f $(pwd)/docker-compose.yml restart nginx") | crontab -
-            echo -e "${GREEN}[SUCCESS] Certificat Let's Encrypt obtenu. Renouvellement auto planifié (dimanche 03:00).${NC}"
-            # Copier dans le bon répertoire
-            cp "/etc/letsencrypt/live/$SERVER_DOMAIN/fullchain.pem" "$ssl_dir/server.crt" 2>/dev/null || true
-            cp "/etc/letsencrypt/live/$SERVER_DOMAIN/privkey.pem" "$ssl_dir/server.key" 2>/dev/null || true
-            return 0
-        else
-            echo -e "${YELLOW}[WARNING] Let's Encrypt échoué (port 80 bloqué ou domaine invalide). Fallback SSL auto-signé.${NC}"
-        fi
+    printf "\n${CYAN}[STEP 6] Configuration SSL (Let's Encrypt)${NC}\n"
+    printf "${YELLOW}[?] Voulez-vous configurer un nom de domaine et activer le SSL Let's Encrypt ? (y/N): ${NC}"
+    read -r setup_now
+    if [[ ! "$setup_now" =~ ^[yY]$ ]]; then
+        log "INFO" "Configuration SSL ignorée. Utilisation du HTTP standard (Port 80)."
+        return 0
     fi
 
-    if [ ! -f "$ssl_dir/server.crt" ] || [ ! -f "$ssl_dir/server.key" ]; then
-        echo -e "${YELLOW}[INFO] Génération d'un certificat SSL auto-signé (Secours)...${NC}"
-        local ip_for_cert="${SERVER_IP:-$(detect_public_ip)}"
+    printf "${YELLOW}[?] Entrez votre nom de domaine (ex: vpn.mondomaine.com): ${NC}"
+    read -r DOMAIN
+    if [ -z "$DOMAIN" ]; then log "ERROR" "Domaine invalide."; return 1; fi
+
+    printf "${YELLOW}[?] Entrez votre adresse email (pour Let's Encrypt): ${NC}"
+    read -r EMAIL
+    if [ -z "$EMAIL" ]; then log "ERROR" "Email invalide."; return 1; fi
+
+    log "INFO" "Préparation du challenge ACME pour $DOMAIN..."
+    # On s'assure que Nginx tourne pour servir le dossier /var/www/certbot
+    sudo docker compose up -d nginx
+
+    log "INFO" "Demande de certificat auprès de Let's Encrypt..."
+    if sudo docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+        --email "$EMAIL" --agree-tos --no-eff-email -d "$DOMAIN"; then
         
-        if openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-            -keyout "$ssl_dir/server.key" \
-            -out "$ssl_dir/server.crt" \
-            -subj "/C=FR/ST=Sentinel/L=Sentinel/O=WG-FUX/OU=Dashboard/CN=$ip_for_cert" 2>/dev/null; then
-            echo -e "${GREEN}[SUCCESS] SSL auto-signé généré dans $ssl_dir.${NC}"
-        else
-            echo -e "${RED}[ERROR] Échec de la génération SSL. Vérifiez qu'openssl est installé.${NC}"
-        fi
+        log "SUCCESS" "Certificats obtenus avec succès."
+        
+        local nginx_conf="infra/nginx/default.conf"
+        log "INFO" "Mise à jour de la configuration Nginx..."
+        sudo sed -i "s|ssl_certificate /etc/nginx/ssl/server.crt;|ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;|g" "$nginx_conf"
+        sudo sed -i "s|ssl_certificate_key /etc/nginx/ssl/server.key;|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;|g" "$nginx_conf"
+        
+        log "INFO" "Redémarrage du Proxy avec SSL actif..."
+        sudo docker compose restart nginx
+        log "SUCCESS" "Infrastructure sécurisée sur https://$DOMAIN"
     else
-        echo -e "${BLUE}[INFO] Certificats SSL existants trouvés.${NC}"
+        log "ERROR" "Let's Encrypt a échoué. Vérifiez votre DNS et port 80."
     fi
 }
 
 setup_firewall() {
     local port="${SERVER_PORT:-51820}"
-    echo -e "${BLUE}[INFO] Configuration du pare-feu (Ports: 80, 443, $port/udp)...${NC}"
+    log "INFO" "Configuration du pare-feu (Ports: 80, 443, $port/udp)..."
 
     if command -v ufw &> /dev/null; then
-        echo -e "[INFO] Utilisation de UFW..."
+        log "INFO" "Utilisation de UFW..."
         sudo ufw allow 80/tcp 2>/dev/null || true
         sudo ufw allow 443/tcp 2>/dev/null || true
         sudo ufw allow "$port"/udp 2>/dev/null || true
         sudo ufw allow 22/tcp 2>/dev/null || true # Safety for SSH
-        echo -e "${GREEN}[SUCCESS] Règles UFW appliquées.${NC}"
+        log "SUCCESS" "Règles UFW appliquées."
     elif command -v iptables &> /dev/null; then
-        echo -e "[INFO] Utilisation de iptables..."
+        log "INFO" "Utilisation de iptables..."
         sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
         sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
         sudo iptables -I INPUT -p udp --dport "$port" -j ACCEPT 2>/dev/null || true
-        echo -e "${GREEN}[SUCCESS] Règles iptables appliquées.${NC}"
+        log "SUCCESS" "Règles iptables appliquées."
     else
-        echo -e "${YELLOW}[WARNING] Aucun gestionnaire de pare-feu (ufw/iptables) détecté. Ouvrez les ports manuellement.${NC}"
+        log "WARNING" "Aucun gestionnaire de pare-feu (ufw/iptables) détecté. Ouvrez les ports manuellement."
     fi
 }
 
@@ -328,12 +447,18 @@ echo -e "1) Installer / Reconfigurer WG-FUX"
 echo -e "2) Désinstaller WG-FUX"
 echo -e "3) Mettre à jour (Appliquer les modifications de code)"
 echo -e "4) Upgrade (Télécharger depuis GitHub & Mettre à jour)"
-read -rp "Choisissez une option [1-4]: " choice
+echo -e "5) Redémarrage du Proxy API/UI"
+echo -e "6) Audit de Santé (Watcher's Eye)"
+echo -e "7) Configuration SSL (Let's Encrypt / Certbot)"
+read -rp "Choisissez une option [1-7]: " choice
 
 case $choice in
-    2) uninstall ;;
-    3) update_process ;;
-    4) git_upgrade ;;
+    2) uninstall; exit 0 ;;
+    3) update_process; exit 0 ;;
+    4) git_upgrade; exit 0 ;;
+    5) restart_proxy; exit 0 ;;
+    6) health_audit; exit 0 ;;
+    7) setup_ssl; exit 0 ;;
     1) echo -e "${GREEN}[INFO] Initialisation de l'installation/configuration...${NC}" ;;
     *) echo -e "${RED}Option invalide.${NC}"; exit 1 ;;
 esac
@@ -341,16 +466,21 @@ esac
 # 1. Vérification des dépendances
 check_dependency() {
     if ! command -v "$1" &> /dev/null; then
-        echo -e "${RED}[ERROR] $1 n'est pas installé.${NC}"
+        log "ERROR" "$1 n'est pas installé."
         return 1
     fi
     return 0
 }
 
+log "INFO" "Démarrage du processus d'installation..."
+preflight_scan
+
 DEPS_MISSING=0
 check_dependency "docker" || DEPS_MISSING=1
 (docker compose version &>/dev/null) || DEPS_MISSING=1
 check_dependency "wg" || DEPS_MISSING=1
+check_dependency "openssl" || DEPS_MISSING=1
+check_dependency "curl" || DEPS_MISSING=1
 
 if [ $DEPS_MISSING -eq 1 ]; then
     echo -e "${YELLOW}[WARNING] Dépendances manquantes détectées.${NC}"
@@ -374,10 +504,11 @@ fi
 
 # 2. Gestion de la configuration existante
 if [ -f "$API_ENV" ]; then
-    echo -e "${YELLOW}[INFO] Une configuration existante a été détectée.${NC}"
-    read -rp "Voulez-vous écraser la configuration actuelle (.env, hash admin, secrets) ? (y/N): " refresh_conf
+    log "WARNING" "Une configuration existante a été détectée."
+    printf "${YELLOW}[?] Voulez-vous écraser la configuration actuelle (.env, hash admin, secrets) ? (y/N): ${NC}"
+    read -r refresh_conf
     if [[ ! "$refresh_conf" =~ ^[yY]$ ]]; then
-        echo -e "${BLUE}[INFO] Conservation de la configuration actuelle. Lancement du build...${NC}"
+        log "INFO" "Conservation de la configuration actuelle. Lancement du build..."
         update_process
     fi
 fi
@@ -392,8 +523,9 @@ read -rp "Entrez le port WireGuard [51820]: " SERVER_PORT
 SERVER_PORT=${SERVER_PORT:-51820}
 
 # 4. Authentification Admin
-echo -e "\n${GREEN}[STEP 2] Authentification Admin${NC}"
-read -rp "Username [admin]: " ADMIN_USER
+log "INFO" "Étape 2 : Authentification Admin"
+printf "${YELLOW}[?] Username [admin]: ${NC}"
+read -r ADMIN_USER
 ADMIN_USER=${ADMIN_USER:-admin}
 
 read -rsp "Mot de passe admin: " ADMIN_PASS
@@ -401,28 +533,29 @@ echo ""
 SALT=$(openssl rand -hex 16)
 JWT_SECRET=$(openssl rand -hex 32)
 
-echo -e "${GREEN}[INFO] Génération du hash sécurisé (PBKDF2-SHA512 - 600k IT)...${NC}"
-# BUG-FIX: Utiliser un fichier Node temporaire au lieu d'interpolation shell directe
-# L'ancienne méthode: docker run ... -e "... '$ADMIN_PASS' ..." cassait si le MDP contenait ' ou "
+log "INFO" "Génération du hash sécurisé (PBKDF2-SHA512)..."
 BUF_SCRIPT=$(mktemp /tmp/wg-hash-XXXXXX.js)
 cat > "$BUF_SCRIPT" << 'NODESCRIPT'
 const crypto = require('crypto');
 const pass = process.env.WGFUX_PASS;
 const salt = process.env.WGFUX_SALT;
-if (!pass || !salt) { process.stderr.write('Missing WGFUX_PASS or WGFUX_SALT\n'); process.exit(1); }
-console.log(crypto.pbkdf2Sync(pass, salt, 600000, 64, 'sha512').toString('hex'));
+if (!pass || !salt) { process.exit(1); }
+process.stdout.write(crypto.pbkdf2Sync(pass, salt, 600000, 64, 'sha512').toString('hex'));
 NODESCRIPT
+
 ADMIN_HASH=$(WGFUX_PASS="$ADMIN_PASS" WGFUX_SALT="$SALT" node "$BUF_SCRIPT" 2>/dev/null || \
-    docker run --rm -e "WGFUX_PASS=$ADMIN_PASS" -e "WGFUX_SALT=$SALT" \
-        -v "$BUF_SCRIPT:/tmp/hash.js:ro" node:20-slim node /tmp/hash.js)
+    sudo docker run --rm -e "WGFUX_PASS=$ADMIN_PASS" -e "WGFUX_SALT=$SALT" \
+        -v "$BUF_SCRIPT:/tmp/hash.js:ro" node:20-slim node /tmp/hash.js 2>/dev/null)
+
 rm -f "$BUF_SCRIPT"
 if [ -z "$ADMIN_HASH" ]; then
-    echo -e "${RED}[ERROR] Échec de la génération du hash. Vérifiez que node ou docker est installé.${NC}"
+    log "ERROR" "Échec de la génération du hash. Assurez-vous que Node.js ou Docker est fonctionnel."
     exit 1
 fi
+log "SUCCESS" "Hash généré avec succès."
 
 # 5. WireGuard Keys
-echo -e "\n${GREEN}[STEP 3] Génération des clés WireGuard${NC}"
+log "INFO" "Étape 3 : Génération des clés WireGuard"
 if [ ! -d "$WG_DIR" ]; then sudo mkdir -p "$WG_DIR"; fi
 
 if [ ! -f "$WG_DIR/server-private.key" ]; then
@@ -431,26 +564,26 @@ if [ ! -f "$WG_DIR/server-private.key" ]; then
     echo "$PRIV_KEY" | sudo tee "$WG_DIR/server-private.key" > /dev/null
     echo "$PUB_KEY" | sudo tee "$WG_DIR/server-public.key" > /dev/null
     sudo chmod 600 "$WG_DIR/server-private.key"
-    echo -e "${GREEN}[INFO] Nouvelles clés générées.${NC}"
+    log "SUCCESS" "Nouvelles clés WireGuard générées dans $WG_DIR."
 else
-    echo -e "[INFO] Utilisation des clés existantes dans $WG_DIR"
+    log "INFO" "Utilisation des clés existantes dans $WG_DIR."
 fi
 
 # 5. Écriture des fichiers
-echo -e "\n${GREEN}[STEP 4] Préparation des scripts utilitaires${NC}"
+log "INFO" "Étape 4 : Préparation des scripts utilitaires"
 # Note: L'API utilise désormais getScriptPath pour une résolution interne robuste.
 # On garde les liens symboliques pour l'usage manuel dans le terminal.
 SCRIPT_DIR="$(pwd)/core-vpn/scripts"
 for script in "$SCRIPT_DIR"/wg-*.sh; do
     if [ -f "$script" ]; then
         target="/usr/local/bin/$(basename "$script")"
-        echo -e "[INFO] Lien symbolique : $(basename "$script") -> $target"
+        log "INFO" "Lien symbolique : $(basename "$script") -> $target"
         sudo ln -sf "$script" "$target"
         sudo chmod +x "$target"
     fi
 done
 
-echo -e "\n${GREEN}[STEP 5] Écriture des fichiers de configuration${NC}"
+log "INFO" "Étape 5 : Écriture des fichiers de configuration"
 
 cat <<EOF | sudo tee "$WG_DIR/manager.conf" > /dev/null
 SERVER_IP="$SERVER_IP"
@@ -458,9 +591,9 @@ SERVER_PORT="$SERVER_PORT"
 VPN_SUBNET=10.0.0.0/24
 VPN_SUBNET_V6=fd00::/64
 CLIENT_DNS=1.1.1.1
-SERVER_MTU=1420
+SERVER_MTU=1280
 WG_INTERFACE=wg0
-PERSISTENT_KEEPALIVE=25
+PERSISTENT_KEEPALIVE=5
 EOF
 
 # Sync or create wg0.conf
@@ -470,48 +603,46 @@ cat <<EOF | sudo tee "$WG_DIR/wg0.conf" > /dev/null
 Address = 10.0.0.1/24, fd00::1/64
 ListenPort = $SERVER_PORT
 PrivateKey = $PRIV_KEY_VAL
-MTU = 1420
+MTU = 1280
 SaveConfig = false
 
 PostUp = /usr/local/bin/wg-postup.sh %i
 PostDown = /usr/local/bin/wg-postdown.sh %i
 EOF
 
-cat <<EOF > "$API_ENV"
-PORT=3000
-JWT_SECRET="$JWT_SECRET"
-SERVER_IP="$SERVER_IP"
-WG_INTERFACE=wg0
-ADMIN_USER="$ADMIN_USER"
-ADMIN_PASSWORD_HASH="$ADMIN_HASH"
-ADMIN_PASSWORD_SALT="$SALT"
-EOF
+# BUG-FIX: JWT_SECRET écrit directement via printf sans passer par une variable shell
+# intermédiaire exposée (protège contre set -x, ps aux, /proc/environ leaks)
+printf 'PORT=3000\nJWT_SECRET="%s"\nSERVER_IP="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\n' \
+  "$JWT_SECRET" "$SERVER_IP" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
+unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS
 
 # 6. Sentinel & Alerts
-echo -e "\n${GREEN}[STEP 6] Sentinel Monitoring & Alerts (SRE)${NC}"
-read -rp "Voulez-vous activer les alertes Telegram via Bot API ? (y/N): " enable_telegram
+log "INFO" "Étape 6 : Sentinel Monitoring & Alerts (SRE)"
+printf "${YELLOW}[?] Voulez-vous activer les alertes Telegram via Bot API ? (y/N): ${NC}"
+read -r enable_telegram
 if [[ "$enable_telegram" =~ ^[yY]$ ]]; then
-    read -rp "Entrez le Telegram Bot Token: " TG_TOKEN
-    read -rp "Entrez le Telegram Chat ID: " TG_CHATID
+    printf "${YELLOW}[?] Entrez le Telegram Bot Token: ${NC}"
+    read -r TG_TOKEN
+    printf "${YELLOW}[?] Entrez le Telegram Chat ID: ${NC}"
+    read -r TG_CHATID
     echo "TELEGRAM_BOT_TOKEN=\"$TG_TOKEN\"" | sudo tee /etc/wireguard/sentinel.conf > /dev/null
     echo "TELEGRAM_CHAT_ID=\"$TG_CHATID\"" | sudo tee -a /etc/wireguard/sentinel.conf > /dev/null
-    echo -e "${GREEN}[INFO] Configuration Telegram sauvegardée dans /etc/wireguard/sentinel.conf${NC}"
+    log "SUCCESS" "Configuration Telegram sauvegardée dans /etc/wireguard/sentinel.conf"
 else
-    echo -e "${YELLOW}[INFO] Alertes Telegram ignorées.${NC}"
+    log "INFO" "Alertes Telegram ignorées."
 fi
 
-echo -e "\n${BLUE}[INFO] Installation du service Sentinel Watchdog...${NC}"
+log "INFO" "Installation du service Sentinel Watchdog..."
 sudo cp "$(pwd)/core-vpn/scripts/sentinel.service" /etc/systemd/system/sentinel.service
-# Mise à jour du chemin dans l'unité systemd si nécessaire
 sudo sed -i "s|WorkingDirectory=.*|WorkingDirectory=$(pwd)|" /etc/systemd/system/sentinel.service
 sudo sed -i "s|ExecStart=.*|ExecStart=/bin/bash $(pwd)/core-vpn/scripts/sentinel.sh|" /etc/systemd/system/sentinel.service
 
 sudo systemctl daemon-reload
 sudo systemctl enable sentinel.service
 sudo systemctl restart sentinel.service
-echo -e "${GREEN}[SUCCESS] Sentinel Watchdog est actif et surveille le système.${NC}"
+log "SUCCESS" "Sentinel Watchdog est actif et surveille le système."
 
 # 7. Finalisation & Lancement
-echo -e "\n${GREEN}[SUCCESS] Configuration terminée.${NC}"
-echo -e "${BLUE}[TIP] Après le lancement, vous pouvez activer la 2FA (TOTP) via le Dashboard ou l'endpoint /api/auth/2fa/setup.${NC}"
+log "SUCCESS" "Configuration terminée."
+setup_ssl
 update_process
