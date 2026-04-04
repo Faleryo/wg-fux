@@ -254,7 +254,7 @@ router.get('/optimize', auth, async (req, res) => {
 
 router.post('/optimize', auth, requireAdmin, async (req, res) => {
   const { profile } = req.body;
-  const validProfiles = ['gaming', 'streaming', 'auto'];
+  const validProfiles = ['gaming', 'streaming', 'auto', 'restore', 'default', 'disable'];
   if (!profile || !validProfiles.includes(profile)) {
     return res.status(400).json({ error: 'Invalid optimization profile' });
   }
