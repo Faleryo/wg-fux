@@ -16,7 +16,7 @@ const OptimizationSection = ({ systemStats }) => {
   const [loading, setLoading] = useState(false);
   const [currentProfile, setCurrentProfile] = useState('');
   const [cpuHistory, setCpuHistory] = useState([]);
-  const [isEnabled, setIsEnabled] = useState(true);
+  const [isEnabled, setIsEnabled] = useState(false);
   const [telemetry, setTelemetry] = useState({ jitter: '...', mtu: '...', bufferbloat: '...' });
 
   useEffect(() => {
@@ -31,7 +31,10 @@ const OptimizationSection = ({ systemStats }) => {
   const fetchActiveProfile = async () => {
     try {
       const res = await axiosInstance.get('/system/optimize');
-      setCurrentProfile(res.data.profile);
+      const profile = res.data.profile;
+      setCurrentProfile(profile);
+      // SRE Logic: Only enable toggle if a real optimization is active
+      setIsEnabled(profile !== 'default' && profile !== 'restore' && profile !== 'disable');
     } catch { /* Default to none */ }
   };
 

@@ -57,12 +57,13 @@ if [ -z "${PROFILE:-}" ]; then
 fi
 
 log "=== Starting Network Optimization: Profile → $PROFILE ==="
-echo "$PROFILE" > "$STATE_FILE" 2>/dev/null || true
+# SRE Fix: State writing moved inside respective profile blocks to avoid false-positives
 
 # ============================================================
 # PROFILE: GAMING — Ultra Low Latency (cible: ≤20ms RTT)
 # ============================================================
 if [ "$PROFILE" = "gaming" ]; then
+    echo "gaming" > "$STATE_FILE" 2>/dev/null || true
     log "🎮 Gaming Mode : Ultra Low Latency — Target ≤20ms RTT"
 
     # ----------------------------------------------------------
@@ -200,6 +201,7 @@ if [ "$PROFILE" = "gaming" ]; then
 # PROFILE: STREAMING — High Throughput (4K/8K, backup)
 # ============================================================
 elif [ "$PROFILE" = "streaming" ]; then
+    echo "streaming" > "$STATE_FILE" 2>/dev/null || true
     log "📺 Streaming Mode : High Throughput"
 
     # Buffers larges = débit important, latence secondaire
@@ -240,6 +242,7 @@ elif [ "$PROFILE" = "streaming" ]; then
 # PROFILE: AUTO — Détection heuristique
 # ============================================================
 elif [ "$PROFILE" = "auto" ]; then
+    # Note: State file will be written by the sub-call to gaming or streaming
     log "🤖 Auto Mode : Analyse heuristique..."
     # Mesure la latence du gateway : si < 10ms → Gaming, sinon Streaming
     GW=$(ip route | grep default | awk '{print $3}' | head -n1)
