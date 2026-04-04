@@ -532,6 +532,7 @@ read -rsp "Mot de passe admin: " ADMIN_PASS
 echo ""
 SALT=$(openssl rand -hex 16)
 JWT_SECRET=$(openssl rand -hex 32)
+SENTINEL_TOKEN=$(openssl rand -hex 24)
 
 log "INFO" "Génération du hash sécurisé (PBKDF2-SHA512)..."
 BUF_SCRIPT=$(mktemp /tmp/wg-hash-XXXXXX.js)
@@ -613,8 +614,9 @@ EOF
 # BUG-FIX: JWT_SECRET écrit directement via printf sans passer par une variable shell
 # intermédiaire exposée (protège contre set -x, ps aux, /proc/environ leaks)
 # BUG-FIX: Force ALLOWED_ORIGINS dynamique (Wildcard refusé en prod) et NODE_ENV=production pour corriger le crash API
-printf 'PORT=3000\nNODE_ENV="production"\nALLOWED_ORIGINS="http://%s,https://%s"\nJWT_SECRET="%s"\nSERVER_IP="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\n' \
-  "$SERVER_IP" "$SERVER_IP" "$JWT_SECRET" "$SERVER_IP" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
+# SRE: Inclusion du SENTINEL_TOKEN pour le watchdog interne
+printf 'PORT=3000\nNODE_ENV="production"\nSENTINEL_TOKEN="%s"\nALLOWED_ORIGINS="http://%s,https://%s,http://localhost:3000,http://127.0.0.1:3000"\nJWT_SECRET="%s"\nSERVER_IP="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\n' \
+  "$SENTINEL_TOKEN" "$SERVER_IP" "$SERVER_IP" "$JWT_SECRET" "$SERVER_IP" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
 unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS
 
 # 6. Sentinel & Alerts
@@ -640,6 +642,7 @@ sudo sed -i "s|ExecStart=.*|ExecStart=/bin/bash $(pwd)/core-vpn/scripts/sentinel
 
 sudo systemctl daemon-reload
 sudo systemctl enable sentinel.service
+SENTINEL_TOKEN="$SENTINEL_TOKEN" sudo -E bash -c 'echo "SENTINEL_TOKEN=\"$SENTINEL_TOKEN\"" > core-vpn/scripts/sentinel.env'
 sudo systemctl restart sentinel.service
 log "SUCCESS" "Sentinel Watchdog est actif et surveille le système."
 

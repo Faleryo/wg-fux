@@ -7,6 +7,10 @@ source "$SCRIPT_DIR/wg-common.sh"
 
 LOG_FILE="/var/log/wg-sentinel.log"
 # Sentinel Token - Shared secret between this watchdog and the API
+# SRE: Load from local env file if present (managed by setup.sh)
+if [ -f "$SCRIPT_DIR/sentinel.env" ]; then
+    source "$SCRIPT_DIR/sentinel.env"
+fi
 TOKEN="${SENTINEL_TOKEN:-vibe-sentinel-trust-99}"
 HEARTBEAT_URL="http://localhost:3000/api/sentinel/heartbeat"
 HEALTH_URL="http://localhost:3000/api/health"
