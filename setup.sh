@@ -136,14 +136,19 @@ uninstall() {
     log "INFO" "Nettoyage des outils utilitaires..."
     sudo rm -f /usr/local/bin/wg-*.sh 2>/dev/null || true
 
-    local swap_file="/swap_wgfux"
     if [ -f "$swap_file" ]; then
         printf "${YELLOW}[?] Voulez-vous supprimer le fichier Swap ($swap_file) créé par WG-FUX ? (y/N): ${NC}"
         read -r purge_swap
         if [[ "$purge_swap" =~ ^[yY]$ ]]; then
-            log "INFO" "Désactivation et suppression du Swap..."
-            sudo swapoff "$swap_file" 2>/dev/null || true
-            sudo rm -f "$swap_file"
+            log "INFO" "Désactivation et suppression du Swap (Optimisation RAM)..."
+            # SRE Hack: Libérer les caches pour permettre le swapoff
+            sync; sudo tee /proc/sys/vm/drop_caches <<< 3 > /dev/null 2>&1 || true
+            if sudo swapoff "$swap_file" 2>/dev/null; then
+                sudo rm -f "$swap_file"
+                log "INFO" "Swap désactivé et supprimé."
+            else
+                log "WARNING" "Impossible de désactiver le Swap à chaud (RAM insuffisante). Suppression différée au prochain reboot."
+            fi
             sudo sed -i "\|# WG-FUX Swap|d" /etc/fstab 2>/dev/null || true
             sudo sed -i "\|$swap_file|d" /etc/fstab 2>/dev/null || true
         fi
