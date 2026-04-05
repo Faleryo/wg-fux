@@ -163,6 +163,26 @@ uninstall() {
         log "INFO" "Conservation de $WG_DIR."
     fi
 
+    printf "${YELLOW}[?] Voulez-vous désinstaller Docker et supprimer TOUTES les données système associées (Images, Volumes, Config) ? (y/N): ${NC}"
+    read -r purge_docker
+    if [[ "$purge_docker" =~ ^[yY]$ ]]; then
+        log "WARNING" "Purge complète de Docker lancée..."
+        sudo systemctl stop docker containerd 2>/dev/null || true
+        # Tentative de suppression des paquets
+        if command -v apt-get &>/dev/null; then
+            sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-bin 2>/dev/null || true
+            sudo apt-get autoremove -y 2>/dev/null || true
+        fi
+        # Nettoyage des répertoires de données
+        sudo rm -rf /var/lib/docker
+        sudo rm -rf /etc/docker
+        sudo rm -rf /var/run/docker.sock
+        sudo rm -rf ~/.docker
+        sudo rm -rf /var/lib/containerd
+        sudo groupdel docker 2>/dev/null || true
+        log "SUCCESS" "Docker et ses configurations ont été complètement retirés."
+    fi
+
     log "SUCCESS" "Désinstallation terminée."
     exit 0
 }
