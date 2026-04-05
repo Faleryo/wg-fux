@@ -39,6 +39,14 @@ log() {
     esac
 }
 
+# 💠 SRE: Initialisation et Export global de l'environnement (.env)
+if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+    log "INFO" "Environnement chargé depuis .env (Domain: ${DOMAIN:-N/A})"
+fi
+
 # Gestion des erreurs
 cleanup() {
     local exit_code=$?
@@ -249,7 +257,12 @@ update_process() {
     fi
 
     # 💠 SRE: Backup current config before update
-    log "INFO" "Sauvegarde de la configuration actuelle (.env)..."
+    log "INFO" "Sauvegarde et Export global de l'env actuelle"
+    if [ -f .env ]; then
+        set -a
+        source .env
+        set +a
+    fi
     cp "$API_ENV" "${API_ENV}.bak" 2>/dev/null || true
 
     # 💠 SRE Optimization: Check disk before build

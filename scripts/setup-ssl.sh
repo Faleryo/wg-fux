@@ -20,16 +20,20 @@ if [ ! -f "docker-compose.yml" ]; then
     exit 1
 fi
 
-printf "%b[?] Entrez votre nom de domaine (ex: vpn.example.com): %b" "${YELLOW}" "${NC}"
-read -r DOMAIN
+# 💠 SRE: Chargement de la config existante si disponible
+if [ -f .env ]; then
+    source .env
+fi
+
+if [ -z "$DOMAIN" ]; then
+    printf "%b[?] Entrez votre nom de domaine (ex: vpn.example.com): %b" "${YELLOW}" "${NC}"
+    read -r DOMAIN
+fi
 
 if [ -z "$DOMAIN" ]; then
     echo -e "${RED}[ERROR] Le nom de domaine est obligatoire.${NC}"
     exit 1
 fi
-
-printf "%b[?] Entrez votre adresse email (pour les notifications Let's Encrypt): %b" "${YELLOW}" "${NC}"
-read -r EMAIL
 
 if [ -z "$EMAIL" ]; then
     echo -e "${RED}[ERROR] L'adresse email est obligatoire.${NC}"
@@ -47,8 +51,9 @@ docker run --rm -v "$(pwd)_certbot_certs:/etc/letsencrypt" alpine sh -c \
     -out /etc/letsencrypt/live/$DOMAIN/fullchain.pem \
     -subj '/CN=$DOMAIN'" > /dev/null 2>&1
 
-log "Démarrage de Nginx (Port 80 pour le challenge)..."
-docker compose up -d nginx
+log "Démarrage complet de l'infrastructure pour le challenge ACME..."
+# 💠 SRE: On lance tout pour garantir que Nginx peut résoudre les upstreams (API, AdGuard)
+docker compose up -d
 
 # 💠 Vibe-OS v6.5 Pre-flight Diagnostic
 chmod +x .vibe/tools/check-port80.sh
