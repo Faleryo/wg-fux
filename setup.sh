@@ -192,27 +192,35 @@ uninstall() {
             log "INFO" "Suppression des images locales et purge du builder..."
             sudo docker compose down --rmi local 2>/dev/null || true
             sudo docker image prune -f 2>/dev/null || true
-            sudo docker builder prune -f 2>/dev/null || true
         fi
     fi
 
-    # Nettoyage du Pare-feu (SRE Hardening)
-    log "INFO" "Nettoyage des règles du pare-feu..."
+    # Nettoyage du Pare-feu (SRE Surgical)
+    log "INFO" "Nettoyage des règles du pare-feu pour WG-FUX..."
     local port
     if [ -f "$WG_DIR/manager.conf" ]; then
         port=$(grep SERVER_PORT "$WG_DIR/manager.conf" | cut -d'"' -f2)
     fi
     port=${port:-51820}
-    if command -v ufw &> /dev/null; then
-        sudo ufw delete allow 80/tcp 2>/dev/null || true
-        sudo ufw delete allow 443/tcp 2>/dev/null || true
+    
+    printf "%b[?] Voulez-vous retirer les règles de pare-feu pour le port WireGuard ($port/udp) ? (y/N): %b" "${YELLOW}" "${NC}"
+    read -r drop_wg_port
+    if [[ "$drop_wg_port" =~ ^[yY]$ ]]; then
         sudo ufw delete allow "$port"/udp 2>/dev/null || true
-        log "SUCCESS" "Règles UFW retirées."
-    elif command -v iptables &> /dev/null; then
-        sudo iptables -D INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
-        sudo iptables -D INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
         sudo iptables -D INPUT -p udp --dport "$port" -j ACCEPT 2>/dev/null || true
-        log "SUCCESS" "Règles iptables retirées."
+    fi
+
+    printf "%b[?] Voulez-vous retirer les règles pour les ports Web (80/443) ? (ATTENTION: Ne faites pas cela si d'autres sites sont hébergés sur ce serveur) (y/N): %b" "${YELLOW}" "${NC}"
+    read -r drop_web_ports
+    if [[ "$drop_web_ports" =~ ^[yY]$ ]]; then
+        if command -v ufw &> /dev/null; then
+            sudo ufw delete allow 80/tcp 2>/dev/null || true
+            sudo ufw delete allow 443/tcp 2>/dev/null || true
+        elif command -v iptables &> /dev/null; then
+            sudo iptables -D INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
+            sudo iptables -D INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
+        fi
+        log "SUCCESS" "Règles Web retirées."
     fi
 
     log "INFO" "Désactivation du service Sentinel..."
@@ -255,22 +263,9 @@ uninstall() {
         sudo rm -rf "$WG_DIR"
     fi
 
-    printf "%b[?] Voulez-vous désinstaller l'infrastructure Docker complète (Purge système CE+IO) ? (y/N): %b" "${YELLOW}" "${NC}"
-    read -r purge_docker
-    if [[ "$purge_docker" =~ ^[yY]$ ]]; then
-        log "WARNING" "Purge complète de Docker (CE + IO) lancée..."
-        sudo systemctl stop docker docker.socket containerd 2>/dev/null || true
-        if command -v apt-get &>/dev/null; then
-            # 💠 SRE: On purge TOUTES les variantes possibles pour une réinstallation propre
-            sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
-                docker.io docker-doc docker-compose-v2 podman-docker runc 2>/dev/null || true
-            sudo apt-get autoremove -y 2>/dev/null || true
-        fi
-        sudo rm -rf /var/lib/docker /etc/docker /var/run/docker.sock /var/lib/containerd /var/run/docker.pid
-        log "SUCCESS" "Environnement Docker complètement nettoyé."
-    fi
-
-    log "SUCCESS" "Désinstallation terminée."
+    log "SUCCESS" "Désinstallation de WG-FUX terminée."
+    log "INFO" "Note: Le moteur Docker et les outils système sont restés intacts pour vos autres applications."
+    exit 0
     exit 0
 }
 
