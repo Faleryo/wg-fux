@@ -84,6 +84,14 @@ const writeFileAsRoot = async (filePath, content) => {
 };
 
 /**
+ * Append to a file with sudo if necessary (via tee -a)
+ */
+const appendFileAsRoot = async (filePath, content) => {
+  const { success, error, code } = await runSystemCommand('tee', ['-a', filePath], content);
+  return { success, error, code };
+};
+
+/**
  * Delete a file with sudo if necessary
  */
 const unlinkAsRoot = async (filePath) => {
@@ -104,6 +112,7 @@ module.exports = {
   runCommand,
   runSystemCommand,
   writeFileAsRoot,
+  appendFileAsRoot,
   unlinkAsRoot,
   readdirAsRoot,
   SUDO,

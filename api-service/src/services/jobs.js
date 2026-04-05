@@ -3,7 +3,7 @@ const fsPromises = require('fs').promises;
 const schedule = require('node-schedule');
 const { db, schema } = require('../../db');
 const { eq, and, lt } = require('drizzle-orm');
-const { runSystemCommand } = require('./shell');
+const { runSystemCommand, appendFileAsRoot } = require('./shell');
 const { getWireGuardStats } = require('./system');
 const log = require('./logger');
 // BUG-FIX: Utiliser getScriptPath pour une résolution cohérente des scripts (comme clients.js)
@@ -98,7 +98,7 @@ const updateUsage = async () => {
     
     if (enfOut || enfErr) {
       const logContent = `${new Date().toISOString()} - ${(enfOut || enfErr).trim().replace(/\n/g, ' ')}\n`;
-      await runSystemCommand('bash', ['-c', `echo "${logContent.replace(/"/g, '\\"')}" >> /var/log/wg-enforcer.log`]).catch(() => {});
+      await appendFileAsRoot('/var/log/wg-enforcer.log', logContent).catch(() => {});
     }
   } catch (e) {
     console.error('[JOB] Usage Update Error:', e);

@@ -28,7 +28,7 @@ fi
 if [ -n "$DOMAIN" ]; then
     # Try to get IP using dig or host
     if command -v dig &>/dev/null; then
-        RESOLVED_IP=$(dig +short "$DOMAIN" --time=2 --tries=1 | tail -n1)
+        RESOLVED_IP=$(dig +short "$DOMAIN" +time=2 +tries=1 | tail -n1)
     fi
     if [ -z "$RESOLVED_IP" ]; then
         RESOLVED_IP=$(host "$DOMAIN" 2>/dev/null | awk '/has address/ { print $4 }' | head -n1)
@@ -48,7 +48,7 @@ if [ -n "$DOMAIN" ]; then
     
     # Check AAAA record
     if command -v dig &>/dev/null; then
-        AAAA_RECORD=$(dig +short AAAA "$DOMAIN" --time=2 --tries=1)
+        AAAA_RECORD=$(dig +short AAAA "$DOMAIN" +time=2 +tries=1)
     fi
     if [ -n "$AAAA_RECORD" ]; then
         echo -e "${YELLOW}[WARNING] Enregistrement IPv6 (AAAA) détecté pour $DOMAIN.${NC}"

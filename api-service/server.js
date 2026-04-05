@@ -292,10 +292,15 @@ server.on('upgrade', (request, socket, head) => {
   }
 });
 
-// BUG-FIX: 404 handler for unknown /api/* routes (must be before Global Error Handler, but after all /api/ endpoints)
-app.use('/api', (req, res) => {
-  log.warn('http', '404 API endpoint not found', { path: req.originalUrl, method: req.method });
-  res.status(404).json({ error: 'API endpoint not found', path: req.originalUrl });
+// BUG-FIX: 404 handler for all non-API and unknown /api/* routes
+// Prevents ghost 404s in logs for /favicon.ico or / if wrongly routed to API.
+app.use((req, res) => {
+  log.warn('http', 'Route not found in API container', { path: req.originalUrl, method: req.method });
+  res.status(404).json({ 
+    error: 'Not Found', 
+    message: 'This is the API container. Requested resource not found here.',
+    path: req.originalUrl 
+  });
 });
 
 // --- Security & Metadata Middleware (must be before routes, applied via header hook) ---

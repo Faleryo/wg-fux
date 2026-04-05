@@ -335,7 +335,7 @@ install_deps() {
 detect_public_ip() {
     local result
     for service in "ifconfig.me" "api.ipify.org" "ident.me"; do
-        result=$(curl -s --max-time 3 "$service" 2>/dev/null)
+        result=$(curl -4 -s --max-time 3 "$service" 2>/dev/null)
         if [[ $result =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
             echo "$result"
             return 0
