@@ -16,10 +16,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
 BOLD='\033[1m'
-NC='\033[0m'
 NC='\033[0m'
 
 # Fichiers & Logs
@@ -60,7 +57,7 @@ WG_DIR="/etc/wireguard"
 SWAP_FILE="/swap_wgfux"
 
 preflight_scan() {
-    log "INFO" "Lancement du Scan de Pré-vol (v6.4 Precision Scanner)..."
+    log "INFO" "Lancement du Scan de Pré-vol (v6.5 Multilingual Guardian)..."
     
     # 1. Architecture CPU
     local arch; arch=$(uname -m)
@@ -192,7 +189,7 @@ uninstall() {
         if [[ "$purge_swap" =~ ^[yY]$ ]]; then
             log "INFO" "Désactivation et suppression du Swap..."
             sync; sudo tee /proc/sys/vm/drop_caches <<< 3 > /dev/null 2>&1 || true
-            if sudo swapoff "$SWAP_FILE" 2>/dev/null; then
+            if sudo swapoff "$SWAP_FILE" 2>/dev/null || ! swapon --show | grep -q "$SWAP_FILE"; then
                 sudo rm -f "$SWAP_FILE"
                 log "INFO" "Swap désactivé et supprimé."
             else
@@ -235,10 +232,10 @@ restart_proxy() {
 }
 
 health_audit() {
-    log "INFO" "Lancement de l'Audit de Santé (Watcher's Eye v6.4)..."
-    if [ -f "./.vibe/tools/vibe-audit-v6.3.sh" ]; then
-        chmod +x ./.vibe/tools/vibe-audit-v6.3.sh
-        ./.vibe/tools/vibe-audit-v6.3.sh
+    log "INFO" "Lancement de l'Audit de Santé (The Multilingual Guardian v6.5)..."
+    if [ -f "./.vibe/tools/vibe-audit-v6.5.sh" ]; then
+        chmod +x ./.vibe/tools/vibe-audit-v6.5.sh
+        ./.vibe/tools/vibe-audit-v6.5.sh
     else
         log "ERROR" "Script d'audit introuvable."
     fi

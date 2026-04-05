@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 💠 Vibe-OS v6.3 "The Watcher's Eye" — SYSTEM PROOF
+# 💠 Vibe-OS v6.5 "The Multilingual Guardian" — SYSTEM PROOF
 # Description: Mathematical verification of infrastructure integrity.
 
 RED='\033[0;31m'
@@ -11,14 +11,14 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 echo -e "${CYAN}================================================================${NC}"
-echo -e "${CYAN}    💠 VIBE-OS v6.3 : THE WATCHER'S EYE - PRODUCTION PROOF 💠    ${NC}"
+echo -e "${CYAN}  💠 VIBE-OS v6.5 : THE MULTILINGUAL GUARDIAN - PROD PROOF 💠    ${NC}"
 echo -e "${CYAN}================================================================${NC}"
 
 # 1. VERSION & MEMORY CHECK
 echo -e "\n${BLUE}[1/4] SYSTEM IDENTITY & CONTEXT${NC}"
 if [ -f "VIBE-OS.md" ]; then
-    VERSION=$(grep -m 1 "v6.3" VIBE-OS.md | cut -d ' ' -f 2)
-    echo -e "  > Protocol Version : ${GREEN}${VERSION:-v6.3}${NC} [OBSIDIAN STATUS]"
+    VERSION=$(grep -m 1 "v6.5" VIBE-OS.md | cut -d ' ' -f 2)
+    echo -e "  > Protocol Version : ${GREEN}${VERSION:-v6.5}${NC} [OBSIDIAN STATUS]"
 else
     echo -e "  > Protocol Version : ${RED}UNKNOWN${NC}"
 fi
@@ -54,7 +54,7 @@ done
 # 4. SECURITY PRIMITIVES (RED TEAMING READY)
 echo -e "\n${BLUE}[4/4] SECURITY & RED TEAMING READINESS${NC}"
 if [ -d "knowledge" ] && [ -f "knowledge/escalation_matrix.md" ]; then
-    echo -e "  > Escalation Matrix: ${GREEN}LOADED${NC} (v6.3 HITL Protocol)"
+    echo -e "  > Escalation Matrix: ${GREEN}LOADED${NC} (v6.5 HITL Protocol)"
 else
     echo -e "  > Escalation Matrix: ${RED}MISSING${NC}"
 fi
@@ -66,5 +66,5 @@ else
 fi
 
 echo -e "\n${CYAN}================================================================${NC}"
-echo -e "${GREEN}  PREUVE MATHÉMATIQUE ÉTABLIE : VIBE-OS v6.3 EST OPÉRATIONNEL.${NC}"
+echo -e "${GREEN}  PREUVE MATHÉMATIQUE ÉTABLIE : VIBE-OS v6.5 EST OPÉRATIONNEL.${NC}"
 echo -e "${CYAN}================================================================${NC}"

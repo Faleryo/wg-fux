@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# WG-FUX SSL Setup Script (v6.4)
+# WG-FUX SSL Setup Script (v6.5 - The Multilingual Guardian)
 # Automates Let's Encrypt certificate issuance via Certbot
 # ============================================================
 
@@ -40,7 +40,7 @@ log "Démarrage des services temporaires pour le challenge ACME..."
 # On s'assure que Nginx tourne pour servir le dossier /var/www/certbot
 docker compose up -d nginx
 
-# 💠 Vibe-OS v6.4 Pre-flight Diagnostic
+# 💠 Vibe-OS v6.5 Pre-flight Diagnostic
 chmod +x .vibe/tools/check-port80.sh
 # Note: On essaie de détecter l'IP si elle n'est pas passée en env
 DETECTED_IP=$(curl -s ifconfig.me 2>/dev/null || echo "127.0.0.1")

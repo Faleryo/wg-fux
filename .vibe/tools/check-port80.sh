@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# WG-FUX Port 80 & DNS Diagnostic Tool (v6.4)
+# WG-FUX Port 80 & DNS Diagnostic Tool (v6.5)
 # Used to verify environment before Let's Encrypt challenge.
 # ============================================================
 
@@ -13,7 +13,7 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${CYAN}[DIAGNOSTIC] Lancement des vérifications pré-vol Let's Encrypt...${NC}"
+echo -e "${CYAN}[DIAGNOSTIC] Lancement des vérifications pré-vol Let's Encrypt (v6.5)...${NC}"
 
 # 1. Vérification locale (Nginx écoute ?)
 if ss -tuln | grep -q ":80 "; then
@@ -27,7 +27,9 @@ fi
 # 2. Vérification DNS (Si domaine fourni)
 if [ -n "$DOMAIN" ]; then
     # Try to get IP using dig or host
-    RESOLVED_IP=$(dig +short "$DOMAIN" | tail -n1)
+    if command -v dig &>/dev/null; then
+        RESOLVED_IP=$(dig +short "$DOMAIN" --time=2 --tries=1 | tail -n1)
+    fi
     if [ -z "$RESOLVED_IP" ]; then
         RESOLVED_IP=$(host "$DOMAIN" 2>/dev/null | awk '/has address/ { print $4 }' | head -n1)
     fi
@@ -45,7 +47,9 @@ if [ -n "$DOMAIN" ]; then
     fi
     
     # Check AAAA record
-    AAAA_RECORD=$(dig +short AAAA "$DOMAIN")
+    if command -v dig &>/dev/null; then
+        AAAA_RECORD=$(dig +short AAAA "$DOMAIN" --time=2 --tries=1)
+    fi
     if [ -n "$AAAA_RECORD" ]; then
         echo -e "${YELLOW}[WARNING] Enregistrement IPv6 (AAAA) détecté pour $DOMAIN.${NC}"
         echo -e "${YELLOW}[TIP] Let's Encrypt privilégie l'IPv6. S'il n'est pas configuré sur le VPS, le challenge échouera.${NC}"
