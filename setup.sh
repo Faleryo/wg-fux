@@ -298,6 +298,7 @@ install_deps() {
     if command -v apt-get &> /dev/null; then
         sudo apt-get update
         sudo apt-get install -y docker.io docker-compose-v2 wireguard-tools openssl curl nodejs
+        sudo systemctl enable --now docker
     else
         log "ERROR" "Gestionnaire de paquets 'apt' non trouvé. Veuillez installer manuellement : docker, docker-compose-v2, wireguard-tools, openssl, curl, nodejs."
         exit 1
@@ -420,7 +421,8 @@ setup_ssl() {
 
     log "INFO" "Préparation du challenge ACME pour $DOMAIN..."
     # On s'assure que Nginx tourne pour servir le dossier /var/www/certbot
-    sudo docker compose up -d nginx
+    # SRE: --no-deps permet de lancer Nginx seul sans attendre le build de l'API/UI
+    sudo docker compose up -d --no-deps nginx
 
     # Diagnostic pré-vol (Vibe-OS v6.4)
     chmod +x .vibe/tools/check-port80.sh
@@ -526,7 +528,13 @@ preflight_scan
 
 DEPS_MISSING=0
 check_dependency "docker" || DEPS_MISSING=1
-(docker compose version &>/dev/null) || DEPS_MISSING=1
+
+# SRE Heartbeat: Garantir que le daemon Docker est actif avant la suite
+if [ $DEPS_MISSING -eq 0 ]; then
+    sudo systemctl start docker 2>/dev/null || true
+fi
+
+(sudo docker compose version &>/dev/null) || DEPS_MISSING=1
 check_dependency "wg" || DEPS_MISSING=1
 check_dependency "openssl" || DEPS_MISSING=1
 check_dependency "curl" || DEPS_MISSING=1
