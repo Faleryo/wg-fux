@@ -55,6 +55,7 @@ trap cleanup EXIT
 API_ENV="api-service/.env"
 API_DATA="api-service/data"
 WG_DIR="/etc/wireguard"
+SWAP_FILE="/swap_wgfux"
 
 preflight_scan() {
     log "INFO" "Lancement du Scan de Pré-vol (v6.4 Precision Scanner)..."
@@ -136,21 +137,21 @@ uninstall() {
     log "INFO" "Nettoyage des outils utilitaires..."
     sudo rm -f /usr/local/bin/wg-*.sh 2>/dev/null || true
 
-    if [ -f "$swap_file" ]; then
-        printf "${YELLOW}[?] Voulez-vous supprimer le fichier Swap ($swap_file) créé par WG-FUX ? (y/N): ${NC}"
+    if [ -f "$SWAP_FILE" ]; then
+        printf "${YELLOW}[?] Voulez-vous supprimer le fichier Swap ($SWAP_FILE) créé par WG-FUX ? (y/N): ${NC}"
         read -r purge_swap
         if [[ "$purge_swap" =~ ^[yY]$ ]]; then
             log "INFO" "Désactivation et suppression du Swap (Optimisation RAM)..."
             # SRE Hack: Libérer les caches pour permettre le swapoff
             sync; sudo tee /proc/sys/vm/drop_caches <<< 3 > /dev/null 2>&1 || true
-            if sudo swapoff "$swap_file" 2>/dev/null; then
-                sudo rm -f "$swap_file"
+            if sudo swapoff "$SWAP_FILE" 2>/dev/null; then
+                sudo rm -f "$SWAP_FILE"
                 log "INFO" "Swap désactivé et supprimé."
             else
                 log "WARNING" "Impossible de désactiver le Swap à chaud (RAM insuffisante). Suppression différée au prochain reboot."
             fi
             sudo sed -i "\|# WG-FUX Swap|d" /etc/fstab 2>/dev/null || true
-            sudo sed -i "\|$swap_file|d" /etc/fstab 2>/dev/null || true
+            sudo sed -i "\|$SWAP_FILE|d" /etc/fstab 2>/dev/null || true
         fi
     fi
 
@@ -312,7 +313,6 @@ detect_public_ip() {
 }
 
 setup_swap() {
-    local swap_file="/swap_wgfux"
     local target_size_mb=4096 # Standard for low RAM
     local ram_kb
     ram_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
@@ -333,14 +333,14 @@ setup_swap() {
             return 0
         fi
 
-        if [ -f "$swap_file" ]; then
-            log "INFO" "Fichier de swap WG-FUX ($swap_file) déjà présent."
-            if swapon --show | grep -q "$swap_file"; then
+        if [ -f "$SWAP_FILE" ]; then
+            log "INFO" "Fichier de swap WG-FUX ($SWAP_FILE) déjà présent."
+            if swapon --show | grep -q "$SWAP_FILE"; then
                 log "INFO" "Swap déjà actif. Rien à faire."
             else
-                sudo chmod 600 "$swap_file"
-                sudo mkswap "$swap_file" 2>/dev/null || true
-                sudo swapon "$swap_file" 2>/dev/null || true
+                sudo chmod 600 "$SWAP_FILE"
+                sudo mkswap "$SWAP_FILE" 2>/dev/null || true
+                sudo swapon "$SWAP_FILE" 2>/dev/null || true
             fi
             return 0
         fi
@@ -367,24 +367,24 @@ setup_swap() {
         log "INFO" "Création du fichier Swap de ${target_size_mb}MB..."
         
         # Tentative de création avec fallocate puis dd en secours
-        if sudo fallocate -l "${target_size_mb}M" "$swap_file" 2>/dev/null || \
-           sudo dd if=/dev/zero of="$swap_file" bs=1M count="$target_size_mb" status=none; then
+        if sudo fallocate -l "${target_size_mb}M" "$SWAP_FILE" 2>/dev/null || \
+           sudo dd if=/dev/zero of="$SWAP_FILE" bs=1M count="$target_size_mb" status=none; then
             
-            sudo chmod 600 "$swap_file"
-            sudo mkswap "$swap_file" > /dev/null
-            if sudo swapon "$swap_file"; then
+            sudo chmod 600 "$SWAP_FILE"
+            sudo mkswap "$SWAP_FILE" > /dev/null
+            if sudo swapon "$SWAP_FILE"; then
                 # Persistance
-                if ! grep -q "$swap_file" /etc/fstab; then
-                    echo -e "\n# WG-FUX Swap\n$swap_file none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+                if ! grep -q "$SWAP_FILE" /etc/fstab; then
+                    echo -e "\n# WG-FUX Swap\n$SWAP_FILE none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
                 fi
                 log "SUCCESS" "Swap de ${target_size_mb}MB activé."
             else
                 log "ERROR" "Échec de l'activation du swap. Nettoyage..."
-                sudo rm -f "$swap_file"
+                sudo rm -f "$SWAP_FILE"
             fi
         else
             log "ERROR" "Échec physique de création du swap. Nettoyage..."
-            sudo rm -f "$swap_file"
+            sudo rm -f "$SWAP_FILE"
         fi
     fi
 }
