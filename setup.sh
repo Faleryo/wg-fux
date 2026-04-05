@@ -444,12 +444,13 @@ setup_firewall() {
     log "INFO" "Configuration du pare-feu (Ports: 80, 443, $port/udp)..."
 
     if command -v ufw &> /dev/null; then
-        log "INFO" "Utilisation de UFW..."
+        log "INFO" "Configuration et activation proactive de UFW (Ports: 80, 443, $port/udp, 22/tcp)..."
         sudo ufw allow 80/tcp 2>/dev/null || true
         sudo ufw allow 443/tcp 2>/dev/null || true
         sudo ufw allow "$port"/udp 2>/dev/null || true
-        sudo ufw allow 22/tcp 2>/dev/null || true # Safety for SSH
-        log "SUCCESS" "Règles UFW appliquées."
+        sudo ufw allow 22/tcp 2>/dev/null || true # Garder SSH ouvert
+        echo "y" | sudo ufw enable 2>/dev/null || true
+        log "SUCCESS" "UFW est maintenant actif et configuré."
     elif command -v iptables &> /dev/null; then
         log "INFO" "Utilisation de iptables..."
         sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true

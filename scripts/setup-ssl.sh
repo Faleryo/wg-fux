@@ -36,8 +36,18 @@ if [ -z "$EMAIL" ]; then
     exit 1
 fi
 
-log "Démarrage des services temporaires pour le challenge ACME..."
-# On s'assure que Nginx tourne pour servir le dossier /var/www/certbot
+log "Vérification/Génération du certificat de secours (Bootstrap)..."
+# 💠 SRE: Si les certs Let's Encrypt n'existent pas, on crée un auto-signé pour que Nginx démarre.
+# On utilise un container temporaire pour manipuler le volume certbot_certs.
+docker run --rm -v "$(pwd)_certbot_certs:/etc/letsencrypt" alpine sh -c \
+    "apk add --no-cache openssl && mkdir -p /etc/letsencrypt/live/$DOMAIN && \
+    [ -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem ] || \
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/letsencrypt/live/$DOMAIN/privkey.pem \
+    -out /etc/letsencrypt/live/$DOMAIN/fullchain.pem \
+    -subj '/CN=$DOMAIN'" > /dev/null 2>&1
+
+log "Démarrage de Nginx (Port 80 pour le challenge)..."
 docker compose up -d nginx
 
 # 💠 Vibe-OS v6.5 Pre-flight Diagnostic
