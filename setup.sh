@@ -114,6 +114,39 @@ preflight_scan() {
     fi
 }
 
+check_and_install_deps() {
+    log "INFO" "Vérification des dépendances système..."
+    local missing=()
+    local deps=("curl" "sed" "openssl" "ufw" "docker")
+
+    for dep in "${deps[@]}"; do
+        if ! command -v "$dep" &> /dev/null; then
+            missing+=("$dep")
+        fi
+    done
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        log "WARNING" "Dépendances manquantes détectées : ${missing[*]}"
+        log "INFO" "Tentative d'installation automatique..."
+        sudo apt-get update -qq
+        for m in "${missing[@]}"; do
+            case "$m" in
+                "docker")
+                    log "INFO" "Installation de Docker Engine..."
+                    curl -fsSL https://get.docker.com | sh
+                    sudo usermod -aG docker "$USER"
+                    ;;
+                *)
+                    sudo apt-get install -y -qq "$m"
+                    ;;
+            esac
+        done
+        log "SUCCESS" "Dépendances installées."
+    else
+        log "SUCCESS" "Toutes les dépendances système sont présentes."
+    fi
+}
+
 ensure_docker_ready() {
     log "INFO" "Vérification de la disponibilité du daemon Docker..."
     
@@ -135,8 +168,6 @@ ensure_docker_ready() {
     done
 
     log "ERROR" "Impossible de joindre le daemon Docker après ${max_attempts}s."
-    log "INFO" "Diagnostic : Tentative de version brute..."
-    sudo docker version || log "ERROR" "Erreur fatale de configuration Docker."
     return 1
 }
 
@@ -276,9 +307,13 @@ update_process() {
         sudo docker builder prune -f --filter "until=24h" 2>/dev/null || true
     fi
     
-    # 💠 SRE: Ensure SSL and Firewall are ready before starting Docker
-    setup_ssl
+    # 💠 SRE Logic: Check deps and Open Ports BEFORE anything else
+    check_and_install_deps
     setup_firewall
+    ensure_docker_ready
+
+    # 💠 SRE: Ensure SSL is ready (Port 80 must be open)
+    setup_ssl
     
     log "INFO" "Reconstruction des images (--no-cache) et redémarrage des services..."
     if ! sudo DOCKER_BUILDKIT=1 docker compose build --no-cache; then

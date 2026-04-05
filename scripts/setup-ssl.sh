@@ -40,17 +40,6 @@ if [ -z "$EMAIL" ]; then
     exit 1
 fi
 
-log "Vérification/Génération du certificat de secours (Bootstrap)..."
-# 💠 SRE: Si les certs Let's Encrypt n'existent pas, on crée un auto-signé pour que Nginx démarre.
-# On utilise un container temporaire pour manipuler le volume certbot_certs.
-docker run --rm -v "$(pwd)_certbot_certs:/etc/letsencrypt" alpine sh -c \
-    "apk add --no-cache openssl && mkdir -p /etc/letsencrypt/live/$DOMAIN && \
-    [ -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem ] || \
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/letsencrypt/live/$DOMAIN/privkey.pem \
-    -out /etc/letsencrypt/live/$DOMAIN/fullchain.pem \
-    -subj '/CN=$DOMAIN'" > /dev/null 2>&1
-
 log "Démarrage complet de l'infrastructure pour le challenge ACME..."
 # 💠 SRE: On lance tout pour garantir que Nginx peut résoudre les upstreams (API, AdGuard)
 docker compose up -d
@@ -60,12 +49,20 @@ chmod +x .vibe/tools/check-port80.sh
 # Note: On essaie de détecter l'IP si elle n'est pas passée en env
 DETECTED_IP=$(curl -4 -s ifconfig.me 2>/dev/null || echo "127.0.0.1")
 if ! ./.vibe/tools/check-port80.sh "$DOMAIN" "$DETECTED_IP"; then
-    printf "%b%b[WARNING] Des problèmes de connectivité ont été détectés.%b\n" "${YELLOW}" "${BOLD}" "${NC}"
-    printf "%b[?] Voulez-vous TOUT DE MÊME tenter la demande Let's Encrypt ? (y/N): %b" "${YELLOW}" "${NC}"
-    read -r proceed_anyway
-    if [[ ! "$proceed_anyway" =~ ^[yY]$ ]]; then
-        echo -e "${RED}[ERROR] Annulation du processus.${NC}"
-        exit 1
+    printf "%b%b[WARNING] Le domaine n'est pas encore accessible sur le port 80.%b\n" "${YELLOW}" "${BOLD}" "${NC}"
+    printf "%b[?] Voulez-vous générer un certificat AUTO-SIGNÉ de secours pour démarrer Nginx ? (y/N): %b" "${YELLOW}" "${NC}"
+    read -r generate_fallback
+    if [[ "$generate_fallback" =~ ^[yY]$ ]]; then
+        log "Génération du certificat de secours (Self-Signed)..."
+        docker run --rm -v "$(pwd)_certbot_certs:/etc/letsencrypt" alpine sh -c \
+            "apk add --no-cache openssl && mkdir -p /etc/letsencrypt/live/$DOMAIN && \
+            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout /etc/letsencrypt/live/$DOMAIN/privkey.pem \
+            -out /etc/letsencrypt/live/$DOMAIN/fullchain.pem \
+            -subj '/CN=$DOMAIN'" > /dev/null 2>&1
+        log "Certificat de secours généré. Nginx peut démarrer, mais l'accès sera 'Non Sécurisé'."
+    else
+        log "Pas de certificat de secours. Let's Encrypt sera tenté, mais risque d'échouer."
     fi
 fi
 
