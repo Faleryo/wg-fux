@@ -107,6 +107,32 @@ preflight_scan() {
     fi
 }
 
+ensure_docker_ready() {
+    log "INFO" "Vérification de la disponibilité du daemon Docker..."
+    
+    local max_attempts=15
+    local attempt=1
+    
+    # 💠 SRE: Tentative de réveil du service (Support Systemd et Init)
+    sudo systemctl unmask docker 2>/dev/null || true
+    sudo systemctl start docker 2>/dev/null || sudo service docker start 2>/dev/null || true
+    
+    while [ $attempt -le $max_attempts ]; do
+        if sudo docker ps &>/dev/null; then
+            log "SUCCESS" "Docker est prêt et opérationnel (Socket OK)."
+            return 0
+        fi
+        log "INFO" "Attente du daemon Docker (Socket)... ($attempt/$max_attempts)"
+        sleep 1
+        attempt=$((attempt + 1))
+    done
+
+    log "ERROR" "Impossible de joindre le daemon Docker après ${max_attempts}s."
+    log "INFO" "Diagnostic : Tentative de version brute..."
+    sudo docker version || log "ERROR" "Erreur fatale de configuration Docker."
+    return 1
+}
+
 uninstall() {
     log "WARNING" "Désinstallation de WG-FUX lancée..."
     
@@ -299,6 +325,7 @@ install_deps() {
         sudo apt-get update
         sudo apt-get install -y docker.io docker-compose-v2 wireguard-tools openssl curl nodejs
         sudo systemctl enable --now docker
+        ensure_docker_ready
     else
         log "ERROR" "Gestionnaire de paquets 'apt' non trouvé. Veuillez installer manuellement : docker, docker-compose-v2, wireguard-tools, openssl, curl, nodejs."
         exit 1
@@ -420,6 +447,10 @@ setup_ssl() {
     if [ -z "$EMAIL" ]; then log "ERROR" "Email invalide."; return 1; fi
 
     log "INFO" "Préparation du challenge ACME pour $DOMAIN..."
+    
+    # Force Docker Pulse avant ACME
+    ensure_docker_ready || return 1
+
     # On s'assure que Nginx tourne pour servir le dossier /var/www/certbot
     # SRE: --no-deps permet de lancer Nginx seul sans attendre le build de l'API/UI
     sudo docker compose up -d --no-deps nginx
@@ -531,7 +562,7 @@ check_dependency "docker" || DEPS_MISSING=1
 
 # SRE Heartbeat: Garantir que le daemon Docker est actif avant la suite
 if [ $DEPS_MISSING -eq 0 ]; then
-    sudo systemctl start docker 2>/dev/null || true
+    ensure_docker_ready || DEPS_MISSING=1
 fi
 
 (sudo docker compose version &>/dev/null) || DEPS_MISSING=1
