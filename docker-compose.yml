@@ -44,6 +44,12 @@ services:
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
     networks:
       - vpn-internal
+    healthcheck:
+      test: ["CMD-SHELL", "[ -d /etc/letsencrypt/live ] || exit 1"]
+      interval: 1h
+      timeout: 10s
+      retries: 3
+    restart: always
 
   api:
     build:

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
@@ -56,6 +57,26 @@ router.post('/login', loginLimiter, async (req, res, next) => {
       }
 
       await logLoginAttempt(username, clientIp, userAgent, true);
+
+      // SECURITY-ALERT: Notify admin of successful login (Vibe-OS sentinel) with Geo-IP
+      if (user.role === 'admin') {
+        const notifyAdmin = async () => {
+          let location = 'Localisation inconnue';
+          try {
+            const geo = await axios.get(`http://ip-api.com/json/${clientIp}?fields=city,country`);
+            if (geo.data && geo.data.city) {
+              location = `${geo.data.city}, ${geo.data.country}`;
+            }
+          } catch (e) { /* ignore geo error */ }
+          
+          const message = `🔐 CONNEXION RÉUSSIE: Administrateur '${username}' connecté depuis ${location} (${clientIp})`;
+          const { runSystemCommand } = require('../services/shell');
+          const { getScriptPath } = require('../services/config');
+          runSystemCommand(getScriptPath('wg-send-msg.sh'), [message]).catch(() => {});
+        };
+        notifyAdmin();
+      }
+
       const token = jwt.sign({ username: user.username, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
       res.json({ valid: true, token, role: user.role });
     } else {

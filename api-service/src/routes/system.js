@@ -158,9 +158,23 @@ router.get('/config', auth, requireAdmin, async (req, res) => {
         config[key] = value;
       }
     });
+    log.info('system', 'DEBUG-CONFIG-FETCH', { 
+      file: '/etc/wireguard/manager.conf', 
+      keys: Object.keys(config),
+      port: config.SERVER_PORT,
+      mtu: config.SERVER_MTU
+    });
+    // WAVE 4: Real-time Kernel Sync
+    // We try to read live data from the interface first, fallback to manager.conf
+    const iface = process.env.WG_INTERFACE || 'wg0';
+    const [livePort, liveMtu] = await Promise.all([
+      runCommand(WG_BIN, ['show', iface, 'listen-port']).then(r => r.stdout).catch(() => null),
+      runCommand('cat', [`/sys/class/net/${iface}/mtu`]).then(r => r.stdout).catch(() => null)
+    ]);
+
     res.json({
-      port: config.SERVER_PORT || '51820',
-      mtu: config.SERVER_MTU || '1420',
+      port: livePort || config.SERVER_PORT || '51820',
+      mtu: liveMtu || config.SERVER_MTU || '1420',
       dns: config.CLIENT_DNS || '1.1.1.1, 8.8.8.8',
       subnet: config.VPN_SUBNET || '10.0.0.0/24',
       keepalive: parseInt(config.PERSISTENT_KEEPALIVE) || 0
@@ -273,7 +287,7 @@ router.get('/audit', auth, async (req, res) => {
       { stdout: ipFwd },
       { success: fail2banActive }
     ] = await Promise.all([
-      runSystemCommand('ufw', ['status']).catch(() => ({ stdout: 'inactive' })),
+      runSystemCommand('/usr/sbin/ufw', ['status']).catch(() => ({ stdout: 'inactive' })),
       runSystemCommand('sysctl', ['-n', 'net.ipv4.ip_forward']).catch(() => ({ stdout: '0' })),
       // BUG-FIX: fail2ban vérifié dynamiquement (était hardcodé à true)
       runCommand('pgrep', ['-x', 'fail2ban-server']).catch(() => ({ success: false }))
@@ -344,6 +358,13 @@ router.post('/maintenance/check-expiry', auth, requireAdmin, async (req, res) =>
   res.json({ success: true, message: 'Vérification terminée' });
 });
 
+router.post('/test-telegram', auth, requireAdmin, async (req, res) => {
+  const message = `🔔 TEST SENTINEL : Le système de notification Telegram est opérationnel sur votre serveur ${os.hostname()}.`;
+  const { success, error } = await runSystemCommand(getScriptPath('wg-send-msg.sh'), [message]);
+  if (!success) return res.status(500).json({ error: error || 'Échec de l\'envoi Telegram' });
+  res.json({ success: true, message: 'Notification de test envoyée avec succès' });
+});
+
 router.get('/security-logs', auth, requireAdmin, async (req, res) => {
   try {
     const logFile = '/var/log/wg-enforcer.log';
@@ -378,18 +399,22 @@ router.get('/container-logs', auth, requireAdmin, async (req, res) => {
 router.get('/security-audit', auth, requireAdmin, async (req, res) => {
   try {
     const iface = process.env.WG_INTERFACE || 'wg0';
-    const hasUfw = await runSystemCommand('command', ['-v', 'ufw']).then(r => r.success).catch(() => false);
-    const { stdout: ufwStatus } = hasUfw ? await runSystemCommand('ufw', ['status']).catch(() => ({ stdout: 'inactive' })) : { stdout: 'not installed' };
+    const hasUfw = await fsPromises.stat('/usr/sbin/ufw').then(() => true).catch(() => false);
+    const { stdout: ufwStatus } = hasUfw ? await runSystemCommand('/usr/sbin/ufw', ['status']).catch(() => ({ stdout: 'inactive' })) : { stdout: 'not installed' };
     
     const { stdout: dockerPsi } = await runCommand('docker', ['ps', '--format', '{{.Names}} ({{.Status}})']).catch(() => ({ stdout: 'N/A' }));
     const system = await getSystemStats();
     
+    const { stdout: f2bStats } = await runSystemCommand('fail2ban-client', ['status', 'wg-api']).catch(() => ({ stdout: '' }));
+    const bannedCount = (f2bStats.match(/Currently banned:\s+(\d+)/) || [0, 0])[1];
+
     res.json({
       firewall: ufwStatus.includes('active') ? 'Protected' : 'Warning',
       ufw: ufwStatus.trim().split('\n')[0],
       containers: dockerPsi.trim().split('\n'),
       diskUsage: `${system.disk}%`,
       integrity: 'Optimal',
+      fail2ban: `${bannedCount} IPs bloquées`,
       timestamp: new Date().toISOString()
     });
   } catch (e) {
@@ -400,6 +425,8 @@ router.get('/security-audit', auth, requireAdmin, async (req, res) => {
 router.post('/logs/clear', auth, requireAdmin, async (req, res) => {
   try {
     const result = await gcAuditLogs(0); // 0 days = all
+    // BUG-FIX: Truncate enforcer log file too
+    await runSystemCommand('truncate', ['-s', '0', '/var/log/wg-enforcer.log']).catch(() => {});
     res.json({ success: true, ...result });
   } catch (e) {
     res.status(500).json({ error: e.message });

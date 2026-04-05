@@ -10,6 +10,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
   const [isDragging, setIsDragging] = useState(false);
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
   const clickTimeoutRef = useRef(null);
   const { theme, isDark } = useTheme();
 
@@ -64,10 +65,28 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
 
   const centerX = dimensions.width / 2;
   const centerY = dimensions.height / 2;
-  const isMobile = dimensions.width < 768;
-  const radius = Math.min(centerX, centerY) * (isMobile ? 0.4 : 0.7);
+  
+  // Détection mobile multi-sources pour plus de fiabilité
+  const isMobile = dimensions.width < 768 || (typeof window !== 'undefined' && window.innerWidth < 768);
+  
+  // Dimensions dynamiques pour éviter les chevauchements sur mobile
+  const hubRadius = isMobile ? 32 : 64; // w-16 vs w-32
+  const nodeRadius = isMobile ? 20 : 32; // w-10 vs w-16
+  const minPadding = 60; // Augmentation drastique de la marge de sécurité
+  
+  const radius = Math.max(
+    hubRadius + nodeRadius + minPadding,
+    Math.min(centerX, centerY) * (isMobile ? 0.45 : 0.7)
+  );
 
   const handleNodeClick = (client) => {
+    // Gérer l'affichage des tooltips persistants sur mobile
+    if (selectedNodeId === client.id) {
+       setSelectedNodeId(null);
+    } else {
+       setSelectedNodeId(client.id);
+    }
+
     if (clickTimeoutRef.current) {
       clearTimeout(clickTimeoutRef.current);
       clickTimeoutRef.current = null;
@@ -113,19 +132,22 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
         {/* Background Grid */}
         <div className={cn("absolute inset-0 bg-[size:60px_60px] pointer-events-none transition-colors", isDark ? "bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)]" : "bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)]")}></div>
 
-        {/* Radar Sweeper */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        {/* Radar Sweeper - Fixed Aspect Ratio 1:1 */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200vmax] h-[200vmax] pointer-events-none flex items-center justify-center">
           <div className={cn(
-            "w-[200%] h-[200%] bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,transparent_300deg,currentColor_360deg)] opacity-10 animate-[spin_10s_linear_infinite]",
-            `text-${theme}-500/20`
+            "w-full h-full rounded-full bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,transparent_320deg,currentColor_360deg)] opacity-[0.07] animate-[spin_8s_linear_infinite]",
+            `text-${theme}-500`
           )}></div>
         </div>
 
-        {/* Orbital Rings */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className={cn("w-[30%] h-[30%] border rounded-full transition-colors", isDark ? "border-white/5" : "border-black/5")}></div>
-          <div className={cn("w-[60%] h-[60%] border rounded-full transition-colors", isDark ? "border-white/5" : "border-black/5")}></div>
-          <div className={cn("w-[85%] h-[85%] border rounded-full animate-pulse transition-colors", isDark ? "border-white/10 shadow-[inset_0_0_50px_rgba(255,255,255,0.02)]" : "border-black/10 shadow-[inset_0_0_50px_rgba(0,0,0,0.02)]")}></div>
+        {/* Orbital Rings - Precisely centered and synced with Radius */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center">
+           {/* Inner Ring */}
+          <div className={cn("absolute rounded-full border transition-colors", isDark ? "border-white/5" : "border-black/5")} style={{ width: radius * 0.8, height: radius * 0.8 }}></div>
+          {/* Main Orbital Ring (Aligned with Nodes) */}
+          <div className={cn("absolute rounded-full border-2 transition-colors", isDark ? "border-white/10" : "border-black/10")} style={{ width: radius * 2, height: radius * 2 }}></div>
+          {/* Outer Ring */}
+          <div className={cn("absolute rounded-full border animate-pulse transition-colors", isDark ? "border-white/10 shadow-[inset_0_0_100px_rgba(255,255,255,0.03)]" : "border-black/10 shadow-[inset_0_0_100px_rgba(0,0,0,0.03)]")} style={{ width: radius * 3, height: radius * 3 }}></div>
         </div>
 
         {/* Connections Layer */}
@@ -168,11 +190,15 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
         {/* Hub */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center group/hub">
           <div className={cn(
-            "w-32 h-32 rounded-[3.5rem] shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] flex items-center justify-center relative z-10 transition-all duration-700 group-hover/hub:scale-110 border-4",
+            "rounded-[3.5rem] shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] flex items-center justify-center relative z-10 transition-all duration-700 group-hover/hub:scale-110 border-4",
+            isMobile ? "w-16 h-16 rounded-[2rem]" : "w-32 h-32",
             `bg-${theme}-600 shadow-${theme}-600/40 border-${theme}-400/20`
           )}>
-            <Server size={48} className="text-white drop-shadow-2xl" />
-            <div className={cn("absolute inset-0 rounded-[3.5rem] border border-white/20 animate-pulse")}></div>
+            <Server size={isMobile ? 28 : 48} className="text-white drop-shadow-2xl" />
+            <div className={cn(
+              "absolute inset-0 border border-white/20 animate-pulse",
+              isMobile ? "rounded-[2rem]" : "rounded-[3.5rem]"
+            )}></div>
           </div>
           <div className={cn(
             "mt-8 px-6 py-2 backdrop-blur-3xl border rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] opacity-0 group-hover/hub:opacity-100 transition-all duration-500 transform translate-y-4 group-hover/hub:translate-y-0 shadow-2xl",
@@ -202,23 +228,33 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
               onClick={() => handleNodeClick(client)}
             >
               <div className={cn(
-                "w-16 h-16 backdrop-blur-md border-[3px] rounded-2xl flex items-center justify-center transition-all duration-500 group-hover/node:scale-125 shadow-2xl",
+                "backdrop-blur-md border-[3px] rounded-2xl flex items-center justify-center transition-all duration-500 group-hover/node:scale-125 shadow-2xl",
+                isMobile ? "w-10 h-10" : "w-16 h-16",
                 isOnline
                   ? cn(isDark ? "bg-slate-900/80" : "bg-white/80", `border-${color.name}-500/50 group-hover/node:bg-${color.name}-900/90 group-hover/node:border-${color.name}-400 group-hover/node:shadow-${color.name}-600/20`)
                   : cn(isDark ? "bg-slate-950/80 border-white/5 group-hover/node:bg-slate-900" : "bg-white border-black/5 group-hover/node:bg-slate-50", "group-hover/node:border-white/20")
               )}>
-                <Users size={28} className={cn(
+                <Users size={isMobile ? 18 : 28} className={cn(
                   "transition-all duration-300",
                   isOnline ? `text-${color.name}-400 group-hover/node:text-white group-hover/node:rotate-6` : 'text-slate-700 group-hover/node:text-slate-400'
                 )} />
                 {isOnline && (
-                  <span className={cn("absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full border-4", isDark ? "border-slate-950" : "border-white", `bg-emerald-500 shadow-[0_0_15px_#10b981]`)}></span>
+                  <span className={cn(
+                    "absolute -top-1.5 -right-1.5 rounded-full border-4",
+                    isMobile ? "w-3.5 h-3.5 border-[3px]" : "w-4 h-4",
+                    isDark ? "border-slate-950" : "border-white", 
+                    `bg-emerald-500 shadow-[0_0_15px_#10b981]`
+                  )}></span>
                 )}
               </div>
 
               {/* Tactical Tooltip */}
               <AnimatePresence>
-                <div className={cn("absolute top-full left-1/2 -translate-x-1/2 mt-8 w-64 backdrop-blur-3xl border rounded-2xl p-6 opacity-0 group-hover/node:opacity-100 transition-all duration-500 pointer-events-none scale-90 group-hover/node:scale-100 z-50 shadow-2xl origin-top", isDark ? "bg-slate-950/90 border-white/10" : "bg-white border-black/10")}>
+                <div className={cn(
+                  "absolute top-full left-1/2 -translate-x-1/2 mt-8 w-64 backdrop-blur-3xl border rounded-2xl p-6 transition-all duration-500 pointer-events-none scale-90 z-50 shadow-2xl origin-top",
+                  isDark ? "bg-slate-950/90 border-white/10" : "bg-white border-black/10",
+                  selectedNodeId === client.id ? "opacity-100 scale-100" : "opacity-0 group-hover/node:opacity-100 group-hover/node:scale-100"
+                )}>
                   <div className={cn("absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rotate-45 border-t border-l", isDark ? "bg-slate-950 border-white/10" : "bg-white border-black/10")}></div>
                   
                   <div className={cn("flex items-center justify-between mb-6 pb-4 border-b", isDark ? "border-white/5" : "border-black/5")}>

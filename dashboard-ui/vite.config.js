@@ -7,8 +7,12 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // manualChunks disabled for Rolldown compatibility
+        manualChunks: {
+          'vendor': ['react', 'react-dom'],
+          'ui-libs': ['framer-motion', 'lucide-react', 'axios', 'recharts'],
+        },
       },
     },
+    chunkSizeWarningLimit: 1000,
   },
 })

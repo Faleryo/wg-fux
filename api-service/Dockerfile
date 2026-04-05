@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     speedtest-cli \
     bc \
     iputils-ping \
+    ufw \
     && rm -rf /var/lib/apt/lists/*
 
 

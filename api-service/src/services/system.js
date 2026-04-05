@@ -31,9 +31,19 @@ const getSystemStats = async () => {
     const cpuUsage = diffTotal > 0 ? (1 - (idle2 - idle1) / diffTotal) * 100 : 0;
 
     const memInfo = await fsPromises.readFile('/proc/meminfo', 'utf8');
-    const memTotal = parseInt(memInfo.match(/MemTotal:\s+(\d+)/)[1]);
-    const memAvailable = parseInt(memInfo.match(/MemAvailable:\s+(\d+)/)[1]);
-    const memUsage = ((memTotal - memAvailable) / memTotal) * 100;
+    const memTotalMatch = memInfo.match(/MemTotal:\s+(\d+)/);
+    const memAvailableMatch = memInfo.match(/MemAvailable:\s+(\d+)/);
+    const memFreeMatch = memInfo.match(/MemFree:\s+(\d+)/);
+    const memCachedMatch = memInfo.match(/Cached:\s+(\d+)/);
+
+    const memTotal = memTotalMatch ? parseInt(memTotalMatch[1]) : 0;
+    // Fallback: MemAvailable est le plus précis (Kernel 3.14+), sinon on estime avec Free + Cached
+    let memAvailable = memAvailableMatch ? parseInt(memAvailableMatch[1]) : 0;
+    if (!memAvailable && memFreeMatch && memCachedMatch) {
+      memAvailable = parseInt(memFreeMatch[1]) + parseInt(memCachedMatch[1]);
+    }
+
+    const memUsage = memTotal > 0 ? ((memTotal - memAvailable) / memTotal) * 100 : 0;
 
     const { stdout: diskOut } = await runCommand('df', ['-kP', '/']);
     const lines = diskOut.trim().split('\n');

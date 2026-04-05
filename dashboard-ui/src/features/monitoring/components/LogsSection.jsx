@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  FileText, Search, RefreshCw, 
-  Terminal, Shield, Globe, Clock, Download, X, Cpu, Server
+  Terminal, Shield, Globe, Clock, Download, X, Cpu, Server, Trash2, Search, RefreshCw
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
+import { useToast } from '../../../context/ToastContext';
 import { cn } from '../../../lib/utils';
 import { axiosInstance as axios, getWsUri } from '../../../lib/api';
 
 const LogsSection = () => {
   const { theme, isDark } = useTheme();
+  const { addToast } = useToast();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('access');
   const wsRef = useRef(null);
@@ -44,6 +46,21 @@ const LogsSection = () => {
     }
   };
 
+  const handleClearLogs = async () => {
+    if (window.confirm("Voulez-vous vraiment effacer tous les journaux système et d'audit ?")) {
+      setClearing(true);
+      try {
+        await axios.post('/system/logs/clear');
+        addToast('Journaux effacés avec succès', 'success');
+        fetchLogs();
+      } catch {
+        addToast("Erreur lors de l'effacement", "error");
+      } finally {
+        setClearing(false);
+      }
+    }
+  };
+
   // Gestion WebSocket pour l'onglet "security" (journalctl live)
   useEffect(() => {
     // Fermer la connexion WS précédente si elle existe
@@ -54,8 +71,12 @@ const LogsSection = () => {
 
     fetchLogs();
 
-    if (activeTab === 'security') {
-      const wsUrl = getWsUri('logs-wg');
+    fetchLogs();
+    
+    // Si on est sur un onglet temps réel, on ouvre un WebSocket
+    if (activeTab === 'security' || activeTab === 'system') {
+      const type = activeTab === 'security' ? 'logs-wg' : 'logs-api';
+      const wsUrl = getWsUri(type);
       if (!wsUrl) return;
       
       try {
@@ -63,21 +84,34 @@ const LogsSection = () => {
         wsRef.current = ws;
 
         ws.onmessage = (evt) => {
-          const line = typeof evt.data === 'string' ? evt.data.trim() : '';
-          if (!line) return;
-          const newLog = {
-            id: Date.now(),
-            time: new Date().toISOString(),
-            message: line,
-            ip: 'journald',
-            status: 'LIVE',
-          };
-          setLogs(prev => [newLog, ...prev.slice(0, 199)]);
+          try {
+            const data = JSON.parse(evt.data);
+            const newLog = {
+              id: Date.now() + Math.random(),
+              time: data.ts || data.date || data.time || new Date().toISOString(),
+              message: data.msg || data.message || (typeof data === 'string' ? data : JSON.stringify(data)),
+              ip: data.svc || data.ip || (activeTab === 'security' ? 'kernel' : 'api'),
+              status: data.level || 'LIVE',
+            };
+            setLogs(prev => [newLog, ...prev.slice(0, 199)]);
+          } catch (e) {
+            // Fallback pour les messages texte brut (journalctl)
+            const line = typeof evt.data === 'string' ? evt.data.trim() : '';
+            if (!line) return;
+            const newLog = {
+              id: Date.now() + Math.random(),
+              time: new Date().toISOString(),
+              message: line,
+              ip: activeTab === 'security' ? 'kernel' : 'system',
+              status: 'LIVE',
+            };
+            setLogs(prev => [newLog, ...prev.slice(0, 199)]);
+          }
         };
 
-        ws.onerror = (err) => console.warn('[WS-LOGS] error:', err);
+        ws.onerror = (err) => console.warn(`[WS-LOGS-${activeTab}] error:`, err);
       } catch (e) {
-        console.warn('[WS-LOGS] Could not connect:', e);
+        console.warn(`[WS-LOGS-${activeTab}] Could not connect:`, e);
       }
     }
 
@@ -96,10 +130,10 @@ const LogsSection = () => {
   const getStatusStyle = (status) => {
     const s = (status || '').toUpperCase();
     if (s === 'SUCCESS' || s === 'CONNECTED' || s === 'INFO') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-    if (s === 'LIVE') return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 animate-pulse';
-    if (s === 'FAILED' || s === 'ERROR') return 'bg-red-500/10 text-red-400 border-red-500/20';
+    if (s === 'LIVE' || s === 'DEBUG') return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 animate-pulse';
+    if (s === 'FAILED' || s === 'ERROR' || s === 'AUDIT') return 'bg-red-500/10 text-red-400 border-red-500/20';
     if (s === 'WARN' || s === 'WARNING') return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-    return isDark ? 'bg-slate-800/50 text-slate-400 border-white/5' : 'bg-slate-100/50 text-slate-500 border-black/5';
+    return isDark ? 'bg-white/5 text-slate-400 border-white/5' : 'bg-slate-100/50 text-slate-500 border-black/5';
   };
 
   const handleDownload = () => {
@@ -166,7 +200,7 @@ const LogsSection = () => {
             )}
           >
             <tab.icon size={14} /> {tab.label}
-            {activeTab === tab.id && tab.id === 'security' && wsRef.current?.readyState === 1 && (
+            {(activeTab === tab.id && (tab.id === 'security' || tab.id === 'system') && wsRef.current?.readyState === 1) && (
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             )}
           </button>
@@ -241,12 +275,21 @@ const LogsSection = () => {
           <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
             {filteredLogs.length} entrées · Blackbox v2.1
           </div>
-          <button 
-            onClick={handleDownload}
-            className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-widest transition-all"
-          >
-            <Download size={13} /> Export .log
-          </button>
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={handleClearLogs}
+              disabled={clearing}
+              className={cn("flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all", isDark ? "text-rose-500/50 hover:text-rose-400" : "text-rose-400 hover:text-rose-600")}
+            >
+              <Trash2 size={13} className={clearing ? 'animate-pulse' : ''} /> EFFACER
+            </button>
+            <button 
+              onClick={handleDownload}
+              className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-widest transition-all"
+            >
+              <Download size={13} /> Export .log
+            </button>
+          </div>
         </div>
       </div>
     </div>

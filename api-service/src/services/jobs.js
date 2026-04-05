@@ -92,9 +92,14 @@ const updateUsage = async () => {
         });
       }
     }
-    // BUG-FIX: await ajouté + .catch pour éviter les promesses orphelines et erreurs silencieuses
-    await runSystemCommand(getScriptPath('wg-enforcer.sh'), [])
-      .catch(e => console.error('[JOB] Enforcer failed during usage update:', e.message));
+    // BUG-FIX: Output redirected to /var/log/wg-enforcer.log for the "Security" tab visibility
+    const { success: enfOk, stdout: enfOut, stderr: enfErr } = await runSystemCommand(getScriptPath('wg-enforcer.sh'), [])
+      .catch(e => ({ success: false, error: e.message, stdout: '', stderr: e.message }));
+    
+    if (enfOut || enfErr) {
+      const logContent = `${new Date().toISOString()} - ${(enfOut || enfErr).trim().replace(/\n/g, ' ')}\n`;
+      await runSystemCommand('bash', ['-c', `echo "${logContent.replace(/"/g, '\\"')}" >> /var/log/wg-enforcer.log`]).catch(() => {});
+    }
   } catch (e) {
     console.error('[JOB] Usage Update Error:', e);
   } finally {
@@ -183,8 +188,45 @@ const startJobs = () => {
   setInterval(logTrafficHistory, 60000); // 1 minute frequency for "Live" data
   // SRE Watchdog Pulse (toutes les 30s)
   setInterval(interfaceWatchdog, 30000);
+  // Rotation des logs toutes les heures
+  setInterval(rotateEnforcerLogs, 3600000);
   // Job backup automatique quotidien à 3h00 du matin
   scheduleAutomaticBackup();
+};
+
+/**
+ * Rotate wg-enforcer.log if it exceeds 100MB
+ */
+const rotateEnforcerLogs = async () => {
+  const logFile = '/var/log/wg-enforcer.log';
+  const maxSize = 100 * 1024 * 1024; // 100 MB
+
+  try {
+    const stats = await fsPromises.stat(logFile);
+    if (stats.size > maxSize) {
+      log.info('sre', `Rotating ${logFile} (size: ${stats.size} bytes)`);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupFile = `${logFile}.${timestamp}.bak`;
+      
+      // Copy and truncate to keep the file handle valid if open
+      await runSystemCommand('cp', [logFile, backupFile]);
+      await runSystemCommand('truncate', ['-s', '0', logFile]);
+      
+      // Compress the backup
+      await runSystemCommand('gzip', [backupFile]);
+      
+      // Cleanup: Keep only last 5 rotated logs
+      const { files: allLogs } = await runSystemCommand('ls', ['-1', '/var/log/']).then(r => ({ files: r.stdout.split('\n') }));
+      const rotatedLogs = allLogs.filter(f => f.startsWith('wg-enforcer.log.') && f.endsWith('.gz')).sort().reverse();
+      if (rotatedLogs.length > 5) {
+        for (let i = 5; i < rotatedLogs.length; i++) {
+          await runSystemCommand('rm', [path.join('/var/log/', rotatedLogs[i])]);
+        }
+      }
+    }
+  } catch (e) {
+    if (e.code !== 'ENOENT') log.error('sre', 'Log rotation failed', { err: e.message });
+  }
 };
 
 /**

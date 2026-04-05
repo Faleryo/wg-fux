@@ -41,7 +41,7 @@ const _write = (level, service, message, meta = {}) => {
 
   // Circular buffer (pour /api/debug/logs)
   _buffer.push(entry);
-  if (_buffer.length > BUFFER_SIZE) _buffer.shift();
+  if (_buffer.length > BUFFER_SIZE) _buffer.splice(0, 1);
 
   if (FORMAT === 'json') {
     // Production: JSON strict sur une ligne (ingestible par Loki/Datadog)

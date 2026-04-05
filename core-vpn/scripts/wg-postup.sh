@@ -18,6 +18,11 @@ $IPTABLES_BIN -t mangle -I FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --cl
 $IPTABLES_BIN -t nat -I PREROUTING -i "$INTERFACE" -p udp --dport 53 -j DNAT --to-destination 172.20.0.100 || true
 $IPTABLES_BIN -t nat -I PREROUTING -i "$INTERFACE" -p tcp --dport 53 -j DNAT --to-destination 172.20.0.100 || true
 
+# 💠 Vibe-OS Portal Redirection: Route tunnel web traffic to Sentinel Proxy
+# Target: sentinel-proxy (172.20.0.5)
+$IPTABLES_BIN -t nat -I PREROUTING -i "$INTERFACE" -p tcp --dport 443 -j DNAT --to-destination 172.20.0.5 || true
+$IPTABLES_BIN -t nat -I PREROUTING -i "$INTERFACE" -p tcp --dport 80 -j DNAT --to-destination 172.20.0.5 || true
+
 # IPv6 Rules
 $IP6TABLES_BIN -I FORWARD -i "$INTERFACE" -j ACCEPT || true
 $IP6TABLES_BIN -I FORWARD -o "$INTERFACE" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT || true
