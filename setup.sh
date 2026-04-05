@@ -362,9 +362,19 @@ update_process() {
 }
 
 git_upgrade() {
-    log "INFO" "Récupération des dernières mises à jour depuis Git..."
-    git pull || { log "ERROR" "Échec du git pull. Vérifiez votre connexion ou l'état du dépôt."; exit 1; }
-    update_process
+    log "INFO" "Récupération des dernières mises à jour depuis Git (Guration et Hard Reset)..."
+    git fetch --all 2>/dev/null
+    local current_branch
+    current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+    
+    # 💠 SRE: On force le reset pour éviter les blocages de pull dus aux modifs locales
+    if git reset --hard "origin/$current_branch"; then
+        log "SUCCESS" "Mise à jour du code source terminée."
+        update_process
+    else
+        log "ERROR" "Échec du reset Git. Vérifiez votre connexion ou l'état du dépôt."
+        exit 1
+    fi
 }
 
 install_deps() {
