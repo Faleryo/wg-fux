@@ -297,9 +297,9 @@ install_deps() {
     log "INFO" "Tentative d'installation des dépendances..."
     if command -v apt-get &> /dev/null; then
         sudo apt-get update
-        sudo apt-get install -y docker.io docker-compose-v2 wireguard-tools openssl curl
+        sudo apt-get install -y docker.io docker-compose-v2 wireguard-tools openssl curl nodejs
     else
-        log "ERROR" "Gestionnaire de paquets 'apt' non trouvé. Veuillez installer manuellement : docker, docker-compose-v2, wireguard-tools, openssl, curl."
+        log "ERROR" "Gestionnaire de paquets 'apt' non trouvé. Veuillez installer manuellement : docker, docker-compose-v2, wireguard-tools, openssl, curl, nodejs."
         exit 1
     fi
 }
@@ -596,12 +596,19 @@ NODESCRIPT
 ADMIN_HASH=""
 # Tentative 1 : Node local
 if command -v node &>/dev/null; then
+    log "INFO" "Utilisation de Node.js local..."
     ADMIN_HASH=$(WGFUX_PASS="$ADMIN_PASS" WGFUX_SALT="$SALT" node "$BUF_SCRIPT" 2>/dev/null || echo "")
 fi
 
-# Tentative 2 : Docker (robustifiée contre Code 125)
+# Tentative 2 : Python3 local (Backup ultra-robuste)
+if [ -z "$ADMIN_HASH" ] && command -v python3 &>/dev/null; then
+    log "INFO" "Node.js absent. Utilisation de Python3 local..."
+    ADMIN_HASH=$(WGFUX_PASS="$ADMIN_PASS" WGFUX_SALT="$SALT" python3 -c 'import hashlib, os, binascii; dk = hashlib.pbkdf2_hmac("sha512", os.environ["WGFUX_PASS"].encode(), os.environ["WGFUX_SALT"].encode(), 600000); print(binascii.hexlify(dk).decode())' 2>/dev/null || echo "")
+fi
+
+# Tentative 3 : Docker (Dernier recours)
 if [ -z "$ADMIN_HASH" ]; then
-    log "INFO" "Node.js absent ou échec local. Tentative via Docker..."
+    log "INFO" "Node/Python absents. Tentative via Docker (node:20-slim)..."
     if sudo docker image inspect node:20-slim &>/dev/null || sudo docker pull node:20-slim &>/dev/null; then
         ADMIN_HASH=$(sudo docker run --rm -e "WGFUX_PASS=$ADMIN_PASS" -e "WGFUX_SALT=$SALT" \
             -v "$BUF_SCRIPT:/tmp/hash.js:ro" node:20-slim node /tmp/hash.js 2>/dev/null || echo "")
@@ -611,8 +618,8 @@ fi
 rm -f "$BUF_SCRIPT"
 
 if [ -z "$ADMIN_HASH" ]; then
-    log "ERROR" "Échec de la génération du hash. Cause probable : Docker incapable de pull 'node:20-slim'."
-    log "INFO" "Installez Node.js sur l'hôte (apt install nodejs) pour contourner Docker."
+    log "ERROR" "Échec critique de la génération du hash."
+    log "INFO" "Installez manuellement nodejs ou python3 pour continuer."
     exit 1
 fi
 log "SUCCESS" "Hash généré avec succès."
