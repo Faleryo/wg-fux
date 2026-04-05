@@ -411,6 +411,18 @@ setup_ssl() {
     # On s'assure que Nginx tourne pour servir le dossier /var/www/certbot
     sudo docker compose up -d nginx
 
+    # Diagnostic pré-vol (Vibe-OS v6.4)
+    chmod +x .vibe/tools/check-port80.sh
+    if ! ./.vibe/tools/check-port80.sh "$DOMAIN" "${SERVER_IP:-$(detect_public_ip)}"; then
+        printf "${YELLOW}${BOLD}[WARNING] Des problèmes de connectivité ont été détectés.${NC}\n"
+        printf "${YELLOW}[?] Voulez-vous TOUT DE MÊME tenter la demande Let's Encrypt ? (y/N): ${NC}"
+        read -r proceed_anyway
+        if [[ ! "$proceed_anyway" =~ ^[yY]$ ]]; then
+            log "ERROR" "Annulation pour corriger les problèmes réseau (DNS/Port 80)."
+            return 1
+        fi
+    fi
+
     log "INFO" "Demande de certificat auprès de Let's Encrypt..."
     if sudo docker compose run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
         --email "$EMAIL" --agree-tos --no-eff-email -d "$DOMAIN"; then
