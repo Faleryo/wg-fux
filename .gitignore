@@ -53,7 +53,6 @@ api-service/logs/
 *.bak
 # Vibe-OS & Tooling (privé — jamais sur le repo public)
 .agents/
-.vibe/
 VIBE-OS.md
 _PROJECT_SKILL.v2.1.bak.md
 lesson_record.md
