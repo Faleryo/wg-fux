@@ -115,8 +115,9 @@ preflight_scan() {
 }
 
 check_and_install_deps() {
-    log "INFO" "Vérification des dépendances système..."
+    log "INFO" "Vérification des dépendances système (Grade Obsidian Plus)..."
     local missing=()
+    # Nous incluons nodejs et wireguard-tools pour une installation complète
     local deps=("curl" "sed" "openssl" "ufw" "docker")
 
     for dep in "${deps[@]}"; do
@@ -132,7 +133,9 @@ check_and_install_deps() {
         for m in "${missing[@]}"; do
             case "$m" in
                 "docker")
-                    log "INFO" "Installation de Docker Engine..."
+                    log "INFO" "Installation de Docker Engine (Official CE)..."
+                    # 💠 SRE: Nettoyage proactif des anciennes variantes conflictuelles (docker.io)
+                    sudo apt-get purge -y docker.io docker-doc docker-compose-v2 podman-docker containerd runc 2>/dev/null || true
                     curl -fsSL https://get.docker.com | sh
                     sudo usermod -aG docker "$USER"
                     ;;
@@ -141,6 +144,9 @@ check_and_install_deps() {
                     ;;
             esac
         done
+        # Installation spécifique des outils WireGuard et Node
+        if ! command -v wg &> /dev/null; then sudo apt-get install -y -qq wireguard-tools; fi
+        if ! command -v node &> /dev/null; then sudo apt-get install -y -qq nodejs; fi
         log "SUCCESS" "Dépendances installées."
     else
         log "SUCCESS" "Toutes les dépendances système sont présentes."
@@ -148,26 +154,28 @@ check_and_install_deps() {
 }
 
 ensure_docker_ready() {
-    log "INFO" "Vérification de la disponibilité du daemon Docker..."
+    log "INFO" "Vérification et réveil du démon Docker..."
     
     local max_attempts=15
     local attempt=1
     
-    # 💠 SRE: Tentative de réveil du service (Support Systemd et Init)
-    sudo systemctl unmask docker 2>/dev/null || true
-    sudo systemctl start docker 2>/dev/null || sudo service docker start 2>/dev/null || true
+    # 💠 SRE: Déblocage agressif du service (Unmask, Reload, Start)
+    sudo systemctl unmask docker.service docker.socket 2>/dev/null || true
+    sudo systemctl daemon-reload
+    sudo systemctl restart docker 2>/dev/null || sudo service docker restart 2>/dev/null || true
     
     while [ $attempt -le $max_attempts ]; do
         if sudo docker ps &>/dev/null; then
-            log "SUCCESS" "Docker est prêt et opérationnel (Socket OK)."
+            log "SUCCESS" "Docker est prêt et opérationnel."
             return 0
         fi
-        log "INFO" "Attente du daemon Docker (Socket)... ($attempt/$max_attempts)"
-        sleep 1
+        log "INFO" "Attente du démon Docker... ($attempt/$max_attempts)"
+        sleep 2
         attempt=$((attempt + 1))
     done
 
-    log "ERROR" "Impossible de joindre le daemon Docker après ${max_attempts}s."
+    log "ERROR" "Impossible de joindre le démon Docker. Tentative de réinstallation (Bootstrap)..."
+    check_and_install_deps
     return 1
 }
 
@@ -247,17 +255,19 @@ uninstall() {
         sudo rm -rf "$WG_DIR"
     fi
 
-    printf "%b[?] Voulez-vous désinstaller l'infrastructure Docker complète (Purge système) ? (y/N): %b" "${YELLOW}" "${NC}"
+    printf "%b[?] Voulez-vous désinstaller l'infrastructure Docker complète (Purge système CE+IO) ? (y/N): %b" "${YELLOW}" "${NC}"
     read -r purge_docker
     if [[ "$purge_docker" =~ ^[yY]$ ]]; then
-        log "WARNING" "Purge complète de Docker lancée..."
-        sudo systemctl stop docker containerd 2>/dev/null || true
+        log "WARNING" "Purge complète de Docker (CE + IO) lancée..."
+        sudo systemctl stop docker docker.socket containerd 2>/dev/null || true
         if command -v apt-get &>/dev/null; then
-            sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 2>/dev/null || true
+            # 💠 SRE: On purge TOUTES les variantes possibles pour une réinstallation propre
+            sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
+                docker.io docker-doc docker-compose-v2 podman-docker runc 2>/dev/null || true
             sudo apt-get autoremove -y 2>/dev/null || true
         fi
-        sudo rm -rf /var/lib/docker /etc/docker /var/run/docker.sock /var/lib/containerd
-        log "SUCCESS" "Docker a été complètement retiré."
+        sudo rm -rf /var/lib/docker /etc/docker /var/run/docker.sock /var/lib/containerd /var/run/docker.pid
+        log "SUCCESS" "Environnement Docker complètement nettoyé."
     fi
 
     log "SUCCESS" "Désinstallation terminée."
@@ -557,50 +567,12 @@ case $choice in
     *) echo -e "${RED}Option invalide.${NC}"; exit 1 ;;
 esac
 
-# 1. Vérification des dépendances
-check_dependency() {
-    if ! command -v "$1" &> /dev/null; then
-        log "ERROR" "$1 n'est pas installé."
-        return 1
-    fi
-    return 0
-}
+# 1. Vérification/Installation des dépendances (Nouveau Workflow SRE)
+check_and_install_deps
+ensure_docker_ready
 
-log "INFO" "Démarrage du processus d'installation..."
+log "INFO" "Démarrage du processus d'installation/configuration..."
 preflight_scan
-
-DEPS_MISSING=0
-check_dependency "docker" || DEPS_MISSING=1
-
-# SRE Heartbeat: Garantir que le daemon Docker est actif avant la suite
-if [ $DEPS_MISSING -eq 0 ]; then
-    ensure_docker_ready || DEPS_MISSING=1
-fi
-
-(sudo docker compose version &>/dev/null) || DEPS_MISSING=1
-check_dependency "wg" || DEPS_MISSING=1
-check_dependency "openssl" || DEPS_MISSING=1
-check_dependency "curl" || DEPS_MISSING=1
-
-if [ $DEPS_MISSING -eq 1 ]; then
-    echo -e "${YELLOW}[WARNING] Dépendances manquantes détectées.${NC}"
-    read -rp "Voulez-vous tenter une installation automatique via apt ? (y/N): " install_now
-    if [[ "$install_now" =~ ^[yY]$ ]]; then
-        install_deps
-        # Re-vérification
-        DEPS_MISSING=0
-        check_dependency "docker" || DEPS_MISSING=1
-        (docker compose version &>/dev/null) || DEPS_MISSING=1
-        check_dependency "wg" || DEPS_MISSING=1
-        if [ $DEPS_MISSING -eq 1 ]; then
-             echo -e "${RED}[FATAL] L'installation a échoué ou des dépendances manquent encore.${NC}"
-             exit 1
-        fi
-    else
-        echo -e "${RED}[FATAL] Dépendances manquantes. Veuillez installer docker, docker-compose-v2 et wireguard-tools.${NC}"
-        exit 1
-    fi
-fi
 
 # 2. Gestion de la configuration existante
 if [ -f "$API_ENV" ]; then
