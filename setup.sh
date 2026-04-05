@@ -412,7 +412,7 @@ setup_ssl() {
     sudo docker compose up -d nginx
 
     log "INFO" "Demande de certificat auprès de Let's Encrypt..."
-    if sudo docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+    if sudo docker compose run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
         --email "$EMAIL" --agree-tos --no-eff-email -d "$DOMAIN"; then
         
         log "SUCCESS" "Certificats obtenus avec succès."

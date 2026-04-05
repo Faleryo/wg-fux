@@ -41,7 +41,7 @@ log "Démarrage des services temporaires pour le challenge ACME..."
 docker compose up -d nginx
 
 log "Demande de certificat pour $DOMAIN..."
-docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+docker compose run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
     --email "$EMAIL" --agree-tos --no-eff-email \
     -d "$DOMAIN"
 
