@@ -52,13 +52,7 @@ api-service/logs/
 *.swp
 *.bak
 # Vibe-OS & Tooling (privé — jamais sur le repo public)
-.agents/
-VIBE-OS.md
-_PROJECT_SKILL.v2.1.bak.md
-lesson_record.md
-setup.sh.bak
 
 # Markdown interne (hors README)
-*.md
 !README.md
 

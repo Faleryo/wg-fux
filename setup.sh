@@ -1,4 +1,9 @@
 #!/bin/bash
+# 💠 Vibe-OS v6.5 Obsidian Check
+if [ "$EUID" -ne 0 ]; then
+    echo -e "\033[0;31m[ERROR] Ce script doit être exécuté avec des privilèges root (Sudo).\033[0m"
+    exit 1
+fi
 
 # WG-FUX Setup Script - Orchestration & Configuration
 # Author: Antigravity Architect
@@ -15,10 +20,7 @@ MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
-CHECK_MARK="${GREEN}✔${NC}"
-CROSS_MARK="${RED}✘${NC}"
-INFO_MARK="${BLUE}ℹ${NC}"
-WARN_MARK="${YELLOW}⚠${NC}"
+NC='\033[0m'
 
 # Fichiers & Logs
 LOG_FILE=".vibe/logs/setup.log"
@@ -140,7 +142,7 @@ uninstall() {
         log "INFO" "Arrêt des conteneurs et suppression des volumes..."
         sudo docker compose down -v || true
         
-        printf "${YELLOW}[?] Voulez-vous supprimer les IMAGES Docker du projet et le CACHE de build (Libère ~6-10GB) ? (y/N): ${NC}"
+        printf "%b[?] Voulez-vous supprimer les IMAGES Docker du projet et le CACHE de build (Libère ~6-10GB) ? (y/N): %b" "${YELLOW}" "${NC}"
         read -r purge_images
         if [[ "$purge_images" =~ ^[yY]$ ]]; then
             log "INFO" "Suppression des images locales et purge du builder..."
@@ -185,7 +187,7 @@ uninstall() {
     sudo rm -f /usr/local/bin/wg-*.sh 2>/dev/null || true
 
     if [ -f "$SWAP_FILE" ]; then
-        printf "${YELLOW}[?] Voulez-vous supprimer le fichier Swap ($SWAP_FILE) créé par WG-FUX ? (y/N): ${NC}"
+        printf "%b[?] Voulez-vous supprimer le fichier Swap ($SWAP_FILE) créé par WG-FUX ? (y/N): %b" "${YELLOW}" "${NC}"
         read -r purge_swap
         if [[ "$purge_swap" =~ ^[yY]$ ]]; then
             log "INFO" "Désactivation et suppression du Swap..."
@@ -194,21 +196,22 @@ uninstall() {
                 sudo rm -f "$SWAP_FILE"
                 log "INFO" "Swap désactivé et supprimé."
             else
-                log "WARNING" "Impossible de désactiver le Swap à chaud. Suppression différée au prochain reboot."
+                log "WARNING" "Impossible de désactiver le Swap à chaud (Mémoire occupée). Le fichier sera supprimé au prochain reboot par le système si non remonté."
+                log "INFO" "Entrée fstab retirée pour éviter le remontage."
             fi
             sudo sed -i "\|# WG-FUX Swap|d" /etc/fstab 2>/dev/null || true
             sudo sed -i "\|$SWAP_FILE|d" /etc/fstab 2>/dev/null || true
         fi
     fi
 
-    printf "${YELLOW}[?] Voulez-vous supprimer TOUTES les configurations WireGuard dans $WG_DIR ? (y/N): ${NC}"
+    printf "%b[?] Voulez-vous supprimer TOUTES les configurations WireGuard dans $WG_DIR ? (y/N): %b" "${YELLOW}" "${NC}"
     read -r purge_wg
     if [[ "$purge_wg" =~ ^[yY]$ ]]; then
         log "INFO" "Suppression de $WG_DIR..."
         sudo rm -rf "$WG_DIR"
     fi
 
-    printf "${YELLOW}[?] Voulez-vous désinstaller l'infrastructure Docker complète (Purge système) ? (y/N): ${NC}"
+    printf "%b[?] Voulez-vous désinstaller l'infrastructure Docker complète (Purge système) ? (y/N): %b" "${YELLOW}" "${NC}"
     read -r purge_docker
     if [[ "$purge_docker" =~ ^[yY]$ ]]; then
         log "WARNING" "Purge complète de Docker lancée..."
@@ -428,61 +431,14 @@ setup_swap() {
     fi
 }
 
-# --- Gestion SSL & Let's Encrypt (v6.4) ---
+# --- Gestion SSL & Let's Encrypt (v6.5 - Consolidated) ---
 setup_ssl() {
-    printf "\n${CYAN}[STEP 6] Configuration SSL (Let's Encrypt)${NC}\n"
-    printf "${YELLOW}[?] Voulez-vous configurer un nom de domaine et activer le SSL Let's Encrypt ? (y/N): ${NC}"
-    read -r setup_now
-    if [[ ! "$setup_now" =~ ^[yY]$ ]]; then
-        log "INFO" "Configuration SSL ignorée. Utilisation du HTTP standard (Port 80)."
-        return 0
-    fi
-
-    printf "${YELLOW}[?] Entrez votre nom de domaine (ex: vpn.mondomaine.com): ${NC}"
-    read -r DOMAIN
-    if [ -z "$DOMAIN" ]; then log "ERROR" "Domaine invalide."; return 1; fi
-
-    printf "${YELLOW}[?] Entrez votre adresse email (pour Let's Encrypt): ${NC}"
-    read -r EMAIL
-    if [ -z "$EMAIL" ]; then log "ERROR" "Email invalide."; return 1; fi
-
-    log "INFO" "Préparation du challenge ACME pour $DOMAIN..."
-    
-    # Force Docker Pulse avant ACME
-    ensure_docker_ready || return 1
-
-    # On s'assure que Nginx tourne pour servir le dossier /var/www/certbot
-    # SRE: --no-deps permet de lancer Nginx seul sans attendre le build de l'API/UI
-    sudo docker compose up -d --no-deps nginx
-
-    # Diagnostic pré-vol (Vibe-OS v6.4)
-    chmod +x .vibe/tools/check-port80.sh
-    if ! ./.vibe/tools/check-port80.sh "$DOMAIN" "${SERVER_IP:-$(detect_public_ip)}"; then
-        printf "${YELLOW}${BOLD}[WARNING] Des problèmes de connectivité ont été détectés.${NC}\n"
-        printf "${YELLOW}[?] Voulez-vous TOUT DE MÊME tenter la demande Let's Encrypt ? (y/N): ${NC}"
-        read -r proceed_anyway
-        if [[ ! "$proceed_anyway" =~ ^[yY]$ ]]; then
-            log "ERROR" "Annulation pour corriger les problèmes réseau (DNS/Port 80)."
-            return 1
-        fi
-    fi
-
-    log "INFO" "Demande de certificat auprès de Let's Encrypt..."
-    if sudo docker compose run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
-        --email "$EMAIL" --agree-tos --no-eff-email -d "$DOMAIN"; then
-        
-        log "SUCCESS" "Certificats obtenus avec succès."
-        
-        local nginx_conf="infra/nginx/default.conf"
-        log "INFO" "Mise à jour de la configuration Nginx..."
-        sudo sed -i "s|ssl_certificate /etc/nginx/ssl/server.crt;|ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;|g" "$nginx_conf"
-        sudo sed -i "s|ssl_certificate_key /etc/nginx/ssl/server.key;|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;|g" "$nginx_conf"
-        
-        log "INFO" "Redémarrage du Proxy avec SSL actif..."
-        sudo docker compose restart nginx
-        log "SUCCESS" "Infrastructure sécurisée sur https://$DOMAIN"
+    if [ -f "scripts/setup-ssl.sh" ]; then
+        chmod +x scripts/setup-ssl.sh
+        bash scripts/setup-ssl.sh
     else
-        log "ERROR" "Let's Encrypt a échoué. Vérifiez votre DNS et port 80."
+        log "ERROR" "Script scripts/setup-ssl.sh introuvable pour la configuration SSL."
+        return 1
     fi
 }
 
@@ -535,12 +491,12 @@ echo -e "7) Configuration SSL (Let's Encrypt / Certbot)"
 read -rp "Choisissez une option [1-7]: " choice
 
 case $choice in
-    2) uninstall; exit 0 ;;
-    3) update_process; exit 0 ;;
-    4) git_upgrade; exit 0 ;;
-    5) restart_proxy; exit 0 ;;
-    6) health_audit; exit 0 ;;
-    7) setup_ssl; exit 0 ;;
+    2) uninstall ;;
+    3) update_process ;;
+    4) git_upgrade ;;
+    5) restart_proxy ;;
+    6) health_audit ;;
+    7) setup_ssl ;;
     1) echo -e "${GREEN}[INFO] Initialisation de l'installation/configuration...${NC}" ;;
     *) echo -e "${RED}Option invalide.${NC}"; exit 1 ;;
 esac
@@ -593,7 +549,7 @@ fi
 # 2. Gestion de la configuration existante
 if [ -f "$API_ENV" ]; then
     log "WARNING" "Une configuration existante a été détectée."
-    printf "${YELLOW}[?] Voulez-vous écraser la configuration actuelle (.env, hash admin, secrets) ? (y/N): ${NC}"
+    printf "%b[?] Voulez-vous écraser la configuration actuelle (.env, hash admin, secrets) ? (y/N): %b" "${YELLOW}" "${NC}"
     read -r refresh_conf
     if [[ ! "$refresh_conf" =~ ^[yY]$ ]]; then
         log "INFO" "Conservation de la configuration actuelle. Lancement du build..."
@@ -612,7 +568,7 @@ SERVER_PORT=${SERVER_PORT:-51820}
 
 # 4. Authentification Admin
 log "INFO" "Étape 2 : Authentification Admin"
-printf "${YELLOW}[?] Username [admin]: ${NC}"
+printf "%b[?] Username [admin]: %b" "${YELLOW}" "${NC}"
 read -r ADMIN_USER
 ADMIN_USER=${ADMIN_USER:-admin}
 
@@ -731,12 +687,12 @@ unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS
 
 # 6. Sentinel & Alerts
 log "INFO" "Étape 6 : Sentinel Monitoring & Alerts (SRE)"
-printf "${YELLOW}[?] Voulez-vous activer les alertes Telegram via Bot API ? (y/N): ${NC}"
+printf "%b[?] Voulez-vous activer les alertes Telegram via Bot API ? (y/N): %b" "${YELLOW}" "${NC}"
 read -r enable_telegram
 if [[ "$enable_telegram" =~ ^[yY]$ ]]; then
-    printf "${YELLOW}[?] Entrez le Telegram Bot Token: ${NC}"
+    printf "%b[?] Entrez le Telegram Bot Token: %b" "${YELLOW}" "${NC}"
     read -r TG_TOKEN
-    printf "${YELLOW}[?] Entrez le Telegram Chat ID: ${NC}"
+    printf "%b[?] Entrez le Telegram Chat ID: %b" "${YELLOW}" "${NC}"
     read -r TG_CHATID
     echo "TELEGRAM_BOT_TOKEN=\"$TG_TOKEN\"" | sudo tee /etc/wireguard/sentinel.conf > /dev/null
     echo "TELEGRAM_CHAT_ID=\"$TG_CHATID\"" | sudo tee -a /etc/wireguard/sentinel.conf > /dev/null

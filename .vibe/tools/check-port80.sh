@@ -59,9 +59,10 @@ HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://$PUBLIC_
 if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "301" ] || [ "$HTTP_CODE" == "302" ] || [ "$HTTP_CODE" == "404" ]; then
     echo -e "${GREEN}[OK] Le serveur est accessible sur le port 80 via IP publique ($HTTP_CODE).${NC}"
 else
-     echo -e "${YELLOW}[WARNING] Impossible de joindre le serveur sur le port 80 via son IP publique ($PUBLIC_IP).${NC}"
-     echo -e "${YELLOW}[REASON] Cela peut être dû à un pare-feu Cloud (AWS/GCP/etc.) ou à l'absence de NAT Loopback.${NC}"
-     echo -e "${YELLOW}[ACTION] Vérifiez que le port 80 est ouvert dans la console de votre fournisseur VPS.${NC}"
+     echo -e "${RED}[ERROR] Impossible de joindre le serveur sur le port 80 via son IP publique ($PUBLIC_IP).${NC}"
+     echo -e "${YELLOW}[REASON] Cela peut être dû à un pare-feu Cloud (AWS/GCP/Hetzner) ou à l'absence de NAT Loopback.${NC}"
+     echo -e "${YELLOW}[ACTION] Assurez-vous que le port 80 est ouvert dans la console de votre fournisseur.${NC}"
+     exit 1
 fi
 
 exit 0

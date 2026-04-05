@@ -20,7 +20,7 @@ if [ ! -f "docker-compose.yml" ]; then
     exit 1
 fi
 
-printf "${YELLOW}[?] Entrez votre nom de domaine (ex: vpn.example.com): ${NC}"
+printf "%b[?] Entrez votre nom de domaine (ex: vpn.example.com): %b" "${YELLOW}" "${NC}"
 read -r DOMAIN
 
 if [ -z "$DOMAIN" ]; then
@@ -28,7 +28,7 @@ if [ -z "$DOMAIN" ]; then
     exit 1
 fi
 
-printf "${YELLOW}[?] Entrez votre adresse email (pour les notifications Let's Encrypt): ${NC}"
+printf "%b[?] Entrez votre adresse email (pour les notifications Let's Encrypt): %b" "${YELLOW}" "${NC}"
 read -r EMAIL
 
 if [ -z "$EMAIL" ]; then
@@ -45,8 +45,8 @@ chmod +x .vibe/tools/check-port80.sh
 # Note: On essaie de détecter l'IP si elle n'est pas passée en env
 DETECTED_IP=$(curl -s ifconfig.me 2>/dev/null || echo "127.0.0.1")
 if ! ./.vibe/tools/check-port80.sh "$DOMAIN" "$DETECTED_IP"; then
-    printf "${YELLOW}${BOLD}[WARNING] Des problèmes de connectivité ont été détectés.${NC}\n"
-    printf "${YELLOW}[?] Voulez-vous TOUT DE MÊME tenter la demande Let's Encrypt ? (y/N): ${NC}"
+    printf "%b%b[WARNING] Des problèmes de connectivité ont été détectés.%b\n" "${YELLOW}" "${BOLD}" "${NC}"
+    printf "%b[?] Voulez-vous TOUT DE MÊME tenter la demande Let's Encrypt ? (y/N): %b" "${YELLOW}" "${NC}"
     read -r proceed_anyway
     if [[ ! "$proceed_anyway" =~ ^[yY]$ ]]; then
         echo -e "${RED}[ERROR] Annulation du processus.${NC}"
