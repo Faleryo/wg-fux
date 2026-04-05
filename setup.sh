@@ -114,13 +114,33 @@ uninstall() {
         log "INFO" "Arrêt des conteneurs et suppression des volumes..."
         sudo docker compose down -v || true
         
-        printf "${YELLOW}[?] Voulez-vous supprimer les IMAGES Docker du projet (Libère ~6-10GB) ? (y/N): ${NC}"
+        printf "${YELLOW}[?] Voulez-vous supprimer les IMAGES Docker du projet et le CACHE de build (Libère ~6-10GB) ? (y/N): ${NC}"
         read -r purge_images
         if [[ "$purge_images" =~ ^[yY]$ ]]; then
-            log "INFO" "Suppression des images locales..."
+            log "INFO" "Suppression des images locales et purge du builder..."
             sudo docker compose down --rmi local 2>/dev/null || true
             sudo docker image prune -f 2>/dev/null || true
+            sudo docker builder prune -f 2>/dev/null || true
         fi
+    fi
+
+    # Nettoyage du Pare-feu (SRE Hardening)
+    log "INFO" "Nettoyage des règles du pare-feu..."
+    local port
+    if [ -f "$WG_DIR/manager.conf" ]; then
+        port=$(grep SERVER_PORT "$WG_DIR/manager.conf" | cut -d'"' -f2)
+    fi
+    port=${port:-51820}
+    if command -v ufw &> /dev/null; then
+        sudo ufw delete allow 80/tcp 2>/dev/null || true
+        sudo ufw delete allow 443/tcp 2>/dev/null || true
+        sudo ufw delete allow "$port"/udp 2>/dev/null || true
+        log "SUCCESS" "Règles UFW retirées."
+    elif command -v iptables &> /dev/null; then
+        sudo iptables -D INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
+        sudo iptables -D INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
+        sudo iptables -D INPUT -p udp --dport "$port" -j ACCEPT 2>/dev/null || true
+        log "SUCCESS" "Règles iptables retirées."
     fi
 
     log "INFO" "Désactivation du service Sentinel..."
@@ -132,6 +152,7 @@ uninstall() {
     log "INFO" "Suppression des fichiers de configuration API..."
     rm -f "$API_ENV"
     rm -rf "$API_DATA"
+    rm -f .env
 
     # Nettoyage des liens symboliques
     log "INFO" "Nettoyage des outils utilitaires..."
@@ -141,14 +162,13 @@ uninstall() {
         printf "${YELLOW}[?] Voulez-vous supprimer le fichier Swap ($SWAP_FILE) créé par WG-FUX ? (y/N): ${NC}"
         read -r purge_swap
         if [[ "$purge_swap" =~ ^[yY]$ ]]; then
-            log "INFO" "Désactivation et suppression du Swap (Optimisation RAM)..."
-            # SRE Hack: Libérer les caches pour permettre le swapoff
+            log "INFO" "Désactivation et suppression du Swap..."
             sync; sudo tee /proc/sys/vm/drop_caches <<< 3 > /dev/null 2>&1 || true
             if sudo swapoff "$SWAP_FILE" 2>/dev/null; then
                 sudo rm -f "$SWAP_FILE"
                 log "INFO" "Swap désactivé et supprimé."
             else
-                log "WARNING" "Impossible de désactiver le Swap à chaud (RAM insuffisante). Suppression différée au prochain reboot."
+                log "WARNING" "Impossible de désactiver le Swap à chaud. Suppression différée au prochain reboot."
             fi
             sudo sed -i "\|# WG-FUX Swap|d" /etc/fstab 2>/dev/null || true
             sudo sed -i "\|$SWAP_FILE|d" /etc/fstab 2>/dev/null || true
@@ -160,28 +180,19 @@ uninstall() {
     if [[ "$purge_wg" =~ ^[yY]$ ]]; then
         log "INFO" "Suppression de $WG_DIR..."
         sudo rm -rf "$WG_DIR"
-    else
-        log "INFO" "Conservation de $WG_DIR."
     fi
 
-    printf "${YELLOW}[?] Voulez-vous désinstaller Docker et supprimer TOUTES les données système associées (Images, Volumes, Config) ? (y/N): ${NC}"
+    printf "${YELLOW}[?] Voulez-vous désinstaller l'infrastructure Docker complète (Purge système) ? (y/N): ${NC}"
     read -r purge_docker
     if [[ "$purge_docker" =~ ^[yY]$ ]]; then
         log "WARNING" "Purge complète de Docker lancée..."
         sudo systemctl stop docker containerd 2>/dev/null || true
-        # Tentative de suppression des paquets
         if command -v apt-get &>/dev/null; then
-            sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-bin 2>/dev/null || true
+            sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 2>/dev/null || true
             sudo apt-get autoremove -y 2>/dev/null || true
         fi
-        # Nettoyage des répertoires de données
-        sudo rm -rf /var/lib/docker
-        sudo rm -rf /etc/docker
-        sudo rm -rf /var/run/docker.sock
-        sudo rm -rf ~/.docker
-        sudo rm -rf /var/lib/containerd
-        sudo groupdel docker 2>/dev/null || true
-        log "SUCCESS" "Docker et ses configurations ont été complètement retirés."
+        sudo rm -rf /var/lib/docker /etc/docker /var/run/docker.sock /var/lib/containerd
+        log "SUCCESS" "Docker a été complètement retiré."
     fi
 
     log "SUCCESS" "Désinstallation terminée."
@@ -582,13 +593,26 @@ if (!pass || !salt) { process.exit(1); }
 process.stdout.write(crypto.pbkdf2Sync(pass, salt, 600000, 64, 'sha512').toString('hex'));
 NODESCRIPT
 
-ADMIN_HASH=$(WGFUX_PASS="$ADMIN_PASS" WGFUX_SALT="$SALT" node "$BUF_SCRIPT" 2>/dev/null || \
-    sudo docker run --rm -e "WGFUX_PASS=$ADMIN_PASS" -e "WGFUX_SALT=$SALT" \
-        -v "$BUF_SCRIPT:/tmp/hash.js:ro" node:20-slim node /tmp/hash.js 2>/dev/null)
+ADMIN_HASH=""
+# Tentative 1 : Node local
+if command -v node &>/dev/null; then
+    ADMIN_HASH=$(WGFUX_PASS="$ADMIN_PASS" WGFUX_SALT="$SALT" node "$BUF_SCRIPT" 2>/dev/null || echo "")
+fi
+
+# Tentative 2 : Docker (robustifiée contre Code 125)
+if [ -z "$ADMIN_HASH" ]; then
+    log "INFO" "Node.js absent ou échec local. Tentative via Docker..."
+    if sudo docker image inspect node:20-slim &>/dev/null || sudo docker pull node:20-slim &>/dev/null; then
+        ADMIN_HASH=$(sudo docker run --rm -e "WGFUX_PASS=$ADMIN_PASS" -e "WGFUX_SALT=$SALT" \
+            -v "$BUF_SCRIPT:/tmp/hash.js:ro" node:20-slim node /tmp/hash.js 2>/dev/null || echo "")
+    fi
+fi
 
 rm -f "$BUF_SCRIPT"
+
 if [ -z "$ADMIN_HASH" ]; then
-    log "ERROR" "Échec de la génération du hash. Assurez-vous que Node.js ou Docker est fonctionnel."
+    log "ERROR" "Échec de la génération du hash. Cause probable : Docker incapable de pull 'node:20-slim'."
+    log "INFO" "Installez Node.js sur l'hôte (apt install nodejs) pour contourner Docker."
     exit 1
 fi
 log "SUCCESS" "Hash généré avec succès."
