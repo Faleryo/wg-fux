@@ -25,24 +25,30 @@ if [ -f .env ]; then
     source .env
 fi
 
-if [ -z "$DOMAIN" ]; then
-    printf "%b[?] Entrez votre nom de domaine (ou 'n' pour ignorer SSL): %b" "${YELLOW}" "${NC}"
+if [ -z "$DOMAIN" ] && [ -z "$EMAIL" ]; then
+    printf "%b[?] Voulez-vous configurer un nom de domaine et un certificat SSL valide ? (y/N): %b" "${YELLOW}" "${NC}"
+    read -r wants_ssl
+
+    if [[ ! "$wants_ssl" =~ ^[yY]$ ]]; then
+        log "Configuration SSL ignorée."
+        exit 0
+    fi
+
+    printf "%b[?] Entrez votre nom de domaine (ex: vpn.site.com): %b" "${YELLOW}" "${NC}"
     read -r DOMAIN
-fi
 
-if [[ "$DOMAIN" == "n" || "$DOMAIN" == "N" || -z "$DOMAIN" ]]; then
-    log "Configuration SSL ignorée."
-    exit 0
-fi
+    if [ -z "$DOMAIN" ]; then
+        echo -e "${RED}[ERROR] Le nom de domaine est obligatoire si vous souhaitez utiliser SSL.${NC}"
+        exit 1
+    fi
 
-if [ -z "$EMAIL" ]; then
     printf "%b[?] Entrez votre adresse e-mail pour Let's Encrypt: %b" "${YELLOW}" "${NC}"
     read -r EMAIL
-fi
 
-if [ -z "$EMAIL" ]; then
-    echo -e "${RED}[ERROR] L'adresse email est obligatoire pour le certificat SSL.${NC}"
-    exit 1
+    if [ -z "$EMAIL" ]; then
+        echo -e "${RED}[ERROR] L'adresse email est obligatoire pour le certificat SSL.${NC}"
+        exit 1
+    fi
 fi
 
 log "Démarrage complet de l'infrastructure pour le challenge ACME..."
