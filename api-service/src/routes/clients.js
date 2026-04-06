@@ -13,19 +13,6 @@ const { auditLog } = require('../services/audit');
 const log = require('../services/logger');
 
 
-// Mutex simple pour éviter les race conditions lors de création simultanée de clients
-// (le flock shell protège l'attribution IP, ce mutex protège le flux Node.js)
-let isCreatingClient = false;
-const withClientMutex = async (fn) => {
-  if (isCreatingClient) {
-    const err = new Error('Une création de client est déjà en cours. Réessayez dans quelques secondes.');
-    err.code = 'MUTEX_LOCKED';
-    throw err;
-  }
-  isCreatingClient = true;
-  try { return await fn(); }
-  finally { isCreatingClient = false; }
-};
 
 
 // --- Container Routes ---
@@ -186,8 +173,8 @@ router.post('/', auth, requireManager, async (req, res) => {
     const { name, container, expiry, quota, uploadLimit } = result.data;
     const cleanExpiry = expiry || '';
 
-    // Mutex: protège contre les créations simultanées qui causeraient des conflits d'IP
-    const clientData = await withClientMutex(async () => {
+    // 💠 SRE: L'orchestration concurrente est déléguée au lock OS (flock) du script Bash.
+    const getClientData = async () => {
       const { success, error } = await runSystemCommand(getScriptPath('wg-create-client.sh'), [container, name, cleanExpiry, String(quota || ''), String(uploadLimit || '0')]);
       if (!success) throw new Error(error || 'Script execution failed');
 
@@ -205,7 +192,9 @@ router.post('/', auth, requireManager, async (req, res) => {
       const ip = ipMatch ? ipMatch[1].split(',')[0].trim() : '';
             
       return { publicKey, ip };
-    });
+    };
+
+    const clientData = await getClientData();
 
 
     await db.insert(schema.clients).values({

@@ -159,8 +159,6 @@ EOF
 }
 
 ensure_docker_ready() {
-    log "INFO" "Vérification et réveil du démon Docker (Wait extended for Low-RAM)..."
-    
     local max_attempts=40 # Encore plus patient pour les petits VPS
     local attempt=1
     
@@ -192,7 +190,7 @@ ensure_docker_ready() {
             fi
         fi
 
-        log "INFO" "Attente du démon Docker... ($attempt/$max_attempts)"
+
         sleep 3
         attempt=$((attempt + 1))
     done

@@ -1,0 +1,18 @@
+
+In setup.sh line 45:
+    source .env
+           ^--^ SC1091 (info): Not following: .env was not specified as input (see shellcheck -x).
+
+
+In setup.sh line 274:
+    exit 0
+    ^----^ SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In setup.sh line 304:
+        source .env
+               ^--^ SC1091 (info): Not following: .env was not specified as input (see shellcheck -x).
+
+For more information:
+  https://www.shellcheck.net/wiki/SC1091 -- Not following: .env was not speci...
+  https://www.shellcheck.net/wiki/SC2317 -- Command appears to be unreachable...

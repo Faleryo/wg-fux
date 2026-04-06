@@ -72,7 +72,7 @@ const updateUsage = async () => {
         let daily = {};
         if (existingUsage && existingUsage.daily) {
           try { 
-            daily = JSON.parse(existingUsage.daily); 
+            daily = typeof existingUsage.daily === 'string' ? JSON.parse(existingUsage.daily) : existingUsage.daily;
           } catch(e) {
             console.error('[AUDIT] Failed to parse daily usage JSON:', e.message);
             daily = {};
