@@ -65,7 +65,7 @@ if ! ./.vibe/tools/check-port80.sh "$DOMAIN" "$DETECTED_IP"; then
     read -r generate_fallback
     if [[ "$generate_fallback" =~ ^[yY]$ ]]; then
         log "Génération du certificat de secours (Self-Signed)..."
-        docker run --rm -v "$(pwd)_certbot_certs:/etc/letsencrypt" alpine sh -c \
+        docker run --rm -v "wg-fux_certbot_certs:/etc/letsencrypt" alpine sh -c \
             "apk add --no-cache openssl && mkdir -p /etc/letsencrypt/live/$DOMAIN && \
             openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
             -keyout /etc/letsencrypt/live/$DOMAIN/privkey.pem \
@@ -86,8 +86,8 @@ log "Mise à jour de la configuration Nginx pour utiliser les nouveaux certifica
 NGINX_CONF="infra/nginx/default.conf"
 
 # Remplacement des chemins par défaut par les chemins Let's Encrypt
-sed -i "s|ssl_certificate /etc/nginx/ssl/server.crt;|ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;|g" "$NGINX_CONF"
-sed -i "s|ssl_certificate_key /etc/nginx/ssl/server.key;|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;|g" "$NGINX_CONF"
+sed -i "s|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;|g" "$NGINX_CONF"
+sed -i "s|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;|g" "$NGINX_CONF"
 
 log "Redémarrage de Nginx avec SSL actif..."
 docker compose restart nginx
