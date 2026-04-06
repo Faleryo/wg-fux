@@ -755,7 +755,7 @@ sudo sed -i "s|ExecStart=.*|ExecStart=/bin/bash $(pwd)/core-vpn/scripts/sentinel
 
 sudo systemctl daemon-reload
 sudo systemctl enable sentinel.service
-SENTINEL_TOKEN="$SENTINEL_TOKEN" sudo -E bash -c 'echo "SENTINEL_TOKEN=\"$SENTINEL_TOKEN\"" > core-vpn/scripts/sentinel.env'
+echo "SENTINEL_TOKEN=\"$SENTINEL_TOKEN\"" | sudo tee core-vpn/scripts/sentinel.env > /dev/null
 sudo systemctl restart sentinel.service
 log "SUCCESS" "Sentinel Watchdog est actif et surveille le système."
 
