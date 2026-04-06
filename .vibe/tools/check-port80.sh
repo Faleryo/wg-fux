@@ -16,12 +16,19 @@ NC='\033[0m'
 echo -e "${CYAN}[DIAGNOSTIC] Lancement des vérifications pré-vol Let's Encrypt (v6.5)...${NC}"
 
 # 1. Vérification Docker (Nginx a-t-il lié le port 80 ?)
-echo -ne "${CYAN}[INFO] Vérification du binding Docker (Port 80)... ${NC}"
-if sudo docker inspect wg-sentinel-proxy --format='{{(index (index .NetworkSettings.Ports "80/tcp") 0).HostPort}}' &>/dev/null; then
-    echo -e "${GREEN}[OK]${NC}"
+echo -ne "${CYAN}[INFO] Vérification du statut Nginx via Docker Compose... ${NC}"
+NGINX_CONTAINER=$(sudo docker compose ps -q nginx 2>/dev/null)
+
+if [ -n "$NGINX_CONTAINER" ]; then
+    if sudo docker inspect "$NGINX_CONTAINER" --format='{{range $p, $conf := .NetworkSettings.Ports}}{{if eq $p "80/tcp"}}{{range $conf}}{{.HostPort}}{{end}}{{end}}{{end}}' | grep -q "80"; then
+        echo -e "${GREEN}[OK]${NC}"
+    else
+        echo -e "${RED}[FAIL]${NC}"
+        echo -e "${YELLOW}[TIP] Le conteneur Nginx est lancé mais n'expose pas le port 80 sur l'hôte.${NC}"
+        exit 1
+    fi
 else
-    echo -e "${RED}[FAIL]${NC}"
-    echo -e "${YELLOW}[TIP] Le conteneur Nginx n'expose pas le port 80 sur l'hôte.${NC}"
+    echo -e "${RED}[FAIL] (Service Nginx non trouvé)${NC}"
     exit 1
 fi
 
@@ -30,17 +37,18 @@ echo -ne "${CYAN}[INFO] Test de réponse locale (HTTP 80)... ${NC}"
 # Retry loop (5 attempts)
 CHECK_SUCCESS=false
 for i in {1..5}; do
-    if curl -s --max-time 2 http://localhost/ > /dev/null 2>&1; then
+    if curl -s --max-time 3 http://127.0.0.1/ > /dev/null 2>&1; then
         echo -e "${GREEN}[OK]${NC}"
         CHECK_SUCCESS=true
         break
     fi
-    sleep 2
+    echo -ne "."
+    sleep 3
 done
 
 if [ "$CHECK_SUCCESS" = false ]; then
     echo -e "${RED}[FAIL]${NC}"
-    echo -e "${YELLOW}[TIP] Nginx est démarré mais ne répond pas sur localhost:80.${NC}"
+    echo -e "${YELLOW}[TIP] Nginx est mappé sur le port 80 mais localhost:80 ne répond pas.${NC}"
     exit 1
 fi
 

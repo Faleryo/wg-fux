@@ -1,6 +1,14 @@
-# SRE: Unification des utilitaires
-PROJECT_ROOT="/home/faleryo/wg-fux"
-source "$PROJECT_ROOT/core-vpn/scripts/wg-common.sh"
+# SRE: Unification des utilitaires (Chemin dynamique)
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+COMMON_SH="$SCRIPT_DIR/../core-vpn/scripts/wg-common.sh"
+
+if [ -f "$COMMON_SH" ]; then
+    source "$COMMON_SH"
+else
+    # Fallback minimal si common est introuvable
+    log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1"; }
+    log_info() { echo -e "\033[0;32m[INFO]\033[0m $1"; }
+fi
 
 if [ ! -f "docker-compose.yml" ]; then
     log_error "Script must be run from the WG-FUX root directory."
