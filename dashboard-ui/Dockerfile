@@ -4,7 +4,11 @@ FROM node:20-slim AS builder
 WORKDIR /app
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 COPY dashboard-ui/package*.json ./
-RUN npm install
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm config set strict-ssl false && \
+    npm install --no-audit --no-fund
 COPY dashboard-ui/ .
 RUN npm run build
 

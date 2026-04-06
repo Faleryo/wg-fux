@@ -343,8 +343,8 @@ update_process() {
     # 💠 SRE: Ensure SSL is ready (Port 80 must be open)
     setup_ssl
     
-    log "INFO" "Reconstruction des images (--no-cache) et redémarrage des services..."
-    if ! sudo DOCKER_BUILDKIT=1 docker compose build --no-cache; then
+    log "INFO" "Reconstruction des images et redémarrage des services..."
+    if ! sudo DOCKER_BUILDKIT=1 docker compose build; then
         log "ERROR" "Échec de la reconstruction. Annulation..."
         return 1
     fi
