@@ -5,10 +5,11 @@ description: Maintenance et Hardening WG-FUX (v6.5 Obsidian)
 // turbo-all
 Ce workflow assure la maintenance régulière du système WG-FUX en suivant le protocole de fiabilité Obsidian.
 
-1. **Scan d'Audit Initial**
-Exécuter l'audit complet du système.
+1. **Validation Totale (The Guardian)**
+Exécuter le scan d'intégrité unifié (Statique + Runtime + Sec).
 ```bash
-bash .vibe/tools/vibe-audit-v6.5.sh
+# // turbo
+bash .vibe/tools/vibe-guardian.sh
 ```
 
 2. **Mise à jour des Sources (Facultatif)**

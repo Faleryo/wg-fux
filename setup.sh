@@ -115,67 +115,72 @@ preflight_scan() {
 }
 
 check_and_install_deps() {
-    log "INFO" "Vérification des dépendances système (Grade Obsidian Plus)..."
-    local missing=()
-    # Nous incluons nodejs et wireguard-tools pour une installation complète
-    local deps=("curl" "sed" "openssl" "ufw" "docker")
+    log "INFO" "Vérification des composants système indispensables..."
+    
+    local ram_kb; ram_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    local ram_mb=$((ram_kb / 1024))
 
-    for dep in "${deps[@]}"; do
-        if ! command -v "$dep" &> /dev/null; then
-            missing+=("$dep")
-        fi
-    done
-
-    if [ ${#missing[@]} -gt 0 ]; then
-        log "WARNING" "Dépendances manquantes détectées : ${missing[*]}"
-        log "INFO" "Tentative d'installation automatique..."
-        sudo apt-get update -qq
-        for m in "${missing[@]}"; do
-            case "$m" in
-                "docker")
-                    log "INFO" "Installation de Docker Engine (Official CE)..."
-                    # 💠 SRE: Nettoyage proactif des anciennes variantes conflictuelles (docker.io)
-                    sudo apt-get purge -y docker.io docker-doc docker-compose-v2 podman-docker containerd runc 2>/dev/null || true
-                    curl -fsSL https://get.docker.com | sh
-                    sudo usermod -aG docker "$USER"
-                    ;;
-                *)
-                    sudo apt-get install -y -qq "$m"
-                    ;;
-            esac
-        done
-        # Installation spécifique des outils WireGuard et Node
-        if ! command -v wg &> /dev/null; then sudo apt-get install -y -qq wireguard-tools; fi
-        if ! command -v node &> /dev/null; then sudo apt-get install -y -qq nodejs; fi
-        log "SUCCESS" "Dépendances installées."
+    if ! command -v docker &>/dev/null || ! command -v docker compose version &>/dev/null; then
+        log "WARNING" "Docker ou Docker Compose v2 manquant. Installation..."
+        install_deps
     else
-        log "SUCCESS" "Toutes les dépendances système sont présentes."
+        # 💠 SRE: Optimisation Docker pour faible RAM (< 1GB)
+        if [ "$ram_mb" -lt 1024 ]; then
+            log "WARNING" "Faible RAM détectée (< 1GB). Application de l'optimisation SRE Low-RAM..."
+            sudo mkdir -p /etc/docker
+            sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+{
+  "max-concurrent-downloads": 1,
+  "max-concurrent-uploads": 1,
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  },
+  "iptables": true,
+  "oom-score-adjust": -500
+}
+EOF
+            log "SUCCESS" "Configuration Docker optimisée pour ${ram_mb}MB de RAM. Redémarrage du service..."
+            sudo systemctl restart docker 2>/dev/null || true
+        fi
     fi
 }
 
 ensure_docker_ready() {
-    log "INFO" "Vérification et réveil du démon Docker..."
+    log "INFO" "Vérification et réveil du démon Docker (Wait extended for Low-RAM)..."
     
-    local max_attempts=15
+    local max_attempts=40 # Encore plus patient pour les petits VPS
     local attempt=1
     
+    # Premier check passif
+    if sudo docker ps &>/dev/null; then return 0; fi
+
     # 💠 SRE: Déblocage agressif du service (Unmask, Reload, Start)
     sudo systemctl unmask docker.service docker.socket 2>/dev/null || true
     sudo systemctl daemon-reload
     sudo systemctl restart docker 2>/dev/null || sudo service docker restart 2>/dev/null || true
     
     while [ $attempt -le $max_attempts ]; do
-        if sudo docker ps &>/dev/null; then
-            log "SUCCESS" "Docker est prêt et opérationnel."
-            return 0
+        if [ -S /run/docker.sock ] || [ -S /var/run/docker.sock ]; then
+            if sudo docker ps &>/dev/null; then
+                log "SUCCESS" "Docker est prêt et opérationnel."
+                return 0
+            fi
         fi
+        
+        # 💠 SRE: Si on arrive à l'essai 20 et que ça ne marche toujours pas, on tente le bootstrap auto
+        if [ $attempt -eq 20 ]; then
+            log "WARNING" "Délai d'attente prolongé (20/40). Tentative de diagnostic/réparation auto..."
+            check_and_install_deps
+        fi
+
         log "INFO" "Attente du démon Docker... ($attempt/$max_attempts)"
-        sleep 2
+        sleep 3
         attempt=$((attempt + 1))
     done
 
-    log "ERROR" "Impossible de joindre le démon Docker. Tentative de réinstallation (Bootstrap)..."
-    check_and_install_deps
+    log "ERROR" "Impossible de joindre le démon Docker après ${max_attempts} essais."
     return 1
 }
 

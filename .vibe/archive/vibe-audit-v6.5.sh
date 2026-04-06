@@ -33,10 +33,19 @@ fi
 
 # 2. ARCHITECTURAL SRE LIMITS (BLAST RADIUS)
 echo -e "\n${BLUE}[2/4] SRE BLAST RADIUS (RESOURCE LIMITS)${NC}"
-API_CPU=$(sed -n '/api:/,/ui:/p' docker-compose.yml | grep "cpus:" | awk '{print $2}' | tr -d "'")
-API_MEM=$(sed -n '/api:/,/ui:/p' docker-compose.yml | grep "memory:" | awk '{print $2}')
-UI_CPU=$(sed -n '/ui:/,/adguard:/p' docker-compose.yml | grep "cpus:" | awk '{print $2}' | tr -d "'")
-UI_MEM=$(sed -n '/ui:/,/adguard:/p' docker-compose.yml | grep "memory:" | awk '{print $2}')
+
+# Méthode plus robuste de parsing YAML (recherche de la section cpus/memory sous le service spécifique)
+get_limit() {
+    local service=$1
+    local key=$2
+    # On cherche le bloc du service, puis on cherche la clé dans le sous-bloc 'limits'
+    sed -n "/^  $service:/,/^  [a-z]/p" docker-compose.yml | sed -n '/limits:/,$p' | grep "$key:" | head -n 1 | awk '{print $2}' | tr -d "'"
+}
+
+API_CPU=$(get_limit "api" "cpus")
+API_MEM=$(get_limit "api" "memory")
+UI_CPU=$(get_limit "ui" "cpus")
+UI_MEM=$(get_limit "ui" "memory")
 
 echo -e "  > API Service       : CPU=${YELLOW}${API_CPU:-N/A}${NC} | MEM=${YELLOW}${API_MEM:-N/A}${NC} [ENFORCED]"
 echo -e "  > Dashboard UI      : CPU=${YELLOW}${UI_CPU:-N/A}${NC} | MEM=${YELLOW}${UI_MEM:-N/A}${NC} [ENFORCED]"

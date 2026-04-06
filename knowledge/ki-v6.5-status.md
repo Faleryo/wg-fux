@@ -11,17 +11,17 @@
 - **SSL** : Let's Encrypt (Certbot) avec renouvellement automatique toutes les 12h.
 - **VPN** : WireGuard (Interface `wg0`, Subnet `10.0.0.0/24`).
 
-## 2. Preuve Mathématique (Audit v6.5)
-L'audit exécuté le 2026-04-05 a retourné un **Exit Code 0**. 
-### Blast Radius Enforced :
-- `wg-fux-api` : Limite CPU=1.0, MEM=512M.
-- `wg-fux-dashboard` : Limite CPU=1.0, MEM=1024M.
-- `wg-fux-dns` : Limite CPU=0.25, MEM=256M.
+## 2. Preuve Mathématique (Guardian v6.5)
+L'audit unifié `vibe-guardian.sh` a été exécuté le 2026-04-06 avec un **Exit Code 0**. 
+### Blast Radius & Security :
+- `wg-fux-api` : Limite CPU=1.0, MEM=512M (Verify: OK).
+- `wg-fux-dashboard` : Limite CPU=1.0, MEM=1024M (Verify: OK).
+- `Nginx Security` : Headers Obsidian + Whitelist VPN /dns/ Enforcement (Applied).
 
 ## 3. Points de Vigilance (Lessons Learned)
-- **Shadow Code** : La désynchronisation entre les scripts sur l'hôte (`core-vpn/scripts/`) et ceux dans le conteneur `api` est un risque majeur. Toujours privilégier `docker compose up -d --build api` après modification des scripts.
-- **Privileged Access** : L'image API utilise `cap_add: [NET_ADMIN, SYS_MODULE, NET_RAW]` au lieu de `--privileged` pour minimiser la surface d'attaque.
+- **Shadow Code** : La synchronisation est désormais vérifiée par MD5 automatiqueme au démarrage du Guardian.
+- **Privileged Access** : Toujours en usage via `cap_add` (NET_ADMIN) pour WireGuard.
 
 ## 4. Prochaines Étapes
-- Consolidation de l'outillage de validation proactive.
-- Mise à jour des workflows de maintenance vers le grade Obsidian.
+- Automatisation du Guardian via cron (optionnel).
+- Monitoring passif des sessions VPN actives via Sentinel.
