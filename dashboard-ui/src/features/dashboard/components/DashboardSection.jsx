@@ -17,7 +17,7 @@ import VibeButton from '../../../components/ui/Button';
 import { LiveTelemetryChart } from './LiveTelemetryChart';
 
 
-const DashboardSection = ({ stats, trafficData, systemStats, clients, health, config, onRunSpeedtest, speedtest, onCreateClient, sentinel, onNavigate }) => {
+const DashboardSection = ({ stats, trafficData, systemStats, clients, health, config, onRunSpeedtest, speedtest, onCreateClient, sentinel, adguardStatus, onNavigate }) => {
 
   const { theme, isDark } = useTheme();
   const cpu = systemStats?.cpu || 0;
