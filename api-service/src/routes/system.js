@@ -16,9 +16,21 @@ const { getJobStatus } = require('../services/jobs');
 const { getScriptPath } = require('../services/config');
 const { gcAuditLogs } = require('../services/audit');
 const log = require('../services/logger');
+const axios = require('axios');
 
 const WG_BIN = process.env.WG_BIN || 'wg';
 const WG_QUICK_BIN = process.env.WG_QUICK_BIN || 'wg-quick';
+
+// --- AdGuard Status Check ---
+router.get('/adguard-status', auth, async (req, res) => {
+  try {
+    // AdGuard Home listening on port 3000 inside the container 'adguard'
+    const response = await axios.get('http://adguard:3000/control/status', { timeout: 3000 });
+    res.json({ status: response.status === 200 ? 'active' : 'inactive' });
+  } catch (e) {
+    res.json({ status: 'inactive', error: e.message });
+  }
+});
 
 
 // --- Metrics & Stats ---

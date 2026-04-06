@@ -66,7 +66,7 @@ const MainLayout = ({ session, onLogout }) => {
   const {
     clients, allContainers, users, stats, systemStats,
     trafficData, loading, health, config,
-    uptime, speedtest, sentinelStatus, onlinePeers,
+    uptime, speedtest, sentinelStatus, adguardStatus, onlinePeers,
     fetchData, handleRunSpeedtest,
   } = useDashboardData(session);
 
@@ -178,7 +178,7 @@ const MainLayout = ({ session, onLogout }) => {
       );
     }
     switch (activeSection) {
-      case 'dashboard': return <DashboardSection stats={stats} trafficData={trafficData} systemStats={systemStats} clients={clients} health={health} config={config} speedtest={speedtest} onRunSpeedtest={handleRunSpeedtest} sentinel={sentinelStatus} onCreateClient={() => setShowCreateModal(true)} onNavigate={handleNavigate} />;
+      case 'dashboard': return <DashboardSection stats={stats} trafficData={trafficData} systemStats={systemStats} clients={clients} health={health} config={config} speedtest={speedtest} onRunSpeedtest={handleRunSpeedtest} sentinel={sentinelStatus} adguardStatus={adguardStatus} onCreateClient={() => setShowCreateModal(true)} onNavigate={handleNavigate} />;
       case 'containers': return <ContainersSection clients={clients} allContainers={allContainers} loading={loading} activeContainer={activeContainer} setActiveContainer={setActiveContainer} onSelect={setTopologySelectedClient} onQRCode={async (client) => { try { const res = await axiosInstance.get(`/clients/${client.container}/${client.name}/config`); setSelectedClientForModal({ name: client.name, config: res.data.config || '' }); setShowQRModal(true); } catch { addToast('Erreur de configuration', 'error'); }}} onToggle={handleToggleClient} onDelete={handleDeleteClient} onDeleteContainer={handleDeleteContainerPrompt} onEdit={(client) => { setSelectedClientForEdit(client); setShowEditModal(true); }} onCreateClient={(container) => { setTargetContainerForCreate(container); setShowCreateModal(true); }} onCreateContainer={() => setShowCreateContainerModal(true)} />;
       case 'topology': return <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700"><NetworkMap clients={clients} onSelectClient={setTopologySelectedClient} onlinePeers={onlinePeers} /></div>;
       case 'users': return <UsersSection users={users} loading={loading} onRefresh={fetchData} onDelete={handleDeleteUser} onCreateUser={() => setShowCreateUserModal(true)} />;

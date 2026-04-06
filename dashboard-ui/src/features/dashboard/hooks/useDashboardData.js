@@ -30,7 +30,18 @@ const useDashboardData = (session) => {
   const [uptime, setUptime] = useState('');
   const [speedtest, setSpeedtest] = useState({ loading: false, data: null });
   const [sentinelStatus, setSentinelStatus] = useState({ status: 'offline', lastHeartbeat: null, stats: {} });
+  const [adguardStatus, setAdguardStatus] = useState({ status: 'unknown' });
   const [onlinePeers, setOnlinePeers] = useState([]);
+
+  // ── AdGuard ───────────────────────────────────────────────────────────────
+  const fetchAdguard = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get('/system/adguard-status');
+      setAdguardStatus(res.data);
+    } catch {
+      setAdguardStatus({ status: 'inactive' });
+    }
+  }, []);
 
   // ── WebSocket ─────────────────────────────────────────────────────────────
   useWebSocket(getWsUri('status'), {
@@ -147,12 +158,19 @@ const useDashboardData = (session) => {
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSentinel();
-    const pollId = setInterval(fetchData, POLL_INTERVAL);
-    const sentinelId = setInterval(fetchSentinel, SENTINEL_INTERVAL);
-    return () => { clearInterval(pollId); clearInterval(sentinelId); };
-  }, [fetchData, fetchSentinel]);
+    fetchAdguard();
+
+    const iMain = setInterval(fetchData, POLL_INTERVAL);
+    const iSent = setInterval(fetchSentinel, SENTINEL_INTERVAL);
+    const iAdg  = setInterval(fetchAdguard, SENTINEL_INTERVAL);
+
+    return () => {
+      clearInterval(iMain);
+      clearInterval(iSent);
+      clearInterval(iAdg);
+    };
+  }, [fetchData, fetchSentinel, fetchAdguard]);
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleRunSpeedtest = async () => {
@@ -171,7 +189,7 @@ const useDashboardData = (session) => {
     // State
     clients, allContainers, users, stats, systemStats,
     trafficData, clientsHistory, loading, health, config,
-    uptime, speedtest, sentinelStatus, onlinePeers,
+    uptime, speedtest, sentinelStatus, adguardStatus, onlinePeers,
     // Mutators
     fetchData, fetchSentinel, handleRunSpeedtest,
     // Setters needed by MainLayout

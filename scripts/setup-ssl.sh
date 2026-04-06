@@ -57,6 +57,12 @@ if [ -z "$DOMAIN" ] && [ -z "$EMAIL" ]; then
     fi
 fi
 
+log "Vérification et ouverture des ports du pare-feu (UFW)..."
+sudo ufw allow 80/tcp > /dev/null 2>&1 || true
+sudo ufw allow 443/tcp > /dev/null 2>&1 || true
+sudo ufw allow 443/udp > /dev/null 2>&1 || true # Pour QUIC/HTTP3
+log "Pare-feu configuré pour Nginx et Let's Encrypt."
+
 log "Démarrage complet de l'infrastructure pour le challenge ACME..."
 # 💠 SRE: On lance tout pour garantir que Nginx peut résoudre les upstreams (API, AdGuard)
 docker compose up -d

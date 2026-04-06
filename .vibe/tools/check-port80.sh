@@ -16,8 +16,10 @@ NC='\033[0m'
 echo -e "${CYAN}[DIAGNOSTIC] Lancement des vérifications pré-vol Let's Encrypt (v6.5)...${NC}"
 
 # 1. Vérification locale (Nginx écoute ?)
-if ss -tuln | grep -q ":80 "; then
+if sudo ss -tuln | grep -q ":80 "; then
     echo -e "${GREEN}[OK] Un service écoute sur le port 80 localement.${NC}"
+elif curl -s --max-time 2 http://localhost/ > /dev/null 2>&1; then
+    echo -e "${GREEN}[OK] Un service répond sur le port 80 localement (via curl).${NC}"
 else
     echo -e "${RED}[ERROR] Aucun service n'écoute sur le port 80.${NC}"
     echo -e "${YELLOW}[TIP] Assurez-vous que le conteneur Nginx est démarré.${NC}"

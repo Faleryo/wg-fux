@@ -172,24 +172,46 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
 
         {/* Right sidebar cards — lg:col-span-1 xl:col-span-4 */}
         <div className="lg:col-span-1 xl:col-span-4 flex flex-col gap-6">
-          {/* Sentinel */}
-          <GlassCard className={cn("p-6 flex items-center justify-between group transition-all", isDark ? "bg-gradient-to-br from-emerald-500/10 to-teal-950/20 border-emerald-500/20" : "bg-white/80 border-emerald-500/10 shadow-sm")}>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0", sentinel?.status === 'healthy' ? "bg-emerald-500 shadow-[0_0_10px_#10b981]" : "bg-red-500")} />
-                <p className="text-[10px] font-black text-emerald-500/80 uppercase tracking-widest truncate">Sentinel Watchdog V2</p>
+          {/* Sentinel & AdGuard */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-1 gap-6">
+            {/* Sentinel */}
+            <GlassCard className={cn("p-6 flex items-center justify-between group transition-all", isDark ? "bg-gradient-to-br from-emerald-500/10 to-teal-950/20 border-emerald-500/20" : "bg-white/80 border-emerald-500/10 shadow-sm")}>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0", sentinel?.status === 'healthy' ? "bg-emerald-500 shadow-[0_0_10px_#10b981]" : "bg-red-500")} />
+                  <p className="text-[10px] font-black text-emerald-500/80 uppercase tracking-widest truncate">Sentinel Watchdog V2</p>
+                </div>
+                  <h4 className={cn("text-lg md:text-xl font-black italic tracking-tight uppercase transition-colors", isDark ? "text-white" : "text-slate-900")}>
+                    {sentinel?.status === 'healthy' ? 'Secured' : (sentinel?.status === 'error' ? 'Offline' : 'Searching')}
+                  </h4>
+                <p className="text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight truncate">
+                  Pulse: {sentinel?.lastHeartbeat ? new Date(sentinel.lastHeartbeat).toLocaleTimeString() : 'Await Heartbeat'}
+                </p>
               </div>
+              <div className="p-3 md:p-4 rounded-2xl bg-emerald-500/10 text-emerald-500 shadow-2xl group-hover:scale-110 transition-transform flex-shrink-0 ml-4">
+                <ShieldCheck size={24} />
+              </div>
+            </GlassCard>
+
+            {/* AdGuard / Safe DNS Status */}
+            <GlassCard className={cn("p-6 flex items-center justify-between group transition-all", isDark ? "bg-gradient-to-br from-blue-500/10 to-indigo-950/20 border-blue-500/20" : "bg-white/80 border-blue-500/10 shadow-sm")}>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0", adguardStatus?.status === 'active' ? "bg-blue-500 shadow-[0_0_10px_#3b82f6]" : "bg-red-500")} />
+                  <p className="text-[10px] font-black text-blue-500/80 uppercase tracking-widest truncate">DNS Safe Filter</p>
+                </div>
                 <h4 className={cn("text-lg md:text-xl font-black italic tracking-tight uppercase transition-colors", isDark ? "text-white" : "text-slate-900")}>
-                  {sentinel?.status === 'healthy' ? 'Secured' : (sentinel?.status === 'error' ? 'Offline' : 'Searching')}
+                  {adguardStatus?.status === 'active' ? 'Filtered' : 'Disabled'}
                 </h4>
-              <p className="text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight truncate">
-                Last Pulse: {sentinel?.lastHeartbeat ? new Date(sentinel.lastHeartbeat).toLocaleTimeString() : 'Await Heartbeat'}
-              </p>
-            </div>
-            <div className="p-3 md:p-4 rounded-2xl bg-emerald-500/10 text-emerald-500 shadow-2xl group-hover:scale-110 transition-transform flex-shrink-0 ml-4">
-              <ShieldCheck size={24} />
-            </div>
-          </GlassCard>
+                <p className="text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight truncate">
+                  Engine: AdGuard Home
+                </p>
+              </div>
+              <div className="p-3 md:p-4 rounded-2xl bg-blue-500/10 text-blue-500 shadow-2xl group-hover:scale-110 transition-transform flex-shrink-0 ml-4">
+                <Shield size={24} />
+              </div>
+            </GlassCard>
+          </div>
 
           {/* Core Resources */}
           <GlassCard className="flex-1 p-6 md:p-8 flex flex-col justify-center gap-6 group" hover={true}>

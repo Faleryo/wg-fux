@@ -209,20 +209,19 @@ const rotateEnforcerLogs = async () => {
       const backupFile = `${logFile}.${timestamp}.bak`;
       
       // Copy and truncate to keep the file handle valid if open
-      await runSystemCommand('cp', [logFile, backupFile]);
-      await runSystemCommand('truncate', ['-s', '0', logFile]);
+      await fsPromises.copyFile(logFile, backupFile);
+      await fsPromises.truncate(logFile, 0);
       
       // Compress the backup
-      await runSystemCommand('gzip', [backupFile]);
+      await runSystemCommand('gzip', [backupFile]).catch(e => log.error('sre', 'Gzip compression failed', { err: e.message }));
       
       // Cleanup: Keep only last 5 rotated logs
-      // BUG-FIX: runSystemCommand('ls').then() retournait une Promise non résolue.
-      // fsPromises.readdir est natif, asynchrone et correctement awaitable.
       const allLogs = await fsPromises.readdir('/var/log/');
       const rotatedLogs = allLogs.filter(f => f.startsWith('wg-enforcer.log.') && f.endsWith('.gz')).sort().reverse();
       if (rotatedLogs.length > 5) {
         for (let i = 5; i < rotatedLogs.length; i++) {
-          await runSystemCommand('rm', [path.join('/var/log/', rotatedLogs[i])]);
+          const fileToRemove = path.join('/var/log/', rotatedLogs[i]);
+          await fsPromises.unlink(fileToRemove).catch(e => log.error('sre', `Failed to remove old log ${fileToRemove}`, { err: e.message }));
         }
       }
     }

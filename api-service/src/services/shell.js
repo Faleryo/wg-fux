@@ -108,6 +108,49 @@ const readdirAsRoot = async (dirPath) => {
   return { success: true, files: stdout.split('\n').filter(Boolean) };
 };
 
+/**
+ * Native FS Helpers (Performance & Security over Shell)
+ */
+const readFile = async (filePath) => {
+  try {
+    const data = await fs.readFile(filePath, 'utf8');
+    return { success: true, content: data };
+  } catch (e) {
+    log.error('shell', `Native readFile failed for ${filePath}: ${e.message}`);
+    return { success: false, error: e.message };
+  }
+};
+
+const writeFile = async (filePath, content) => {
+  try {
+    await fs.writeFile(filePath, content, 'utf8');
+    return { success: true };
+  } catch (e) {
+    log.error('shell', `Native writeFile failed for ${filePath}: ${e.message}`);
+    return { success: false, error: e.message };
+  }
+};
+
+const listDir = async (dirPath) => {
+  try {
+    const files = await fs.readdir(dirPath);
+    return { success: true, files };
+  } catch (e) {
+    log.error('shell', `Native readdir failed for ${dirPath}: ${e.message}`);
+    return { success: false, error: e.message };
+  }
+};
+
+const unlink = async (filePath) => {
+  try {
+    await fs.unlink(filePath);
+    return { success: true };
+  } catch (e) {
+    log.error('shell', `Native unlink failed for ${filePath}: ${e.message}`);
+    return { success: false, error: e.message };
+  }
+};
+
 module.exports = {
   runCommand,
   runSystemCommand,
@@ -115,6 +158,10 @@ module.exports = {
   appendFileAsRoot,
   unlinkAsRoot,
   readdirAsRoot,
+  readFile,
+  writeFile,
+  listDir,
+  unlink,
   SUDO,
   SUDO_ARGS
 };

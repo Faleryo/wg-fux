@@ -19,13 +19,20 @@ HEALTH_URL="http://localhost:3000/api/health"
 DOCKER_CMD="docker compose"
 if ! "$DOCKER_CMD" version &>/dev/null; then DOCKER_CMD="docker-compose"; fi
 
-# SRE Note: log_event is kept for local file logging, but unifies with log_info if possible
+# SRE Note: log_event encapsulates standard logging and local file persistence
 log_event() {
-    # Ensure log file exists and is writable
-    if [ ! -w "$LOG_FILE" ]; then
-        log_error "Sentinel: Log file $LOG_FILE not writable."
-    else
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+    local level="${2:-INFO}"
+    local msg="$1"
+    
+    case "$level" in
+        "ERROR") log_error "Sentinel: $msg" ;;
+        "WARN")  log_warn "Sentinel: $msg" ;;
+        *)       log_info "Sentinel: $msg" ;;
+    esac
+
+    # Local file audit
+    if [ -w "$LOG_FILE" ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - [$level] $msg" >> "$LOG_FILE"
     fi
 }
 
