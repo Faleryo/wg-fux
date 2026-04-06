@@ -539,9 +539,9 @@ setup_firewall() {
 }
 
 # Suppression auto des flags si nécessaire ou gestion par arguments
-if [ "$1" == "--uninstall" ]; then uninstall; fi
-if [ "$1" == "--update" ]; then update_process; fi
-if [ "$1" == "--upgrade" ]; then git_upgrade; fi
+if [ "${1:-}" == "--uninstall" ]; then uninstall; fi
+if [ "${1:-}" == "--update" ]; then update_process; fi
+if [ "${1:-}" == "--upgrade" ]; then git_upgrade; fi
 
 # 0. Initialisation du matériel (Swap si RAM < 2GB)
 setup_swap
