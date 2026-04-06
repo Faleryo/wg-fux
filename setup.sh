@@ -394,13 +394,17 @@ update_process() {
 
 git_upgrade() {
     log "INFO" "Récupération des dernières mises à jour depuis Git (Guration et Hard Reset)..."
+    
+    # 💠 SRE: Suppression préventive du verrou Git (index.lock) qui peut bloquer les updates
+    rm -f .git/index.lock 2>/dev/null || true
+    
     git fetch --all 2>/dev/null
     local current_branch
     current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
     
     # 💠 SRE: On force le reset pour éviter les blocages de pull dus aux modifs locales
     if git reset --hard "origin/$current_branch"; then
-        log "SUCCESS" "Mise à jour du code source terminée."
+        log "SUCCESS" "Mise à jour du code source terminée (Branche: $current_branch)."
         update_process
     else
         log "ERROR" "Échec du reset Git. Vérifiez votre connexion ou l'état du dépôt."
