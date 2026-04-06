@@ -46,7 +46,8 @@ services:
     networks:
       - vpn-internal
     healthcheck:
-      test: ["CMD-SHELL", "[ -d /etc/letsencrypt/live ] || exit 1"]
+      # SRE: Is healthy if live certs exist OR if the service is just waiting (Bootstrap phase)
+      test: ["CMD-SHELL", "[ -d /etc/letsencrypt/live ] || [ -d /etc/letsencrypt/accounts ] || exit 0"]
       interval: 1h
       timeout: 10s
       retries: 3

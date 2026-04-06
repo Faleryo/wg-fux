@@ -3,12 +3,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/wg-common.sh"
 
-LOG_FILE="/var/log/wg-sentinel.log"
 # Sentinel Token - Shared secret between this watchdog and the API
 # SRE: Load from local env file if present (managed by setup.sh)
 if [ -f "$SCRIPT_DIR/sentinel.env" ]; then
+    # shellcheck disable=SC1091
     source "$SCRIPT_DIR/sentinel.env"
 fi
 TOKEN="${SENTINEL_TOKEN:-vibe-sentinel-trust-99}"
@@ -21,6 +22,7 @@ check_dependency "docker"
 
 # Sentinel Token - Shared secret between this watchdog and the API
 if [ -f "$SCRIPT_DIR/sentinel.env" ]; then
+    # shellcheck disable=SC1091
     source "$SCRIPT_DIR/sentinel.env"
 fi
 TOKEN="${SENTINEL_TOKEN:-vibe-sentinel-trust-99}"
@@ -45,35 +47,56 @@ send_heartbeat() {
 }
 
 check_system() {
-    # 1. API Health Check
+    # 1. API Health Check (Internal Port 3000)
     if ! response=$(curl -s --max-time 5 "$HEALTH_URL"); then
         log_error "[Sentinel] API unreachable. Verifying container state..."
         
-        # SRE: Better healing. Don't restart if container is healthy but slow.
-        if ! sudo docker ps | grep -q "wg-fux-api"; then
+        if ! sudo docker ps --format '{{.Names}}' | grep -q "wg-fux-api"; then
             log_error "[Sentinel] API Container is DOWN. Attempting RESTART..."
             send_telegram_msg "CRITICAL: API Container is DOWN. Attempting automatic recovery..." "ERROR"
             sudo docker compose restart api 2>/dev/null || log_error "Failed to restart API container."
         else
-            log_warn "[Sentinel] API is unreachable but container is running (Overload?). Waiting..."
+            log_warn "[Sentinel] API is unreachable but container is running (Overload/Ghost). Force Restarting..."
+            sudo docker compose restart api 2>/dev/null
         fi
-        
         send_heartbeat "recovering"
         return 1
     fi
 
-    # 2. Database Integrity Check
+    # 2. Database & Application Integrity Check
     if [[ "$response" == *"unhealthy"* ]]; then
-        log_warn "[Sentinel] System reports unhealthy state. Analyzing..."
-        send_telegram_msg "WARNING: System health check failed (Unhealthy state)." "WARN"
+        log_warn "[Sentinel] API reports internal unhealthiness. Analyzing..."
+        send_telegram_msg "WARNING: API internal health check failed." "WARN"
     fi
+
+    # 3. Full Infrastructure Scan (Docker Health)
+    local unhealthy_containers
+    unhealthy_containers=$(sudo docker ps --filter "health=unhealthy" --format "{{.Names}}")
+    
+    if [ -n "$unhealthy_containers" ]; then
+        for container in $unhealthy_containers; do
+            log_sre "Unhealthy service detected: $container. Triggering Autonomic Healing..."
+            send_telegram_msg "AUTONOMIC HEALING: Service $container is unhealthy. Restarting..." "WARN"
+            sudo docker restart "$container" 2>/dev/null
+        done
+    fi
+
+    # 4. Critical Service Presence Cloud-Check (Nginx/DNS/UI)
+    for service in "wg-sentinel-proxy" "wg-fux-dashboard" "wg-fux-dns"; do
+        if ! sudo docker ps --format '{{.Names}}' | grep -q "^$service$"; then
+            log_error "[Sentinel] $service is MISSING. Recovery initiated..."
+            send_telegram_msg "CRITICAL: Service $service is DOWN. Reviving..." "ERROR"
+            sudo docker compose up -d "$(sudo docker ps -a --filter "name=$service" --format "{{.Label \"com.docker.compose.service\"}}")" 2>/dev/null || \
+            sudo docker compose up -d 2>/dev/null
+        fi
+    done
 
     send_heartbeat "healthy"
     return 0
 }
 
 # --- Main Loop ---
-log_info "Sentinel Watchdog ($VERSION) started."
+log_sre "Sentinel Watchdog ($VERSION) started with Autonomic Healing Mode."
 send_heartbeat "starting"
 
 while true; do

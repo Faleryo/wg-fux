@@ -1,21 +1,40 @@
+#!/bin/bash
 # --- VIBE-OS v6.5 Obsidian Standard ---
-VERSION="6.5.0-Obsidian"
+set -euo pipefail
+
+VERSION="6.5.0-Obsidian+"
+# shellcheck disable=SC2034
 PROJECT_ROOT="/home/faleryo/wg-fux"
 
-# SRE Error Codes
+# SRE Error Codes (Exports for scripts)
+# shellcheck disable=SC2034
 ERR_OK=0
+# shellcheck disable=SC2034
 ERR_SYSTEM_FAILURE=1
+# shellcheck disable=SC2034
 ERR_NETWORK_TIMEOUT=2
+# shellcheck disable=SC2034
 ERR_AUTH_FAILED=3
+# shellcheck disable=SC2034
 ERR_PERMISSION_DENIED=4
+# shellcheck disable=SC2034
 ERR_DOCKER_CRASH=5
 
+# Colors & Formatting
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
 NC='\033[0m'
 BOLD='\033[1m'
+
+# Unified Logging
+log_info() { echo -e "${BLUE}[INFO]${NC} $*"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $*"; }
+log_sre() { echo -e "${PURPLE}[SRE]${NC} ${BOLD}$*${NC}"; }
 
 # SRE Utilities
 check_dependency() {
@@ -53,6 +72,7 @@ send_telegram_msg() {
     local conf_file="/etc/wireguard/sentinel.conf"
     
     if [ -f "$conf_file" ]; then
+        # shellcheck disable=SC1090
         source "$conf_file"
         
         if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then

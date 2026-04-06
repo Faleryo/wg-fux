@@ -1,27 +1,28 @@
-# 📚 KI : État de l'Infrastructure WG-FUX (v6.5 Transition)
+# 📚 KI : État de l'Infrastructure WG-FUX (v6.5-Obsidian+)
 
-**Status** : OBSIDIAN (Operational)
-**Date** : 2026-04-05
+**Status** : OBSIDIAN PLUS (Operational & Self-Healing)
+**Date** : 2026-04-06
 
 ## 1. Stack Technique Distillée
-- **API** : Node.js 20 (Express) + Drizzle ORM + SQLite (better-sqlite3).
-- **Dashboard** : React 18 + Vite + TailwindCSS + Framer Motion.
-- **Proxy/Ingress** : Nginx Alpine (Custom Config).
+- **API** : Node.js 20 (Express) + Drizzle ORM + SQLite (WAL mode).
+- **Dashboard** : React 18 + Vite v6 (Stable) + TailwindCSS.
+- **Proxy/Ingress** : Nginx Alpine (Resilient Upstream).
 - **DNS/Security** : AdGuard Home (Internal 172.20.0.100).
-- **SSL** : Let's Encrypt (Certbot) avec renouvellement automatique toutes les 12h.
-- **VPN** : WireGuard (Interface `wg0`, Subnet `10.0.0.0/24`).
+- **SSL** : Certbot (Resilient Healthcheck) auto-renew 12h.
+- **VPN** : WireGuard (Interface `wg0`, Subnet `10.0.0.0/24`, `fd00::/64`).
 
 ## 2. Preuve Mathématique (Guardian v6.5)
-L'audit unifié `vibe-guardian.sh` a été exécuté le 2026-04-06 avec un **Exit Code 0**. 
-### Blast Radius & Security :
-- `wg-fux-api` : Limite CPU=1.0, MEM=512M (Verify: OK).
-- `wg-fux-dashboard` : Limite CPU=1.0, MEM=1024M (Verify: OK).
-- `Nginx Security` : Headers Obsidian + Whitelist VPN /dns/ Enforcement (Applied).
+Audit SRE unifié exécuté le 2026-04-06 (Grade Obsidian Plus).
+### Autonomic Healing (Sentinel) :
+- **Watchdog** : Actif via [sentinel.sh](file:///home/faleryo/wg-fux/core-vpn/scripts/sentinel.sh).
+- **Auto-Restart** : Opérationnel pour `nginx`, `ui`, `api`, `dns`, `certbot`.
+- **Telemetry** : Heartbeat vers le dashboard (Stats CPU/RAM/Disk).
 
 ## 3. Points de Vigilance (Lessons Learned)
-- **Shadow Code** : La synchronisation est désormais vérifiée par MD5 automatiqueme au démarrage du Guardian.
-- **Privileged Access** : Toujours en usage via `cap_add` (NET_ADMIN) pour WireGuard.
+- **Shadow Code** : La synchronisation est désormais vérifiée par build forcé lors de l'Update (`setup.sh --update`).
+- **Certbot Health** : Healthcheck ajusté pour tolérer l'absence de domaine initial (Bootstrap mode).
 
 ## 4. Prochaines Étapes
-- Automatisation du Guardian via cron (optionnel).
-- Monitoring passif des sessions VPN actives via Sentinel.
+- [x] Monitoring des sessions VPN (Via Sentinel Heartbeat).
+- [ ] Injection dynamique des logs kernel WG dans le Dashboard.
+- [ ] Hardening des règles Iptables post-installation.
