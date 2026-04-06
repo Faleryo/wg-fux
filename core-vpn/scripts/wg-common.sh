@@ -71,11 +71,35 @@ sanitize() {
     echo "$1" | xargs 2>/dev/null || echo "$1"
 }
 
-detect_public_ip() {
-    # Attempt to detect public IPv4
-    local ip
-    ip=$(curl -4 -s ifconfig.me 2>/dev/null || curl -4 -s icanhazip.com 2>/dev/null || echo "127.0.0.1")
     echo "$ip"
+}
+
+# --- Core SRE Functions ---
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        log_error "This script must be run with root (EUID: 0). Current: $EUID"
+        exit 1
+    fi
+}
+
+load_config() {
+    local conf="/etc/wireguard/manager.conf"
+    if [ -f "$conf" ]; then
+        # shellcheck disable=SC1090
+        source "$conf"
+        # Export for subprocesses
+        export SERVER_IP SERVER_PORT VPN_SUBNET VPN_SUBNET_V6 CLIENT_DNS SERVER_MTU WG_INTERFACE
+    else
+        log_warn "Manager configuration $conf missing. Using environment defaults."
+    fi
+}
+
+validate_id() {
+    local id="$1"
+    if [[ ! "$id" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        log_error "Invalid identifier: '$id' (Only a-Z, 0-9, -, _ allowed)."
+        exit 1
+    fi
 }
 
 # Telegram notification hub
