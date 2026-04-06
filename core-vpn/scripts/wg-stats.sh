@@ -23,8 +23,8 @@ for arg in "$@"; do
     fi
 done
 
-# Default to wg0 if no interface specified
-IFACE="${IFACE:-wg0}"
+# Default to wg-fux if no interface specified (Grade Obsidian Migration)
+IFACE="${IFACE:-wg-fux}"
 
 if [ "$USE_JSON" -eq 1 ]; then
     if ! ip link show "$IFACE" > /dev/null 2>&1; then
