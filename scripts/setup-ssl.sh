@@ -76,10 +76,15 @@ if ! ./.vibe/tools/check-port80.sh "${DOMAIN:-}" "$DETECTED_IP"; then
     exit 1
 fi
 
-log_info "Demande de certificat pour $DOMAIN..."
-docker compose run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
-    --email "${EMAIL:-}" --agree-tos --no-eff-email \
-    -d "${DOMAIN:-}"
+log_info "Vérification des certificats existants pour ${DOMAIN:-}..."
+if [ -d "infra/certbot/conf/live/${DOMAIN:-}" ]; then
+    log_info "Certificat local déjà détecté. Passage à la configuration Nginx."
+else
+    log_info "Demande de nouveau certificat pour ${DOMAIN:-}..."
+    docker compose run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
+        --email "${EMAIL:-}" --agree-tos --no-eff-email \
+        -d "${DOMAIN:-}"
+fi
 
 log_info "Mise à jour de la configuration Nginx pour utiliser les nouveaux certificats..."
 NGINX_CONF="infra/nginx/default.conf"
