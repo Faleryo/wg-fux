@@ -13,8 +13,19 @@ SERVER_INTERFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
 _add_rule() {
     local cmd="$1"
     shift
-    if ! "$cmd" -C "$@" &>/dev/null; then
-        "$cmd" -I "$@"
+    # SRE: Ensure -t <table> is placed BEFORE the action (-C, -I) for nf_tables compatibility
+    if [ "${1:-}" == "-t" ]; then
+        local table_opt="$1 $2"
+        shift 2
+        # shellcheck disable=SC2086
+        if ! "$cmd" $table_opt -C "$@" &>/dev/null; then
+            # shellcheck disable=SC2086
+            "$cmd" $table_opt -I "$@"
+        fi
+    else
+        if ! "$cmd" -C "$@" &>/dev/null; then
+            "$cmd" -I "$@"
+        fi
     fi
 }
 
