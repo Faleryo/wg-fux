@@ -149,7 +149,9 @@ check_and_install_deps() {
     "max-file": "3"
   },
   "iptables": true,
-  "oom-score-adjust": -500
+  "default-ulimits": {
+    "nofile": {"Name": "nofile", "Hard": 1024, "Soft": 1024}
+  }
 }
 EOF
             log "SUCCESS" "Configuration Docker optimisée pour ${ram_mb}MB de RAM. Redémarrage du service..."
