@@ -67,6 +67,9 @@ log "Démarrage complet de l'infrastructure pour le challenge ACME..."
 # 💠 SRE: On lance tout pour garantir que Nginx peut résoudre les upstreams (API, AdGuard)
 docker compose up -d
 
+log "Attente de la stabilisation des services (10s)..."
+sleep 10
+
 # 💠 Vibe-OS v6.5 Pre-flight Diagnostic
 chmod +x .vibe/tools/check-port80.sh
 # Note: On essaie de détecter l'IP si elle n'est pas passée en env
