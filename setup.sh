@@ -761,5 +761,4 @@ log "SUCCESS" "Sentinel Watchdog est actif et surveille le système."
 
 # 7. Finalisation & Lancement
 log "SUCCESS" "Configuration terminée."
-setup_ssl
 update_process
