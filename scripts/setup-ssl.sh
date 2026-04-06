@@ -76,22 +76,34 @@ if ! ./.vibe/tools/check-port80.sh "${DOMAIN:-}" "$DETECTED_IP"; then
     exit 1
 fi
 
-log_info "Vérification des certificats existants pour ${DOMAIN:-}..."
-if [ -d "infra/certbot/conf/live/${DOMAIN:-}" ]; then
-    log_info "Certificat local déjà détecté. Passage à la configuration Nginx."
+log_info "Vérification des certificats dans le volume Docker..."
+EXISTING_CERT=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ | grep "^${DOMAIN:-}" | sort -r | head -n1 || true)
+
+if [ -n "$EXISTING_CERT" ]; then
+    log_info "Certificat détecté : $EXISTING_CERT. Passage à la configuration Nginx."
+    DOMAIN_DIR="$EXISTING_CERT"
 else
     log_info "Demande de nouveau certificat pour ${DOMAIN:-}..."
-    docker compose run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
+    if ! docker compose run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
         --email "${EMAIL:-}" --agree-tos --no-eff-email \
-        -d "${DOMAIN:-}"
+        -d "${DOMAIN:-}"; then
+        log_warn "La demande Certbot a échoué (potentiel Rate-Limit)."
+        # Re-vérification après tentative (au cas où il a été créé malgré l'erreur)
+        EXISTING_CERT=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ | grep "^${DOMAIN:-}" | sort -r | head -n1 || true)
+        if [ -z "$EXISTING_CERT" ]; then
+            log_error "Aucun certificat n'a pu être obtenu ou récupéré. Abandon."
+            exit 1
+        fi
+    fi
+    DOMAIN_DIR="${DOMAIN:-}"
 fi
 
-log_info "Mise à jour de la configuration Nginx pour utiliser les nouveaux certificats..."
+log_info "Configuration Nginx pour $DOMAIN_DIR..."
 NGINX_CONF="infra/nginx/default.conf"
 
-# Remplacement des chemins par défaut par les chemins Let's Encrypt
-sed -i "s|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;|g" "$NGINX_CONF"
-sed -i "s|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;|g" "$NGINX_CONF"
+# Remplacement des chemins par défaut par les certificats détectés
+sed -i "s|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/$DOMAIN_DIR/fullchain.pem;|g" "$NGINX_CONF"
+sed -i "s|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;|g" "$NGINX_CONF"
 
 log_info "Redémarrage de Nginx avec SSL actif..."
 docker compose restart nginx
