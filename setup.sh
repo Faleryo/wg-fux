@@ -689,7 +689,7 @@ done
 log_info "Étape 5 : Écriture des fichiers de configuration"
 
 cat <<EOF | sudo tee "$WG_DIR/manager.conf" > /dev/null
-SERVER_IP="$SERVER_IP"
+SERVER_IP="${SERVER_IP:-}"
 SERVER_PORT="$SERVER_PORT"
 VPN_SUBNET=10.0.0.0/24
 VPN_SUBNET_V6=fd00::/64
@@ -719,11 +719,11 @@ EOF
 # SRE: Inclusion du SENTINEL_TOKEN pour le watchdog interne
 ALLOWED_ORIGINS="http://$SERVER_IP,https://$SERVER_IP,http://localhost,https://localhost,http://localhost:3000,http://127.0.0.1:3000"
 if [ -n "${DOMAIN:-}" ]; then
-    ALLOWED_ORIGINS="$ALLOWED_ORIGINS,http://$DOMAIN,https://$DOMAIN"
+    ALLOWED_ORIGINS="$ALLOWED_ORIGINS,http://$DOMAIN,https://${DOMAIN:-}"
 fi
 
 printf 'PORT=3000\nNODE_ENV="production"\nSENTINEL_TOKEN="%s"\nALLOWED_ORIGINS="%s"\nJWT_SECRET="%s"\nSERVER_IP="%s"\nSERVER_PORT="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\n' \
-  "$SENTINEL_TOKEN" "$ALLOWED_ORIGINS" "$JWT_SECRET" "$SERVER_IP" "$SERVER_PORT" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
+  "$SENTINEL_TOKEN" "$ALLOWED_ORIGINS" "$JWT_SECRET" "${SERVER_IP:-}" "$SERVER_PORT" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
 # BUG-FIX: Root .env for Docker Compose interpolation (interpolation requires .env in compose file dir)
 echo "SERVER_PORT=\"$SERVER_PORT\"" > .env
 unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS

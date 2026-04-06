@@ -27,7 +27,7 @@ if [ -f .env ]; then
     source .env
 fi
 
-if [ -z "$DOMAIN" ] && [ -z "$EMAIL" ]; then
+if [ -z "${DOMAIN:-}" ] && [ -z "${EMAIL:-}" ]; then
     printf "%b[?] Voulez-vous configurer un nom de domaine et un certificat SSL valide ? (y/N): %b" "${YELLOW}" "${NC}"
     read -r wants_ssl
 
@@ -39,7 +39,7 @@ if [ -z "$DOMAIN" ] && [ -z "$EMAIL" ]; then
     printf "%b[?] Entrez votre nom de domaine (ex: vpn.site.com): %b" "${YELLOW}" "${NC}"
     read -r DOMAIN
 
-    if [ -z "$DOMAIN" ]; then
+    if [ -z "${DOMAIN:-}" ]; then
         echo -e "${RED}[ERROR] Le nom de domaine est obligatoire si vous souhaitez utiliser SSL.${NC}"
         exit 1
     fi
@@ -47,7 +47,7 @@ if [ -z "$DOMAIN" ] && [ -z "$EMAIL" ]; then
     printf "%b[?] Entrez votre adresse e-mail pour Let's Encrypt: %b" "${YELLOW}" "${NC}"
     read -r EMAIL
 
-    if [ -z "$EMAIL" ]; then
+    if [ -z "${EMAIL:-}" ]; then
         echo -e "${RED}[ERROR] L'adresse email est obligatoire pour le certificat SSL.${NC}"
         exit 1
     fi
@@ -70,7 +70,7 @@ docker compose up -d nginx
 chmod +x .vibe/tools/check-port80.sh
 # Note: On essaie de détecter l'IP si elle n'est pas passée en env
 DETECTED_IP=$(curl -4 -s ifconfig.me 2>/dev/null || echo "127.0.0.1")
-if ! ./.vibe/tools/check-port80.sh "$DOMAIN" "$DETECTED_IP"; then
+if ! ./.vibe/tools/check-port80.sh "${DOMAIN:-}" "$DETECTED_IP"; then
     log_error "Le diagnostic réseau a échoué. Port 80 inaccessible."
     log_warn "Assurez-vous que votre Pare-feu Cloud (DigitalOcean/Hetzner) autorise le port 80."
     exit 1
@@ -78,8 +78,8 @@ fi
 
 log_info "Demande de certificat pour $DOMAIN..."
 docker compose run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
-    --email "$EMAIL" --agree-tos --no-eff-email \
-    -d "$DOMAIN"
+    --email "${EMAIL:-}" --agree-tos --no-eff-email \
+    -d "${DOMAIN:-}"
 
 log_info "Mise à jour de la configuration Nginx pour utiliser les nouveaux certificats..."
 NGINX_CONF="infra/nginx/default.conf"
@@ -91,4 +91,4 @@ sed -i "s|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/$DOMA
 log_info "Redémarrage de Nginx avec SSL actif..."
 docker compose restart nginx
 
-log_success "Votre dashboard est maintenant accessible sur https://$DOMAIN !"
+log_success "Votre dashboard est maintenant accessible sur https://${DOMAIN:-} !"
