@@ -20,6 +20,12 @@ if [ ! -f "docker-compose.yml" ]; then
     exit 1
 fi
 
+if [ ! -f "api-service/.env" ]; then
+    echo -e "${RED}[ERROR] Le projet n'a pas encore été configuré.${NC}"
+    echo -e "${YELLOW}Veuillez exécuter le script principal et choisir l'Option 1 (Installer / Reconfigurer) avan de configurer le SSL.${NC}"
+    exit 1
+fi
+
 # 💠 SRE: Chargement de la config existante si disponible
 if [ -f .env ]; then
     source .env
