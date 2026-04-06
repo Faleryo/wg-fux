@@ -30,6 +30,7 @@ const ticketRoutes = require('./src/routes/tickets');
 const userRoutes = require('./src/routes/users');
 
 const sentinelRoutes = require('./src/routes/sentinel');
+const dnsRoutes = require('./src/routes/dns');
 const { initializeDatabase } = require('./src/services/init');
 
 const app = express();
@@ -111,6 +112,7 @@ app.use('/api/system', auth, systemRoutes);
 app.use('/api/tickets', auth, ticketRoutes);
 app.use('/api/users', auth, requireAdmin, userRoutes);
 app.use('/api/sentinel', auth, sentinelRoutes);
+app.use('/api/dns', auth, requireAdmin, dnsRoutes);
 
 
 

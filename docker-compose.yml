@@ -86,10 +86,10 @@ services:
       - vpn-internal
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
+      interval: 45s
       timeout: 10s
       retries: 5
-      start_period: 45s
+      start_period: 60s
 
     deploy:
       resources:

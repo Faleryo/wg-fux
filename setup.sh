@@ -725,7 +725,16 @@ fi
 printf 'PORT=3000\nNODE_ENV="production"\nSENTINEL_TOKEN="%s"\nALLOWED_ORIGINS="%s"\nJWT_SECRET="%s"\nSERVER_IP="%s"\nSERVER_PORT="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\n' \
   "$SENTINEL_TOKEN" "$ALLOWED_ORIGINS" "$JWT_SECRET" "${SERVER_IP:-}" "$SERVER_PORT" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
 # BUG-FIX: Root .env for Docker Compose interpolation (interpolation requires .env in compose file dir)
-echo "SERVER_PORT=\"$SERVER_PORT\"" > .env
+# BUG-FIX: Root .env update (SRE Surgical: preserve existing variables)
+if [ -f .env ]; then
+    if grep -q "SERVER_PORT=" .env; then
+        sed -i "s|SERVER_PORT=.*|SERVER_PORT=\"$SERVER_PORT\"|g" .env
+    else
+        echo "SERVER_PORT=\"$SERVER_PORT\"" >> .env
+    fi
+else
+    echo "SERVER_PORT=\"$SERVER_PORT\"" > .env
+fi
 unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS
 
 # 6. Sentinel & Alerts

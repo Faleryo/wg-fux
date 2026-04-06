@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Home, Package, Users, FileText, Activity, Gauge, ShieldCheck, Settings, 
-  LogOut, X, ChevronRight, ChevronLeft, Cpu, RefreshCw, Sun, Moon
+  LogOut, X, ChevronRight, ChevronLeft, Cpu, RefreshCw, Sun, Moon, Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
@@ -30,6 +30,7 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
     { id: 'users',        icon: <Users size={20} />,      label: t('users_manage'), hidden: localStorage.getItem('wg-user-role') !== 'admin' },
     { id: 'logs',         icon: <FileText size={20} />,   label: t('logs') },
     { id: 'topology',     icon: <Activity size={20} />,   label: t('topology') },
+    { id: 'dns',          icon: <Globe size={20} />,      label: 'DNS Editor' },
     { id: 'optimization', icon: <Gauge size={20} />,      label: t('optimization') },
     { id: 'audit',        icon: <ShieldCheck size={20} />,label: 'Audit' },
     { id: 'settings',     icon: <Settings size={20} />,   label: t('settings'), hidden: localStorage.getItem('wg-user-role') !== 'admin' },

@@ -33,6 +33,7 @@ import LogsSection from '../../features/monitoring/components/LogsSection';
 import SettingsSection from '../../features/settings/components/SettingsSection';
 import OptimizationSection from '../../features/settings/components/OptimizationSection';
 import AuditSection from '../../features/monitoring/components/AuditSection';
+import DnsSection from '../../features/dns/components/DnsEditor';
 
 
 /**
@@ -186,6 +187,7 @@ const MainLayout = ({ session, onLogout }) => {
       case 'settings': return <SettingsSection />;
       case 'optimization': return <OptimizationSection systemStats={systemStats} />;
       case 'audit': return <AuditSection />;
+      case 'dns': return <DnsSection />;
       default: return null;
     }
   };

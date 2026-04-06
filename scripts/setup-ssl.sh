@@ -35,7 +35,10 @@ if grep -q "ssl_certificate /etc/letsencrypt/live/" "$NGINX_CONF" && [ "${1:-}" 
     exit 0
 fi
 
-if [ -z "${DOMAIN:-}" ] || [ -z "${EMAIL:-}" ]; then
+# 💠 SRE: Si les variables sont déjà en ENV (depuis .env), on bypass le prompt
+if [ -n "${DOMAIN:-}" ] && [ -n "${EMAIL:-}" ] && [ "${1:-}" != "--force" ]; then
+    log_info "Configuration SSL existante détectée (Domaine: $DOMAIN). Passage en mode non-interactif."
+else
     printf "%b[?] Voulez-vous configurer un nom de domaine et un certificat SSL valide ? (y/N): %b" "${YELLOW}" "${NC}"
     read -r wants_ssl
 
