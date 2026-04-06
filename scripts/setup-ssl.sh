@@ -24,10 +24,18 @@ fi
 
 # 💠 SRE: Chargement de la config existante si disponible
 if [ -f .env ]; then
+    # shellcheck source=/dev/null
     source .env
 fi
 
-if [ -z "${DOMAIN:-}" ] && [ -z "${EMAIL:-}" ]; then
+# 💠 SRE: Détection d'idempotence (SSL déjà configuré dans NGINX)
+NGINX_CONF="infra/nginx/default.conf"
+if grep -q "ssl_certificate /etc/letsencrypt/live/" "$NGINX_CONF" && [ "${1:-}" != "--force" ]; then
+    log_info "SSL déjà configuré dans Nginx via Let's Encrypt. Esquive silencieuse..."
+    exit 0
+fi
+
+if [ -z "${DOMAIN:-}" ] || [ -z "${EMAIL:-}" ]; then
     printf "%b[?] Voulez-vous configurer un nom de domaine et un certificat SSL valide ? (y/N): %b" "${YELLOW}" "${NC}"
     read -r wants_ssl
 
@@ -51,6 +59,19 @@ if [ -z "${DOMAIN:-}" ] && [ -z "${EMAIL:-}" ]; then
         echo -e "${RED}[ERROR] L'adresse email est obligatoire pour le certificat SSL.${NC}"
         exit 1
     fi
+fi
+
+# 💠 SRE: Persistance des variables SSL pour les futures mises à jour non-interactives
+if ! grep -q "DOMAIN=" .env 2>/dev/null; then
+    echo "DOMAIN=\"$DOMAIN\"" >> .env
+elif [ -n "$DOMAIN" ]; then
+    sed -i "s|DOMAIN=.*|DOMAIN=\"$DOMAIN\"|g" .env
+fi
+
+if ! grep -q "EMAIL=" .env 2>/dev/null; then
+    echo "EMAIL=\"$EMAIL\"" >> .env
+elif [ -n "$EMAIL" ]; then
+    sed -i "s|EMAIL=.*|EMAIL=\"$EMAIL\"|g" .env
 fi
 
 log_info "Démarrage automatique d'une instance Nginx HTTP stable pour le challenge..."
