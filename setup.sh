@@ -11,6 +11,17 @@ fi
 
 set -e
 
+# SRE: Mode Simulation (Dry-Run)
+DRY_RUN=false
+for arg in "$@"; do
+    if [ "$arg" == "--dry-run" ]; then DRY_RUN=true; log "INFO" "MODE DRY-RUN ACTIVÉ (Simulation)"; fi
+done
+
+# Sanitization Helper
+sanitize() {
+    echo "$1" | sed 's/[^a-zA-Z0-9._-]*//g'
+}
+
 # Couleurs & Style
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -170,9 +181,15 @@ ensure_docker_ready() {
         fi
         
         # 💠 SRE: Si on arrive à l'essai 20 et que ça ne marche toujours pas, on tente le bootstrap auto
-        if [ $attempt -eq 20 ]; then
-            log "WARNING" "Délai d'attente prolongé (20/40). Tentative de diagnostic/réparation auto..."
-            check_and_install_deps
+        if [ "$attempt" -eq 20 ]; then
+            if [ "${DOCKER_REPAIR_TRIED:-false}" != "true" ]; then
+                log "WARNING" "Délai d'attente prolongé (20/40). Tentative de diagnostic/réparation auto..."
+                export DOCKER_REPAIR_TRIED=true
+                check_and_install_deps
+            else
+                log "ERROR" "Échec critique: Docker ne répond toujours pas après tentative de réinstallation."
+                exit 1
+            fi
         fi
 
         log "INFO" "Attente du démon Docker... ($attempt/$max_attempts)"
@@ -270,7 +287,6 @@ uninstall() {
 
     log "SUCCESS" "Désinstallation de WG-FUX terminée."
     log "INFO" "Note: Le moteur Docker et les outils système sont restés intacts pour vos autres applications."
-    exit 0
     exit 0
 }
 
@@ -589,16 +605,16 @@ fi
 echo -e "\n${GREEN}[STEP 1] Configuration Réseau${NC}"
 DETECTED_IP=$(detect_public_ip)
 read -rp "Entrez l'IP publique du serveur [$DETECTED_IP]: " SERVER_IP
-SERVER_IP=${SERVER_IP:-$DETECTED_IP}
+SERVER_IP=$(sanitize "${SERVER_IP:-$DETECTED_IP}")
 
 read -rp "Entrez le port WireGuard [51820]: " SERVER_PORT
-SERVER_PORT=${SERVER_PORT:-51820}
+SERVER_PORT=$(sanitize "${SERVER_PORT:-51820}")
 
 # 4. Authentification Admin
 log "INFO" "Étape 2 : Authentification Admin"
 printf "%b[?] Username [admin]: %b" "${YELLOW}" "${NC}"
 read -r ADMIN_USER
-ADMIN_USER=${ADMIN_USER:-admin}
+ADMIN_USER=$(sanitize "${ADMIN_USER:-admin}")
 
 read -rsp "Mot de passe admin: " ADMIN_PASS
 echo ""
@@ -705,10 +721,15 @@ EOF
 
 # BUG-FIX: JWT_SECRET écrit directement via printf sans passer par une variable shell
 # intermédiaire exposée (protège contre set -x, ps aux, /proc/environ leaks)
-# BUG-FIX: Force ALLOWED_ORIGINS dynamique (Wildcard refusé en prod) et NODE_ENV=production pour corriger le crash API
+# BUG-FIX: Force ALLOWED_ORIGINS dynamique pour inclure le DOMAINE si présent
 # SRE: Inclusion du SENTINEL_TOKEN pour le watchdog interne
-printf 'PORT=3000\nNODE_ENV="production"\nSENTINEL_TOKEN="%s"\nALLOWED_ORIGINS="http://%s,https://%s,http://localhost:3000,http://127.0.0.1:3000"\nJWT_SECRET="%s"\nSERVER_IP="%s"\nSERVER_PORT="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\n' \
-  "$SENTINEL_TOKEN" "$SERVER_IP" "$SERVER_IP" "$JWT_SECRET" "$SERVER_IP" "$SERVER_PORT" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
+ALLOWED_ORIGINS="http://$SERVER_IP,https://$SERVER_IP,http://localhost:3000,http://127.0.0.1:3000"
+if [ -n "${DOMAIN:-}" ]; then
+    ALLOWED_ORIGINS="$ALLOWED_ORIGINS,http://$DOMAIN,https://$DOMAIN"
+fi
+
+printf 'PORT=3000\nNODE_ENV="production"\nSENTINEL_TOKEN="%s"\nALLOWED_ORIGINS="%s"\nJWT_SECRET="%s"\nSERVER_IP="%s"\nSERVER_PORT="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\n' \
+  "$SENTINEL_TOKEN" "$ALLOWED_ORIGINS" "$JWT_SECRET" "$SERVER_IP" "$SERVER_PORT" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
 # BUG-FIX: Root .env for Docker Compose interpolation (interpolation requires .env in compose file dir)
 echo "SERVER_PORT=\"$SERVER_PORT\"" > .env
 unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS
