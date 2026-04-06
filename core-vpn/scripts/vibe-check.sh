@@ -57,7 +57,7 @@ WG_PEERS=$(wg show "$WG_INTERFACE" peers)
 
 clients_enabled=$(sqlite3 "$DB_PATH" "SELECT publicKey, container, name FROM clients WHERE enabled=1;")
 while IFS='|' read -r pubkey container name; do
-    if [[ ! "$WG_PEERS" =~ "$pubkey" ]]; then
+    if [[ ! "$WG_PEERS" == *"$pubkey"* ]]; then
         log_warn "[DESYNC] Client enabled in DB but NOT in WireGuard: $container/$name ($pubkey)"
     fi
 done <<< "$clients_enabled"
