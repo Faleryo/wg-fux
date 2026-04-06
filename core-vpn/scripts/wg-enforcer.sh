@@ -1,16 +1,12 @@
 #!/bin/bash
-# --- VIBE-OS v6.2 : WireGuard Enforcer (Quota & Expiry) ---
-# GHOST-SCAN FIX v6.2:
-#   - Added 'set -euo pipefail' for robust shell execution.
-#   - Replaced ad-hoc log() with wg-common.sh source (log_info / log_warn).
-#   - Added HEALING LOOP: auto-restart of wg0 interface if not found.
-#   - Fixed: Double declaration of WG_INTERFACE was removed.
-#   - Fixed: rm -f "$CLIENTS_DIR/disabled" → "$CLIENT_DIR/disabled" (correct path).
+# --- VIBE-OS v6.5 : WireGuard Enforcer (Quota & Expiry) ---
+set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$SCRIPT_DIR/wg-common.sh"
 
-set -euo pipefail
+check_dependency "sqlite3"
+check_dependency "wg"
 
 if [ -f /etc/wireguard/manager.conf ]; then
     source /etc/wireguard/manager.conf
@@ -22,13 +18,7 @@ CLIENTS_DIR="/etc/wireguard/clients"
 
 NOW=$(date +%s)
 
-# Check if sqlite3 is installed
-if ! command -v sqlite3 &> /dev/null; then
-    log_error "sqlite3 is required but not installed." "$ERR_SYSTEM_FAILURE"
-fi
-
 # --- 🛡️ HEALING LOOP (Autonomic SRE) ---
-# If the WireGuard interface is absent, attempt to bring it up automatically.
 _heal_interface() {
     log_warn "[HEALING] Interface $WG_INTERFACE not found. Attempting auto-recovery..."
     if command -v wg-quick &>/dev/null; then
@@ -48,7 +38,7 @@ if ! ip link show "$WG_INTERFACE" > /dev/null 2>&1; then
     _heal_interface
 fi
 
-# 1. Update Peer Cache (for monitor and enforcer speed)
+# 1. Update Peer Cache
 CACHE_FILE="/var/run/wg-peer-cache.json"
 {
     echo "{"
@@ -60,7 +50,7 @@ CACHE_FILE="/var/run/wg-peer-cache.json"
         CONTAINER_NAME=$(basename "$(dirname "$CLIENT_DIR")")
         if [ "$FIRST" -eq 1 ]; then FIRST=0; else printf ",\n"; fi
         printf '  "%s": {"name": "%s", "container": "%s", "path": "%s"}' \
-            "$PUBKEY" "$CLIENT_NAME" "$CONTAINER_NAME" "$CLIENT_DIR"
+              "$PUBKEY" "$CLIENT_NAME" "$CONTAINER_NAME" "$CLIENT_DIR"
     done < <(find "$CLIENTS_DIR" -name "public.key" 2>/dev/null)
     echo ""
     echo "}"
@@ -71,7 +61,7 @@ find "$CLIENTS_DIR" -name "public.key" 2>/dev/null | while read -r keyfile; do
     PUBKEY=$(tr -d '[:space:]' < "$keyfile")
     CLIENT_DIR=$(dirname "$keyfile")
     CLIENT_NAME=$(basename "$CLIENT_DIR")
-
+    
     IS_EXPIRED=0
     IS_QUOTA_EXCEEDED=0
 
@@ -104,7 +94,7 @@ find "$CLIENTS_DIR" -name "public.key" 2>/dev/null | while read -r keyfile; do
             PSK="$CLIENT_DIR/preshared.key"
             if [ -n "$ALLOWED_IPS" ] && [ -f "$PSK" ]; then
                 wg set "$WG_INTERFACE" peer "$PUBKEY" preshared-key "$PSK" allowed-ips "$ALLOWED_IPS" 2>/dev/null && \
-                    log_info "Peer $CLIENT_NAME re-activé sur $WG_INTERFACE"
+                log_info "Peer $CLIENT_NAME re-activé sur $WG_INTERFACE"
                 command -v wg-apply-qos.sh &>/dev/null && wg-apply-qos.sh 2>/dev/null || true
             fi
         fi
@@ -117,10 +107,12 @@ find "$CLIENTS_DIR" -name "public.key" 2>/dev/null | while read -r keyfile; do
         echo "Expired" > "$CLIENT_DIR/disabled"
         wg set "$WG_INTERFACE" peer "$PUBKEY" remove 2>/dev/null || true
         command -v wg-apply-qos.sh &>/dev/null && wg-apply-qos.sh 2>/dev/null || true
+        send_telegram_msg "Access revoked for $CLIENT_NAME (Subscription expired)." "WARN"
     elif [ "$IS_QUOTA_EXCEEDED" -eq 1 ]; then
         log_warn "Bannissement (Quota dépassé) : $CLIENT_NAME"
         echo "Quota exceeded" > "$CLIENT_DIR/disabled"
         wg set "$WG_INTERFACE" peer "$PUBKEY" remove 2>/dev/null || true
         command -v wg-apply-qos.sh &>/dev/null && wg-apply-qos.sh 2>/dev/null || true
+        send_telegram_msg "Access revoked for $CLIENT_NAME (Quota exceeded)." "WARN"
     fi
 done

@@ -15,26 +15,17 @@ TOKEN="${SENTINEL_TOKEN:-vibe-sentinel-trust-99}"
 HEARTBEAT_URL="http://localhost:3000/api/sentinel/heartbeat"
 HEALTH_URL="http://localhost:3000/api/health"
 
-# Docker command detection
-DOCKER_CMD="docker compose"
-if ! "$DOCKER_CMD" version &>/dev/null; then DOCKER_CMD="docker-compose"; fi
+# SRE Utilities
+check_dependency "curl"
+check_dependency "docker"
 
-# SRE Note: log_event encapsulates standard logging and local file persistence
-log_event() {
-    local level="${2:-INFO}"
-    local msg="$1"
-    
-    case "$level" in
-        "ERROR") log_error "Sentinel: $msg" ;;
-        "WARN")  log_warn "Sentinel: $msg" ;;
-        *)       log_info "Sentinel: $msg" ;;
-    esac
-
-    # Local file audit
-    if [ -w "$LOG_FILE" ]; then
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - [$level] $msg" >> "$LOG_FILE"
-    fi
-}
+# Sentinel Token - Shared secret between this watchdog and the API
+if [ -f "$SCRIPT_DIR/sentinel.env" ]; then
+    source "$SCRIPT_DIR/sentinel.env"
+fi
+TOKEN="${SENTINEL_TOKEN:-vibe-sentinel-trust-99}"
+HEARTBEAT_URL="http://localhost:3000/api/sentinel/heartbeat"
+HEALTH_URL="http://localhost:3000/api/health"
 
 send_heartbeat() {
     local status="$1"
@@ -46,7 +37,7 @@ send_heartbeat() {
     
     local payload
     payload=$(printf '{"status":"%s","stats":{"cpu":"%s","mem":"%s","disk":"%s"},"timestamp":"%s"}' \
-        "$status" "$cpu" "$mem" "$disk" "$(date -Is)")
+                     "$status" "$cpu" "$mem" "$disk" "$(date -Is)")
     
     curl -s -X POST -H "Content-Type: application/json" \
          -H "x-api-token: $TOKEN" \
@@ -56,17 +47,25 @@ send_heartbeat() {
 check_system() {
     # 1. API Health Check
     if ! response=$(curl -s --max-time 5 "$HEALTH_URL"); then
-        log_error "Sentinel: API unreachable. Restarting infrastructure..."
-        log_event "[CRITICAL] API unreachable. Restarting infrastructure..."
-        "$DOCKER_CMD" restart api ui || log_event "[ERROR] Failed to restart containers"
+        log_error "[Sentinel] API unreachable. Verifying container state..."
+        
+        # SRE: Better healing. Don't restart if container is healthy but slow.
+        if ! sudo docker ps | grep -q "wg-fux-api"; then
+            log_error "[Sentinel] API Container is DOWN. Attempting RESTART..."
+            send_telegram_msg "CRITICAL: API Container is DOWN. Attempting automatic recovery..." "ERROR"
+            sudo docker compose restart api 2>/dev/null || log_error "Failed to restart API container."
+        else
+            log_warn "[Sentinel] API is unreachable but container is running (Overload?). Waiting..."
+        fi
+        
         send_heartbeat "recovering"
         return 1
     fi
 
     # 2. Database Integrity Check
     if [[ "$response" == *"unhealthy"* ]]; then
-        log_event "[WARNING] System reports unhealthy state. Analyzing..."
-        # Add specific healing logic here if needed
+        log_warn "[Sentinel] System reports unhealthy state. Analyzing..."
+        send_telegram_msg "WARNING: System health check failed (Unhealthy state)." "WARN"
     fi
 
     send_heartbeat "healthy"
@@ -74,7 +73,7 @@ check_system() {
 }
 
 # --- Main Loop ---
-log_event "[INFO] Sentinel V2 started."
+log_info "Sentinel Watchdog ($VERSION) started."
 send_heartbeat "starting"
 
 while true; do

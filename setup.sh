@@ -11,44 +11,43 @@ fi
 
 set -e
 
-# SRE: Mode Simulation (Dry-Run)
-DRY_RUN=false
-for arg in "$@"; do
-    if [ "$arg" == "--dry-run" ]; then DRY_RUN=true; log "INFO" "MODE DRY-RUN ACTIVÉ (Simulation)"; fi
-done
+# Variables Globales
+API_ENV="api/.env"
+DB_PATH="api/data/wg-fux.db"
+SWAP_FILE="/swapfile_wgfux"
+DB_PATH="api/data/wg-fux.db"
+SWAP_FILE="/swapfile_wgfux"
+
+# --- 💠 SRE INITIALIZATION ---
+check_dependency "docker"
+check_dependency "openssl"
+check_dependency "curl"
+
+# SRE Note: All log calls below have been migrated to log_info/log_error unifiés.
 
 # Sanitization Helper
 sanitize() {
     echo "$1" | sed 's/[^a-zA-Z0-9._-]*//g'
 }
 
-# Couleurs & Style
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-BOLD='\033[1m'
-NC='\033[0m'
-
-# Fichiers & Logs
-LOG_FILE=".vibe/logs/setup.log"
-mkdir -p "$(dirname "$LOG_FILE")"
-exec 3>&1 # Dup stdout sur fd 3
-
+# Mapper de rétrocompatibilité SRE pour setup.sh
 log() {
     local level="$1"; shift
     local msg="$*"
-    local timestamp
-    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    printf "[%s] [%s] %s\n" "$timestamp" "$level" "$msg" >> "$LOG_FILE"
     case "$level" in
-        "ERROR") printf "${RED}${BOLD}[ERROR]${NC} %s\n" "$msg" >&3 ;;
-        "SUCCESS") printf "${GREEN}${BOLD}[SUCCESS]${NC} %s\n" "$msg" >&3 ;;
-        "WARNING") printf "${YELLOW}${BOLD}[WARNING]${NC} %s\n" "$msg" >&3 ;;
-        "INFO") printf "${BLUE}${BOLD}[INFO]${NC} %s\n" "$msg" >&3 ;;
-        *) printf "[%s] %s\n" "$level" "$msg" >&3 ;;
+        "ERROR")   log_error "$msg" ;;
+        "SUCCESS") log_success "$msg" ;;
+        "WARNING") log_warn "$msg" ;;
+        "INFO")    log_info "$msg" ;;
+        *)         echo -e "[$level] $msg" ;;
     esac
 }
+
+# SRE: Mode Simulation (Dry-Run)
+DRY_RUN=false
+for arg in "$@"; do
+    if [ "$arg" == "--dry-run" ]; then DRY_RUN=true; log_info "MODE DRY-RUN ACTIVÉ (Simulation)"; fi
+done
 
 # 💠 SRE: Initialisation et Export global de l'environnement (.env)
 if [ -f .env ]; then

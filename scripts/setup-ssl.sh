@@ -1,3 +1,4 @@
+#!/bin/bash
 # SRE: Unification des utilitaires (Chemin dynamique)
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 COMMON_SH="$SCRIPT_DIR/../core-vpn/scripts/wg-common.sh"
@@ -70,8 +71,8 @@ chmod +x .vibe/tools/check-port80.sh
 # Note: On essaie de détecter l'IP si elle n'est pas passée en env
 DETECTED_IP=$(curl -4 -s ifconfig.me 2>/dev/null || echo "127.0.0.1")
 if ! ./.vibe/tools/check-port80.sh "$DOMAIN" "$DETECTED_IP"; then
-    log "ERROR" "Le diagnostic réseau a échoué. Port 80 inaccessible."
-    log "WARNING" "Assurez-vous que votre Pare-feu Cloud (DigitalOcean/Hetzner) autorise le port 80."
+    log_error "Le diagnostic réseau a échoué. Port 80 inaccessible."
+    log_warn "Assurez-vous que votre Pare-feu Cloud (DigitalOcean/Hetzner) autorise le port 80."
     exit 1
 fi
 
@@ -90,4 +91,4 @@ sed -i "s|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/$DOMA
 log_info "Redémarrage de Nginx avec SSL actif..."
 docker compose restart nginx
 
-log_info "SUCCESS! Votre dashboard est maintenant accessible sur https://$DOMAIN !"
+log_success "Votre dashboard est maintenant accessible sur https://$DOMAIN !"
