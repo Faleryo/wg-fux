@@ -1,4 +1,5 @@
 const { db, sqlite, schema } = require('../../db');
+const { eq } = require('drizzle-orm');
 
 
 async function initializeDatabase() {
@@ -92,15 +93,15 @@ async function initializeDatabase() {
 
     console.log('✅ Schema synchronization complete.');
 
-    // 3. Seed Admin User if users table is empty
-    const usersCount = sqlite.prepare('SELECT count(*) as count FROM users').get().count;
-    
-    if (usersCount === 0) {
-      const adminUser = process.env.ADMIN_USER || 'admin';
-      const adminHash = process.env.ADMIN_PASSWORD_HASH;
-      const adminSalt = process.env.ADMIN_PASSWORD_SALT;
+    // 3. Sync Admin User from Env (v6.5 SRE - Ensure setup.sh changes are applied)
+    const adminUser = process.env.ADMIN_USER || 'admin';
+    const adminHash = process.env.ADMIN_PASSWORD_HASH;
+    const adminSalt = process.env.ADMIN_PASSWORD_SALT;
 
-      if (adminHash && adminSalt) {
+    if (adminHash && adminSalt) {
+      const existing = sqlite.prepare('SELECT id, hash, salt FROM users WHERE username = ?').get(adminUser);
+      
+      if (!existing) {
         console.log(`👤 Seeding initial admin user: ${adminUser}`);
         await db.insert(schema.users).values({
           username: adminUser,
@@ -109,11 +110,17 @@ async function initializeDatabase() {
           role: 'admin'
         });
         console.log('✅ Admin user seeded successfully.');
+      } else if (existing.hash !== adminHash || existing.salt !== adminSalt) {
+        console.log(`👤 Syncing credentials for existing admin user: ${adminUser}`);
+        await db.update(schema.users)
+          .set({ hash: adminHash, salt: adminSalt })
+          .where(eq(schema.users.username, adminUser));
+        console.log('✅ Admin credentials synchronized from .env');
       } else {
-        console.warn('⚠️ Missing ADMIN_PASSWORD_HASH/SALT in env. Admin user not seeded.');
+        console.log('ℹ️ Admin credentials already in sync.');
       }
     } else {
-      console.log('ℹ️ Users already exist. Skipping seed.');
+      console.warn('⚠️ Missing ADMIN_PASSWORD_HASH/SALT in env. Admin user not seeded/synced.');
     }
 
   } catch (error) {

@@ -723,7 +723,7 @@ EOF
 # intermédiaire exposée (protège contre set -x, ps aux, /proc/environ leaks)
 # BUG-FIX: Force ALLOWED_ORIGINS dynamique pour inclure le DOMAINE si présent
 # SRE: Inclusion du SENTINEL_TOKEN pour le watchdog interne
-ALLOWED_ORIGINS="http://$SERVER_IP,https://$SERVER_IP,http://localhost:3000,http://127.0.0.1:3000"
+ALLOWED_ORIGINS="http://$SERVER_IP,https://$SERVER_IP,http://localhost,https://localhost,http://localhost:3000,http://127.0.0.1:3000"
 if [ -n "${DOMAIN:-}" ]; then
     ALLOWED_ORIGINS="$ALLOWED_ORIGINS,http://$DOMAIN,https://$DOMAIN"
 fi
