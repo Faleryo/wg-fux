@@ -65,6 +65,19 @@ wait_for_port() {
     return 0
 }
 
+# --- Missing SRE Utilities ---
+sanitize() {
+    # Remove surrounding whitespace
+    echo "$1" | xargs 2>/dev/null || echo "$1"
+}
+
+detect_public_ip() {
+    # Attempt to detect public IPv4
+    local ip
+    ip=$(curl -4 -s ifconfig.me 2>/dev/null || curl -4 -s icanhazip.com 2>/dev/null || echo "127.0.0.1")
+    echo "$ip"
+}
+
 # Telegram notification hub
 send_telegram_msg() {
     local message="$1"
