@@ -28,7 +28,9 @@ IFACE="${IFACE:-wg0}"
 
 if [ "$USE_JSON" -eq 1 ]; then
     if ! ip link show "$IFACE" > /dev/null 2>&1; then
-        log_error "Interface $IFACE not found" "$ERR_NOT_FOUND"
+        # BUG-FIX: Dashbaord Critical Error immunity. Return [] instead of crashing.
+        echo "[]"
+        exit 0
     fi
 
     # BUG-FIX: Skip the first line (interface info: private-key public-key listen-port fwmark)

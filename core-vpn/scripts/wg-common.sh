@@ -19,6 +19,10 @@ ERR_AUTH_FAILED=3
 ERR_PERMISSION_DENIED=4
 # shellcheck disable=SC2034
 ERR_DOCKER_CRASH=5
+# shellcheck disable=SC2034
+ERR_NOT_FOUND=404
+# shellcheck disable=SC2034
+ERR_GENERIC=500
 
 # Colors & Formatting
 RED='\033[0;31m'
