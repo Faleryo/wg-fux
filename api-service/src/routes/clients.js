@@ -20,21 +20,13 @@ const log = require('../services/logger');
 router.get('/containers', auth, async (req, res) => {
   const dir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
   try {
-    const { success: readOk, files, error: readErr } = await readdirAsRoot(dir);
-    if (!readOk) {
-      if (readErr?.includes('No such file')) return res.json([]);
-      throw new Error(readErr || 'Failed to list containers');
-    }
-    const containers = [];
-    for (const file of files) {
-      const { success: isDir } = await runSystemCommand('test', ['-d', path.join(dir, file)]);
-      if (isDir) {
-        containers.push(file);
-      }
-    }
+    const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+    const containers = entries
+      .filter(entry => entry.isDirectory())
+      .map(entry => entry.name);
     res.json(containers);
   } catch (error) {
-
+    if (error.code === 'ENOENT') return res.json([]);
     console.error('[API] Error listing containers:', error);
     res.status(500).json({ error: 'Failed to list containers' });
   }
