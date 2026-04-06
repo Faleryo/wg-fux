@@ -33,6 +33,6 @@ rm -rf "$CLIENT_DIR"
 log_info "Client directory $CLIENT_DIR deleted."
 
 # Refresh QoS rules
-$SCRIPT_DIR/wg-apply-qos.sh || true
+"$SCRIPT_DIR/wg-apply-qos.sh" || true
 
 log_info "Client '$NAME' removed successfully."

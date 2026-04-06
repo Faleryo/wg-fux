@@ -46,7 +46,7 @@ if [ "$USE_JSON" -eq 1 ]; then
 
     echo "["
     FIRST=1
-    while IFS=$'\t' read -r pub psk endpoint allowed_ips handshake rx tx keepalive; do
+    while IFS=$'\t' read -r pub _psk endpoint allowed_ips handshake rx tx keepalive; do
         [ -z "$pub" ] && continue
 
         if [ "$FIRST" -eq 0 ]; then echo ","; fi

@@ -6,12 +6,12 @@ const fsPromises = require('fs').promises;
 const path = require('path');
 
 const { db, schema } = require('../../db');
-const { eq, and, desc, lt } = require('drizzle-orm');
+const { eq, and, desc, lt, gt } = require('drizzle-orm');
 const { auth, requireAdmin } = require('../middleware/auth');
 const { systemConfigSchema } = require('../../db/validation');
 
 const { runCommand, runSystemCommand, writeFileAsRoot } = require('../services/shell');
-const { getWireGuardStats, getSystemStats, formatBytes, getInterfacePath, getInterfaces } = require('../services/system');
+const { getWireGuardStats, getSystemStats, formatBytes, getInterfacePath } = require('../services/system');
 const { getJobStatus } = require('../services/jobs');
 const { getScriptPath } = require('../services/config');
 const { gcAuditLogs } = require('../services/audit');
@@ -58,9 +58,12 @@ router.get('/telemetry', auth, async (req, res) => {
 
 router.get('/traffic-history', auth, async (req, res, next) => {
   try {
+    // BUG-FIX: lt(timestamp, new Date()) ne filtrait rien (= toutes les entrées passées).
+    // On filtre désormais sur les 24 dernières heures pour le graphique de trafic.
+    const since24h = new Date(Date.now() - 24 * 3600 * 1000);
     const history = await db.select()
       .from(schema.logs)
-      .where(and(eq(schema.logs.type, 'snapshot'), lt(schema.logs.timestamp, new Date())))
+      .where(and(eq(schema.logs.type, 'snapshot'), gt(schema.logs.timestamp, since24h)))
       .orderBy(desc(schema.logs.timestamp))
       .limit(240);
             
@@ -398,7 +401,6 @@ router.get('/container-logs', auth, requireAdmin, async (req, res) => {
 
 router.get('/security-audit', auth, requireAdmin, async (req, res) => {
   try {
-    const iface = process.env.WG_INTERFACE || 'wg0';
     const hasUfw = await fsPromises.stat('/usr/sbin/ufw').then(() => true).catch(() => false);
     const { stdout: ufwStatus } = hasUfw ? await runSystemCommand('/usr/sbin/ufw', ['status']).catch(() => ({ stdout: 'inactive' })) : { stdout: 'not installed' };
     

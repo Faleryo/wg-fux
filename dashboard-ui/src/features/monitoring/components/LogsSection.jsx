@@ -69,10 +69,10 @@ const LogsSection = () => {
       wsRef.current = null;
     }
 
+    // BUG-FIX: fetchLogs() était appelé 3 fois ici → race condition sur setLogs.
+    // Un seul appel suffit au montage/changement d'onglet.
     fetchLogs();
 
-    fetchLogs();
-    
     // Si on est sur un onglet temps réel, on ouvre un WebSocket
     if (activeTab === 'security' || activeTab === 'system') {
       const type = activeTab === 'security' ? 'logs-wg' : 'logs-api';

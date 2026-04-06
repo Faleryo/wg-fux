@@ -93,7 +93,7 @@ const updateUsage = async () => {
       }
     }
     // BUG-FIX: Output redirected to /var/log/wg-enforcer.log for the "Security" tab visibility
-    const { success: enfOk, stdout: enfOut, stderr: enfErr } = await runSystemCommand(getScriptPath('wg-enforcer.sh'), [])
+    const { stdout: enfOut, stderr: enfErr } = await runSystemCommand(getScriptPath('wg-enforcer.sh'), [])
       .catch(e => ({ success: false, error: e.message, stdout: '', stderr: e.message }));
     
     if (enfOut || enfErr) {
@@ -216,7 +216,9 @@ const rotateEnforcerLogs = async () => {
       await runSystemCommand('gzip', [backupFile]);
       
       // Cleanup: Keep only last 5 rotated logs
-      const { files: allLogs } = await runSystemCommand('ls', ['-1', '/var/log/']).then(r => ({ files: r.stdout.split('\n') }));
+      // BUG-FIX: runSystemCommand('ls').then() retournait une Promise non résolue.
+      // fsPromises.readdir est natif, asynchrone et correctement awaitable.
+      const allLogs = await fsPromises.readdir('/var/log/');
       const rotatedLogs = allLogs.filter(f => f.startsWith('wg-enforcer.log.') && f.endsWith('.gz')).sort().reverse();
       if (rotatedLogs.length > 5) {
         for (let i = 5; i < rotatedLogs.length; i++) {

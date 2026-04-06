@@ -13,8 +13,7 @@ dashboard-ui/out/
 dashboard-ui/dist/
 dashboard-ui/build/
 
-# Environnement & Secrets (CRITIQUE)
-.env
+# Environnement & Secrets (CRITIQUE)s
 .env.local
 .env.development.local
 .env.test.local

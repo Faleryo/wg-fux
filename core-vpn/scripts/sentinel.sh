@@ -32,11 +32,13 @@ log_event() {
 send_heartbeat() {
     local status="$1"
     # Improved stats collection
-    local cpu=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
-    local mem=$(free -m | awk '/Mem:/ {print int($3/$2 * 100)}')
-    local disk=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+    local cpu mem disk
+    cpu=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
+    mem=$(free -m | awk '/Mem:/ {print int($3/$2 * 100)}')
+    disk=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
     
-    local payload=$(printf '{"status":"%s","stats":{"cpu":"%s","mem":"%s","disk":"%s"},"timestamp":"%s"}' \
+    local payload
+    payload=$(printf '{"status":"%s","stats":{"cpu":"%s","mem":"%s","disk":"%s"},"timestamp":"%s"}' \
         "$status" "$cpu" "$mem" "$disk" "$(date -Is)")
     
     curl -s -X POST -H "Content-Type: application/json" \

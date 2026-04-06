@@ -53,6 +53,7 @@ log() {
 # 💠 SRE: Initialisation et Export global de l'environnement (.env)
 if [ -f .env ]; then
     set -a
+    # shellcheck source=/dev/null
     source .env
     set +a
     log "INFO" "Environnement chargé depuis .env (Domain: ${DOMAIN:-N/A})"
@@ -317,6 +318,7 @@ update_process() {
     log "INFO" "Sauvegarde et Export global de l'env actuelle"
     if [ -f .env ]; then
         set -a
+        # shellcheck source=/dev/null
         source .env
         set +a
     fi

@@ -62,9 +62,10 @@ const useDashboardData = (session) => {
   }, []);
 
   // ── Main Data Fetch ───────────────────────────────────────────────────────
+  const sessionRole = session?.role;
   const fetchData = useCallback(async () => {
     try {
-      const isAdmin = session?.role === 'admin';
+      const isAdmin = sessionRole === 'admin';
       const [clientsRes, statsRes, healthRes, containersRes, usersRes] = await Promise.all([
         axiosInstance.get('/clients'),
         axiosInstance.get('/system/stats').catch(() => ({ data: {} })),
@@ -122,7 +123,7 @@ const useDashboardData = (session) => {
       console.error('[useDashboardData] Fetch error:', error);
       setLoading(false);
     }
-  }, [session?.role]);
+  }, [sessionRole]);
 
   // ── Bootstrap + Polling ───────────────────────────────────────────────────
   useEffect(() => {
@@ -131,14 +132,22 @@ const useDashboardData = (session) => {
     if (cached) {
       try {
         const { clients: c, stats: s, ts } = JSON.parse(cached);
-        if (Date.now() - ts < CACHE_TTL) { setClients(c); setStats(s); setLoading(false); }
+        if (Date.now() - ts < CACHE_TTL) {
+          setTimeout(() => {
+            setClients(c);
+            setStats(s);
+            setLoading(false);
+          }, 0);
+        }
       } catch { /* ignore malformed cache */ }
     }
     // Static data
     axiosInstance.get('/system/uptime').then(r => setUptime(r.data.uptime)).catch(() => {});
     axiosInstance.get('/system/config').then(r => setConfig(r.data)).catch(() => {});
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSentinel();
     const pollId = setInterval(fetchData, POLL_INTERVAL);
     const sentinelId = setInterval(fetchSentinel, SENTINEL_INTERVAL);

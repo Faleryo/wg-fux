@@ -17,58 +17,64 @@ export const useWebSocket = (url, options = {}) => {
   useEffect(() => { onMessageRef.current = options.onMessage; }, [options.onMessage]);
   useEffect(() => { onOpenRef.current = options.onOpen; }, [options.onOpen]);
 
-  const connect = useCallback(() => {
-    if (!url) return;
-    
-    // Clean up any existing connection or timeout
-    if (ws.current) ws.current.close();
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-
-    try {
-      ws.current = new WebSocket(url);
-      setStatus('CONNECTING');
-
-      ws.current.onopen = () => {
-        setStatus('OPEN');
-        reconnectCount.current = 0;
-        if (onOpenRef.current) onOpenRef.current();
-      };
-
-      ws.current.onmessage = (event) => {
-        let message;
-        try {
-          message = JSON.parse(event.data);
-        } catch (e) {
-          message = event.data; // Handle raw logs/strings
-        }
-        setData(message);
-        if (onMessageRef.current) onMessageRef.current(message);
-      };
-
-      ws.current.onclose = () => {
-        setStatus('CLOSED');
-        
-        // Exponential backoff strategy
-        const delay = Math.min(1000 * Math.pow(2, reconnectCount.current), maxReconnectDelay);
-        reconnectCount.current += 1;
-        
-        timeoutRef.current = setTimeout(() => {
-          connect();
-        }, delay);
-      };
-
-      ws.current.onerror = () => {
-        // ws.close() will trigger onclose logic
-        if (ws.current) ws.current.close();
-      };
-    } catch (e) {
-      setStatus('CLOSED');
-    }
-  }, [url]); // Only url as dependency — callbacks are stable via refs
-
   useEffect(() => {
+    let active = true;
+
+    const connect = () => {
+      if (!url || !active) return;
+      
+      // Clean up any existing connection or timeout
+      if (ws.current) ws.current.close();
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+      try {
+        ws.current = new WebSocket(url);
+        setStatus('CONNECTING');
+
+        ws.current.onopen = () => {
+          if (!active) return;
+          setStatus('OPEN');
+          reconnectCount.current = 0;
+          if (onOpenRef.current) onOpenRef.current();
+        };
+
+        ws.current.onmessage = (event) => {
+          if (!active) return;
+          let message;
+          try {
+            message = JSON.parse(event.data);
+          } catch (e) {
+            message = event.data; // Handle raw logs/strings
+          }
+          setData(message);
+          if (onMessageRef.current) onMessageRef.current(message);
+        };
+
+        ws.current.onclose = () => {
+          if (!active) return;
+          setStatus('CLOSED');
+          
+          // Exponential backoff strategy
+          const delay = Math.min(1000 * Math.pow(2, reconnectCount.current), maxReconnectDelay);
+          reconnectCount.current += 1;
+          
+          timeoutRef.current = setTimeout(() => {
+            if (active) connect();
+          }, delay);
+        };
+
+        ws.current.onerror = () => {
+          if (ws.current) ws.current.close();
+        };
+      } catch (e) {
+        if (active) setStatus('CLOSED');
+      }
+    };
+
     connect();
+
     return () => {
+      active = false;
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       if (ws.current) {
         ws.current.onclose = null; // Prevent reconnect on manual unmount

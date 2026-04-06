@@ -19,7 +19,7 @@ fi
 WG_INTERFACE="${WG_INTERFACE:-wg0}"
 DB_FILE="${WG_DB_PATH:-${API_DATA_DIR:-/app/data}/wg-fux.db}"
 CLIENTS_DIR="/etc/wireguard/clients"
-LOG_FILE="/var/log/wg-enforcer.log"
+
 NOW=$(date +%s)
 
 # Check if sqlite3 is installed

@@ -68,7 +68,7 @@ IP_SUFFIX=""
 
   # Find first available suffix from 2 to 254
   for ((i=2; i<=254; i++)); do
-      if [[ ! " ${used_ips} " =~ " ${i} " ]]; then
+      if [[ ! " ${used_ips} " == *" $i "* ]]; then
           IP_SUFFIX=$i
           break
       fi
