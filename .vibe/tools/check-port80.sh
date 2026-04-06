@@ -15,23 +15,32 @@ NC='\033[0m'
 
 echo -e "${CYAN}[DIAGNOSTIC] Lancement des vérifications pré-vol Let's Encrypt (v6.5)...${NC}"
 
-# 1. Vérification locale (Nginx écoute ?)
+# 1. Vérification Docker (Nginx a-t-il lié le port 80 ?)
+echo -ne "${CYAN}[INFO] Vérification du binding Docker (Port 80)... ${NC}"
+if sudo docker inspect wg-sentinel-proxy --format='{{(index (index .NetworkSettings.Ports "80/tcp") 0).HostPort}}' &>/dev/null; then
+    echo -e "${GREEN}[OK]${NC}"
+else
+    echo -e "${RED}[FAIL]${NC}"
+    echo -e "${YELLOW}[TIP] Le conteneur Nginx n'expose pas le port 80 sur l'hôte.${NC}"
+    exit 1
+fi
+
+# 2. Vérification locale (Nginx répond-t-il ?)
+echo -ne "${CYAN}[INFO] Test de réponse locale (HTTP 80)... ${NC}"
 # Retry loop (5 attempts)
-echo -e "${CYAN}[INFO] Vérification de l'écoute sur le port 80 (locale)...${NC}"
 CHECK_SUCCESS=false
 for i in {1..5}; do
-    if sudo ss -tuln | grep -q ":80 " || curl -s --max-time 2 http://localhost/ > /dev/null 2>&1; then
-        echo -e "${GREEN}[OK] Un service écoute sur le port 80 localement.${NC}"
+    if curl -s --max-time 2 http://localhost/ > /dev/null 2>&1; then
+        echo -e "${GREEN}[OK]${NC}"
         CHECK_SUCCESS=true
         break
     fi
-    echo -e "${YELLOW}[WAIT] Tentative $i/5... Nginx n'est pas encore prêt.${NC}"
-    sleep 3
+    sleep 2
 done
 
 if [ "$CHECK_SUCCESS" = false ]; then
-    echo -e "${RED}[ERROR] Aucun service n'écoute sur le port 80.${NC}"
-    echo -e "${YELLOW}[TIP] Assurez-vous que le conteneur Nginx est démarré.${NC}"
+    echo -e "${RED}[FAIL]${NC}"
+    echo -e "${YELLOW}[TIP] Nginx est démarré mais ne répond pas sur localhost:80.${NC}"
     exit 1
 fi
 

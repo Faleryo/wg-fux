@@ -1,10 +1,19 @@
-#!/bin/bash
-# --- VIBE-OS v6.5 : Shared Common Utilities ---
-# Standardized logging and notification hub for all WG-FUX internal scripts.
+# --- VIBE-OS v6.5 Obsidian Standard ---
+VERSION="6.5.0-Obsidian"
+PROJECT_ROOT="/home/faleryo/wg-fux"
+
+# SRE Error Codes
+ERR_OK=0
+ERR_SYSTEM_FAILURE=1
+ERR_NETWORK_TIMEOUT=2
+ERR_AUTH_FAILED=3
+ERR_PERMISSION_DENIED=4
+ERR_DOCKER_CRASH=5
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 BOLD='\033[1m'
 

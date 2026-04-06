@@ -209,12 +209,15 @@ uninstall() {
         log "INFO" "Arrêt des conteneurs et suppression des volumes..."
         sudo docker compose down -v || true
         
-        printf "%b[?] Voulez-vous supprimer les IMAGES Docker du projet et le CACHE de build (Libère ~6-10GB) ? (y/N): %b" "${YELLOW}" "${NC}"
+        printf "%b[?] Voulez-vous supprimer les IMAGES Docker du projet (Libère ~3GB) ? (y/N): %b" "${YELLOW}" "${NC}"
         read -r purge_images
         if [[ "$purge_images" =~ ^[yY]$ ]]; then
-            log "INFO" "Suppression des images locales et purge du builder..."
-            sudo docker compose down --rmi local 2>/dev/null || true
-            sudo docker image prune -f 2>/dev/null || true
+            log "INFO" "Suppression des images du projet WG-FUX..."
+            # SRE SURGICAL: Supprime uniquement les images commençant par wg-fux-
+            # Évite d'utiliser 'prune' qui pourrait impacter d'autres services VPS
+            sudo docker images "wg-fux-*" -q | xargs -r sudo docker rmi -f 2>/dev/null || true
+            # Clean unused builder cache related to our build only
+            sudo docker builder prune -f --filter "label=com.docker.compose.project=wg-fux" 2>/dev/null || true
         fi
     fi
 
