@@ -565,12 +565,12 @@ echo -e "7) Configuration SSL (Let's Encrypt / Certbot)"
 read -rp "Choisissez une option [1-7]: " choice
 
 case $choice in
-    2) uninstall ;;
-    3) update_process ;;
-    4) git_upgrade ;;
-    5) restart_proxy ;;
-    6) health_audit ;;
-    7) setup_ssl ;;
+    2) uninstall; exit 0 ;;
+    3) update_process; exit 0 ;;
+    4) git_upgrade; exit 0 ;;
+    5) restart_proxy; exit 0 ;;
+    6) health_audit; exit 0 ;;
+    7) setup_ssl; exit 0 ;;
     1) echo -e "${GREEN}[INFO] Initialisation de l'installation/configuration...${NC}" ;;
     *) echo -e "${RED}Option invalide.${NC}"; exit 1 ;;
 esac
