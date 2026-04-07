@@ -33,7 +33,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 64M
+          memory: 32M
 
   # CRITICAL-2 : Let's Encrypt Certbot (renouvellement automatique)
   # Usage : docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d VOTRE_DOMAINE
@@ -100,7 +100,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 256M
+          memory: 128M
 
 
   ui:
@@ -125,7 +125,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 64M
+          memory: 32M
 
   adguard:
     image: adguard/adguardhome:latest
@@ -152,7 +152,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 256M
+          memory: 128M
 
 
 networks:

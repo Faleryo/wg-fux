@@ -6,11 +6,10 @@ export default {
   darkMode: 'class',
   safelist: [
     { 
-      pattern: /^(bg|text|border|shadow|ring|from|to|fill|stroke)-(indigo|cyan|rose|emerald|amber|red|purple|slate)-(50|100|200|300|400|500|600|700|800|900|950)(\/[0-9]+)?$/ ,
-      variants: ['hover']
+      pattern: /^(bg|text|border)-(indigo|emerald|rose|slate)-(400|500|600)$/ 
     },
     { 
-      pattern: /^shadow-(indigo|cyan|rose|emerald|amber|red|purple|slate)-(400|500|600)\/(20|30|50)$/ 
+      pattern: /^shadow-(indigo|emerald|rose|slate)-500\/20$/ 
     },
   ],
   theme: {

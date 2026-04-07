@@ -29,19 +29,32 @@ SWAP_FILE="/swap_wgfux"
 
 # SRE Note: All log calls below have been migrated to log_info/log_error unifiés.
 
-# SRE: Modes Spéciaux (Simulation et Auto)
+# SRE: Modes Spéciaux (Simulation, Auto, Désinstallation)
 DRY_RUN=false
 AUTO_MODE=false
+UNINSTALL=false
+PURGE=false
+
 for arg in "$@"; do
-    if [ "$arg" == "--dry-run" ]; then 
-        DRY_RUN=true
-        log_sre "MODE DRY-RUN ACTIVÉ (Simulation)"
-    fi
-    if [ "$arg" == "--auto" ]; then
-        AUTO_MODE=true
-        log_sre "MODE AUTO-PILOT ACTIVÉ (Non-interactif)"
-    fi
+    case $arg in
+        --dry-run) DRY_RUN=true; log_sre "MODE DRY-RUN ACTIVÉ" ;;
+        --auto) AUTO_MODE=true; log_sre "MODE AUTO-PILOT ACTIVÉ" ;;
+        --uninstall) UNINSTALL=true ;;
+        --purge) PURGE=true ;;
+    esac
 done
+
+if [ "$UNINSTALL" = true ]; then
+    log_warn "DÉMARRAGE DE LA DÉSINSTALLATION..."
+    docker compose down -v 2>/dev/null || true
+    if [ "$PURGE" = true ]; then
+        log_warn "PURGE COMPLÈTE EN COURS..."
+        sudo rm -rf "$WG_DIR" "$API_DATA" .env api-service/.env 2>/dev/null
+        docker volume rm wg_fux_data wg_fux_adguard_data wg_fux_adguard_conf certbot_certs certbot_www 2>/dev/null || true
+    fi
+    log_success "Désinstallation terminée."
+    exit 0
+fi
 
 # 💠 SRE: Initialisation et Export global de l'environnement (.env)
 if [ -f .env ]; then
@@ -577,7 +590,11 @@ setup_ssl() {
         log_warn "Lancez d'abord l'Option 1 (Installation) ou l'Option 3 (Mise à jour)."
         return 1
     fi
-    local ssl_script="$SCRIPT_DIR/scripts/setup-ssl.sh"
+    # FIX Diamond: Utilisation du dossier scripts standardisé
+    local ssl_script="scripts/setup-ssl.sh"
+    if [ ! -f "$ssl_script" ]; then
+        ssl_script="core-vpn/scripts/setup-ssl.sh"
+    fi
     if [ -f "$ssl_script" ]; then
         cd "$SCRIPT_DIR" || return 1
         chmod +x "$ssl_script"
@@ -777,10 +794,10 @@ fi
 log_info "Étape 4 : Préparation des scripts utilitaires"
 # Note: L'API utilise désormais getScriptPath pour une résolution interne robuste.
 # On garde les liens symboliques pour l'usage manuel dans le terminal.
-SCRIPT_DIR="$(pwd)/core-vpn/scripts"
+SCRIPTS_INTERNAL_DIR="$(pwd)/core-vpn/scripts"
 # shellcheck disable=SC1091
-source "$SCRIPT_DIR/wg-common.sh"
-for script in "$SCRIPT_DIR"/wg-*.sh; do
+source "$SCRIPTS_INTERNAL_DIR/wg-common.sh"
+for script in "$SCRIPTS_INTERNAL_DIR"/wg-*.sh; do
     if [ -f "$script" ]; then
         target="/usr/local/bin/$(basename "$script")"
         log_info "Lien symbolique : $(basename "$script") -> $target"
