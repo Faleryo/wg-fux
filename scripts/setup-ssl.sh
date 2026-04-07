@@ -34,13 +34,19 @@ if [ "$USE_EXISTING" = true ]; then
     DOMAIN_DIR="$EXISTING_CERT"
 else
     log_info "Demande de nouveau certificat (Bypass Mode ACTIVE)..."
-    log_info "Domaines : $DOMAIN, $EXTRA_DOMAINS"
     
-    # 💠 SRE: Commande de Bypass multi-domaine
-    if ! docker compose run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
-        --email "$EMAIL" --agree-tos --no-eff-email \
-        -d "$DOMAIN" -d "$EXTRA_DOMAINS"; then
-        
+    # 💠 SRE: Construction dynamique de la commande Certbot
+    CERTBOT_CMD="certbot certonly --webroot -w /var/www/certbot --email $EMAIL --agree-tos --no-eff-email"
+    CERTBOT_CMD="$CERTBOT_CMD -d $DOMAIN"
+    
+    if [ -n "$EXTRA_DOMAINS" ]; then
+        CERTBOT_CMD="$CERTBOT_CMD -d $EXTRA_DOMAINS"
+        log_info "Domaines : $DOMAIN, $EXTRA_DOMAINS"
+    else
+        log_info "Domaine : $DOMAIN"
+    fi
+
+    if ! docker compose run --rm --entrypoint bash certbot -c "$CERTBOT_CMD"; then
         log_error "La demande Certbot a échoué. Tentative de secours sur certificat existant..."
         EXISTING_CERT=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ 2>/dev/null | grep "^$DOMAIN" | sort -r | head -n1 || true)
         if [ -z "$EXISTING_CERT" ]; then
