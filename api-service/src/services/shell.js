@@ -16,6 +16,7 @@ const SUDO_ARGS = isRoot ? [] : ['-n'];
  */
 const runCommand = async (cmd, args = [], stdinData = null) => {
   const commandStr = `${cmd} ${args.join(' ')}`;
+  const env = { ...process.env, LC_ALL: 'C', LANG: 'C' };
     
   // Safety check: binary existence and executability (only for absolute paths or specific scripts)
   if (cmd.startsWith('/') || cmd.startsWith('./')) {
@@ -31,7 +32,7 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
   try {
     if (stdinData !== null) {
       return await new Promise((resolve) => {
-        const proc = spawn(cmd, args, { timeout: 15000 });
+        const proc = spawn(cmd, args, { timeout: 15000, env });
         let stdout = '', stderr = '';
         proc.stdout.on('data', (d) => { stdout += d.toString(); });
         proc.stderr.on('data', (d) => { stderr += d.toString(); });
@@ -55,7 +56,11 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
       });
     }
 
-    const { stdout, stderr } = await execFilePromise(cmd, args, { timeout: 10000, maxBuffer: 10 * 1024 * 1024 });
+    const { stdout, stderr } = await execFilePromise(cmd, args, { 
+      timeout: 10000, 
+      maxBuffer: 10 * 1024 * 1024,
+      env 
+    });
     if (stderr) log.warn('shell', `"${commandStr}" produced stderr: ${stderr.trim()}`);
     return { success: true, stdout: stdout.trim(), stderr: stderr.trim() };
   } catch (error) {

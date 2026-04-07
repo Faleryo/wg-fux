@@ -23,17 +23,17 @@ check_dependency "docker"
 
 send_heartbeat() {
     local status="$1"
-    # Improved stats collection
+    # Improved stats collection with LC_ALL=C for stable parsing
     local cpu mem disk
-    cpu=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
-    mem=$(free -m | awk '/Mem:/ {print int($3/$2 * 100)}')
-    disk=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+    cpu=$(LC_ALL=C top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
+    mem=$(LC_ALL=C free -m | awk '/Mem:/ {print int($3/$2 * 100)}')
+    disk=$(LC_ALL=C df / | awk 'NR==2 {print $5}' | sed 's/%//')
     
     local payload
     payload=$(printf '{"status":"%s","stats":{"cpu":"%s","mem":"%s","disk":"%s"},"timestamp":"%s"}' \
                      "$status" "$cpu" "$mem" "$disk" "$(date -Is)")
     
-    curl -s -X POST -H "Content-Type: application/json" \
+    curl -s --max-time 10 -X POST -H "Content-Type: application/json" \
          -H "x-api-token: $TOKEN" \
          -d "$payload" "$HEARTBEAT_URL" > /dev/null
 }

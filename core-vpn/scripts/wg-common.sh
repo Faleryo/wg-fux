@@ -9,6 +9,12 @@ VERSION="6.5.0-Obsidian+"
 _WG_COMMON_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" 2>/dev/null || true
 PROJECT_ROOT="$(dirname "$(dirname "$_WG_COMMON_DIR")")" 2>/dev/null || true
 
+# 💠 SRE Hardening: Force English locale for all subprocesses (ping, df, wg, top)
+# This prevents parsing errors in non-English environments.
+export LC_ALL=C
+export LANG=C
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+
 # SRE Error Codes (Exports for scripts)
 # shellcheck disable=SC2034
 ERR_OK=0

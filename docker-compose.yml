@@ -33,7 +33,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 256M
+          memory: 64M
 
   # CRITICAL-2 : Let's Encrypt Certbot (renouvellement automatique)
   # Usage : docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d VOTRE_DOMAINE
@@ -44,7 +44,7 @@ services:
       - certbot_certs:/etc/letsencrypt
       - certbot_www:/var/www/certbot
     # Renouvellement automatique : vérifie toutes les 12h
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
+    entrypoint: "/bin/sh -c 'trap exit TERM; sleep 20; while :; do certbot renew; sleep 12h & wait $${!}; done'"
     networks:
       - vpn-internal
     healthcheck:
@@ -99,8 +99,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '0.5'
+          memory: 256M
 
 
   ui:
@@ -125,8 +125,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 1024M
+          cpus: '0.5'
+          memory: 64M
 
   adguard:
     image: adguard/adguardhome:latest
@@ -152,7 +152,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 256M
+          memory: 128M
 
 
 networks:
