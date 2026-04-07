@@ -536,12 +536,13 @@ setup_ssl() {
         log_warn "Lancez d'abord l'Option 1 (Installation) ou l'Option 3 (Mise à jour)."
         return 1
     fi
-    if [ -f "$SCRIPT_DIR/scripts/setup-ssl.sh" ]; then
+    local ssl_script="$SCRIPT_DIR/scripts/setup-ssl.sh"
+    if [ -f "$ssl_script" ]; then
         cd "$SCRIPT_DIR" || return 1
-        chmod +x scripts/setup-ssl.sh
-        bash scripts/setup-ssl.sh
+        chmod +x "$ssl_script"
+        bash "$ssl_script"
     else
-        log_error "Script scripts/setup-ssl.sh introuvable pour la configuration SSL."
+        log_error "Script $ssl_script introuvable pour la configuration SSL."
         return 1
     fi
 }
