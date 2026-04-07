@@ -69,7 +69,7 @@ if [ -d "core-vpn/scripts" ]; then
     TEMP_CONT=$(mktemp)
     
     (cd core-vpn/scripts/ && md5sum wg-*.sh 2>/dev/null | sort > "$TEMP_HOST")
-    sudo docker exec wg-fux-api bash -c "cd /usr/local/bin/ && md5sum wg-*.sh 2>/dev/null | sort" > "$TEMP_CONT" 2>/dev/null || true
+    docker exec wg-fux-api bash -c "cd /usr/local/bin/ && md5sum wg-*.sh 2>/dev/null | sort" > "$TEMP_CONT" 2>/dev/null || true
     
     if diff -w "$TEMP_HOST" "$TEMP_CONT" > /dev/null; then
         log_ok "Synchronisation des scripts : OK"

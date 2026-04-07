@@ -9,9 +9,11 @@ const { existsSync } = require('fs');
 const MOUNT_SCRIPT_DIR = '/app/core-vpn/scripts';
 const BUILD_SCRIPT_DIR = '/usr/local/bin';
 
-const SCRIPT_DIR = (process.env.NODE_ENV === 'production' && !existsSync(MOUNT_SCRIPT_DIR)) 
-  ? BUILD_SCRIPT_DIR 
-  : (existsSync(MOUNT_SCRIPT_DIR) ? MOUNT_SCRIPT_DIR : path.join(PROJECT_ROOT, 'core-vpn/scripts'));
+const SCRIPT_DIR = (() => {
+  if (existsSync(MOUNT_SCRIPT_DIR)) return MOUNT_SCRIPT_DIR;
+  if (process.env.NODE_ENV === 'production' && existsSync(BUILD_SCRIPT_DIR)) return BUILD_SCRIPT_DIR;
+  return path.join(PROJECT_ROOT, 'core-vpn/scripts');
+})();
 
 /**
  * Standardized Script Path Resolver

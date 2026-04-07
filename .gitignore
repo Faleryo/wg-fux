@@ -42,6 +42,7 @@ infra/ssl/*.pem
 # Logs
 logs/
 *.log
+*.txt
 api-service/logs/
 
 # Autres

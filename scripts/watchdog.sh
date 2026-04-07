@@ -50,7 +50,7 @@ check_adguard() {
     fi
 }
 
-trap "rm -f $PID_FILE; log_event '🛑 Watchdog stopped.'; exit" SIGINT SIGTERM
+trap 'rm -f "$PID_FILE"; log_event "🛑 Watchdog stopped."; exit' SIGINT SIGTERM
 
 while true; do
     check_api

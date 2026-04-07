@@ -3,6 +3,7 @@
 # Version 1.0 (Diamond v4.0 Platinum)
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+# shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
 
 # Point to SQLite DB

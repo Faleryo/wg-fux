@@ -1,16 +1,16 @@
-# Vibe-OS Context Register (v6.3 "The Watcher's Eye")
+# Vibe-OS Context Register (v6.5 "The Multilingual Guardian")
 
 This file manages the paging memory to prevent token saturation and maintain long-term session coherence.
 
 ## Core Memory (Fixed)
 - Project: WG-FUX (WireGuard Firewall User eXperience)
-- Target: Vibe-OS v6.3 Stabilization (Frontier Explorer)
+- Target: Vibe-OS v6.5 Stabilization (The Multilingual Guardian)
 - Principal Brick: S.T.A.R.S (Swarm, Tool-first, Autonomous KI, Reversed Verification, Semantic Artifacting)
 
 ## Active Context (Volatile)
-- Current Phase: Validation & SRE Stability (Post-Healing).
-- Last Action: Executed the "Healing Loop". Eradicated the SHADOW-ROUTE flaw and False-Promise Anti-Patterns. Cleaned all dead weight (ESLint).
-- Next Action: Ready for new Feature implementation via the Genesis Flow or continuous operation.
+- Current Phase: Sentinel Infrastructure Restoration & SRE Healing.
+- Last Action: Fixed DOMAIN placeholder in Nginx and root .env.
+- Next Action: Re-igniting the full v6.5 stack and verifying connectivity at fux.faleryo.site.
 
 ## Archiving Registry (Paging)
 - Logic regarding previous server fixes moved to: `history/fixes-pre-v6.md` (Not yet created).

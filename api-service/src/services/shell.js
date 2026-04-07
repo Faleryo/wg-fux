@@ -2,6 +2,7 @@ const { execFile, spawn } = require('child_process');
 const util = require('util');
 const execFilePromise = util.promisify(execFile);
 const fs = require('fs').promises;
+const { getScriptPath } = require('./config');
 const log = require('./logger');
 
 
@@ -79,7 +80,7 @@ const runSystemCommand = async (file, args = [], stdinData = null) => {
  * HARDENING: Using tee avoids shell redirection issues with sudo
  */
 const writeFileAsRoot = async (filePath, content) => {
-  const { success, error, code } = await runSystemCommand('/usr/local/bin/wg-file-proxy.sh', ['write', filePath, content]);
+  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), ['write', filePath, content]);
   return { success, error, code };
 };
 
@@ -87,7 +88,7 @@ const writeFileAsRoot = async (filePath, content) => {
  * Append to a file with sudo if necessary (via tee -a)
  */
 const appendFileAsRoot = async (filePath, content) => {
-  const { success, error, code } = await runSystemCommand('/usr/local/bin/wg-file-proxy.sh', ['append', filePath, content]);
+  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), ['append', filePath, content]);
   return { success, error, code };
 };
 
@@ -95,7 +96,7 @@ const appendFileAsRoot = async (filePath, content) => {
  * Delete a file with sudo if necessary
  */
 const unlinkAsRoot = async (filePath) => {
-  const { success, error, code } = await runSystemCommand('/usr/local/bin/wg-file-proxy.sh', ['delete', filePath]);
+  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), ['delete', filePath]);
   return { success, error, code };
 };
 
@@ -103,9 +104,8 @@ const unlinkAsRoot = async (filePath) => {
  * Read a directory with sudo if necessary (using ls)
  */
 const readdirAsRoot = async (dirPath) => {
-  const { success, stdout, error, code } = await runSystemCommand('/usr/local/bin/wg-file-proxy.sh', ['list', dirPath]);
-  if (!success) return { success: false, error, code };
-  return { success: true, files: stdout.split('\n').filter(Boolean) };
+  const { success, stdout, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), ['list', dirPath]);
+  return { success, stdout, error, code };
 };
 
 /**

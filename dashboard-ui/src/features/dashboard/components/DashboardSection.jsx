@@ -103,10 +103,10 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
       {/* === ROW 1: Hero Banner + Right Stats ===
           Wrapper divs carry the col-span classes so the grid works correctly
           (GlassCard's motion.div wrapper cannot have col-span) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-12 gap-6 md:gap-8">
         
-        {/* Hero Card — xl:col-span-8 */}
-        <div className="xl:col-span-8">
+        {/* Hero Card — 2xl:col-span-8 */}
+        <div className="2xl:col-span-8">
           <GlassCard className="p-6 md:p-10 flex flex-col justify-between group min-h-[320px]">
             {/* Decorative server icon — pointer-events-none always */}
             <div className="absolute -right-10 -bottom-10 pointer-events-none">
@@ -118,7 +118,7 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <Shield className={cn("fill-current opacity-80", `text-${theme}-500`)} size={28} />
-                    <h2 className={cn("text-2xl md:text-4xl font-black tracking-widest italic uppercase transition-colors", isDark ? "text-white" : "text-slate-900")}>Protocole Actif</h2>
+                    <h2 className={cn("text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-black tracking-widest italic uppercase transition-colors shrink-0", isDark ? "text-white" : "text-slate-900")}>Protocole Actif</h2>
                   </div>
                   <p className="text-slate-500 font-mono text-[10px] tracking-[0.3em] uppercase opacity-60">System Security Integrated: 100% Integrity</p>
                 </div>
@@ -170,10 +170,10 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
           </GlassCard>
         </div>
 
-        {/* Right sidebar cards — lg:col-span-1 xl:col-span-4 */}
-        <div className="lg:col-span-1 xl:col-span-4 flex flex-col gap-6">
+        {/* Right sidebar cards — lg:col-span-1 2xl:col-span-4 */}
+        <div className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6">
           {/* Sentinel & AdGuard */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
             {/* Sentinel */}
             <GlassCard className={cn("p-6 flex items-center justify-between group transition-all", isDark ? "bg-gradient-to-br from-emerald-500/10 to-teal-950/20 border-emerald-500/20" : "bg-white/80 border-emerald-500/10 shadow-sm")}>
               <div className="min-w-0">
@@ -243,14 +243,14 @@ const DashboardSection = ({ stats, trafficData, systemStats, clients, health, co
       </div>
 
       {/* === ROW 2: Telemetry + Pie + Speedtest === */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {/* Telemetry — lg:col-span-2 xl:col-span-2 */}
-        <div className="lg:col-span-2 xl:col-span-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-12 gap-6 lg:gap-8">
+        {/* Telemetry — md:col-span-2 lg:col-span-2 2xl:col-span-8 */}
+        <div className="md:col-span-2 lg:col-span-2 2xl:col-span-8">
           <LiveTelemetryChart />
         </div>
 
-        {/* Pie + Speedtest */}
-        <div className="flex flex-col gap-6">
+        {/* Pie + Speedtest — lg:col-span-1 2xl:col-span-4 */}
+        <div className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6">
           {/* Traffic Répartition */}
           <GlassCard className="p-6 group flex-1" hover={true}>
             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 flex items-center gap-3">

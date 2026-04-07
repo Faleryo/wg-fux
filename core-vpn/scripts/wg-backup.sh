@@ -4,6 +4,7 @@
 #   - Fixed: $RED variable was undefined (now uses log_error from wg-common.sh).
 #   - Fixed: Dead-code ($? check after 'if !') removed.
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"  
+# shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
 
 BACKUP_DIR="/var/backups/wireguard"

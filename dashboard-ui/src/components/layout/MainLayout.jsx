@@ -217,7 +217,7 @@ const MainLayout = ({ session, onLogout }) => {
 
       <Sidebar activeSection={topologySelectedClient ? 'containers' : activeSection} setActiveSection={handleNavigate} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onLogout={onLogout} uptime={uptime} />
 
-      <main className="flex-1 min-w-0 pt-16 md:pt-0 px-4 pb-4 md:p-12 overflow-y-auto overflow-x-hidden custom-scrollbar relative z-10 transition-all duration-700">
+      <main className="flex-1 min-w-0 pt-20 md:pt-0 px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 pb-8 overflow-y-auto overflow-x-hidden custom-scrollbar relative z-10 transition-all duration-700">
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
           <div className={cn("absolute top-0 right-0 w-[800px] h-[800px] blur-[200px] animate-pulse transition-all duration-1000", isDark ? "bg-indigo-600/10 opacity-100" : "bg-indigo-500/15 opacity-60")} />
           <div className={cn("absolute bottom-0 left-0 w-[600px] h-[600px] blur-[180px] transition-all duration-1000", isDark ? "bg-emerald-600/5 opacity-100" : "bg-emerald-500/10 opacity-40")} />

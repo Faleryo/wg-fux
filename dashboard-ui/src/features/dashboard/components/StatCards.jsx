@@ -39,7 +39,7 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
           )}
         </div>
         
-        <p className="text-4xl font-black text-slate-900 dark:text-white font-mono tracking-tighter mb-2 group-hover:scale-105 transition-transform duration-500 origin-left">{value}</p>
+        <p className="text-3xl sm:text-4xl 2xl:text-5xl font-black text-slate-900 dark:text-white font-mono tracking-tighter mb-2 group-hover:scale-105 transition-transform duration-500 origin-left truncate">{value}</p>
 
         
         {sub && (
@@ -60,8 +60,8 @@ export const CircularProgress = ({ value, label, color, icon: Icon }) => {
   const offset = circumference - (value / 100) * circumference;
 
   return (
-    <div className="relative flex flex-col items-center group cursor-help">
-      <div className="relative w-20 h-20 md:w-28 md:h-28 transform transition-transform duration-500 group-hover:scale-110">
+    <div className="relative flex flex-col items-center group cursor-help shrink-0">
+      <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 transform transition-transform duration-500 group-hover:scale-110">
         <svg viewBox="0 0 112 112" className="w-full h-full transform -rotate-90 drop-shadow-2xl">
           <circle cx="56" cy="56" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className={cn("transition-colors", isDark ? "text-white/5" : "text-black/5")} />
           <motion.circle 

@@ -3,6 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+# shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
 
 BACKUP_FILE=${1:-}

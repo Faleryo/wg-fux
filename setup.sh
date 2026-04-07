@@ -408,24 +408,6 @@ install_deps() {
     fi
 }
 
-detect_public_ip() {
-    local result
-    for service in "ifconfig.me" "api.ipify.org" "ident.me"; do
-        result=$(curl -4 -s --max-time 3 "$service" 2>/dev/null)
-        if [[ $result =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-            echo "$result"
-            return 0
-        fi
-    done
-
-    result=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+')
-    if [[ $result =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-        echo "$result"
-        return 0
-    fi
-
-    echo "127.0.0.1"
-}
 
 setup_swap() {
     local target_size_mb=4096 # Standard for low RAM
@@ -610,6 +592,16 @@ ADMIN_USER=$(sanitize "${ADMIN_USER:-admin}")
 
 read -rsp "Mot de passe admin: " ADMIN_PASS
 echo ""
+
+# 4.1. AdGuard Home Configuration (SRE: Direct integration)
+log_info "Étape 2.1 : Authentification AdGuard Home (API Proxy)"
+printf "%b[?] AGH Username [admin]: %b" "${YELLOW}" "${NC}"
+read -r AGH_USER
+AGH_USER=$(sanitize "${AGH_USER:-admin}")
+
+read -rsp "AGH Password: " AGH_PASS
+echo ""
+
 SALT=$(openssl rand -hex 16)
 JWT_SECRET=$(openssl rand -hex 32)
 SENTINEL_TOKEN=$(openssl rand -hex 24)
@@ -722,19 +714,35 @@ if [ -n "${DOMAIN:-}" ]; then
     ALLOWED_ORIGINS="$ALLOWED_ORIGINS,http://$DOMAIN,https://${DOMAIN:-}"
 fi
 
-printf 'PORT=3000\nNODE_ENV="production"\nSENTINEL_TOKEN="%s"\nALLOWED_ORIGINS="%s"\nJWT_SECRET="%s"\nSERVER_IP="%s"\nSERVER_PORT="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\n' \
-  "$SENTINEL_TOKEN" "$ALLOWED_ORIGINS" "$JWT_SECRET" "${SERVER_IP:-}" "$SERVER_PORT" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" > "$API_ENV"
-# BUG-FIX: Root .env for Docker Compose interpolation (interpolation requires .env in compose file dir)
+# SRE: Inclusion des secrets AdGuard pour communication interne API -> AGH
+# WAVE 4: Robust .env generation
+cat <<ENDEFF > "$API_ENV"
+PORT=3000
+NODE_ENV="production"
+SENTINEL_TOKEN="$SENTINEL_TOKEN"
+ALLOWED_ORIGINS="$ALLOWED_ORIGINS"
+JWT_SECRET="$JWT_SECRET"
+SERVER_IP="${SERVER_IP:-}"
+SERVER_PORT="$SERVER_PORT"
+WG_INTERFACE=wg0
+ADMIN_USER="$ADMIN_USER"
+ADMIN_PASSWORD_HASH="$ADMIN_HASH"
+ADMIN_PASSWORD_SALT="$SALT"
+AGH_USER="$AGH_USER"
+AGH_PASSWORD="$AGH_PASS"
+ENDEFF
+
 # BUG-FIX: Root .env update (SRE Surgical: preserve existing variables)
-if [ -f .env ]; then
-    if grep -q "SERVER_PORT=" .env; then
-        sed -i "s|SERVER_PORT=.*|SERVER_PORT=\"$SERVER_PORT\"|g" .env
-    else
-        echo "SERVER_PORT=\"$SERVER_PORT\"" >> .env
+for var in SERVER_PORT SERVER_IP DOMAIN; do
+    VAL=$(eval echo \$$var)
+    if [ -n "$VAL" ]; then
+        if grep -q "^$var=" .env 2>/dev/null; then
+            sed -i "s|^$var=.*|$var=\"$VAL\"|g" .env
+        else
+            echo "$var=\"$VAL\"" >> .env
+        fi
     fi
-else
-    echo "SERVER_PORT=\"$SERVER_PORT\"" > .env
-fi
+done
 unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS
 
 # 6. Sentinel & Alerts
@@ -765,5 +773,9 @@ sudo systemctl restart sentinel.service
 log_success "Sentinel Watchdog est actif et surveille le système."
 
 # 7. Finalisation & Lancement
+log_info "Étape 7 : Application des optimisations persistantes (Kernel Tuning)..."
+sudo bash "$SCRIPT_DIR/wg-harden.sh"
+sudo bash "$SCRIPT_DIR/wg-optimize.sh" gaming
+
 log_success "Configuration terminée."
 update_process

@@ -4,10 +4,9 @@
 # GHOST-SCAN FIX v6.2: Removed duplicate log() function (now uses log_info from wg-common.sh).
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")" 
 
+# shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
 
-INTERFACE="${WG_INTERFACE:-wg0}"
-LOG_FILE="/var/log/wg-speedtest.log"
 
 # 1. Mesure de latence (toujours effectuée comme base)
 log_info "Starting basic latency test..."

@@ -39,7 +39,7 @@ router.get('/stats', auth, async (req, res) => {
   try {
     const peers = await getWireGuardStats(); // Now returns Array of JSON objects
     let totalRx = 0, totalTx = 0, connectedCount = 0;
-        
+
     peers.forEach(peer => {
       totalRx += peer.rx || 0;
       totalTx += peer.tx || 0;
@@ -78,16 +78,16 @@ router.get('/traffic-history', auth, async (req, res, next) => {
       .where(and(eq(schema.logs.type, 'snapshot'), gt(schema.logs.timestamp, since24h)))
       .orderBy(desc(schema.logs.timestamp))
       .limit(240);
-            
+
     const grouped = {};
     history.forEach(h => {
       const time = h.timestamp.toISOString().split(':')[0];
-      if(!grouped[time]) grouped[time] = { time, rx: 0, tx: 0 };
+      if (!grouped[time]) grouped[time] = { time, rx: 0, tx: 0 };
       grouped[time].rx += h.usageDaily || 0;
       grouped[time].tx += h.usageTotal || 0;
     });
 
-    res.json(Object.values(grouped).sort((a,b) => a.time.localeCompare(b.time)));
+    res.json(Object.values(grouped).sort((a, b) => a.time.localeCompare(b.time)));
   } catch (e) { next(e); }
 });
 
@@ -143,17 +143,17 @@ router.post('/reload-peers', auth, requireAdmin, async (req, res) => {
   const iface = process.env.WG_INTERFACE || 'wg0';
   // BUG-FIX: execFile ne supporte pas les process substitutions bash <(...)
   // Solution: Utiliser deux commandes séquentielles au lieu de process substitution
-  const { success: stripOk, stdout: strippedConf, error: stripErr } = 
-        await runSystemCommand(WG_QUICK_BIN, ['strip', iface]);
-    
+  const { success: stripOk, stdout: strippedConf, error: stripErr } =
+    await runSystemCommand(WG_QUICK_BIN, ['strip', iface]);
+
   if (!stripOk) return res.status(500).json({ error: stripErr || 'wg-quick strip failed' });
-    
+
   // VALIDATION : Si la config est vide, on refuse de synchroniser pour éviter de vider l'interface
   if (!strippedConf || strippedConf.trim().length === 0) {
     log.error('system', `Attempted syncconf with empty stripped config for ${iface}`);
     return res.status(500).json({ error: 'Generated configuration is empty. Sync aborted for safety.' });
   }
-    
+
   const { success, error } = await runSystemCommand(WG_BIN, ['syncconf', iface, '/dev/stdin'], strippedConf);
   if (!success) return res.status(500).json({ error });
   res.json({ success: true });
@@ -173,8 +173,8 @@ router.get('/config', auth, requireAdmin, async (req, res) => {
         config[key] = value;
       }
     });
-    log.info('system', 'DEBUG-CONFIG-FETCH', { 
-      file: '/etc/wireguard/manager.conf', 
+    log.info('system', 'DEBUG-CONFIG-FETCH', {
+      file: '/etc/wireguard/manager.conf',
       keys: Object.keys(config),
       port: config.SERVER_PORT,
       mtu: config.SERVER_MTU
@@ -209,17 +209,17 @@ router.post('/config', auth, requireAdmin, async (req, res) => {
       const line = `${key}="${val}"`;
       conf = regex.test(conf) ? conf.replace(regex, line) : conf + `\n${line}`;
     };
-    if(port) updateKey('SERVER_PORT', port);
-    if(mtu) updateKey('SERVER_MTU', mtu);
-    if(dns) updateKey('CLIENT_DNS', dns);
-    if(subnet) updateKey('VPN_SUBNET', subnet);
-    if(keepalive !== undefined) updateKey('PERSISTENT_KEEPALIVE', keepalive);
-        
-    const { success: writeOk, error: writeErr} = await writeFileAsRoot('/etc/wireguard/manager.conf', conf);
+    if (port) updateKey('SERVER_PORT', port);
+    if (mtu) updateKey('SERVER_MTU', mtu);
+    if (dns) updateKey('CLIENT_DNS', dns);
+    if (subnet) updateKey('VPN_SUBNET', subnet);
+    if (keepalive !== undefined) updateKey('PERSISTENT_KEEPALIVE', keepalive);
+
+    const { success: writeOk, error: writeErr } = await writeFileAsRoot('/etc/wireguard/manager.conf', conf);
     if (!writeOk) throw new Error(writeErr || 'Failed to write configuration file');
 
-    if(port) await runSystemCommand(WG_BIN, ['set', process.env.WG_INTERFACE, 'listen-port', port]).catch(() => {});
-        
+    if (port) await runSystemCommand(WG_BIN, ['set', process.env.WG_INTERFACE, 'listen-port', port]).catch(() => { });
+
     // WAVE 3 FIX: Audit log for system configuration changes
     const { auditLog } = require('../services/audit');
     await auditLog({
@@ -307,7 +307,7 @@ router.get('/audit', auth, async (req, res) => {
       // BUG-FIX: fail2ban vérifié dynamiquement (était hardcodé à true)
       runCommand('pgrep', ['-x', 'fail2ban-server']).catch(() => ({ success: false }))
     ]);
-        
+
     res.json({
       firewall: (fwStatus || '').includes('active'),
       ipForwarding: (ipFwd || '').trim() === '1',
@@ -336,7 +336,7 @@ router.get('/logs', auth, async (req, res) => {
       message: h.virtualIp,
       status: h.status === 'success' ? 'SUCCESS' : 'FAILED'
     })));
-  } catch(e) {
+  } catch (e) {
     res.json([]);
   }
 });
@@ -351,7 +351,7 @@ router.get('/backups', auth, requireAdmin, async (req, res) => {
       const stats = await fsPromises.stat(path.join(backupDir, f));
       return { name: f, size: stats.size, date: stats.mtime };
     }));
-    res.json(backups.sort((a,b) => b.date - a.date));
+    res.json(backups.sort((a, b) => b.date - a.date));
   } catch (e) { res.json([]); }
 });
 
@@ -415,10 +415,10 @@ router.get('/security-audit', auth, requireAdmin, async (req, res) => {
   try {
     const hasUfw = await fsPromises.stat('/usr/sbin/ufw').then(() => true).catch(() => false);
     const { stdout: ufwStatus } = hasUfw ? await runSystemCommand('/usr/sbin/ufw', ['status']).catch(() => ({ stdout: 'inactive' })) : { stdout: 'not installed' };
-    
+
     const { stdout: dockerPsi } = await runCommand('docker', ['ps', '--format', '{{.Names}} ({{.Status}})']).catch(() => ({ stdout: 'N/A' }));
     const system = await getSystemStats();
-    
+
     const { stdout: f2bStats } = await runSystemCommand('fail2ban-client', ['status', 'wg-api']).catch(() => ({ stdout: '' }));
     const bannedCount = (f2bStats.match(/Currently banned:\s+(\d+)/) || [0, 0])[1];
 
@@ -440,7 +440,7 @@ router.post('/logs/clear', auth, requireAdmin, async (req, res) => {
   try {
     const result = await gcAuditLogs(0); // 0 days = all
     // BUG-FIX: Truncate enforcer log file too
-    await runSystemCommand('truncate', ['-s', '0', '/var/log/wg-enforcer.log']).catch(() => {});
+    await runSystemCommand('truncate', ['-s', '0', '/var/log/wg-enforcer.log']).catch(() => { });
     res.json({ success: true, ...result });
   } catch (e) {
     res.status(500).json({ error: e.message });

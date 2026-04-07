@@ -26,13 +26,25 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$PROFILE] $1" | tee -a "$LOG_FILE"
 }
 
-# Safe sysctl applicator — idempotent, logged
+# Safe sysctl applicator — idempotent, logged, PERSISTENT
 apply_sysctl() {
     local key=$1 val=$2
+    local SYSCTL_CONF="/etc/sysctl.d/99-wg-fux.conf"
+    
+    # 1. Apply to memory
     if sysctl -w "$key=$val" > /dev/null 2>&1; then
         log "✓ sysctl $key = $val"
     else
         log "⚠ Skip sysctl $key (permission/absent)"
+    fi
+
+    # 2. Apply to persistent file
+    mkdir -p /etc/sysctl.d
+    touch "$SYSCTL_CONF"
+    if grep -q "^$key=" "$SYSCTL_CONF"; then
+        sed -i "s|^$key=.*|$key=$val|" "$SYSCTL_CONF"
+    else
+        echo "$key=$val" >> "$SYSCTL_CONF"
     fi
 }
 
@@ -40,7 +52,11 @@ apply_sysctl() {
 apply_sysfs() {
     local path=$1 val=$2
     if [ -w "$path" ]; then
-        echo "$val" > "$path" 2>/dev/null && log "✓ sysfs $path = $val" || log "✗ Failed sysfs $path"
+        if echo "$val" > "$path" 2>/dev/null; then
+            log "✓ sysfs $path = $val"
+        else
+            log "✗ Failed sysfs $path"
+        fi
     else
         log "⚠ Skip sysfs $path (ro/absent)"
     fi
@@ -190,9 +206,11 @@ if [ "$PROFILE" = "gaming" ]; then
     # Trade-off : CPU++ mais latence≡ → acceptable en gaming
     ETH_IFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
     if [ -n "$ETH_IFACE" ]; then
-        ethtool -C "$ETH_IFACE" rx-usecs 0 adaptive-rx off 2>/dev/null && \
-            log "✓ IRQ coalescing désactivé sur $ETH_IFACE (latence maximale)" || \
+        if ethtool -C "$ETH_IFACE" rx-usecs 0 adaptive-rx off 2>/dev/null; then
+            log "✓ IRQ coalescing désactivé sur $ETH_IFACE (latence maximale)"
+        else
             log "⚠ ethtool non disponible ou $ETH_IFACE inaccessible"
+        fi
     fi
 
     log "🎮 Gaming Profile DONE — Latence cible ≤20ms activée"

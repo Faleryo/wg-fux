@@ -76,9 +76,18 @@ sanitize() {
 }
 
 detect_public_ip() {
-    # Attempt to detect public IPv4
+    # Attempt to detect public IPv4 using multiple services
     local ip=""
-    ip=$(curl -4 -s ifconfig.me 2>/dev/null || curl -4 -s icanhazip.com 2>/dev/null || echo "127.0.0.1")
+    for service in "ifconfig.me" "api.ipify.org" "ident.me" "icanhazip.com"; do
+        ip=$(curl -4 -s --max-time 3 "$service" 2>/dev/null || echo "")
+        if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            echo "$ip"
+            return 0
+        fi
+    done
+
+    # Fallback to local interface IP (non-loopback)
+    ip=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || echo "127.0.0.1")
     echo "$ip"
 }
 

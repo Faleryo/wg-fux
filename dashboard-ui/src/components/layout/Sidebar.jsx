@@ -69,8 +69,8 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
       </AnimatePresence>
 
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 shrink-0 glass-panel flex flex-col h-screen transition-all duration-500 ease-in-out md:translate-x-0 md:relative md:z-auto",
-        collapsed ? "md:w-[4.5rem]" : "md:w-72",
+        "fixed inset-y-0 left-0 z-50 shrink-0 glass-panel flex flex-col h-screen transition-all duration-700 ease-[0.16,1,0.3,1] md:translate-x-0 md:relative md:z-auto",
+        collapsed ? "md:w-20" : "md:w-72 lg:w-80",
         "w-72",
         isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
         "border-r border-white/5"

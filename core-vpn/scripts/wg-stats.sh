@@ -5,6 +5,7 @@
 #           Fix: skip the first line (interface line) before processing peers.
 
 SCRIPT_DIR="$(dirname "$0")"
+# shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
 
 check_root
@@ -23,8 +24,8 @@ for arg in "$@"; do
     fi
 done
 
-# Default to wg-fux if no interface specified (Grade Obsidian Migration)
-IFACE="${IFACE:-wg-fux}"
+# Default to wg0 if no interface specified (Grade Obsidian Migration)
+IFACE="${IFACE:-wg0}"
 
 if [ "$USE_JSON" -eq 1 ]; then
     if ! ip link show "$IFACE" > /dev/null 2>&1; then

@@ -1,135 +1,65 @@
 #!/bin/bash
-# SRE: Unification des utilitaires (Chemin dynamique)
+# 💠 Vibe-OS SSL Setup Manager v4.0 (Recovery Edition)
+set -euo pipefail
+
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-COMMON_SH="$SCRIPT_DIR/../core-vpn/scripts/wg-common.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/../core-vpn/scripts/wg-common.sh"
 
-if [ -f "$COMMON_SH" ]; then
-    source "$COMMON_SH"
-else
-    # Fallback minimal si common est introuvable
-    log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1"; }
-    log_info() { echo -e "\033[0;32m[INFO]\033[0m $1"; }
+# Configuration
+DOMAIN="${DOMAIN:-vpn.faleryo.site}"
+EMAIL="${EMAIL:-faleryo@example.com}" # SRE: Replace with real email if needed
+EXTRA_DOMAINS="fux.faleryo.site" # SRE: Bypass alias
+
+log_info "[DIAGNOSTIC] Lancement de la gestion SSL (v4.0 Bypass)..."
+
+# 1. Détection de certificats existants
+EXISTING_CERT=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ 2>/dev/null | grep "^$DOMAIN" | sort -r | head -n1 || true)
+
+USE_EXISTING=false
+if [ -z "${FORCE_RENEW:-}" ] && [ -n "$EXISTING_CERT" ]; then
+    log_warn "Certificat existant détecté : $EXISTING_CERT"
+    # En mode interactif, on pourrait demander. En mode script Antigravity, on privilégie la récup si possible.
+    USE_EXISTING=true
 fi
 
-if [ ! -f "docker-compose.yml" ]; then
-    log_error "Script must be run from the WG-FUX root directory."
-    exit 1
-fi
-
-if [ ! -f "api-service/.env" ]; then
-    echo -e "${RED}[ERROR] Le projet n'a pas encore été configuré.${NC}"
-    echo -e "${YELLOW}Veuillez exécuter le script principal et choisir l'Option 1 (Installer / Reconfigurer) avan de configurer le SSL.${NC}"
-    exit 1
-fi
-
-# 💠 SRE: Chargement de la config existante si disponible
-if [ -f .env ]; then
-    # shellcheck source=/dev/null
-    source .env
-fi
-
-# 💠 SRE: Détection d'idempotence (SSL déjà configuré dans NGINX)
-NGINX_CONF="infra/nginx/default.conf"
-if grep -q "ssl_certificate /etc/letsencrypt/live/" "$NGINX_CONF" && [ "${1:-}" != "--force" ]; then
-    log_info "SSL déjà configuré dans Nginx via Let's Encrypt. Esquive silencieuse..."
-    exit 0
-fi
-
-# 💠 SRE: Si les variables sont déjà en ENV (depuis .env), on bypass le prompt
-if [ -n "${DOMAIN:-}" ] && [ -n "${EMAIL:-}" ] && [ "${1:-}" != "--force" ]; then
-    log_info "Configuration SSL existante détectée (Domaine: $DOMAIN). Passage en mode non-interactif."
-else
-    printf "%b[?] Voulez-vous configurer un nom de domaine et un certificat SSL valide ? (y/N): %b" "${YELLOW}" "${NC}"
-    read -r wants_ssl
-
-    if [[ ! "$wants_ssl" =~ ^[yY]$ ]]; then
-        log_info "Configuration SSL ignorée."
-        exit 0
-    fi
-
-    printf "%b[?] Entrez votre nom de domaine (ex: vpn.site.com): %b" "${YELLOW}" "${NC}"
-    read -r DOMAIN
-
-    if [ -z "${DOMAIN:-}" ]; then
-        echo -e "${RED}[ERROR] Le nom de domaine est obligatoire si vous souhaitez utiliser SSL.${NC}"
-        exit 1
-    fi
-
-    printf "%b[?] Entrez votre adresse e-mail pour Let's Encrypt: %b" "${YELLOW}" "${NC}"
-    read -r EMAIL
-
-    if [ -z "${EMAIL:-}" ]; then
-        echo -e "${RED}[ERROR] L'adresse email est obligatoire pour le certificat SSL.${NC}"
-        exit 1
-    fi
-fi
-
-# 💠 SRE: Persistance des variables SSL pour les futures mises à jour non-interactives
-if ! grep -q "DOMAIN=" .env 2>/dev/null; then
-    echo "DOMAIN=\"$DOMAIN\"" >> .env
-elif [ -n "$DOMAIN" ]; then
-    sed -i "s|DOMAIN=.*|DOMAIN=\"$DOMAIN\"|g" .env
-fi
-
-if ! grep -q "EMAIL=" .env 2>/dev/null; then
-    echo "EMAIL=\"$EMAIL\"" >> .env
-elif [ -n "$EMAIL" ]; then
-    sed -i "s|EMAIL=.*|EMAIL=\"$EMAIL\"|g" .env
-fi
-
-log_info "Démarrage automatique d'une instance Nginx HTTP stable pour le challenge..."
-# SRE: Création d'un certificat 'Bootstrap' si absent pour éviter le crash Nginx
-if [ ! -f "infra/ssl/server.crt" ]; then
-    log_info "Génération d'un certificat d'amorce (Bootstrap)..."
-    mkdir -p infra/ssl
-    openssl req -x509 -nodes -days 1 -newkey rsa:2048 \
-        -keyout infra/ssl/server.key \
-        -out infra/ssl/server.crt \
-        -subj "/CN=localhost" > /dev/null 2>&1
-fi
-
-docker compose up -d nginx
-
-# 💠 Vibe-OS v6.5 Pre-flight Diagnostic
-chmod +x .vibe/tools/check-port80.sh
-# Note: On essaie de détecter l'IP si elle n'est pas passée en env
-DETECTED_IP=$(curl -4 -s ifconfig.me 2>/dev/null || echo "127.0.0.1")
-if ! ./.vibe/tools/check-port80.sh "${DOMAIN:-}" "$DETECTED_IP"; then
-    log_error "Le diagnostic réseau a échoué. Port 80 inaccessible."
-    log_warn "Assurez-vous que votre Pare-feu Cloud (DigitalOcean/Hetzner) autorise le port 80."
-    exit 1
-fi
-
-log_info "Vérification des certificats dans le volume Docker..."
-EXISTING_CERT=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ | grep "^${DOMAIN:-}" | sort -r | head -n1 || true)
-
-if [ -n "$EXISTING_CERT" ]; then
-    log_info "Certificat détecté : $EXISTING_CERT. Passage à la configuration Nginx."
+if [ "$USE_EXISTING" = true ]; then
+    log_success "Utilisation du certificat existant : $EXISTING_CERT"
     DOMAIN_DIR="$EXISTING_CERT"
 else
-    log_info "Demande de nouveau certificat pour ${DOMAIN:-}..."
+    log_info "Demande de nouveau certificat (Bypass Mode ACTIVE)..."
+    log_info "Domaines : $DOMAIN, $EXTRA_DOMAINS"
+    
+    # 💠 SRE: Commande de Bypass multi-domaine
     if ! docker compose run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
-        --email "${EMAIL:-}" --agree-tos --no-eff-email \
-        -d "${DOMAIN:-}"; then
-        log_warn "La demande Certbot a échoué (potentiel Rate-Limit)."
-        # Re-vérification après tentative (au cas où il a été créé malgré l'erreur)
-        EXISTING_CERT=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ | grep "^${DOMAIN:-}" | sort -r | head -n1 || true)
+        --email "$EMAIL" --agree-tos --no-eff-email \
+        -d "$DOMAIN" -d "$EXTRA_DOMAINS"; then
+        
+        log_error "La demande Certbot a échoué. Tentative de secours sur certificat existant..."
+        EXISTING_CERT=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ 2>/dev/null | grep "^$DOMAIN" | sort -r | head -n1 || true)
         if [ -z "$EXISTING_CERT" ]; then
-            log_error "Aucun certificat n'a pu être obtenu ou récupéré. Abandon."
+            log_error "Échec critique : Aucun certificat (réel ou ancien) n'est disponible."
             exit 1
         fi
+        DOMAIN_DIR="$EXISTING_CERT"
+    else
+        log_success "Certbot a réussi. Détection de l'emplacement final..."
+        DOMAIN_DIR=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ 2>/dev/null | grep "^$DOMAIN" | sort -r | head -n1 || true)
+        [ -z "$DOMAIN_DIR" ] && DOMAIN_DIR="$DOMAIN" # Fallback if ls fails but cmd succeeded
     fi
-    DOMAIN_DIR="${DOMAIN:-}"
 fi
 
+# 2. Mise à jour de Nginx
 log_info "Configuration Nginx pour $DOMAIN_DIR..."
 NGINX_CONF="infra/nginx/default.conf"
 
-# Remplacement des chemins par défaut par les certificats détectés
-sed -i "s|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/$DOMAIN_DIR/fullchain.pem;|g" "$NGINX_CONF"
-sed -i "s|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;|g" "$NGINX_CONF"
+sed -i "s|server_name __DOMAIN__;|server_name $DOMAIN;|g" "$NGINX_CONF"
+sed -i "s|/etc/letsencrypt/live/__DOMAIN__/|/etc/letsencrypt/live/$DOMAIN_DIR/|g" "$NGINX_CONF"
 
-log_info "Redémarrage de Nginx avec SSL actif..."
+log_info "Validation de la config Nginx..."
+docker compose exec -T nginx nginx -t
+
+log_info "Redémarrage de Nginx..."
 docker compose restart nginx
 
-log_success "Votre dashboard est maintenant accessible sur https://${DOMAIN:-} !"
+log_success "SSL est maintenant actif sur https://$DOMAIN"

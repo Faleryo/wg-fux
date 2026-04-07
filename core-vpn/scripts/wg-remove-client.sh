@@ -2,6 +2,7 @@
 # --- VIBE-OS : Remove Client ---
 
 SCRIPT_DIR="$(dirname "$0")"
+# shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
 
 check_root

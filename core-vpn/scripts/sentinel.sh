@@ -4,6 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 # shellcheck disable=SC1091
+# shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
 
 # Sentinel Token - Shared secret between this watchdog and the API
@@ -19,15 +20,6 @@ HEALTH_URL="http://localhost:3000/api/health"
 # SRE Utilities
 check_dependency "curl"
 check_dependency "docker"
-
-# Sentinel Token - Shared secret between this watchdog and the API
-if [ -f "$SCRIPT_DIR/sentinel.env" ]; then
-    # shellcheck disable=SC1091
-    source "$SCRIPT_DIR/sentinel.env"
-fi
-TOKEN="${SENTINEL_TOKEN:-vibe-sentinel-trust-99}"
-HEARTBEAT_URL="http://localhost:3000/api/sentinel/heartbeat"
-HEALTH_URL="http://localhost:3000/api/health"
 
 send_heartbeat() {
     local status="$1"

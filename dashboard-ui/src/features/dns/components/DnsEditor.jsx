@@ -17,6 +17,7 @@ const DnsEditor = () => {
     const [config, setConfig] = useState(null);
     const [stats, setStats] = useState(null);
     const [status, setStatus] = useState(null);
+    const [filtering, setFiltering] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('upstream');
@@ -24,14 +25,16 @@ const DnsEditor = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [configRes, statsRes, statusRes] = await Promise.all([
+            const [configRes, statsRes, statusRes, filteringRes] = await Promise.all([
                 axiosInstance.get('/dns/config'),
                 axiosInstance.get('/dns/stats'),
-                axiosInstance.get('/dns/status')
+                axiosInstance.get('/dns/status'),
+                axiosInstance.get('/dns/filtering')
             ]);
             setConfig(configRes.data);
             setStats(statsRes.data);
             setStatus(statusRes.data);
+            setFiltering(filteringRes.data);
         } catch (error) {
             addToast('Impossible de charger les données AdGuard Home', 'error');
         } finally {
@@ -59,6 +62,26 @@ const DnsEditor = () => {
             addToast('Erreur lors de la sauvegarde de la configuration', 'error');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleAddFilter = async (name, url) => {
+        try {
+            await axiosInstance.post('/dns/filtering/add', { name, url });
+            addToast('Blocklist ajoutée', 'success');
+            fetchData();
+        } catch (error) {
+            addToast('Erreur lors de l\'ajout', 'error');
+        }
+    };
+
+    const handleRemoveFilter = async (url) => {
+        try {
+            await axiosInstance.post('/dns/filtering/remove', { url });
+            addToast('Blocklist supprimée', 'success');
+            fetchData();
+        } catch (error) {
+            addToast('Erreur lors de la suppression', 'error');
         }
     };
 
@@ -135,6 +158,7 @@ const DnsEditor = () => {
                 <div className="flex border-b border-white/5 bg-black/10">
                     {[
                         { id: 'upstream', label: 'Upstream DNS', icon: <Globe size={14} /> },
+                        { id: 'filters', label: 'Blocklists', icon: <Shield size={14} /> },
                         { id: 'bootstrap', label: 'Bootstrap DNS', icon: <Zap size={14} /> },
                         { id: 'settings', label: 'Protection', icon: <Settings2 size={14} /> }
                     ].map(tab => (
@@ -175,7 +199,7 @@ const DnsEditor = () => {
 
                             <textarea
                                 value={config?.upstream_dns?.join('\n')}
-                                onChange={(e) => setConfig({ ...config, upstream_dns: e.target.value.split('\n') })}
+                                onChange={(e) => setConfig({ ...config, upstream_dns: e.target.value.split('\n').filter(l => l.trim()) })}
                                 className="w-full h-64 glass-input font-mono text-sm leading-relaxed p-6 focus:ring-2 focus:ring-indigo-500/20 border-white/10"
                                 placeholder="https://dns.cloudflare.com/dns-query&#10;8.8.8.8&#10;8.8.4.4"
                             />
@@ -204,13 +228,75 @@ const DnsEditor = () => {
                         </div>
                     )}
 
+                    {activeTab === 'filters' && (
+                        <div className="space-y-6">
+                             <div className="grid grid-cols-1 gap-4">
+                                {filtering?.filters?.map((filter) => (
+                                    <div key={filter.url} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 group hover:border-white/10 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
+                                                <Shield size={16} />
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-bold text-white">{filter.name}</div>
+                                                <div className="text-[10px] text-slate-500 font-mono truncate max-w-[300px]">{filter.url}</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right mr-4">
+                                                <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{filter.rules_count} RÈGLES</div>
+                                                <div className={cn("text-[10px] font-bold uppercase", filter.enabled ? "text-emerald-500" : "text-amber-500")}>
+                                                    {filter.enabled ? 'ACTIF' : 'INACTIF'}
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleRemoveFilter(filter.url)}
+                                                className="p-2 rounded-lg bg-rose-500/10 text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+                                            >
+                                                <RefreshCw size={14} className="rotate-45" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                             </div>
+
+                             <div className="pt-6 border-t border-white/5">
+                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Ajouter une Blocklist</h4>
+                                <div className="flex gap-4">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Nom (ex: Steven Black)" 
+                                        id="new-filter-name"
+                                        className="flex-1 glass-input text-xs p-3"
+                                    />
+                                    <input 
+                                        type="text" 
+                                        placeholder="URL (ex: https://...)" 
+                                        id="new-filter-url"
+                                        className="flex-[2] glass-input text-xs p-3"
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            const name = document.getElementById('new-filter-name').value;
+                                            const url = document.getElementById('new-filter-url').value;
+                                            if (name && url) handleAddFilter(name, url);
+                                        }}
+                                        className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all"
+                                    >
+                                        Ajouter
+                                    </button>
+                                </div>
+                             </div>
+                        </div>
+                    )}
+
                     {activeTab === 'bootstrap' && (
                         <div className="space-y-4">
                             <h4 className="text-sm font-black uppercase tracking-tight">Bootstrap DNS</h4>
                             <p className="text-xs text-slate-500 max-w-xl">Ces serveurs sont utilisés pour résoudre les noms d'hôtes des DNS amont (ex: dns.cloudflare.com).</p>
                             <textarea
                                 value={config?.bootstrap_dns?.join('\n')}
-                                onChange={(e) => setConfig({ ...config, bootstrap_dns: e.target.value.split('\n') })}
+                                onChange={(e) => setConfig({ ...config, bootstrap_dns: e.target.value.split('\n').filter(l => l.trim()) })}
                                 className="w-full h-48 glass-input font-mono text-sm p-6 focus:ring-2 focus:ring-indigo-500/20 border-white/10"
                             />
                         </div>
@@ -258,3 +344,4 @@ const DnsEditor = () => {
 };
 
 export default DnsEditor;
+
