@@ -587,6 +587,13 @@ SERVER_PORT=$(sanitize "${SERVER_PORT:-51820}")
 read -rp "Entrez votre nom de domaine (laisser vide pour utiliser l'IP) : " USER_DOMAIN
 DOMAIN=$(sanitize "${USER_DOMAIN:-}")
 
+if [ -n "$DOMAIN" ]; then
+    read -rp "Entrez votre email Let's Encrypt (pour les notifications de renouvellement, laisser vide = sans email) : " USER_EMAIL
+    EMAIL=$(sanitize "${USER_EMAIL:-}")
+else
+    EMAIL=""
+fi
+
 # 4. Authentification Admin
 log_info "Étape 2 : Authentification Admin"
 printf "%b[?] Username [admin]: %b" "${YELLOW}" "${NC}"
@@ -730,14 +737,13 @@ SERVER_PORT="$SERVER_PORT"
 WG_INTERFACE=wg0
 ADMIN_USER="$ADMIN_USER"
 ADMIN_PASSWORD_HASH="$ADMIN_HASH"
-ADMIN_PASSWORD_SALT="$SALT"
 AGH_USER="$AGH_USER"
 AGH_PASSWORD="$AGH_PASS"
 DOMAIN="$DOMAIN"
 ENDEFF
 
 # BUG-FIX: Root .env update (SRE Surgical: preserve existing variables)
-for var in SERVER_PORT SERVER_IP DOMAIN; do
+for var in SERVER_PORT SERVER_IP DOMAIN EMAIL; do
     VAL=$(eval echo \$$var)
     if [ -n "$VAL" ]; then
         if grep -q "^$var=" .env 2>/dev/null; then

@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const log = require('../services/logger');
+const { decrypt } = require('../services/crypto');
 
 // AdGuard Home internal URL (Docker DNS)
 const AGH_BASE_URL = 'http://wg-fux-dns:3000';
 const AGH_AUTH = {
   auth: {
     username: process.env.AGH_USER || 'admin',
-    password: process.env.AGH_PASSWORD || 'password'
+    password: decrypt(process.env.AGH_PASSWORD) || 'password'
   }
 };
 

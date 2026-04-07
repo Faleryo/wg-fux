@@ -4,10 +4,10 @@ echo "=== Interface Physique: $IFACE ==="
 
 if command -v ethtool >/dev/null; then
     echo "--- Ring Buffer (Hardware) ---"
-    ethtool -g $IFACE | grep -A 5 "Current"
+    ethtool -g "$IFACE" | grep -A 5 "Current"
     echo ""
     echo "--- Compteurs d'Erreurs (Non-Zero) ---"
-    ethtool -S $IFACE 2>/dev/null | grep -E "miss|drop|fifo|error|discards" | grep -v ": 0" || echo "Aucune erreur détectée."
+    ethtool -S "$IFACE" 2>/dev/null | grep -E "miss|drop|fifo|error|discards" | grep -v ": 0" || echo "Aucune erreur détectée."
 fi
 
 echo ""
@@ -20,4 +20,4 @@ if [ "$BUSY_POLL" -gt 0 ]; then echo "STATUS: ACTIVÉ (Attention à la charge CP
 
 echo ""
 echo "--- Statistiques OS ---"
-ip -s link show $IFACE
+ip -s link show "$IFACE"

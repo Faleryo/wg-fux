@@ -15,7 +15,8 @@ mkdir -p "$BACKUP_DIR"
 
 log_info "Création de la sauvegarde : $BACKUP_FILE..."
 if ! sudo tar -czf "$BACKUP_FILE" -C / etc/wireguard; then
-    log_error "Échec de la création de l'archive." "$ERR_SYSTEM_FAILURE"
+    log_error "Échec de la création de l'archive."
+    exit 1
 fi
 
 log_info "Sauvegarde réussie à $BACKUP_FILE"

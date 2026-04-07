@@ -1,6 +1,6 @@
 #!/bin/bash
 # --- VIBE-OS : Sentinel Watchdog v6.2 (Elite SRE) ---
-set -euo pipefail
+# NOTE: Pas de set -euo pipefail — ce watchdog doit survivre aux erreurs transitoires.
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 # shellcheck disable=SC1091
@@ -78,8 +78,19 @@ check_system() {
         if ! sudo docker ps --format '{{.Names}}' | grep -q "^$service$"; then
             log_error "[Sentinel] $service is MISSING. Recovery initiated..."
             send_telegram_msg "CRITICAL: Service $service is DOWN. Reviving..." "ERROR"
-            sudo docker compose up -d "$(sudo docker ps -a --filter "name=$service" --format "{{.Label \"com.docker.compose.service\"}}")" 2>/dev/null || \
-            sudo docker compose up -d 2>/dev/null
+            # Extraction du nom de service compose depuis le nom du conteneur (ex: wg-fux-dns -> dns, wg-sentinel-proxy -> nginx)
+            case "$service" in
+                "wg-sentinel-proxy") COMPOSE_SVC="nginx" ;;
+                "wg-fux-dashboard") COMPOSE_SVC="ui" ;;
+                "wg-fux-dns") COMPOSE_SVC="adguard" ;;
+                *) COMPOSE_SVC="" ;;
+            esac
+            if [ -n "$COMPOSE_SVC" ]; then
+                sudo docker compose up -d "$COMPOSE_SVC" 2>/dev/null || \
+                sudo docker compose up -d 2>/dev/null || true
+            else
+                sudo docker compose up -d 2>/dev/null || true
+            fi
         fi
     done
 

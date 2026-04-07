@@ -14,9 +14,20 @@ SERVER_INTERFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
 _del_rule() {
     local cmd="$1"
     shift
-    while "$cmd" -C "$@" &>/dev/null; do
-        "$cmd" -D "$@"
-    done
+    # SRE: Gère le cas -t <table> avant l'action (comme _add_rule dans wg-postup.sh)
+    if [ "${1:-}" == "-t" ]; then
+        local table_opt="$1 $2"
+        shift 2
+        # shellcheck disable=SC2086
+        while "$cmd" $table_opt -C "$@" &>/dev/null; do
+            # shellcheck disable=SC2086
+            "$cmd" $table_opt -D "$@"
+        done
+    else
+        while "$cmd" -C "$@" &>/dev/null; do
+            "$cmd" -D "$@"
+        done
+    fi
 }
 
 log_info "Nettoyage du pare-feu pour $INTERFACE..."

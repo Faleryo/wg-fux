@@ -1,10 +1,13 @@
 #!/bin/bash
 # --- VIBE-OS v6.5 Obsidian Standard ---
-set -euo pipefail
+# NOTE: Pas de set -euo pipefail ici — ce fichier est une bibliothèque sourcée.
+# Chaque script principal gère son propre mode d'erreur.
 
 VERSION="6.5.0-Obsidian+"
 # shellcheck disable=SC2034
-PROJECT_ROOT="/home/faleryo/wg-fux"
+# PROJECT_ROOT calculé dynamiquement pour éviter les chemins hardcodés
+_WG_COMMON_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" 2>/dev/null || true
+PROJECT_ROOT="$(dirname "$(dirname "$_WG_COMMON_DIR")")" 2>/dev/null || true
 
 # SRE Error Codes (Exports for scripts)
 # shellcheck disable=SC2034
@@ -133,13 +136,15 @@ send_telegram_msg() {
             local icon="⚠️"
             if [ "$level" == "ERROR" ]; then icon="🚨"; fi
             if [ "$level" == "SUCCESS" ]; then icon="✅"; fi
-            
-            local esc_msg="<b>$icon ALERTE WG-FUX ($VERSION)</b>\n\n<code>$message</code>"
-            
+
+            # SRE BUG-M4 FIX: Message envoyé en plain text pour éviter l'injection HTML
+            # (les caractères <, >, & dans $message corrompraient le HTML)
+            local plain_msg="$icon ALERTE WG-FUX ($VERSION)\n\n$message"
+
             curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-                -d "chat_id=$TELEGRAM_CHAT_ID" \
-                -d "text=$esc_msg" \
-                -d "parse_mode=HTML" > /dev/null
+                --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+                --data-urlencode "text=$plain_msg" \
+                > /dev/null
         fi
     fi
 }

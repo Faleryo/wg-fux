@@ -38,10 +38,10 @@ const verifyPassword = async (password, hash, salt) => {
 
     const hashBuffer = await pbkdf2Async(password, trimmedSalt, 600000, 64, 'sha512');
     const generatedHash = hashBuffer.toString('hex');
-    
+
     const bHash = Buffer.from(trimmedHash);
     const bGen = Buffer.from(generatedHash);
-    
+
     if (bHash.length !== bGen.length) {
       return false; // Longueur différente -> échec immédiat (sécurisé car hash hex est de longueur fixe)
     }

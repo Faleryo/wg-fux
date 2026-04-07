@@ -92,9 +92,9 @@ chmod 775 "$CLIENT_DIR"
 wg genkey | tee "$CLIENT_DIR/private.key" | wg pubkey > "$CLIENT_DIR/public.key"
 wg genpsk > "$CLIENT_DIR/preshared.key"
 
-PUBKEY=$(cat "$CLIENT_DIR/public.key" | tr -d '[:space:]')
-PRIVKEY=$(cat "$CLIENT_DIR/private.key" | tr -d '[:space:]')
-PSK=$(cat "$CLIENT_DIR/preshared.key" | tr -d '[:space:]')
+PUBKEY=$(tr -d '[:space:]' < "$CLIENT_DIR/public.key")
+PRIVKEY=$(tr -d '[:space:]' < "$CLIENT_DIR/private.key")
+PSK=$(tr -d '[:space:]' < "$CLIENT_DIR/preshared.key")
 SERVER_PUBKEY=$(cat /etc/wireguard/server-public.key)
 
 CLIENT_IP="${VPN_SUBNET%.*}.$IP_SUFFIX"
@@ -125,8 +125,8 @@ cat > "$CLIENT_DIR/$NAME.conf" <<EOC
 [Interface]
 PrivateKey = $PRIVKEY
 Address = $ADDRESS_STR
-DNS = ${CLIENT_DNS:-1.1.1.1}
-MTU = ${SERVER_MTU:-1420}
+DNS = $CLIENT_DNS
+MTU = $SERVER_MTU
 
 [Peer]
 PublicKey = $SERVER_PUBKEY

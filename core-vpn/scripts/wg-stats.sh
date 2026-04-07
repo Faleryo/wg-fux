@@ -4,7 +4,7 @@
 #           Elle était incluse dans le JSON → objet malformé avec des champs vides.
 #           Fix: skip the first line (interface line) before processing peers.
 
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 # shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
 

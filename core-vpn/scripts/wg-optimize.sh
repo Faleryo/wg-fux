@@ -18,7 +18,7 @@
 set -euo pipefail
 
 INTERFACE=${WG_INTERFACE:-wg0}
-PROFILE=$1
+PROFILE="${1:-}"
 LOG_FILE="/var/log/wg-optimize.log"
 STATE_FILE="/etc/wireguard/active_profile"
 

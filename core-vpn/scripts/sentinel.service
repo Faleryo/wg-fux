@@ -6,8 +6,8 @@ Requires=docker.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/faleryo/wg-fux
-ExecStart=/bin/bash /home/faleryo/wg-fux/core-vpn/scripts/sentinel.sh
+WorkingDirectory=__WORKING_DIR__
+ExecStart=/bin/bash __WORKING_DIR__/core-vpn/scripts/sentinel.sh
 Restart=always
 RestartSec=10
 StandardOutput=append:/var/log/wg-sentinel.log

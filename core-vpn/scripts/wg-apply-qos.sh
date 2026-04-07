@@ -56,7 +56,7 @@ fi
 # 2. Ingress (Upload pour le client: Client -> Server)
 "$TC" qdisc add dev "$WG_INTERFACE" handle ffff: ingress
 
-find /etc/wireguard/clients -name "upload_limit" 2>/dev/null | while read limit_file; do
+find /etc/wireguard/clients -name "upload_limit" 2>/dev/null | while read -r limit_file; do
     LIMIT=$(cat "$limit_file")
     # Check if limit is valid integer > 0
     if [[ "$LIMIT" =~ ^[0-9]+$ ]] && [ "$LIMIT" -gt 0 ]; then

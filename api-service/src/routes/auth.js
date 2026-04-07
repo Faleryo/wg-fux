@@ -30,7 +30,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
   try {
     const result = loginSchema.safeParse(req.body);
     if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
-        
+
     const { username, password, token: totpToken } = result.data;
     const [user] = await db.select().from(schema.users).where(eq(schema.users.username, username)).limit(1);
 
@@ -68,11 +68,11 @@ router.post('/login', loginLimiter, async (req, res, next) => {
               location = `${geo.data.city}, ${geo.data.country}`;
             }
           } catch (e) { /* ignore geo error */ }
-          
+
           const message = `🔐 CONNEXION RÉUSSIE: Administrateur '${username}' connecté depuis ${location} (${clientIp})`;
           const { runSystemCommand } = require('../services/shell');
           const { getScriptPath } = require('../services/config');
-          runSystemCommand(getScriptPath('wg-send-msg.sh'), [message]).catch(() => {});
+          runSystemCommand(getScriptPath('wg-send-msg.sh'), [message]).catch(() => { });
         };
         notifyAdmin();
       }
@@ -123,7 +123,7 @@ router.post('/2fa/generate', auth, requireManager, async (req, res) => {
   try {
     const [user] = await db.select().from(schema.users).where(eq(schema.users.username, req.user.username)).limit(1);
     if (!user) return res.status(404).json({ error: 'User not found' });
-        
+
     const secret = authenticator.generateSecret();
     const otpauth = authenticator.keyuri(user.username, 'WG-Shield', secret);
     const qrCodeUrl = await QRCode.toDataURL(otpauth);
@@ -136,7 +136,7 @@ router.post('/2fa/generate', auth, requireManager, async (req, res) => {
 router.post('/2fa/enable', auth, requireManager, async (req, res) => {
   const { token, secret } = req.body;
   if (!authenticator.check(token, secret)) return res.status(400).json({ error: 'Invalid token' });
-    
+
   try {
     await db.update(schema.users).set({ twoFactorSecret: secret }).where(eq(schema.users.username, req.user.username));
     res.json({ success: true });
