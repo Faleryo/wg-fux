@@ -6,10 +6,16 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/../core-vpn/scripts/wg-common.sh"
 
-# Configuration
-DOMAIN="${DOMAIN:-vpn.faleryo.site}"
-EMAIL="${EMAIL:-faleryo@example.com}" # SRE: Replace with real email if needed
-EXTRA_DOMAINS="fux.faleryo.site" # SRE: Bypass alias
+# Configuration (From Environment or .env)
+DOMAIN="${DOMAIN:-}"
+EMAIL="${EMAIL:-}"
+EXTRA_DOMAINS="${EXTRA_DOMAINS:-}"
+
+if [ -z "$DOMAIN" ]; then
+    log_warn "Aucun nom de domaine configuré (DOMAIN). Utilisation du mode IP-only (Auto-signé)."
+    # On bypass Certbot si pas de domaine
+    exit 0
+fi
 
 log_info "[DIAGNOSTIC] Lancement de la gestion SSL (v4.0 Bypass)..."
 

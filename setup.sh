@@ -584,6 +584,9 @@ SERVER_IP=$(sanitize "${SERVER_IP:-$DETECTED_IP}")
 read -rp "Entrez le port WireGuard [51820]: " SERVER_PORT
 SERVER_PORT=$(sanitize "${SERVER_PORT:-51820}")
 
+read -rp "Entrez votre nom de domaine (laisser vide pour utiliser l'IP) : " USER_DOMAIN
+DOMAIN=$(sanitize "${USER_DOMAIN:-}")
+
 # 4. Authentification Admin
 log_info "Étape 2 : Authentification Admin"
 printf "%b[?] Username [admin]: %b" "${YELLOW}" "${NC}"
@@ -730,6 +733,7 @@ ADMIN_PASSWORD_HASH="$ADMIN_HASH"
 ADMIN_PASSWORD_SALT="$SALT"
 AGH_USER="$AGH_USER"
 AGH_PASSWORD="$AGH_PASS"
+DOMAIN="$DOMAIN"
 ENDEFF
 
 # BUG-FIX: Root .env update (SRE Surgical: preserve existing variables)
