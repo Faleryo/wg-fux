@@ -497,7 +497,13 @@ setup_swap() {
 
 # --- Gestion SSL & Let's Encrypt (v6.5 - Consolidated) ---
 setup_ssl() {
-    if [ -f "scripts/setup-ssl.sh" ]; then
+    if ! sudo docker compose ps -q nginx >/dev/null 2>&1; then
+        log_error "Le proxy Nginx doit être en cours d'exécution pour valider Let's Encrypt."
+        log_warn "Lancez d'abord l'Option 1 (Installation) ou l'Option 3 (Mise à jour)."
+        return 1
+    fi
+    if [ -f "$SCRIPT_DIR/scripts/setup-ssl.sh" ]; then
+        cd "$SCRIPT_DIR" || return 1
         chmod +x scripts/setup-ssl.sh
         bash scripts/setup-ssl.sh
     else
