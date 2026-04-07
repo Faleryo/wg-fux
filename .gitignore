@@ -14,6 +14,7 @@ dashboard-ui/out/
 dashboard-ui/build/
 
 # Environnement & Secrets (CRITIQUE)s
+.env
 .env.local
 .env.development.local
 .env.test.local
@@ -51,8 +52,11 @@ api-service/logs/
 .idea/
 *.swp
 *.bak
+
 # Vibe-OS & Tooling (privé — jamais sur le repo public)
+.vibe
+.vibe/
 
 # Markdown interne (hors README)
+*.md
 !README.md
-
