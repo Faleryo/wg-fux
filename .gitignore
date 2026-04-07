@@ -10,7 +10,7 @@ yarn-error.log*
 # Next.js / React (UI)
 dashboard-ui/.next/
 dashboard-ui/out/
-dashboard-ui/dist/
+# dashboard-ui/dist/ (Autorisé pour SRE Pre-build sur VPS 458MB)
 dashboard-ui/build/
 
 # Environnement & Secrets (CRITIQUE)s
