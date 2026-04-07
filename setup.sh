@@ -186,94 +186,123 @@ ensure_docker_ready() {
 }
 
 uninstall() {
-    log_warn "Désinstallation de WG-FUX lancée..."
+    local purge_all=0
+    if [[ "${1:-}" == "--purge" ]]; then purge_all=1; fi
+
+    log_warn "Désinstallation de WG-FUX lancée (Grade Obsidian+ Cleanup)..."
     
+    # 1. WireGuard Shutdown (Host level)
+    if [ -d "$WG_DIR" ]; then
+        log_info "Recherche et arrêt des interfaces WireGuard actives..."
+        for conf in "$WG_DIR"/*.conf; do
+            [ -e "$conf" ] || continue
+            interface=$(basename "$conf" .conf)
+            if ip link show "$interface" &>/dev/null; then
+                log_warn "Arrêt de l'interface $interface..."
+                sudo wg-quick down "$interface" 2>/dev/null || true
+            fi
+        done
+    fi
+
+    # 2. Docker Services & Volumes
     if [ -f "docker-compose.yml" ]; then
-        log_info "Arrêt des conteneurs et suppression des volumes..."
+        log_info "Arrêt des conteneurs et suppression des volumes (incluant SSL)..."
         sudo docker compose down -v || true
         
-        printf "%b[?] Voulez-vous supprimer les IMAGES Docker du projet (Libère ~3GB) ? (y/N): %b" "${YELLOW}" "${NC}"
-        read -r purge_images
+        local purge_images="n"
+        if [ "$purge_all" -eq 1 ]; then purge_images="y"; else
+            printf "%b[?] Voulez-vous supprimer les IMAGES Docker du projet (~3GB) ? (y/N): %b" "${YELLOW}" "${NC}"
+            read -r purge_images
+        fi
+        
         if [[ "$purge_images" =~ ^[yY]$ ]]; then
             log_info "Suppression des images du projet WG-FUX..."
-            # SRE SURGICAL: Supprime uniquement les images commençant par wg-fux-
-            # Évite d'utiliser 'prune' qui pourrait impacter d'autres services VPS
             sudo docker images "wg-fux-*" -q | xargs -r sudo docker rmi -f 2>/dev/null || true
-            # Clean unused builder cache related to our build only
             sudo docker builder prune -f --filter "label=com.docker.compose.project=wg-fux" 2>/dev/null || true
         fi
     fi
 
-    # Nettoyage du Pare-feu (SRE Surgical)
-    log_info "Nettoyage des règles du pare-feu pour WG-FUX..."
-    local port
-    if [ -f "$WG_DIR/manager.conf" ]; then
-        port=$(grep SERVER_PORT "$WG_DIR/manager.conf" | cut -d'"' -f2)
+    # 3. Kernel & Network Hardening Reversion
+    log_info "Nettoyage des paramètres Kernel (Sysctl)..."
+    if [ -f "/etc/sysctl.d/99-wg-fux.conf" ]; then
+        sudo rm -f "/etc/sysctl.d/99-wg-fux.conf"
+        sudo sysctl --system > /dev/null 2>&1
+        log_success "Paramètres Kernel persistants supprimés."
     fi
+
+    # 4. Firewall Cleanup
+    log_info "Nettoyage des règles du pare-feu..."
+    local port
+    [ -f "$WG_DIR/manager.conf" ] && port=$(grep SERVER_PORT "$WG_DIR/manager.conf" | cut -d'"' -f2)
     port=${port:-51820}
     
-    printf "%b[?] Voulez-vous retirer les règles de pare-feu pour le port WireGuard ($port/udp) ? (y/N): %b" "${YELLOW}" "${NC}"
-    read -r drop_wg_port
-    if [[ "$drop_wg_port" =~ ^[yY]$ ]]; then
-        sudo ufw delete allow "$port"/udp 2>/dev/null || true
-        sudo iptables -D INPUT -p udp --dport "$port" -j ACCEPT 2>/dev/null || true
+    sudo ufw delete allow "$port"/udp 2>/dev/null || true
+    sudo iptables -D INPUT -p udp --dport "$port" -j ACCEPT 2>/dev/null || true
+    
+    local drop_web="n"
+    if [ "$purge_all" -eq 1 ]; then drop_web="y"; else
+        printf "%b[?] Voulez-vous retirer les règles Web (80/443) ? (y/N): %b" "${YELLOW}" "${NC}"
+        read -r drop_web
+    fi
+    if [[ "$drop_web" =~ ^[yY]$ ]]; then
+        sudo ufw delete allow 80/tcp 2>/dev/null || true
+        sudo ufw delete allow 443/tcp 2>/dev/null || true
+        sudo iptables -D INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
+        sudo iptables -D INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
     fi
 
-    printf "%b[?] Voulez-vous retirer les règles pour les ports Web (80/443) ? (ATTENTION: Ne faites pas cela si d'autres sites sont hébergés sur ce serveur) (y/N): %b" "${YELLOW}" "${NC}"
-    read -r drop_web_ports
-    if [[ "$drop_web_ports" =~ ^[yY]$ ]]; then
-        if command -v ufw &> /dev/null; then
-            sudo ufw delete allow 80/tcp 2>/dev/null || true
-            sudo ufw delete allow 443/tcp 2>/dev/null || true
-        elif command -v iptables &> /dev/null; then
-            sudo iptables -D INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
-            sudo iptables -D INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
-        fi
-        log_success "Règles Web retirées."
-    fi
-
+    # 5. Services & Systemd
     log_info "Désactivation du service Sentinel..."
     sudo systemctl stop sentinel.service 2>/dev/null || true
     sudo systemctl disable sentinel.service 2>/dev/null || true
     sudo rm -f /etc/systemd/system/sentinel.service
     sudo systemctl daemon-reload
 
-    log_info "Suppression des fichiers de configuration API..."
-    rm -f "$API_ENV"
-    rm -rf "$API_DATA"
-    rm -f .env
-
-    # Nettoyage des liens symboliques
-    log_info "Nettoyage des outils utilitaires..."
-    sudo rm -f /usr/local/bin/wg-*.sh 2>/dev/null || true
-
-    if [ -f "$SWAP_FILE" ]; then
-        printf "%b[?] Voulez-vous supprimer le fichier Swap ($SWAP_FILE) créé par WG-FUX ? (y/N): %b" "${YELLOW}" "${NC}"
-        read -r purge_swap
-        if [[ "$purge_swap" =~ ^[yY]$ ]]; then
-            log_info "Désactivation et suppression du Swap..."
-            sync; sudo tee /proc/sys/vm/drop_caches <<< 3 > /dev/null 2>&1 || true
-            if sudo swapoff "$SWAP_FILE" 2>/dev/null || ! swapon --show | grep -q "$SWAP_FILE"; then
-                sudo rm -f "$SWAP_FILE"
-                log_info "Swap désactivé et supprimé."
-            else
-                log_warn "Impossible de désactiver le Swap à chaud (Mémoire occupée). Le fichier sera supprimé au prochain reboot par le système si non remonté."
-                log_info "Entrée fstab retirée pour éviter le remontage."
+    # 6. Docker Daemon Revert (Low-RAM Optimization)
+    if [ -f /etc/docker/daemon.json ]; then
+        if grep -q "max-concurrent-downloads" /etc/docker/daemon.json; then
+            log_warn "Déclaration d'optimisation Low-RAM Docker détectée."
+            local revert_docker="n"
+            if [ "$purge_all" -eq 1 ]; then revert_docker="y"; else
+                printf "%b[?] Voulez-vous réinitialiser la configuration Docker (/etc/docker/daemon.json) ? (y/N): %b" "${YELLOW}" "${NC}"
+                read -r revert_docker
             fi
-            sudo sed -i "\|# WG-FUX Swap|d" /etc/fstab 2>/dev/null || true
-            sudo sed -i "\|$SWAP_FILE|d" /etc/fstab 2>/dev/null || true
+            if [[ "$revert_docker" =~ ^[yY]$ ]]; then
+                sudo rm -f /etc/docker/daemon.json
+                sudo systemctl restart docker 2>/dev/null || true
+                log_success "Configuration Docker réinitialisée."
+            fi
         fi
     fi
 
-    printf "%b[?] Voulez-vous supprimer TOUTES les configurations WireGuard dans $WG_DIR ? (y/N): %b" "${YELLOW}" "${NC}"
-    read -r purge_wg
-    if [[ "$purge_wg" =~ ^[yY]$ ]]; then
-        log_info "Suppression de $WG_DIR..."
-        sudo rm -rf "$WG_DIR"
+    # 7. Filesystem & Swap
+    log_info "Suppression des configurations et fichiers de données..."
+    rm -f "$API_ENV" .env core-vpn/scripts/sentinel.env 2>/dev/null || true
+    rm -rf "$API_DATA" 2>/dev/null || true
+    sudo rm -f /usr/local/bin/wg-*.sh 2>/dev/null || true
+    rm -f /tmp/wg-hash-*.js 2>/dev/null || true
+
+    if [ -f "$SWAP_FILE" ]; then
+        local p_swap="n"
+        [ "$purge_all" -eq 1 ] && p_swap="y" || { printf "%b[?] Supprimer le fichier Swap ($SWAP_FILE) ? (y/N): %b" "${YELLOW}" "${NC}"; read -r p_swap; }
+        if [[ "$p_swap" =~ ^[yY]$ ]]; then
+            log_info "Désactivation et suppression du Swap..."
+            sudo swapoff "$SWAP_FILE" 2>/dev/null || true
+            sudo rm -f "$SWAP_FILE"
+            sudo sed -i "\|# WG-FUX Swap|d" /etc/fstab 2>/dev/null || true
+            sudo sed -i "\|$SWAP_FILE|d" /etc/fstab 2>/dev/null || true
+            log_success "Swap supprimé."
+        fi
     fi
 
-    log_success "Désinstallation de WG-FUX terminée."
-    log_info "Note: Le moteur Docker et les outils système sont restés intacts pour vos autres applications."
+    local p_wg="n"
+    [ "$purge_all" -eq 1 ] && p_wg="y" || { printf "%b[?] Supprimer TOUTES les configurations WireGuard ($WG_DIR) ? (y/N): %b" "${YELLOW}" "${NC}"; read -r p_wg; }
+    if [[ "$p_wg" =~ ^[yY]$ ]]; then
+        sudo rm -rf "$WG_DIR"
+        log_success "Dossier $WG_DIR supprimé."
+    fi
+
+    log_success "Désinstallation de WG-FUX terminée proprement."
     exit 0
 }
 
