@@ -638,8 +638,21 @@ else
     EMAIL=""
 fi
 
-# 4. Authentification Admin
-log_info "Étape 2 : Authentification Admin"
+# 4. Authentification Admin & Security Tokens
+log_info "Étape 2 : Sécurité & Authentification"
+
+# SRE-DIAMOND: Reuse existing secrets if they are in the loaded environment
+SALT="${ADMIN_PASSWORD_SALT:-$(openssl rand -hex 16)}"
+JWT_SECRET="${JWT_SECRET:-$(openssl rand -hex 32)}"
+SENTINEL_TOKEN="${SENTINEL_TOKEN:-$(openssl rand -hex 24)}"
+
+# SRE-DIAMOND: Automatic CORS configuration (ALLOWED_ORIGINS)
+if [ -n "$DOMAIN" ]; then
+    ALLOWED_ORIGINS="https://$DOMAIN"
+else
+    ALLOWED_ORIGINS="http://$SERVER_IP:80,http://$SERVER_IP,http://localhost"
+fi
+
 printf "%b[?] Username [admin]: %b" "${YELLOW}" "${NC}"
 read -r ADMIN_USER
 ADMIN_USER=$(sanitize "${ADMIN_USER:-admin}")
@@ -655,10 +668,7 @@ AGH_USER=$(sanitize "${AGH_USER:-admin}")
 
 read -rsp "AGH Password: " AGH_PASS
 echo ""
-
-SALT=$(openssl rand -hex 16)
-JWT_SECRET=$(openssl rand -hex 32)
-SENTINEL_TOKEN=$(openssl rand -hex 24)
+# SALT, JWT and SENTINEL are now either reused or generated above.
 
 log_info "Génération du hash sécurisé (PBKDF2-SHA512)..."
 BUF_SCRIPT=$(mktemp /tmp/wg-hash-XXXXXX.js)
@@ -844,3 +854,13 @@ sudo bash "$SCRIPT_DIR/wg-optimize.sh" gaming
 
 log_success "Configuration terminée."
 update_process
+
+# SRE-DIAMOND: Auto-prompt for SSL if a domain was provided
+if [ -n "$DOMAIN" ]; then
+    echo -e "\n${BLUE}[SRE] Un domaine a été configuré ($DOMAIN).${NC}"
+    printf "%b[?] Voulez-vous lancer la configuration SSL (Let's Encrypt) maintenant ? (Y/n): %b" "${YELLOW}" "${NC}"
+    read -r start_ssl
+    if [[ ! "$start_ssl" =~ ^[nN]$ ]]; then
+        setup_ssl
+    fi
+fi
