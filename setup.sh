@@ -734,16 +734,34 @@ if [ -n "${DOMAIN:-}" ]; then
 fi
 
 # SRE: Inclusion des secrets AdGuard pour communication interne API -> AGH
-# BUG-FIX: JWT_SECRET écrit directement via printf sans passer par une variable shell
-# intermédiaire exposée (protège contre set -x, ps aux, /proc/environ leaks)
-printf 'PORT=3000\nNODE_ENV="production"\nSENTINEL_TOKEN="%s"\nALLOWED_ORIGINS="%s"\nJWT_SECRET="%s"\nSERVER_IP="%s"\nSERVER_PORT="%s"\nWG_INTERFACE=wg0\nADMIN_USER="%s"\nADMIN_PASSWORD_HASH="%s"\nADMIN_PASSWORD_SALT="%s"\nAGH_USER="%s"\nAGH_PASSWORD="%s"\nDOMAIN="%s"\n' \
-  "$SENTINEL_TOKEN" "$ALLOWED_ORIGINS" "$JWT_SECRET" "${SERVER_IP:-}" "$SERVER_PORT" "$ADMIN_USER" "$ADMIN_HASH" "$SALT" "$AGH_USER" "$AGH_PASS" "$DOMAIN" > "$API_ENV"
-
+# WAVE 4: Robust .env generation
+cat <<ENDEFF > "$API_ENV"
+PORT=3000
+NODE_ENV="production"
+SENTINEL_TOKEN="$SENTINEL_TOKEN"
+ALLOWED_ORIGINS="$ALLOWED_ORIGINS"
+JWT_SECRET="$JWT_SECRET"
+SERVER_IP="${SERVER_IP:-}"
+SERVER_PORT="$SERVER_PORT"
+WG_INTERFACE=wg0
+ADMIN_USER="$ADMIN_USER"
+ADMIN_PASSWORD_HASH="$ADMIN_HASH"
+AGH_USER="$AGH_USER"
+AGH_PASSWORD="$AGH_PASS"
+DOMAIN="$DOMAIN"
+ENDEFF
 
 # BUG-FIX: Root .env update (SRE Surgical: preserve existing variables or create fresh)
 if [ ! -f .env ]; then
-    printf 'SERVER_PORT="%s"\nSERVER_IP="%s"\nDOMAIN="%s"\nEMAIL="%s"\nWG_INTERFACE=wg0\nAGH_USER="admin"\nAGH_PASSWORD="password"\n' \
-      "$SERVER_PORT" "${SERVER_IP:-}" "$DOMAIN" "$EMAIL" > .env
+    cat <<EOF > .env
+SERVER_PORT="$SERVER_PORT"
+SERVER_IP="$SERVER_IP"
+DOMAIN="$DOMAIN"
+EMAIL="$EMAIL"
+WG_INTERFACE="wg0"
+AGH_USER="admin"
+AGH_PASSWORD="password"
+EOF
 else
     # Update existing variables
     for var in SERVER_PORT SERVER_IP DOMAIN EMAIL WG_INTERFACE AGH_USER AGH_PASSWORD; do
