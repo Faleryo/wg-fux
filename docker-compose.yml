@@ -107,7 +107,6 @@ services:
     build:
       context: .
       dockerfile: dashboard-ui/Dockerfile
-      network: host
     container_name: wg-fux-dashboard
     restart: always
     # Port 80 est interne au réseau vpn-internal
@@ -153,7 +152,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
 
 networks:

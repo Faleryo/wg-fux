@@ -775,6 +775,9 @@ PostUp = /usr/local/bin/wg-postup.sh %i
 PostDown = /usr/local/bin/wg-postdown.sh %i
 EOF
 
+# SRE Hardening: Secure the config file immediately
+sudo chmod 600 "$WG_DIR/wg0.conf"
+
 # BUG-FIX: JWT_SECRET écrit directement via printf sans passer par une variable shell
 # intermédiaire exposée (protège contre set -x, ps aux, /proc/environ leaks)
 # BUG-FIX: Force ALLOWED_ORIGINS dynamique pour inclure le DOMAINE si présent

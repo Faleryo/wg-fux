@@ -65,6 +65,5 @@ ENV NODE_ENV=production
 
 EXPOSE 3000
 
-# Start as root to handle network commands directly
 # Start via entrypoint to handle interface setup
-CMD ["/app/entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]
