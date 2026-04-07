@@ -59,7 +59,6 @@ services:
     build:
       context: .
       dockerfile: api-service/Dockerfile
-      network: host
     container_name: wg-fux-api
     restart: always
     # BUG-FIX: Suppression de "privileged: true" redondant avec cap_add
@@ -80,7 +79,8 @@ services:
       - AGH_PASSWORD=${AGH_PASSWORD:-password}
     volumes:
       - wg_fux_data:/app/data
-      - ./core-vpn:/app/core-vpn
+      - ./core-vpn:/app/core-vpn:ro
+      - ./core-vpn/scripts:/usr/local/bin:ro # SRE-FIX: Synchronisation directe des scripts hôte -> container
       - /etc/wireguard:/etc/wireguard
       - /lib/modules:/lib/modules:ro
     ports:

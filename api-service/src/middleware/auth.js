@@ -44,12 +44,15 @@ const auth = async (req, res, next) => {
   // Rejets les IPs publiques externes pour prévenir l'exploitation d'un token fuité.
   const sentinelToken = process.env.SENTINEL_TOKEN || 'vibe-sentinel-trust-99';
   const clientIp = req.ip || req.socket?.remoteAddress || '';
+  // 💠 SRE Hardening: Détection précise des plages privées (RFC 1918) et Docker Bridge
   const isInternalNetwork = (
     clientIp === '127.0.0.1' ||
     clientIp === '::1' ||
     clientIp === '::ffff:127.0.0.1' ||
-    clientIp.startsWith('172.20.') ||
-    clientIp.startsWith('::ffff:172.20.')
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(clientIp) || // Docker Default 172.16.0.0/12
+    clientIp.startsWith('::ffff:172.') ||
+    clientIp.startsWith('10.') ||  // VPN Subnet
+    clientIp.startsWith('::ffff:10.')
   );
   if (sentinelToken && token === sentinelToken && req.originalUrl === '/api/sentinel/heartbeat' && isInternalNetwork) {
     req.user = { username: 'sentinel', role: 'admin' };

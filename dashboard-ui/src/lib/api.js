@@ -72,9 +72,8 @@ axiosInstance.interceptors.response.use(
       console.error(`[API-ERR] ${error.config?.method?.toUpperCase()} ${error.config?.url} failed after ${duration}ms:`, errMsg);
     }
 
-    // Auto-logout on auth failure
-    const authFailures = ['Invalid token', 'Revoked', 'Unauthorized', 'Token expired'];
-    if ((status === 401 && authFailures.includes(errMsg)) || (status === 403 && errMsg === 'Account expired')) {
+    // Auto-logout on auth failure (Grade Diamond Hardening)
+    if (status === 401 || (status === 403 && errMsg === 'Account expired')) {
       logOut();
     }
     return Promise.reject(error);

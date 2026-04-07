@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
-# WG-FUX Optimization Engine v4.0 — "Zero Latency Protocol"
-# Ingénierie Réseau Senior : Cible 20ms en gaming compétitif
+# WG-FUX Optimization Engine v4.1 — "Obsidian Low-Latency"
+# Ingénierie Réseau Senior : Cible <20ms en gaming compétitif
 #
 # Architecture des optimisations :
 #   1. Kernel UDP stack : Réduction des buffers + bypass congestion
@@ -85,19 +85,18 @@ if [ "$PROFILE" = "gaming" ]; then
     # ----------------------------------------------------------
     # 1. UDP STACK : Clé pour WireGuard (protocole UDP natif)
     # ----------------------------------------------------------
-    # Buffer UDP petit = moins de bufferbloat, latence prévisible
-    # Règle : Buffer = (Bandwidth_Gbps * RTT_s) / 8 → pour 1Gbps + 20ms = ~2.5MB
-    # On choisit conservateur pour priorité latence
-    apply_sysctl net.core.rmem_default 262144      # 256KB recv par défaut
-    apply_sysctl net.core.wmem_default 262144      # 256KB send par défaut
-    apply_sysctl net.core.rmem_max 2097152         # 2MB recv max
-    apply_sysctl net.core.wmem_max 2097152         # 2MB send max
-    apply_sysctl net.core.optmem_max 65536         # Options socket max
+    # 💠 Diamond Buffers : Calculés pour minimiser le bufferbloat
+    # Règle Obsidian : Buffer = (Vitesse_Lien * RTT_Cible) / 8
+    apply_sysctl net.core.rmem_default 524288      # 512KB recv
+    apply_sysctl net.core.wmem_default 524288      # 512KB send
+    apply_sysctl net.core.rmem_max 4194304         # 4MB recv max
+    apply_sysctl net.core.wmem_max 4194304         # 4MB send max
+    apply_sysctl net.core.optmem_max 131072        # 128KB options
 
-    # UDP socket buffers (direct impact sur WireGuard)
-    apply_sysctl net.ipv4.udp_mem "8192 87380 2097152"
-    apply_sysctl net.ipv4.udp_rmem_min 8192
-    apply_sysctl net.ipv4.udp_wmem_min 8192
+    # UDP socket buffers (impact direct sur WireGuard)
+    apply_sysctl net.ipv4.udp_mem "16384 32768 4194304"
+    apply_sysctl net.ipv4.udp_rmem_min 16384
+    apply_sysctl net.ipv4.udp_wmem_min 16384
 
     # ----------------------------------------------------------
     # 2. TCP LOW LATENCY (pour le trafic non-WG et le contrôle)

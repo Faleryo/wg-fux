@@ -29,12 +29,17 @@ SWAP_FILE="/swap_wgfux"
 
 # SRE Note: All log calls below have been migrated to log_info/log_error unifiés.
 
-# SRE: Mode Simulation (Dry-Run)
+# SRE: Modes Spéciaux (Simulation et Auto)
 DRY_RUN=false
+AUTO_MODE=false
 for arg in "$@"; do
     if [ "$arg" == "--dry-run" ]; then 
         DRY_RUN=true
         log_sre "MODE DRY-RUN ACTIVÉ (Simulation)"
+    fi
+    if [ "$arg" == "--auto" ]; then
+        AUTO_MODE=true
+        log_sre "MODE AUTO-PILOT ACTIVÉ (Non-interactif)"
     fi
 done
 
@@ -210,7 +215,7 @@ uninstall() {
         sudo docker compose down -v || true
         
         local purge_images="n"
-        if [ "$purge_all" -eq 1 ]; then purge_images="y"; else
+        if [ "$purge_all" -eq 1 ] || [ "$AUTO_MODE" = true ]; then purge_images="y"; else
             printf "%b[?] Voulez-vous supprimer les IMAGES Docker du projet (~3GB) ? (y/N): %b" "${YELLOW}" "${NC}"
             read -r purge_images
         fi
@@ -240,7 +245,7 @@ uninstall() {
     sudo iptables -D INPUT -p udp --dport "$port" -j ACCEPT 2>/dev/null || true
     
     local drop_web="n"
-    if [ "$purge_all" -eq 1 ]; then drop_web="y"; else
+    if [ "$purge_all" -eq 1 ] || [ "$AUTO_MODE" = true ]; then drop_web="y"; else
         printf "%b[?] Voulez-vous retirer les règles Web (80/443) ? (y/N): %b" "${YELLOW}" "${NC}"
         read -r drop_web
     fi

@@ -5,10 +5,8 @@ const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
 const { rateLimit } = require('express-rate-limit');
-const { WebSocketServer } = require('ws');
-const jwt = require('jsonwebtoken');
-const url = require('url');
 const { spawn } = require('child_process');
+const wsService = require('./src/services/ws');
 
 // Internal Imports
 const { auth, requireAdmin } = require('./src/middleware/auth');
@@ -160,139 +158,8 @@ app.get('/', (req, res) => {
   res.json({ message: 'WG-FUX API Modular is up (Standardized)', status: 'online' });
 });
 
-// --- WebSockets ---
-const wssLogs = new WebSocketServer({ noServer: true });
-const wssStatus = new WebSocketServer({ noServer: true });
-
-wssLogs.on('connection', (ws, req) => {
-  const type = url.parse(req.url).pathname.split('/')[3];
-  const WG_INTERFACE = process.env.WG_INTERFACE || 'wg0';
-
-  ws.isAlive = true;
-  ws.on('pong', () => { ws.isAlive = true; });
-
-  if (type === 'api') {
-    // Stream the in-memory ring buffer (compatible container)
-    let lastSent = 0;
-    const interval = setInterval(() => {
-      if (ws.readyState !== ws.OPEN) { clearInterval(interval); return; }
-      const entries = log.getBuffer(null, 50);
-      const newEntries = entries.slice(lastSent);
-      if (newEntries.length > 0) {
-        lastSent = entries.length;
-        newEntries.forEach(e => ws.send(JSON.stringify(e)));
-      }
-    }, 2000);
-    ws.on('close', () => clearInterval(interval));
-    ws.on('error', () => clearInterval(interval));
-    return;
-  }
-
-  if (type === 'wireguard') {
-    // In Docker, journalctl has no access to host systemd journal.
-    // Fall back to tailing kernel log or syslog if available.
-    const { existsSync } = require('fs');
-    const logCandidates = ['/var/log/kern.log', '/var/log/syslog'];
-    const logFile = logCandidates.find(f => existsSync(f));
-
-    if (logFile) {
-      const proc = spawn('tail', ['-f', '-n', '50', logFile]);
-      proc.stdout.on('data', (data) => {
-        if (ws.readyState === ws.OPEN) ws.send(data.toString());
-      });
-      const cleanup = () => { try { proc.kill('SIGTERM'); } catch(e) { log.warn('ws', 'Failed to kill tail process', { err: e.message }); } };
-      ws.on('close', cleanup);
-      ws.on('error', (err) => { log.error('ws', 'WS wireguard error', { err: err.message }); cleanup(); });
-    } else {
-      // No log file available — send wg show output periodically
-      if (ws.readyState === ws.OPEN) ws.send('[INFO] journalctl not available in container. Streaming wg show output...');
-      const interval = setInterval(async () => {
-        if (ws.readyState !== ws.OPEN) { clearInterval(interval); return; }
-        const { success, output } = await new Promise(resolve => {
-          const p = spawn('wg', ['show', WG_INTERFACE]);
-          let out = '';
-          p.stdout.on('data', d => { out += d.toString(); });
-          p.on('close', code => resolve({ success: code === 0, output: out }));
-          p.on('error', () => resolve({ success: false, output: '' }));
-        });
-        if (success && output) ws.send(output);
-      }, 5000);
-      ws.on('close', () => clearInterval(interval));
-      ws.on('error', () => clearInterval(interval));
-    }
-    return;
-  }
-
-  // Unknown type
-  ws.close();
-});
-
-// WS Heartbeat to prevent orphan processes
-const wsInterval = setInterval(() => {
-  wssLogs.clients.forEach((ws) => {
-    if (ws.isAlive === false) return ws.terminate();
-    ws.isAlive = false;
-    ws.ping();
-  });
-  wssStatus.clients.forEach((ws) => {
-    if (ws.isAlive === false) return ws.terminate();
-    ws.isAlive = false;
-    ws.ping();
-  });
-}, 30000);
-
-wssLogs.on('error', (err) => log.error('ws', 'WSS Logs error', { err: err.message }));
-wssStatus.on('error', (err) => log.error('ws', 'WSS Status error', { err: err.message }));
-
-// BUG-FIX: broadcastInterval déclaré AVANT server.on('close') pour éviter le Temporal Dead Zone (HOISTING-TDZ).
-// Un `let` référencé dans un callback avant sa déclaration est un code smell, même si le callback
-// s'exécute après la fin du module. La déclaration anticipée garantit la lisibilité et la sécurité.
-// BUG-FIX: Interval réduit de 2s à 5s — évite de surcharger "wg show dump" en continu
-// (le frontend poll déjà toutes les 5s, pas besoin de broadcast plus rapide)
-const broadcastInterval = setInterval(async () => {
-  if (wssStatus.clients.size === 0) return; // Skip si aucun client connecté
-  try {
-    const peers = await getWireGuardStats();
-    const onlinePeers = peers.filter(p => p.isOnline).map(p => p.publicKey);
-    wssStatus.clients.forEach(c => c.readyState === 1 && c.send(JSON.stringify({ type: 'peer_status', onlinePeers })));
-  } catch(e) {
-    log.error('ws', 'WS status broadcast error', { err: e.message });
-  }
-}, 5000);
-
-// BUG-FIX: clearInterval lié au server HTTP et non wssLogs.
-// Si wssLogs se fermait (0 clients), le heartbeat de wssStatus était aussi annulé.
-server.on('close', () => {
-  clearInterval(wsInterval);
-  clearInterval(broadcastInterval);
-});
-
-server.on('upgrade', (request, socket, head) => {
-  const pathname = url.parse(request.url).pathname;
-    
-  // Auth JWT sur les WebSockets (empêche les connexions non authentifiées)
-  const token = request.headers['x-api-token'] || new URL(request.url, 'http://localhost').searchParams.get('token');
-  if (!token) {
-    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-    socket.destroy();
-    return;
-  }
-  try {
-    jwt.verify(token, process.env.JWT_SECRET);
-  } catch (e) {
-    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-    socket.destroy();
-    return;
-  }
-
-  if (pathname.startsWith('/api/logs-ws/')) {
-    wssLogs.handleUpgrade(request, socket, head, ws => wssLogs.emit('connection', ws, request));
-  } else if (pathname === '/api/status-ws') {
-    wssStatus.handleUpgrade(request, socket, head, ws => wssStatus.emit('connection', ws, request));
-  } else {
-    socket.destroy();
-  }
-});
+// --- Init WebSocket Service ---
+wsService.init(server);
 
 // BUG-FIX: 404 handler for all non-API and unknown /api/* routes
 // Prevents ghost 404s in logs for /favicon.ico or / if wrongly routed to API.
