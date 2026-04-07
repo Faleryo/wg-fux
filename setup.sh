@@ -758,30 +758,26 @@ AGH_PASSWORD="$AGH_PASS"
 DOMAIN="$DOMAIN"
 ENDEFF
 
-# BUG-FIX: Root .env update (SRE Surgical: preserve existing variables or create fresh)
-if [ ! -f .env ]; then
-    cat <<EOF > .env
+# BUG-FIX: Root .env must contain ALL variables for Docker Compose interpolation
+# This ensures AGH_USER, AGH_PASSWORD and others are not defaulted to "admin/password"
+cat <<EOF > .env
 SERVER_PORT="$SERVER_PORT"
 SERVER_IP="$SERVER_IP"
 DOMAIN="$DOMAIN"
 EMAIL="$EMAIL"
 WG_INTERFACE="wg0"
-AGH_USER="admin"
-AGH_PASSWORD="password"
+AGH_USER="$AGH_USER"
+AGH_PASSWORD="$AGH_PASS"
+JWT_SECRET="$JWT_SECRET"
+SENTINEL_TOKEN="$SENTINEL_TOKEN"
+ADMIN_USER="$ADMIN_USER"
+ADMIN_PASSWORD_HASH="$ADMIN_HASH"
+ADMIN_PASSWORD_SALT="$SALT"
+ALLOWED_ORIGINS="$ALLOWED_ORIGINS"
 EOF
-else
-    # Update existing variables
-    for var in SERVER_PORT SERVER_IP DOMAIN EMAIL WG_INTERFACE AGH_USER AGH_PASSWORD; do
-        VAL=$(eval echo \$$var)
-        if [ -n "$VAL" ]; then
-            if grep -q "^$var=" .env 2>/dev/null; then
-                sed -i "s|^$var=.*|$var=\"$VAL\"|g" .env
-            else
-                echo "$var=\"$VAL\"" >> .env
-            fi
-        fi
-    done
-fi
+
+# Ensure api-service/.env is a symlink or a copy for consistency (SRE Recommendation)
+# We keep the cat to api-service/.env for safety but root .env is the master.
 
 unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS
 
