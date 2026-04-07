@@ -393,6 +393,10 @@ update_process() {
         log_warn "Timeout atteint. Vérifiez avec: sudo docker compose ps"
     fi
 
+    # 💠 SRE: SSL Bootstrap (Phase 0)
+    # Crée un certificat auto-signé temporaire si nécessaire pour permettre à Nginx de démarrer
+    setup_ssl_bootstrap
+
     # 💠 SRE: SSL après le démarrage des services (Nginx doit être UP pour le challenge ACME)
     # Phase 1 (cert auto-signé) déjà active via nginx/default.conf
     # Phase 2 (Let's Encrypt) nécessite Nginx sur port 80 → on l'exécute ici
@@ -530,6 +534,27 @@ setup_swap() {
 }
 
 # --- Gestion SSL & Let's Encrypt (v6.5 - Consolidated) ---
+setup_ssl_bootstrap() {
+    log_info "Bootstrap SSL : Vérification des certificats de secours..."
+    local ssl_dir="$SCRIPT_DIR/infra/ssl"
+    mkdir -p "$ssl_dir"
+    
+    if [ ! -f "$ssl_dir/server.crt" ] || [ ! -f "$ssl_dir/server.key" ]; then
+        log_warn "Certificats SSL manquants. Génération d'un certificat auto-signé de secours..."
+        if openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout "$ssl_dir/server.key" \
+            -out "$ssl_dir/server.crt" \
+            -subj "/CN=localhost" 2>/dev/null; then
+            log_success "Certificat de secours généré dans $ssl_dir"
+        else
+            log_error "Échec de la génération du certificat SSL."
+            return 1
+        fi
+    else
+        log_success "Certificats SSL (Auto-signés ou Let's Encrypt) déjà présents."
+    fi
+}
+
 setup_ssl() {
     if ! sudo docker compose ps -q nginx >/dev/null 2>&1; then
         log_error "Le proxy Nginx doit être en cours d'exécution pour valider Let's Encrypt."

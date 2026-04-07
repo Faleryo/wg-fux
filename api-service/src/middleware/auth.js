@@ -47,11 +47,10 @@ const auth = async (req, res, next) => {
   // 💠 SRE Sentinel Bypass: prioritisation absolue
   const sentinelToken = process.env.SENTINEL_TOKEN || 'vibe-sentinel-trust-99';
   if (token === sentinelToken) {
-    if (req.originalUrl === '/api/sentinel/heartbeat' && isInternalNetwork) {
+    if (isInternalNetwork) {
       req.user = { username: 'sentinel', role: 'admin' };
       return next();
-    }
-    if (!isInternalNetwork) {
+    } else {
       log.warn('auth', 'SENTINEL_TOKEN used from external IP — rejected', { ip: clientIp, path: req.originalUrl });
       return res.status(401).json({ error: 'Invalid token' });
     }

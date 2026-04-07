@@ -80,7 +80,7 @@ services:
     volumes:
       - wg_fux_data:/app/data
       - ./core-vpn:/app/core-vpn:ro
-      - ./core-vpn/scripts:/usr/local/bin:ro # SRE-FIX: Synchronisation directe des scripts hôte -> container
+      - ./core-vpn/scripts:/usr/local/sbin:ro # SRE-FIX: Synchronisation directe des scripts hôte -> container
       - /etc/wireguard:/etc/wireguard
       - /lib/modules:/lib/modules:ro
     ports:
