@@ -320,15 +320,12 @@ update_process() {
     else
         sudo docker builder prune -f --filter "until=24h" 2>/dev/null || true
     fi
-    
+
     # 💠 SRE Logic: Check deps and Open Ports BEFORE anything else
     check_and_install_deps
     setup_firewall
     ensure_docker_ready
 
-    # 💠 SRE: Ensure SSL is ready (Port 80 must be open)
-    setup_ssl
-    
     log_info "Reconstruction des images et redémarrage des services..."
     if ! sudo DOCKER_BUILDKIT=1 docker compose build; then
         log_error "Échec de la reconstruction. Annulation..."
@@ -340,10 +337,10 @@ update_process() {
         mv "${API_ENV}.bak" "$API_ENV" 2>/dev/null || true
         return 1
     fi
-    
+
     # Vérification post-install : attendre que les containers soient healthy
-    echo -e "${BLUE}[INFO] Vérification de l'état des containers (max 120s)...${NC}"
-    local timeout=120
+    log_info "Vérification de l'état des containers (max 180s)..."
+    local timeout=180
     local waited=0
     while [ $waited -lt $timeout ]; do
         local unhealthy
@@ -351,29 +348,41 @@ update_process() {
             python3 -c "import sys,json; data=[json.loads(l) for l in sys.stdin if l.strip()]; \
             bad=[c['Name'] for c in data if c.get('Health','') not in ('healthy','')]; print(' '.join(bad))" 2>/dev/null || echo "")
         if [ -z "$unhealthy" ] || [ "$unhealthy" = " " ]; then
-            echo -e "${GREEN}[SUCCESS] Tous les containers sont opérationnels.${NC}"
+            log_success "Tous les containers sont opérationnels."
             break
         fi
-        echo -e "${YELLOW}[INFO] Attente des containers: $unhealthy (${waited}s/${timeout}s)...${NC}"
+        log_info "Attente des containers: $unhealthy (${waited}s/${timeout}s)..."
         sleep 10
         waited=$((waited + 10))
     done
     if [ $waited -ge $timeout ]; then
-        echo -e "${YELLOW}[WARNING] Timeout atteint. Vérifiez avec: sudo docker compose ps${NC}"
+        log_warn "Timeout atteint. Vérifiez avec: sudo docker compose ps"
     fi
-    
+
+    # 💠 SRE: SSL après le démarrage des services (Nginx doit être UP pour le challenge ACME)
+    # Phase 1 (cert auto-signé) déjà active via nginx/default.conf
+    # Phase 2 (Let's Encrypt) nécessite Nginx sur port 80 → on l'exécute ici
+    if [ -n "${DOMAIN:-}" ]; then
+        log_info "Lancement de la configuration SSL (Phase 2 / Let's Encrypt)..."
+        setup_ssl
+    fi
+
     local ip_final="${SERVER_IP:-$(detect_public_ip)}"
+    local domain_display="${DOMAIN:-$ip_final}"
     echo -e "\n${GREEN}==================================================${NC}"
     echo -e "${GREEN}        WG-FUX EST PRÊT À L'ACTION !            ${NC}"
     echo -e "${GREEN}==================================================${NC}"
-    echo -e "Dashboard URL (SSL) : ${BLUE}https://$ip_final${NC}"
-    echo -e "Dashboard URL (HTTP): ${BLUE}http://$ip_final${NC}"
-    echo -e "${YELLOW}[NOTE] Si vous utilisez le SSL auto-signé, votre navigateur${NC}"
-    echo -e "${YELLOW}affichera une alerte de sécurité. C'est normal.${NC}"
+    echo -e "Dashboard URL (SSL) : ${BLUE}https://${domain_display}${NC}"
+    echo -e "Dashboard URL (IP)  : ${BLUE}https://$ip_final${NC}"
+    if [ -z "${DOMAIN:-}" ]; then
+        echo -e "${YELLOW}[NOTE] Mode IP-only - cert auto-signé. Votre navigateur affichera une${NC}"
+        echo -e "${YELLOW}alerte de sécurité - cliquez 'Avancé' puis 'Continuer'. C'est normal.${NC}"
+    fi
     echo -e "${GREEN}==================================================${NC}\n"
-    
+
     exit 0
 }
+
 
 git_upgrade() {
     log_info "Récupération des dernières mises à jour depuis Git (Guration et Hard Reset)..."
