@@ -334,6 +334,9 @@ update_process() {
         exit 1
     fi
 
+    # 💠 SRE Diamond: Force Swap check before any build to prevent VPS freezing
+    setup_swap
+
     # 💠 SRE: Backup current config before update
     log_info "Sauvegarde et Export global de l'env actuelle"
     if [ -f .env ]; then
@@ -428,6 +431,19 @@ git_upgrade() {
     # 💠 SRE: Suppression préventive du verrou Git (index.lock) qui peut bloquer les updates
     rm -f .git/index.lock 2>/dev/null || true
     
+    # 💠 SRE Diamond: Security check for local changes before hard reset
+    if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+        log_warn "Des modifications locales non-commitées ont été détectées."
+        if [ "$AUTO_MODE" = false ]; then
+            printf "%b[?] ATTENTION : 'Upgrade' va écraser VOS modifications locales. Continuer ? (y/N): %b" "${RED}" "${NC}"
+            read -r confirm
+            if [[ ! "$confirm" =~ ^[yY]$ ]]; then
+                log_info "Upgrade annulé par l'utilisateur."
+                exit 0
+            fi
+        fi
+    fi
+
     git fetch --all 2>/dev/null
     local current_branch
     current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
@@ -446,7 +462,7 @@ install_deps() {
     log_info "Tentative d'installation des dépendances..."
     if command -v apt-get &> /dev/null; then
         sudo apt-get update
-        sudo apt-get install -y docker.io docker-compose-v2 wireguard-tools openssl curl nodejs
+        sudo apt-get install -y docker.io docker-compose-v2 wireguard-tools openssl curl nodejs python3
         sudo systemctl enable --now docker
         ensure_docker_ready
     else
