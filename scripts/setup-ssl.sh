@@ -46,7 +46,7 @@ else
         log_info "Domaine : $DOMAIN"
     fi
 
-    if ! docker compose run --rm --entrypoint bash certbot -c "$CERTBOT_CMD"; then
+    if ! docker compose run --rm --entrypoint sh certbot -c "$CERTBOT_CMD"; then
         log_error "La demande Certbot a échoué. Tentative de secours sur certificat existant..."
         EXISTING_CERT=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ 2>/dev/null | grep "^$DOMAIN" | sort -r | head -n1 || true)
         if [ -z "$EXISTING_CERT" ]; then
