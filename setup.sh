@@ -751,17 +751,31 @@ AGH_PASSWORD="$AGH_PASS"
 DOMAIN="$DOMAIN"
 ENDEFF
 
-# BUG-FIX: Root .env update (SRE Surgical: preserve existing variables)
-for var in SERVER_PORT SERVER_IP DOMAIN EMAIL; do
-    VAL=$(eval echo \$$var)
-    if [ -n "$VAL" ]; then
-        if grep -q "^$var=" .env 2>/dev/null; then
-            sed -i "s|^$var=.*|$var=\"$VAL\"|g" .env
-        else
-            echo "$var=\"$VAL\"" >> .env
+# BUG-FIX: Root .env update (SRE Surgical: preserve existing variables or create fresh)
+if [ ! -f .env ]; then
+    cat <<EOF > .env
+SERVER_PORT="$SERVER_PORT"
+SERVER_IP="$SERVER_IP"
+DOMAIN="$DOMAIN"
+EMAIL="$EMAIL"
+WG_INTERFACE="wg0"
+AGH_USER="admin"
+AGH_PASSWORD="password"
+EOF
+else
+    # Update existing variables
+    for var in SERVER_PORT SERVER_IP DOMAIN EMAIL WG_INTERFACE AGH_USER AGH_PASSWORD; do
+        VAL=$(eval echo \$$var)
+        if [ -n "$VAL" ]; then
+            if grep -q "^$var=" .env 2>/dev/null; then
+                sed -i "s|^$var=.*|$var=\"$VAL\"|g" .env
+            else
+                echo "$var=\"$VAL\"" >> .env
+            fi
         fi
-    fi
-done
+    done
+fi
+
 unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS
 
 # 6. Sentinel & Alerts
