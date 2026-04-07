@@ -15,4 +15,4 @@ chmod -R u+rw /app/data /etc/wireguard/clients
 echo "[BOOT] Starting API Server as wg-api..."
 # Use login shell to ensure PATH is correctly loaded
 # Syntax fix: -l and -u are exclusive on some runuser versions
-exec runuser -l wg-api -c "cd /app && node server.js"
+exec runuser -m -u wg-api -- node /app/server.js
