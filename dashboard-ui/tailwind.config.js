@@ -1,15 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-  ],
+  content: ['./src/**/*.{js,jsx,ts,tsx}'],
   darkMode: 'class',
   safelist: [
-    { 
-      pattern: /^(bg|text|border)-(indigo|emerald|rose|slate)-(400|500|600)$/ 
+    {
+      pattern: /^(bg|text|border)-(indigo|emerald|rose|slate)-(400|500|600)$/,
     },
-    { 
-      pattern: /^shadow-(indigo|emerald|rose|slate)-500\/20$/ 
+    {
+      pattern: /^shadow-(indigo|emerald|rose|slate)-500\/20$/,
     },
   ],
   theme: {
@@ -24,8 +22,8 @@ export default {
           900: '#171717',
           950: '#0a0a0a',
         },
-      }
+      },
     },
   },
   plugins: [],
-}
+};

@@ -16,15 +16,16 @@ export const API_URL = getApiUrl();
 export const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 });
 
 export const getWsUri = (type) => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const { hostname, port, host } = window.location;
   // Inclure le token JWT pour l'auth WS côté serveur
-  const token = localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') || '';
+  const token =
+    localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') || '';
   const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
 
   // Mode Développement
@@ -44,7 +45,7 @@ export const getWsUri = (type) => {
 };
 
 // Intercepteur pour ajouter le token API et tracer le temps de réponse (dev)
-axiosInstance.interceptors.request.use(config => {
+axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token');
   if (token) {
     config.headers['X-Api-Token'] = token;
@@ -57,23 +58,40 @@ axiosInstance.interceptors.request.use(config => {
 axiosInstance.interceptors.response.use(
   (response) => {
     // Log performance in dev mode
-      const duration = response.config.metadata ? new Date() - response.config.metadata.startTime : 'unknown';
-      if (window.location.port === '5173' || response.status >= 500) {
-        console.log(`[API-PERF] ${response.config.method.toUpperCase()} ${response.config.url} took ${duration}ms`);
-      }
+    const duration = response.config.metadata
+      ? new Date() - response.config.metadata.startTime
+      : 'unknown';
+    const isDev = window.location.port === '5173' || window.location.hostname === 'localhost';
+
+    if (isDev) {
+      console.log(
+        `[API-SUCCESS] ${response.config.method.toUpperCase()} ${response.config.url} (${duration}ms)`
+      );
+    }
     return response;
   },
   (error) => {
     const duration = error.config?.metadata ? new Date() - error.config.metadata.startTime : null;
     const status = error.response?.status;
-    const errMsg = error.response?.data?.error || error.response?.data?.message;
-    
-    if (window.location.port === '5173' || status >= 400) {
-      console.error(`[API-ERR] ${error.config?.method?.toUpperCase()} ${error.config?.url} failed after ${duration}ms:`, errMsg);
+    const data = error.response?.data;
+
+    // Obsidian-Tier Error Parsing: On favorise le message détaillé si présent
+    const errMsg = data?.message || data?.error || error.message || 'Unknown API Error';
+    const errCode = data?.code || 'ERR_UNKNOWN';
+
+    const isDev = window.location.port === '5173' || window.location.hostname === 'localhost';
+
+    if (isDev || status >= 400) {
+      console.error(
+        `[API-ERR] ${error.config?.method?.toUpperCase()} ${error.config?.url} [${status}] (${duration}ms):`,
+        { code: errCode, message: errMsg, path: data?.path }
+      );
     }
 
     // Auto-logout on auth failure (Grade Diamond Hardening)
-    if (status === 401 || (status === 403 && errMsg === 'Account expired')) {
+    // 401: Unauthorized (Token expiré ou invalide)
+    // 403 + Account expired: Spécifique à certains profils de sécurité
+    if (status === 401 || (status === 403 && (data?.error === 'ACCOUNT_EXPIRED' || errMsg === 'Account expired'))) {
       logOut();
     }
     return Promise.reject(error);
@@ -82,10 +100,9 @@ axiosInstance.interceptors.response.use(
 
 function logOut() {
   const keys = ['wg-api-token', 'wg-user-role', 'wg-user-username'];
-  keys.forEach(k => {
+  keys.forEach((k) => {
     localStorage.removeItem(k);
     sessionStorage.removeItem(k);
   });
   window.location.href = '/login';
 }
-

@@ -3,11 +3,10 @@ const { db, sqlite, schema } = require('../../db');
 
 const { eq } = require('drizzle-orm');
 
-
 async function initializeDatabase() {
   console.log('----------------------------------------------------');
   console.log('📦WG-FUX Database Initialization...');
-  
+
   try {
     // 1. Create Tables if they don't exist
     // better-sqlite3 handles this via SQL, but we can also use drizzle metadata or simple SQL
@@ -92,7 +91,6 @@ async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS audit_actor_idx ON auditLogs(actor);
     `);
 
-
     console.log('✅ Schema synchronization complete.');
 
     // 3. Sync Admin User from Env (v6.5 SRE - Ensure setup.sh changes are applied)
@@ -101,20 +99,23 @@ async function initializeDatabase() {
     const adminSalt = process.env.ADMIN_PASSWORD_SALT;
 
     if (adminHash && adminSalt) {
-      const existing = sqlite.prepare('SELECT id, hash, salt FROM users WHERE username = ?').get(adminUser);
-      
+      const existing = sqlite
+        .prepare('SELECT id, hash, salt FROM users WHERE username = ?')
+        .get(adminUser);
+
       if (!existing) {
         console.log(`👤 Seeding initial admin user: ${adminUser}`);
         await db.insert(schema.users).values({
           username: adminUser,
           hash: adminHash,
           salt: adminSalt,
-          role: 'admin'
+          role: 'admin',
         });
         console.log('✅ Admin user seeded successfully.');
       } else if (existing.hash !== adminHash || existing.salt !== adminSalt) {
         console.log(`👤 Syncing credentials for existing admin user: ${adminUser}`);
-        await db.update(schema.users)
+        await db
+          .update(schema.users)
           .set({ hash: adminHash, salt: adminSalt })
           .where(eq(schema.users.username, adminUser));
         console.log('✅ Admin credentials synchronized from .env');
@@ -124,7 +125,6 @@ async function initializeDatabase() {
     } else {
       console.warn('⚠️ Missing ADMIN_PASSWORD_HASH/SALT in env. Admin user not seeded/synced.');
     }
-
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
     throw error;
@@ -145,9 +145,9 @@ async function initializeDNS() {
 
   try {
     // 1. Check if AGH is already initialized (maxRedirects: 0 to catch the setup wizard)
-    const status = await axios.get(`${AGH_BASE_URL}/control/status`, { 
+    const status = await axios.get(`${AGH_BASE_URL}/control/status`, {
       maxRedirects: 0,
-      validateStatus: (status) => (status >= 200 && status < 400) 
+      validateStatus: (status) => status >= 200 && status < 400,
     });
 
     if (status.status === 200 && status.data.initialized) {
@@ -161,20 +161,21 @@ async function initializeDNS() {
     // 💠 SRE: AdGuard Home requires a password of at least 8 characters.
     let aghPassword = password;
     if (aghPassword.length < 8) {
-      console.log('⚠️ AGH password too short (< 8 chars). Applying SRE padding for internal compliance...');
+      console.log(
+        '⚠️ AGH password too short (< 8 chars). Applying SRE padding for internal compliance...'
+      );
       aghPassword = password.padEnd(8, '0'); // Pad with zeros to meet minimum length
     }
-    
+
     const config = {
       web: { ip: '0.0.0.0', port: 3000 },
       dns: { ip: '0.0.0.0', port: 53 },
       username: username,
-      password: aghPassword
+      password: aghPassword,
     };
 
     await axios.post(`${AGH_BASE_URL}/control/install/configure`, config);
     console.log('✅ AdGuard Home initialized successfully.');
-
   } catch (error) {
     if (error.response && error.response.status === 302) {
       // 💠 SRE: AGH redirects to /control/install.html when not initialized
@@ -188,18 +189,23 @@ async function initializeDNS() {
           web: { ip: '0.0.0.0', port: 3000 },
           dns: { ip: '0.0.0.0', port: 53 },
           username: username,
-          password: aghPassword
+          password: aghPassword,
         };
         await axios.post(`${AGH_BASE_URL}/control/install/configure`, config);
         console.log('✅ AdGuard Home initialized successfully.');
       } catch (innerError) {
-        console.error('❌ Failed to initialize AdGuard Home:', innerError.response ? innerError.response.data : innerError.message);
+        console.error(
+          '❌ Failed to initialize AdGuard Home:',
+          innerError.response ? innerError.response.data : innerError.message
+        );
       }
     } else {
-      console.warn('⚠️ Could not connect to AdGuard Home API yet. Will retry on next request.', error.message);
+      console.warn(
+        '⚠️ Could not connect to AdGuard Home API yet. Will retry on next request.',
+        error.message
+      );
     }
   }
 }
 
 module.exports = { initializeDatabase, initializeDNS };
-

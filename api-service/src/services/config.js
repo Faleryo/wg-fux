@@ -11,7 +11,8 @@ const BUILD_SCRIPT_DIR = '/usr/local/bin';
 
 const SCRIPT_DIR = (() => {
   if (existsSync(MOUNT_SCRIPT_DIR)) return MOUNT_SCRIPT_DIR;
-  if (process.env.NODE_ENV === 'production' && existsSync(BUILD_SCRIPT_DIR)) return BUILD_SCRIPT_DIR;
+  if (process.env.NODE_ENV === 'production' && existsSync(BUILD_SCRIPT_DIR))
+    return BUILD_SCRIPT_DIR;
   return path.join(PROJECT_ROOT, 'core-vpn/scripts');
 })();
 
@@ -27,5 +28,5 @@ const getScriptPath = (scriptName) => {
 module.exports = {
   PROJECT_ROOT,
   SCRIPT_DIR,
-  getScriptPath
+  getScriptPath,
 };

@@ -5,9 +5,8 @@ const fs = require('fs').promises;
 const { getScriptPath } = require('./config');
 const log = require('./logger');
 
-
 const isRoot = !process.getuid || process.getuid() === 0;
-const SUDO = isRoot ? null : (process.env.SUDO_BIN || 'sudo');
+const SUDO = isRoot ? null : process.env.SUDO_BIN || 'sudo';
 const SUDO_ARGS = isRoot ? [] : ['-n'];
 
 /**
@@ -17,7 +16,7 @@ const SUDO_ARGS = isRoot ? [] : ['-n'];
 const runCommand = async (cmd, args = [], stdinData = null) => {
   const commandStr = `${cmd} ${args.join(' ')}`;
   const env = { ...process.env, LC_ALL: 'C', LANG: 'C' };
-    
+
   // Safety check: binary existence and executability (only for absolute paths or specific scripts)
   if (cmd.startsWith('/') || cmd.startsWith('./')) {
     try {
@@ -33,15 +32,22 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
     if (stdinData !== null) {
       return await new Promise((resolve) => {
         const proc = spawn(cmd, args, { timeout: 15000, env });
-        let stdout = '', stderr = '';
-        proc.stdout.on('data', (d) => { stdout += d.toString(); });
-        proc.stderr.on('data', (d) => { stderr += d.toString(); });
+        let stdout = '',
+          stderr = '';
+        proc.stdout.on('data', (d) => {
+          stdout += d.toString();
+        });
+        proc.stderr.on('data', (d) => {
+          stderr += d.toString();
+        });
         proc.on('close', (code) => {
           if (code === 0) {
             if (stderr) log.warn('shell', `"${commandStr}" produced stderr: ${stderr.trim()}`);
             resolve({ success: true, stdout: stdout.trim(), stderr: stderr.trim() });
           } else {
-            log.error('shell', `"${commandStr}" exited with code ${code}`, { stderr: stderr.trim() });
+            log.error('shell', `"${commandStr}" exited with code ${code}`, {
+              stderr: stderr.trim(),
+            });
             resolve({ success: false, error: stderr.trim() || `Exit code ${code}`, code });
           }
         });
@@ -56,10 +62,10 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
       });
     }
 
-    const { stdout, stderr } = await execFilePromise(cmd, args, { 
-      timeout: 10000, 
+    const { stdout, stderr } = await execFilePromise(cmd, args, {
+      timeout: 10000,
       maxBuffer: 10 * 1024 * 1024,
-      env 
+      env,
     });
     if (stderr) log.warn('shell', `"${commandStr}" produced stderr: ${stderr.trim()}`);
     return { success: true, stdout: stdout.trim(), stderr: stderr.trim() };
@@ -85,7 +91,11 @@ const runSystemCommand = async (file, args = [], stdinData = null) => {
  * HARDENING: Using tee avoids shell redirection issues with sudo
  */
 const writeFileAsRoot = async (filePath, content) => {
-  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), ['write', filePath, content]);
+  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), [
+    'write',
+    filePath,
+    content,
+  ]);
   return { success, error, code };
 };
 
@@ -93,7 +103,11 @@ const writeFileAsRoot = async (filePath, content) => {
  * Append to a file with sudo if necessary (via tee -a)
  */
 const appendFileAsRoot = async (filePath, content) => {
-  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), ['append', filePath, content]);
+  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), [
+    'append',
+    filePath,
+    content,
+  ]);
   return { success, error, code };
 };
 
@@ -101,7 +115,10 @@ const appendFileAsRoot = async (filePath, content) => {
  * Delete a file with sudo if necessary
  */
 const unlinkAsRoot = async (filePath) => {
-  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), ['delete', filePath]);
+  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), [
+    'delete',
+    filePath,
+  ]);
   return { success, error, code };
 };
 
@@ -109,7 +126,10 @@ const unlinkAsRoot = async (filePath) => {
  * Read a directory with sudo if necessary (using ls)
  */
 const readdirAsRoot = async (dirPath) => {
-  const { success, stdout, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), ['list', dirPath]);
+  const { success, stdout, error, code } = await runSystemCommand(
+    getScriptPath('wg-file-proxy.sh'),
+    ['list', dirPath]
+  );
   return { success, stdout, error, code };
 };
 
@@ -168,7 +188,5 @@ module.exports = {
   listDir,
   unlink,
   SUDO,
-  SUDO_ARGS
+  SUDO_ARGS,
 };
-
-

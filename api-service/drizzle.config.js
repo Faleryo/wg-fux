@@ -4,6 +4,6 @@ export default {
   out: './db/migrations',
   dialect: 'sqlite',
   dbCredentials: {
-    url: './data/database.sqlite'
-  }
+    url: './data/database.sqlite',
+  },
 };

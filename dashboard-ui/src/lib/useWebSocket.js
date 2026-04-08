@@ -14,15 +14,19 @@ export const useWebSocket = (url, options = {}) => {
   // Store callbacks in refs to avoid re-creating connect() on every render
   const onMessageRef = useRef(options.onMessage);
   const onOpenRef = useRef(options.onOpen);
-  useEffect(() => { onMessageRef.current = options.onMessage; }, [options.onMessage]);
-  useEffect(() => { onOpenRef.current = options.onOpen; }, [options.onOpen]);
+  useEffect(() => {
+    onMessageRef.current = options.onMessage;
+  }, [options.onMessage]);
+  useEffect(() => {
+    onOpenRef.current = options.onOpen;
+  }, [options.onOpen]);
 
   useEffect(() => {
     let active = true;
 
     const connect = () => {
       if (!url || !active) return;
-      
+
       // Clean up any existing connection or timeout
       if (ws.current) ws.current.close();
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -53,11 +57,11 @@ export const useWebSocket = (url, options = {}) => {
         ws.current.onclose = () => {
           if (!active) return;
           setStatus('CLOSED');
-          
+
           // Exponential backoff strategy
           const delay = Math.min(1000 * Math.pow(2, reconnectCount.current), maxReconnectDelay);
           reconnectCount.current += 1;
-          
+
           timeoutRef.current = setTimeout(() => {
             if (active) connect();
           }, delay);

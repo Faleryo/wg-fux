@@ -4,7 +4,7 @@ const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const [colorTheme, setColorTheme] = useState(localStorage.getItem('theme-color') || 'indigo');
-  
+
   // Logic: Check URL param first, then localStorage, then default to 'light'
   const getInitialMode = () => {
     const params = new URLSearchParams(window.location.search);
@@ -26,7 +26,9 @@ export const ThemeProvider = ({ children }) => {
   }, [colorTheme]);
 
   return (
-    <ThemeContext.Provider value={{ theme: colorTheme, setTheme: setColorTheme, mode, setMode, isDark }}>
+    <ThemeContext.Provider
+      value={{ theme: colorTheme, setTheme: setColorTheme, mode, setMode, isDark }}
+    >
       {children}
     </ThemeContext.Provider>
   );

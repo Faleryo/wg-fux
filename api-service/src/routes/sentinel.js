@@ -7,7 +7,7 @@ let sentinelStatus = {
   lastHeartbeat: null,
   status: 'offline',
   logs: [],
-  stats: {}
+  stats: {},
 };
 
 // Heartbeat endpoint for Sentinel V2
@@ -15,14 +15,14 @@ let sentinelStatus = {
 router.post('/heartbeat', auth, async (req, res) => {
   // If we reach here, 'auth' middleware has already verified the token AND the IP
   // or it verified a valid admin/manager JWT.
-  
+
   const { status, logs, stats } = req.body;
-    
+
   sentinelStatus = {
     lastHeartbeat: new Date(),
     status: status || 'active',
     logs: Array.isArray(logs) ? logs.slice(-20) : [],
-    stats: stats || {}
+    stats: stats || {},
   };
 
   res.json({ success: true });

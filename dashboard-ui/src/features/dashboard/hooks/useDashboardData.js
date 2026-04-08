@@ -25,11 +25,15 @@ const useDashboardData = (session) => {
   const [trafficData, setTrafficData] = useState([]);
   const [clientsHistory, setClientsHistory] = useState({});
   const [loading, setLoading] = useState(true);
-  const [health, setHealth] = useState({ status: 'unknown' });
+  const [health, setHealth] = useState({ status: 'unknown', ready: false });
   const [config, setConfig] = useState({});
   const [uptime, setUptime] = useState('');
   const [speedtest, setSpeedtest] = useState({ loading: false, data: null });
-  const [sentinelStatus, setSentinelStatus] = useState({ status: 'offline', lastHeartbeat: null, stats: {} });
+  const [sentinelStatus, setSentinelStatus] = useState({
+    status: 'offline',
+    lastHeartbeat: null,
+    stats: {},
+  });
   const [adguardStatus, setAdguardStatus] = useState({ status: 'unknown' });
   const [onlinePeers, setOnlinePeers] = useState([]);
 
@@ -51,15 +55,23 @@ const useDashboardData = (session) => {
         setOnlinePeers(data.onlinePeers);
         return;
       }
-      const isPeerEvent = data.type === 'client_event' || data.type === 'peer_connected' || data.type === 'peer_disconnected';
+      const isPeerEvent =
+        data.type === 'client_event' ||
+        data.type === 'peer_connected' ||
+        data.type === 'peer_disconnected';
       if (isPeerEvent) {
         const name = data.name || data.client?.name || 'Peer';
         const container = data.container || data.client?.container || '';
-        const connected = data.type !== 'peer_disconnected' && (data.event === 'connected' || data.type === 'peer_connected');
-        addToast(`${name}${container ? ' (' + container + ')' : ''} ${connected ? 'connecté' : 'déconnecté'}`, connected ? 'success' : 'info');
+        const connected =
+          data.type !== 'peer_disconnected' &&
+          (data.event === 'connected' || data.type === 'peer_connected');
+        addToast(
+          `${name}${container ? ' (' + container + ')' : ''} ${connected ? 'connecté' : 'déconnecté'}`,
+          connected ? 'success' : 'info'
+        );
         fetchData();
       }
-    }
+    },
   });
 
   // ── Sentinel ──────────────────────────────────────────────────────────────
@@ -68,7 +80,7 @@ const useDashboardData = (session) => {
       const res = await axiosInstance.get('/sentinel/status');
       setSentinelStatus(res.data);
     } catch {
-      setSentinelStatus(prev => ({ ...prev, status: 'error' }));
+      setSentinelStatus((prev) => ({ ...prev, status: 'error' }));
     }
   }, []);
 
@@ -81,8 +93,11 @@ const useDashboardData = (session) => {
         axiosInstance.get('/clients'),
         axiosInstance.get('/system/stats').catch(() => ({ data: {} })),
         axiosInstance.get('/system/health').catch(() => ({ data: { status: 'unhealthy' } })),
+        axiosInstance.get('/ready').catch(() => ({ data: { status: 'not ready' } })),
         axiosInstance.get('/clients/containers').catch(() => ({ data: [] })),
-        isAdmin ? axiosInstance.get('/users').catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
+        isAdmin
+          ? axiosInstance.get('/users').catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] }),
       ]);
 
       const now = Date.now();
@@ -93,16 +108,17 @@ const useDashboardData = (session) => {
       setAllContainers(containersRes.data || []);
       setUsers(usersRes.data || []);
 
-      const clientsWithRates = fetchedClients.map(client => {
-        const prevClient = prevClients.find(p => p.publicKey === client.publicKey);
+      const clientsWithRates = fetchedClients.map((client) => {
+        const prevClient = prevClients.find((p) => p.publicKey === client.publicKey);
         const currentDown = Number(client.downloadBytes) || 0;
         const currentUp = Number(client.uploadBytes) || 0;
-        const prevDown = prevClient ? (Number(prevClient.downloadBytes) || 0) : 0;
-        const prevUp = prevClient ? (Number(prevClient.uploadBytes) || 0) : 0;
-        let downloadRate = 0, uploadRate = 0;
+        const prevDown = prevClient ? Number(prevClient.downloadBytes) || 0 : 0;
+        const prevUp = prevClient ? Number(prevClient.uploadBytes) || 0 : 0;
+        let downloadRate = 0,
+          uploadRate = 0;
         if (prevClient && timeDiff > 0) {
           downloadRate = Math.max(0, (currentDown - prevDown) / timeDiff);
-          uploadRate   = Math.max(0, (currentUp - prevUp) / timeDiff);
+          uploadRate = Math.max(0, (currentUp - prevUp) / timeDiff);
         }
         return { ...client, downloadRate, uploadRate };
       });
@@ -113,23 +129,42 @@ const useDashboardData = (session) => {
       const networkStats = statsRes.data?.network || {};
       setStats(networkStats);
       setSystemStats(statsRes.data?.system || { cpu: 0, memory: 0, disk: 0 });
-      setHealth(healthRes.data || { status: 'unknown' });
+      setHealth({
+        ...(healthRes.data || { status: 'unknown' }),
+        ready: arguments[1][3]?.data?.status === 'ready',
+      });
 
       const totalDownRate = clientsWithRates.reduce((acc, c) => acc + (c.downloadRate || 0), 0);
-      const totalUpRate   = clientsWithRates.reduce((acc, c) => acc + (c.uploadRate   || 0), 0);
-      const timeLabel = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      setTrafficData(prev => [...prev, { time: timeLabel, download: totalDownRate, upload: totalUpRate }].slice(-20));
-      setClientsHistory(prev => {
+      const totalUpRate = clientsWithRates.reduce((acc, c) => acc + (c.uploadRate || 0), 0);
+      const timeLabel = new Date().toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+      setTrafficData((prev) =>
+        [...prev, { time: timeLabel, download: totalDownRate, upload: totalUpRate }].slice(-20)
+      );
+      setClientsHistory((prev) => {
         const newMap = { ...prev };
-        clientsWithRates.forEach(c => {
+        clientsWithRates.forEach((c) => {
           const current = newMap[c.id] || [];
-          newMap[c.id] = [...current, { time: timeLabel, dl: c.downloadRate || 0, ul: c.uploadRate || 0 }].slice(-20);
+          newMap[c.id] = [
+            ...current,
+            { time: timeLabel, dl: c.downloadRate || 0, ul: c.uploadRate || 0 },
+          ].slice(-20);
         });
         return newMap;
       });
 
       setLoading(false);
-      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ clients: clientsWithRates, stats: networkStats, ts: now })); } catch { /* storage full */ }
+      try {
+        sessionStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({ clients: clientsWithRates, stats: networkStats, ts: now })
+        );
+      } catch {
+        /* storage full */
+      }
     } catch (error) {
       console.error('[useDashboardData] Fetch error:', error);
       setLoading(false);
@@ -150,11 +185,19 @@ const useDashboardData = (session) => {
             setLoading(false);
           }, 0);
         }
-      } catch { /* ignore malformed cache */ }
+      } catch {
+        /* ignore malformed cache */
+      }
     }
     // Static data
-    axiosInstance.get('/system/uptime').then(r => setUptime(r.data.uptime)).catch(() => {});
-    axiosInstance.get('/system/config').then(r => setConfig(r.data)).catch(() => {});
+    axiosInstance
+      .get('/system/uptime')
+      .then((r) => setUptime(r.data.uptime))
+      .catch(() => {});
+    axiosInstance
+      .get('/system/config')
+      .then((r) => setConfig(r.data))
+      .catch(() => {});
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
@@ -163,7 +206,7 @@ const useDashboardData = (session) => {
 
     const iMain = setInterval(fetchData, POLL_INTERVAL);
     const iSent = setInterval(fetchSentinel, SENTINEL_INTERVAL);
-    const iAdg  = setInterval(fetchAdguard, SENTINEL_INTERVAL);
+    const iAdg = setInterval(fetchAdguard, SENTINEL_INTERVAL);
 
     return () => {
       clearInterval(iMain);
@@ -187,11 +230,25 @@ const useDashboardData = (session) => {
 
   return {
     // State
-    clients, allContainers, users, stats, systemStats,
-    trafficData, clientsHistory, loading, health, config,
-    uptime, speedtest, sentinelStatus, adguardStatus, onlinePeers,
+    clients,
+    allContainers,
+    users,
+    stats,
+    systemStats,
+    trafficData,
+    clientsHistory,
+    loading,
+    health,
+    config,
+    uptime,
+    speedtest,
+    sentinelStatus,
+    adguardStatus,
+    onlinePeers,
     // Mutators
-    fetchData, fetchSentinel, handleRunSpeedtest,
+    fetchData,
+    fetchSentinel,
+    handleRunSpeedtest,
     // Setters needed by MainLayout
     setUsers,
   };

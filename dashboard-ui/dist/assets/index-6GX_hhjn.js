@@ -1,17 +1,11189 @@
-var Ls=Object.defineProperty;var Ps=(t,s,r)=>s in t?Ls(t,s,{enumerable:!0,configurable:!0,writable:!0,value:r}):t[s]=r;var Ot=(t,s,r)=>Ps(t,typeof s!="symbol"?s+"":s,r);import{r as _s,g as Os,a as h,j as e,c as Fs,b as Us,m as L,S as fe,A as le,U as Ne,K as Ct,E as rs,d as is,e as Rt,C as ls,f as At,R as J,L as os,h as ut,i as mt,I as ht,X as Fe,T as Be,H as Bs,P as ye,F as Mt,k as de,G as Ge,l as He,n as bt,o as Le,p as ns,q as Te,s as Gs,t as et,u as Ft,M as Ut,v as it,w as Ws,x as Pe,y as Bt,D as tt,z as gt,B as qe,J as Hs,N as _e,O as be,Q as $t,Z as Ae,V as Gt,W as vt,Y as Dt,_ as It,$ as Tt,a0 as Lt,a1 as jt,a2 as st,a3 as at,a4 as qs,a5 as St,a6 as zt,a7 as cs,a8 as Wt,a9 as Vs,aa as Qs,ab as Ks,ac as Ys,ad as ds,ae as xs,af as ps,ag as us,ah as Xs,ai as Js,aj as Zs,ak as ea,al as ta,am as sa,an as aa,ao as ra,ap as ia,aq as la}from"./ui-libs-gf68Jbhb.js";(function(){const s=document.createElement("link").relList;if(s&&s.supports&&s.supports("modulepreload"))return;for(const c of document.querySelectorAll('link[rel="modulepreload"]'))a(c);new MutationObserver(c=>{for(const d of c)if(d.type==="childList")for(const p of d.addedNodes)p.tagName==="LINK"&&p.rel==="modulepreload"&&a(p)}).observe(document,{childList:!0,subtree:!0});function r(c){const d={};return c.integrity&&(d.integrity=c.integrity),c.referrerPolicy&&(d.referrerPolicy=c.referrerPolicy),c.crossOrigin==="use-credentials"?d.credentials="include":c.crossOrigin==="anonymous"?d.credentials="omit":d.credentials="same-origin",d}function a(c){if(c.ep)return;c.ep=!0;const d=r(c);fetch(c.href,d)}})();var ct={},Ht;function oa(){if(Ht)return ct;Ht=1;var t=_s();return ct.createRoot=t.createRoot,ct.hydrateRoot=t.hydrateRoot,ct}var na=oa();const ca=Os(na),ms=h.createContext(),da=({children:t})=>{const[s,r]=h.useState(localStorage.getItem("theme-color")||"indigo"),a=()=>{const l=new URLSearchParams(window.location.search).get("theme");return l==="light"||l==="dark"?l:localStorage.getItem("theme-mode")||"light"},[c,d]=h.useState(a()),p=c==="dark";return h.useEffect(()=>{document.documentElement.classList.toggle("dark",c==="dark"),localStorage.setItem("theme-mode",c)},[c]),h.useEffect(()=>{localStorage.setItem("theme-color",s)},[s]),e.jsx(ms.Provider,{value:{theme:s,setTheme:r,mode:c,setMode:d,isDark:p},children:t})},Q=()=>h.useContext(ms),xa=(t,s)=>{const r=new Array(t.length+s.length);for(let a=0;a<t.length;a++)r[a]=t[a];for(let a=0;a<s.length;a++)r[t.length+a]=s[a];return r},pa=(t,s)=>({classGroupId:t,validator:s}),hs=(t=new Map,s=null,r)=>({nextPart:t,validators:s,classGroupId:r}),ft="-",qt=[],ua="arbitrary..",ma=t=>{const s=ba(t),{conflictingClassGroups:r,conflictingClassGroupModifiers:a}=t;return{getClassGroupId:p=>{if(p.startsWith("[")&&p.endsWith("]"))return ha(p);const m=p.split(ft),l=m[0]===""&&m.length>1?1:0;return bs(m,l,s)},getConflictingClassGroupIds:(p,m)=>{if(m){const l=a[p],o=r[p];return l?o?xa(o,l):l:o||qt}return r[p]||qt}}},bs=(t,s,r)=>{if(t.length-s===0)return r.classGroupId;const c=t[s],d=r.nextPart.get(c);if(d){const o=bs(t,s+1,d);if(o)return o}const p=r.validators;if(p===null)return;const m=s===0?t.join(ft):t.slice(s).join(ft),l=p.length;for(let o=0;o<l;o++){const n=p[o];if(n.validator(m))return n.classGroupId}},ha=t=>t.slice(1,-1).indexOf(":")===-1?void 0:(()=>{const s=t.slice(1,-1),r=s.indexOf(":"),a=s.slice(0,r);return a?ua+a:void 0})(),ba=t=>{const{theme:s,classGroups:r}=t;return ga(r,s)},ga=(t,s)=>{const r=hs();for(const a in t){const c=t[a];Pt(c,r,a,s)}return r},Pt=(t,s,r,a)=>{const c=t.length;for(let d=0;d<c;d++){const p=t[d];fa(p,s,r,a)}},fa=(t,s,r,a)=>{if(typeof t=="string"){wa(t,s,r);return}if(typeof t=="function"){va(t,s,r,a);return}ja(t,s,r,a)},wa=(t,s,r)=>{const a=t===""?s:gs(s,t);a.classGroupId=r},va=(t,s,r,a)=>{if(ya(t)){Pt(t(a),s,r,a);return}s.validators===null&&(s.validators=[]),s.validators.push(pa(r,t))},ja=(t,s,r,a)=>{const c=Object.entries(t),d=c.length;for(let p=0;p<d;p++){const[m,l]=c[p];Pt(l,gs(s,m),r,a)}},gs=(t,s)=>{let r=t;const a=s.split(ft),c=a.length;for(let d=0;d<c;d++){const p=a[d];let m=r.nextPart.get(p);m||(m=hs(),r.nextPart.set(p,m)),r=m}return r},ya=t=>"isThemeGetter"in t&&t.isThemeGetter===!0,Na=t=>{if(t<1)return{get:()=>{},set:()=>{}};let s=0,r=Object.create(null),a=Object.create(null);const c=(d,p)=>{r[d]=p,s++,s>t&&(s=0,a=r,r=Object.create(null))};return{get(d){let p=r[d];if(p!==void 0)return p;if((p=a[d])!==void 0)return c(d,p),p},set(d,p){d in r?r[d]=p:c(d,p)}}},Et="!",Vt=":",ka=[],Qt=(t,s,r,a,c)=>({modifiers:t,hasImportantModifier:s,baseClassName:r,maybePostfixModifierPosition:a,isExternal:c}),Ca=t=>{const{prefix:s,experimentalParseClassName:r}=t;let a=c=>{const d=[];let p=0,m=0,l=0,o;const n=c.length;for(let g=0;g<n;g++){const w=c[g];if(p===0&&m===0){if(w===Vt){d.push(c.slice(l,g)),l=g+1;continue}if(w==="/"){o=g;continue}}w==="["?p++:w==="]"?p--:w==="("?m++:w===")"&&m--}const x=d.length===0?c:c.slice(l);let u=x,b=!1;x.endsWith(Et)?(u=x.slice(0,-1),b=!0):x.startsWith(Et)&&(u=x.slice(1),b=!0);const y=o&&o>l?o-l:void 0;return Qt(d,b,u,y)};if(s){const c=s+Vt,d=a;a=p=>p.startsWith(c)?d(p.slice(c.length)):Qt(ka,!1,p,void 0,!0)}if(r){const c=a;a=d=>r({className:d,parseClassName:c})}return a},Sa=t=>{const s=new Map;return t.orderSensitiveModifiers.forEach((r,a)=>{s.set(r,1e6+a)}),r=>{const a=[];let c=[];for(let d=0;d<r.length;d++){const p=r[d],m=p[0]==="[",l=s.has(p);m||l?(c.length>0&&(c.sort(),a.push(...c),c=[]),a.push(p)):c.push(p)}return c.length>0&&(c.sort(),a.push(...c)),a}},za=t=>({cache:Na(t.cacheSize),parseClassName:Ca(t),sortModifiers:Sa(t),...ma(t)}),Ea=/\s+/,Ra=(t,s)=>{const{parseClassName:r,getClassGroupId:a,getConflictingClassGroupIds:c,sortModifiers:d}=s,p=[],m=t.trim().split(Ea);let l="";for(let o=m.length-1;o>=0;o-=1){const n=m[o],{isExternal:x,modifiers:u,hasImportantModifier:b,baseClassName:y,maybePostfixModifierPosition:g}=r(n);if(x){l=n+(l.length>0?" "+l:l);continue}let w=!!g,E=a(w?y.substring(0,g):y);if(!E){if(!w){l=n+(l.length>0?" "+l:l);continue}if(E=a(y),!E){l=n+(l.length>0?" "+l:l);continue}w=!1}const N=u.length===0?"":u.length===1?u[0]:d(u).join(":"),f=b?N+Et:N,v=f+E;if(p.indexOf(v)>-1)continue;p.push(v);const j=c(E,w);for(let z=0;z<j.length;++z){const D=j[z];p.push(f+D)}l=n+(l.length>0?" "+l:l)}return l},Aa=(...t)=>{let s=0,r,a,c="";for(;s<t.length;)(r=t[s++])&&(a=fs(r))&&(c&&(c+=" "),c+=a);return c},fs=t=>{if(typeof t=="string")return t;let s,r="";for(let a=0;a<t.length;a++)t[a]&&(s=fs(t[a]))&&(r&&(r+=" "),r+=s);return r},Ma=(t,...s)=>{let r,a,c,d;const p=l=>{const o=s.reduce((n,x)=>x(n),t());return r=za(o),a=r.cache.get,c=r.cache.set,d=m,m(l)},m=l=>{const o=a(l);if(o)return o;const n=Ra(l,r);return c(l,n),n};return d=p,(...l)=>d(Aa(...l))},$a=[],te=t=>{const s=r=>r[t]||$a;return s.isThemeGetter=!0,s},ws=/^\[(?:(\w[\w-]*):)?(.+)\]$/i,vs=/^\((?:(\w[\w-]*):)?(.+)\)$/i,Da=/^\d+(?:\.\d+)?\/\d+(?:\.\d+)?$/,Ia=/^(\d+(\.\d+)?)?(xs|sm|md|lg|xl)$/,Ta=/\d+(%|px|r?em|[sdl]?v([hwib]|min|max)|pt|pc|in|cm|mm|cap|ch|ex|r?lh|cq(w|h|i|b|min|max))|\b(calc|min|max|clamp)\(.+\)|^0$/,La=/^(rgba?|hsla?|hwb|(ok)?(lab|lch)|color-mix)\(.+\)$/,Pa=/^(inset_)?-?((\d+)?\.?(\d+)[a-z]+|0)_-?((\d+)?\.?(\d+)[a-z]+|0)/,_a=/^(url|image|image-set|cross-fade|element|(repeating-)?(linear|radial|conic)-gradient)\(.+\)$/,Ee=t=>Da.test(t),F=t=>!!t&&!Number.isNaN(Number(t)),Re=t=>!!t&&Number.isInteger(Number(t)),Nt=t=>t.endsWith("%")&&F(t.slice(0,-1)),je=t=>Ia.test(t),js=()=>!0,Oa=t=>Ta.test(t)&&!La.test(t),_t=()=>!1,Fa=t=>Pa.test(t),Ua=t=>_a.test(t),Ba=t=>!A(t)&&!M(t),Ga=t=>Me(t,ks,_t),A=t=>ws.test(t),Ie=t=>Me(t,Cs,Oa),Kt=t=>Me(t,Xa,F),Wa=t=>Me(t,zs,js),Ha=t=>Me(t,Ss,_t),Yt=t=>Me(t,ys,_t),qa=t=>Me(t,Ns,Ua),dt=t=>Me(t,Es,Fa),M=t=>vs.test(t),Xe=t=>Ue(t,Cs),Va=t=>Ue(t,Ss),Xt=t=>Ue(t,ys),Qa=t=>Ue(t,ks),Ka=t=>Ue(t,Ns),xt=t=>Ue(t,Es,!0),Ya=t=>Ue(t,zs,!0),Me=(t,s,r)=>{const a=ws.exec(t);return a?a[1]?s(a[1]):r(a[2]):!1},Ue=(t,s,r=!1)=>{const a=vs.exec(t);return a?a[1]?s(a[1]):r:!1},ys=t=>t==="position"||t==="percentage",Ns=t=>t==="image"||t==="url",ks=t=>t==="length"||t==="size"||t==="bg-size",Cs=t=>t==="length",Xa=t=>t==="number",Ss=t=>t==="family-name",zs=t=>t==="number"||t==="weight",Es=t=>t==="shadow",Ja=()=>{const t=te("color"),s=te("font"),r=te("text"),a=te("font-weight"),c=te("tracking"),d=te("leading"),p=te("breakpoint"),m=te("container"),l=te("spacing"),o=te("radius"),n=te("shadow"),x=te("inset-shadow"),u=te("text-shadow"),b=te("drop-shadow"),y=te("blur"),g=te("perspective"),w=te("aspect"),E=te("ease"),N=te("animate"),f=()=>["auto","avoid","all","avoid-page","page","left","right","column"],v=()=>["center","top","bottom","left","right","top-left","left-top","top-right","right-top","bottom-right","right-bottom","bottom-left","left-bottom"],j=()=>[...v(),M,A],z=()=>["auto","hidden","clip","visible","scroll"],D=()=>["auto","contain","none"],k=()=>[M,A,l],R=()=>[Ee,"full","auto",...k()],U=()=>[Re,"none","subgrid",M,A],G=()=>["auto",{span:["full",Re,M,A]},Re,M,A],X=()=>[Re,"auto",M,A],C=()=>["auto","min","max","fr",M,A],P=()=>["start","end","center","between","around","evenly","stretch","baseline","center-safe","end-safe"],B=()=>["start","end","center","stretch","center-safe","end-safe"],S=()=>["auto",...k()],O=()=>[Ee,"auto","full","dvw","dvh","lvw","lvh","svw","svh","min","max","fit",...k()],q=()=>[Ee,"screen","full","dvw","lvw","svw","min","max","fit",...k()],Z=()=>[Ee,"screen","full","lh","dvh","lvh","svh","min","max","fit",...k()],$=()=>[t,M,A],se=()=>[...v(),Xt,Yt,{position:[M,A]}],I=()=>["no-repeat",{repeat:["","x","y","space","round"]}],xe=()=>["auto","cover","contain",Qa,Ga,{size:[M,A]}],ae=()=>[Nt,Xe,Ie],K=()=>["","none","full",o,M,A],H=()=>["",F,Xe,Ie],pe=()=>["solid","dashed","dotted","double"],ge=()=>["normal","multiply","screen","overlay","darken","lighten","color-dodge","color-burn","hard-light","soft-light","difference","exclusion","hue","saturation","color","luminosity"],Y=()=>[F,Nt,Xt,Yt],Ce=()=>["","none",y,M,A],we=()=>["none",F,M,A],re=()=>["none",F,M,A],Se=()=>[F,M,A],me=()=>[Ee,"full",...k()];return{cacheSize:500,theme:{animate:["spin","ping","pulse","bounce"],aspect:["video"],blur:[je],breakpoint:[je],color:[js],container:[je],"drop-shadow":[je],ease:["in","out","in-out"],font:[Ba],"font-weight":["thin","extralight","light","normal","medium","semibold","bold","extrabold","black"],"inset-shadow":[je],leading:["none","tight","snug","normal","relaxed","loose"],perspective:["dramatic","near","normal","midrange","distant","none"],radius:[je],shadow:[je],spacing:["px",F],text:[je],"text-shadow":[je],tracking:["tighter","tight","normal","wide","wider","widest"]},classGroups:{aspect:[{aspect:["auto","square",Ee,A,M,w]}],container:["container"],columns:[{columns:[F,A,M,m]}],"break-after":[{"break-after":f()}],"break-before":[{"break-before":f()}],"break-inside":[{"break-inside":["auto","avoid","avoid-page","avoid-column"]}],"box-decoration":[{"box-decoration":["slice","clone"]}],box:[{box:["border","content"]}],display:["block","inline-block","inline","flex","inline-flex","table","inline-table","table-caption","table-cell","table-column","table-column-group","table-footer-group","table-header-group","table-row-group","table-row","flow-root","grid","inline-grid","contents","list-item","hidden"],sr:["sr-only","not-sr-only"],float:[{float:["right","left","none","start","end"]}],clear:[{clear:["left","right","both","none","start","end"]}],isolation:["isolate","isolation-auto"],"object-fit":[{object:["contain","cover","fill","none","scale-down"]}],"object-position":[{object:j()}],overflow:[{overflow:z()}],"overflow-x":[{"overflow-x":z()}],"overflow-y":[{"overflow-y":z()}],overscroll:[{overscroll:D()}],"overscroll-x":[{"overscroll-x":D()}],"overscroll-y":[{"overscroll-y":D()}],position:["static","fixed","absolute","relative","sticky"],inset:[{inset:R()}],"inset-x":[{"inset-x":R()}],"inset-y":[{"inset-y":R()}],start:[{"inset-s":R(),start:R()}],end:[{"inset-e":R(),end:R()}],"inset-bs":[{"inset-bs":R()}],"inset-be":[{"inset-be":R()}],top:[{top:R()}],right:[{right:R()}],bottom:[{bottom:R()}],left:[{left:R()}],visibility:["visible","invisible","collapse"],z:[{z:[Re,"auto",M,A]}],basis:[{basis:[Ee,"full","auto",m,...k()]}],"flex-direction":[{flex:["row","row-reverse","col","col-reverse"]}],"flex-wrap":[{flex:["nowrap","wrap","wrap-reverse"]}],flex:[{flex:[F,Ee,"auto","initial","none",A]}],grow:[{grow:["",F,M,A]}],shrink:[{shrink:["",F,M,A]}],order:[{order:[Re,"first","last","none",M,A]}],"grid-cols":[{"grid-cols":U()}],"col-start-end":[{col:G()}],"col-start":[{"col-start":X()}],"col-end":[{"col-end":X()}],"grid-rows":[{"grid-rows":U()}],"row-start-end":[{row:G()}],"row-start":[{"row-start":X()}],"row-end":[{"row-end":X()}],"grid-flow":[{"grid-flow":["row","col","dense","row-dense","col-dense"]}],"auto-cols":[{"auto-cols":C()}],"auto-rows":[{"auto-rows":C()}],gap:[{gap:k()}],"gap-x":[{"gap-x":k()}],"gap-y":[{"gap-y":k()}],"justify-content":[{justify:[...P(),"normal"]}],"justify-items":[{"justify-items":[...B(),"normal"]}],"justify-self":[{"justify-self":["auto",...B()]}],"align-content":[{content:["normal",...P()]}],"align-items":[{items:[...B(),{baseline:["","last"]}]}],"align-self":[{self:["auto",...B(),{baseline:["","last"]}]}],"place-content":[{"place-content":P()}],"place-items":[{"place-items":[...B(),"baseline"]}],"place-self":[{"place-self":["auto",...B()]}],p:[{p:k()}],px:[{px:k()}],py:[{py:k()}],ps:[{ps:k()}],pe:[{pe:k()}],pbs:[{pbs:k()}],pbe:[{pbe:k()}],pt:[{pt:k()}],pr:[{pr:k()}],pb:[{pb:k()}],pl:[{pl:k()}],m:[{m:S()}],mx:[{mx:S()}],my:[{my:S()}],ms:[{ms:S()}],me:[{me:S()}],mbs:[{mbs:S()}],mbe:[{mbe:S()}],mt:[{mt:S()}],mr:[{mr:S()}],mb:[{mb:S()}],ml:[{ml:S()}],"space-x":[{"space-x":k()}],"space-x-reverse":["space-x-reverse"],"space-y":[{"space-y":k()}],"space-y-reverse":["space-y-reverse"],size:[{size:O()}],"inline-size":[{inline:["auto",...q()]}],"min-inline-size":[{"min-inline":["auto",...q()]}],"max-inline-size":[{"max-inline":["none",...q()]}],"block-size":[{block:["auto",...Z()]}],"min-block-size":[{"min-block":["auto",...Z()]}],"max-block-size":[{"max-block":["none",...Z()]}],w:[{w:[m,"screen",...O()]}],"min-w":[{"min-w":[m,"screen","none",...O()]}],"max-w":[{"max-w":[m,"screen","none","prose",{screen:[p]},...O()]}],h:[{h:["screen","lh",...O()]}],"min-h":[{"min-h":["screen","lh","none",...O()]}],"max-h":[{"max-h":["screen","lh",...O()]}],"font-size":[{text:["base",r,Xe,Ie]}],"font-smoothing":["antialiased","subpixel-antialiased"],"font-style":["italic","not-italic"],"font-weight":[{font:[a,Ya,Wa]}],"font-stretch":[{"font-stretch":["ultra-condensed","extra-condensed","condensed","semi-condensed","normal","semi-expanded","expanded","extra-expanded","ultra-expanded",Nt,A]}],"font-family":[{font:[Va,Ha,s]}],"font-features":[{"font-features":[A]}],"fvn-normal":["normal-nums"],"fvn-ordinal":["ordinal"],"fvn-slashed-zero":["slashed-zero"],"fvn-figure":["lining-nums","oldstyle-nums"],"fvn-spacing":["proportional-nums","tabular-nums"],"fvn-fraction":["diagonal-fractions","stacked-fractions"],tracking:[{tracking:[c,M,A]}],"line-clamp":[{"line-clamp":[F,"none",M,Kt]}],leading:[{leading:[d,...k()]}],"list-image":[{"list-image":["none",M,A]}],"list-style-position":[{list:["inside","outside"]}],"list-style-type":[{list:["disc","decimal","none",M,A]}],"text-alignment":[{text:["left","center","right","justify","start","end"]}],"placeholder-color":[{placeholder:$()}],"text-color":[{text:$()}],"text-decoration":["underline","overline","line-through","no-underline"],"text-decoration-style":[{decoration:[...pe(),"wavy"]}],"text-decoration-thickness":[{decoration:[F,"from-font","auto",M,Ie]}],"text-decoration-color":[{decoration:$()}],"underline-offset":[{"underline-offset":[F,"auto",M,A]}],"text-transform":["uppercase","lowercase","capitalize","normal-case"],"text-overflow":["truncate","text-ellipsis","text-clip"],"text-wrap":[{text:["wrap","nowrap","balance","pretty"]}],indent:[{indent:k()}],"vertical-align":[{align:["baseline","top","middle","bottom","text-top","text-bottom","sub","super",M,A]}],whitespace:[{whitespace:["normal","nowrap","pre","pre-line","pre-wrap","break-spaces"]}],break:[{break:["normal","words","all","keep"]}],wrap:[{wrap:["break-word","anywhere","normal"]}],hyphens:[{hyphens:["none","manual","auto"]}],content:[{content:["none",M,A]}],"bg-attachment":[{bg:["fixed","local","scroll"]}],"bg-clip":[{"bg-clip":["border","padding","content","text"]}],"bg-origin":[{"bg-origin":["border","padding","content"]}],"bg-position":[{bg:se()}],"bg-repeat":[{bg:I()}],"bg-size":[{bg:xe()}],"bg-image":[{bg:["none",{linear:[{to:["t","tr","r","br","b","bl","l","tl"]},Re,M,A],radial:["",M,A],conic:[Re,M,A]},Ka,qa]}],"bg-color":[{bg:$()}],"gradient-from-pos":[{from:ae()}],"gradient-via-pos":[{via:ae()}],"gradient-to-pos":[{to:ae()}],"gradient-from":[{from:$()}],"gradient-via":[{via:$()}],"gradient-to":[{to:$()}],rounded:[{rounded:K()}],"rounded-s":[{"rounded-s":K()}],"rounded-e":[{"rounded-e":K()}],"rounded-t":[{"rounded-t":K()}],"rounded-r":[{"rounded-r":K()}],"rounded-b":[{"rounded-b":K()}],"rounded-l":[{"rounded-l":K()}],"rounded-ss":[{"rounded-ss":K()}],"rounded-se":[{"rounded-se":K()}],"rounded-ee":[{"rounded-ee":K()}],"rounded-es":[{"rounded-es":K()}],"rounded-tl":[{"rounded-tl":K()}],"rounded-tr":[{"rounded-tr":K()}],"rounded-br":[{"rounded-br":K()}],"rounded-bl":[{"rounded-bl":K()}],"border-w":[{border:H()}],"border-w-x":[{"border-x":H()}],"border-w-y":[{"border-y":H()}],"border-w-s":[{"border-s":H()}],"border-w-e":[{"border-e":H()}],"border-w-bs":[{"border-bs":H()}],"border-w-be":[{"border-be":H()}],"border-w-t":[{"border-t":H()}],"border-w-r":[{"border-r":H()}],"border-w-b":[{"border-b":H()}],"border-w-l":[{"border-l":H()}],"divide-x":[{"divide-x":H()}],"divide-x-reverse":["divide-x-reverse"],"divide-y":[{"divide-y":H()}],"divide-y-reverse":["divide-y-reverse"],"border-style":[{border:[...pe(),"hidden","none"]}],"divide-style":[{divide:[...pe(),"hidden","none"]}],"border-color":[{border:$()}],"border-color-x":[{"border-x":$()}],"border-color-y":[{"border-y":$()}],"border-color-s":[{"border-s":$()}],"border-color-e":[{"border-e":$()}],"border-color-bs":[{"border-bs":$()}],"border-color-be":[{"border-be":$()}],"border-color-t":[{"border-t":$()}],"border-color-r":[{"border-r":$()}],"border-color-b":[{"border-b":$()}],"border-color-l":[{"border-l":$()}],"divide-color":[{divide:$()}],"outline-style":[{outline:[...pe(),"none","hidden"]}],"outline-offset":[{"outline-offset":[F,M,A]}],"outline-w":[{outline:["",F,Xe,Ie]}],"outline-color":[{outline:$()}],shadow:[{shadow:["","none",n,xt,dt]}],"shadow-color":[{shadow:$()}],"inset-shadow":[{"inset-shadow":["none",x,xt,dt]}],"inset-shadow-color":[{"inset-shadow":$()}],"ring-w":[{ring:H()}],"ring-w-inset":["ring-inset"],"ring-color":[{ring:$()}],"ring-offset-w":[{"ring-offset":[F,Ie]}],"ring-offset-color":[{"ring-offset":$()}],"inset-ring-w":[{"inset-ring":H()}],"inset-ring-color":[{"inset-ring":$()}],"text-shadow":[{"text-shadow":["none",u,xt,dt]}],"text-shadow-color":[{"text-shadow":$()}],opacity:[{opacity:[F,M,A]}],"mix-blend":[{"mix-blend":[...ge(),"plus-darker","plus-lighter"]}],"bg-blend":[{"bg-blend":ge()}],"mask-clip":[{"mask-clip":["border","padding","content","fill","stroke","view"]},"mask-no-clip"],"mask-composite":[{mask:["add","subtract","intersect","exclude"]}],"mask-image-linear-pos":[{"mask-linear":[F]}],"mask-image-linear-from-pos":[{"mask-linear-from":Y()}],"mask-image-linear-to-pos":[{"mask-linear-to":Y()}],"mask-image-linear-from-color":[{"mask-linear-from":$()}],"mask-image-linear-to-color":[{"mask-linear-to":$()}],"mask-image-t-from-pos":[{"mask-t-from":Y()}],"mask-image-t-to-pos":[{"mask-t-to":Y()}],"mask-image-t-from-color":[{"mask-t-from":$()}],"mask-image-t-to-color":[{"mask-t-to":$()}],"mask-image-r-from-pos":[{"mask-r-from":Y()}],"mask-image-r-to-pos":[{"mask-r-to":Y()}],"mask-image-r-from-color":[{"mask-r-from":$()}],"mask-image-r-to-color":[{"mask-r-to":$()}],"mask-image-b-from-pos":[{"mask-b-from":Y()}],"mask-image-b-to-pos":[{"mask-b-to":Y()}],"mask-image-b-from-color":[{"mask-b-from":$()}],"mask-image-b-to-color":[{"mask-b-to":$()}],"mask-image-l-from-pos":[{"mask-l-from":Y()}],"mask-image-l-to-pos":[{"mask-l-to":Y()}],"mask-image-l-from-color":[{"mask-l-from":$()}],"mask-image-l-to-color":[{"mask-l-to":$()}],"mask-image-x-from-pos":[{"mask-x-from":Y()}],"mask-image-x-to-pos":[{"mask-x-to":Y()}],"mask-image-x-from-color":[{"mask-x-from":$()}],"mask-image-x-to-color":[{"mask-x-to":$()}],"mask-image-y-from-pos":[{"mask-y-from":Y()}],"mask-image-y-to-pos":[{"mask-y-to":Y()}],"mask-image-y-from-color":[{"mask-y-from":$()}],"mask-image-y-to-color":[{"mask-y-to":$()}],"mask-image-radial":[{"mask-radial":[M,A]}],"mask-image-radial-from-pos":[{"mask-radial-from":Y()}],"mask-image-radial-to-pos":[{"mask-radial-to":Y()}],"mask-image-radial-from-color":[{"mask-radial-from":$()}],"mask-image-radial-to-color":[{"mask-radial-to":$()}],"mask-image-radial-shape":[{"mask-radial":["circle","ellipse"]}],"mask-image-radial-size":[{"mask-radial":[{closest:["side","corner"],farthest:["side","corner"]}]}],"mask-image-radial-pos":[{"mask-radial-at":v()}],"mask-image-conic-pos":[{"mask-conic":[F]}],"mask-image-conic-from-pos":[{"mask-conic-from":Y()}],"mask-image-conic-to-pos":[{"mask-conic-to":Y()}],"mask-image-conic-from-color":[{"mask-conic-from":$()}],"mask-image-conic-to-color":[{"mask-conic-to":$()}],"mask-mode":[{mask:["alpha","luminance","match"]}],"mask-origin":[{"mask-origin":["border","padding","content","fill","stroke","view"]}],"mask-position":[{mask:se()}],"mask-repeat":[{mask:I()}],"mask-size":[{mask:xe()}],"mask-type":[{"mask-type":["alpha","luminance"]}],"mask-image":[{mask:["none",M,A]}],filter:[{filter:["","none",M,A]}],blur:[{blur:Ce()}],brightness:[{brightness:[F,M,A]}],contrast:[{contrast:[F,M,A]}],"drop-shadow":[{"drop-shadow":["","none",b,xt,dt]}],"drop-shadow-color":[{"drop-shadow":$()}],grayscale:[{grayscale:["",F,M,A]}],"hue-rotate":[{"hue-rotate":[F,M,A]}],invert:[{invert:["",F,M,A]}],saturate:[{saturate:[F,M,A]}],sepia:[{sepia:["",F,M,A]}],"backdrop-filter":[{"backdrop-filter":["","none",M,A]}],"backdrop-blur":[{"backdrop-blur":Ce()}],"backdrop-brightness":[{"backdrop-brightness":[F,M,A]}],"backdrop-contrast":[{"backdrop-contrast":[F,M,A]}],"backdrop-grayscale":[{"backdrop-grayscale":["",F,M,A]}],"backdrop-hue-rotate":[{"backdrop-hue-rotate":[F,M,A]}],"backdrop-invert":[{"backdrop-invert":["",F,M,A]}],"backdrop-opacity":[{"backdrop-opacity":[F,M,A]}],"backdrop-saturate":[{"backdrop-saturate":[F,M,A]}],"backdrop-sepia":[{"backdrop-sepia":["",F,M,A]}],"border-collapse":[{border:["collapse","separate"]}],"border-spacing":[{"border-spacing":k()}],"border-spacing-x":[{"border-spacing-x":k()}],"border-spacing-y":[{"border-spacing-y":k()}],"table-layout":[{table:["auto","fixed"]}],caption:[{caption:["top","bottom"]}],transition:[{transition:["","all","colors","opacity","shadow","transform","none",M,A]}],"transition-behavior":[{transition:["normal","discrete"]}],duration:[{duration:[F,"initial",M,A]}],ease:[{ease:["linear","initial",E,M,A]}],delay:[{delay:[F,M,A]}],animate:[{animate:["none",N,M,A]}],backface:[{backface:["hidden","visible"]}],perspective:[{perspective:[g,M,A]}],"perspective-origin":[{"perspective-origin":j()}],rotate:[{rotate:we()}],"rotate-x":[{"rotate-x":we()}],"rotate-y":[{"rotate-y":we()}],"rotate-z":[{"rotate-z":we()}],scale:[{scale:re()}],"scale-x":[{"scale-x":re()}],"scale-y":[{"scale-y":re()}],"scale-z":[{"scale-z":re()}],"scale-3d":["scale-3d"],skew:[{skew:Se()}],"skew-x":[{"skew-x":Se()}],"skew-y":[{"skew-y":Se()}],transform:[{transform:[M,A,"","none","gpu","cpu"]}],"transform-origin":[{origin:j()}],"transform-style":[{transform:["3d","flat"]}],translate:[{translate:me()}],"translate-x":[{"translate-x":me()}],"translate-y":[{"translate-y":me()}],"translate-z":[{"translate-z":me()}],"translate-none":["translate-none"],accent:[{accent:$()}],appearance:[{appearance:["none","auto"]}],"caret-color":[{caret:$()}],"color-scheme":[{scheme:["normal","dark","light","light-dark","only-dark","only-light"]}],cursor:[{cursor:["auto","default","pointer","wait","text","move","help","not-allowed","none","context-menu","progress","cell","crosshair","vertical-text","alias","copy","no-drop","grab","grabbing","all-scroll","col-resize","row-resize","n-resize","e-resize","s-resize","w-resize","ne-resize","nw-resize","se-resize","sw-resize","ew-resize","ns-resize","nesw-resize","nwse-resize","zoom-in","zoom-out",M,A]}],"field-sizing":[{"field-sizing":["fixed","content"]}],"pointer-events":[{"pointer-events":["auto","none"]}],resize:[{resize:["none","","y","x"]}],"scroll-behavior":[{scroll:["auto","smooth"]}],"scroll-m":[{"scroll-m":k()}],"scroll-mx":[{"scroll-mx":k()}],"scroll-my":[{"scroll-my":k()}],"scroll-ms":[{"scroll-ms":k()}],"scroll-me":[{"scroll-me":k()}],"scroll-mbs":[{"scroll-mbs":k()}],"scroll-mbe":[{"scroll-mbe":k()}],"scroll-mt":[{"scroll-mt":k()}],"scroll-mr":[{"scroll-mr":k()}],"scroll-mb":[{"scroll-mb":k()}],"scroll-ml":[{"scroll-ml":k()}],"scroll-p":[{"scroll-p":k()}],"scroll-px":[{"scroll-px":k()}],"scroll-py":[{"scroll-py":k()}],"scroll-ps":[{"scroll-ps":k()}],"scroll-pe":[{"scroll-pe":k()}],"scroll-pbs":[{"scroll-pbs":k()}],"scroll-pbe":[{"scroll-pbe":k()}],"scroll-pt":[{"scroll-pt":k()}],"scroll-pr":[{"scroll-pr":k()}],"scroll-pb":[{"scroll-pb":k()}],"scroll-pl":[{"scroll-pl":k()}],"snap-align":[{snap:["start","end","center","align-none"]}],"snap-stop":[{snap:["normal","always"]}],"snap-type":[{snap:["none","x","y","both"]}],"snap-strictness":[{snap:["mandatory","proximity"]}],touch:[{touch:["auto","none","manipulation"]}],"touch-x":[{"touch-pan":["x","left","right"]}],"touch-y":[{"touch-pan":["y","up","down"]}],"touch-pz":["touch-pinch-zoom"],select:[{select:["none","text","all","auto"]}],"will-change":[{"will-change":["auto","scroll","contents","transform",M,A]}],fill:[{fill:["none",...$()]}],"stroke-w":[{stroke:[F,Xe,Ie,Kt]}],stroke:[{stroke:["none",...$()]}],"forced-color-adjust":[{"forced-color-adjust":["auto","none"]}]},conflictingClassGroups:{overflow:["overflow-x","overflow-y"],overscroll:["overscroll-x","overscroll-y"],inset:["inset-x","inset-y","inset-bs","inset-be","start","end","top","right","bottom","left"],"inset-x":["right","left"],"inset-y":["top","bottom"],flex:["basis","grow","shrink"],gap:["gap-x","gap-y"],p:["px","py","ps","pe","pbs","pbe","pt","pr","pb","pl"],px:["pr","pl"],py:["pt","pb"],m:["mx","my","ms","me","mbs","mbe","mt","mr","mb","ml"],mx:["mr","ml"],my:["mt","mb"],size:["w","h"],"font-size":["leading"],"fvn-normal":["fvn-ordinal","fvn-slashed-zero","fvn-figure","fvn-spacing","fvn-fraction"],"fvn-ordinal":["fvn-normal"],"fvn-slashed-zero":["fvn-normal"],"fvn-figure":["fvn-normal"],"fvn-spacing":["fvn-normal"],"fvn-fraction":["fvn-normal"],"line-clamp":["display","overflow"],rounded:["rounded-s","rounded-e","rounded-t","rounded-r","rounded-b","rounded-l","rounded-ss","rounded-se","rounded-ee","rounded-es","rounded-tl","rounded-tr","rounded-br","rounded-bl"],"rounded-s":["rounded-ss","rounded-es"],"rounded-e":["rounded-se","rounded-ee"],"rounded-t":["rounded-tl","rounded-tr"],"rounded-r":["rounded-tr","rounded-br"],"rounded-b":["rounded-br","rounded-bl"],"rounded-l":["rounded-tl","rounded-bl"],"border-spacing":["border-spacing-x","border-spacing-y"],"border-w":["border-w-x","border-w-y","border-w-s","border-w-e","border-w-bs","border-w-be","border-w-t","border-w-r","border-w-b","border-w-l"],"border-w-x":["border-w-r","border-w-l"],"border-w-y":["border-w-t","border-w-b"],"border-color":["border-color-x","border-color-y","border-color-s","border-color-e","border-color-bs","border-color-be","border-color-t","border-color-r","border-color-b","border-color-l"],"border-color-x":["border-color-r","border-color-l"],"border-color-y":["border-color-t","border-color-b"],translate:["translate-x","translate-y","translate-none"],"translate-none":["translate","translate-x","translate-y","translate-z"],"scroll-m":["scroll-mx","scroll-my","scroll-ms","scroll-me","scroll-mbs","scroll-mbe","scroll-mt","scroll-mr","scroll-mb","scroll-ml"],"scroll-mx":["scroll-mr","scroll-ml"],"scroll-my":["scroll-mt","scroll-mb"],"scroll-p":["scroll-px","scroll-py","scroll-ps","scroll-pe","scroll-pbs","scroll-pbe","scroll-pt","scroll-pr","scroll-pb","scroll-pl"],"scroll-px":["scroll-pr","scroll-pl"],"scroll-py":["scroll-pt","scroll-pb"],touch:["touch-x","touch-y","touch-pz"],"touch-x":["touch"],"touch-y":["touch"],"touch-pz":["touch"]},conflictingClassGroupModifiers:{"font-size":["leading"]},orderSensitiveModifiers:["*","**","after","backdrop","before","details-content","file","first-letter","first-line","marker","placeholder","selection"]}},Za=Ma(Ja);function i(...t){return Za(Fs(t))}const ee=t=>{if(!t||t<=0)return"0 B";const s=1024,r=["B","KB","MB","GB","TB"],a=Math.floor(Math.log(t)/Math.log(s)),c=Math.max(0,Math.min(a,r.length-1));return parseFloat((t/Math.pow(s,c)).toFixed(2))+" "+r[c]},er=()=>{const{hostname:t,protocol:s,port:r}=window.location;return r==="3000"||r==="5173"?`${s}//${t}:3000/api`:"/api"},tr=er(),T=Us.create({baseURL:tr,headers:{"Content-Type":"application/json"}}),Rs=t=>{const s=window.location.protocol==="https:"?"wss:":"ws:",{hostname:r,port:a,host:c}=window.location,d=localStorage.getItem("wg-api-token")||sessionStorage.getItem("wg-api-token")||"",p=d?`?token=${encodeURIComponent(d)}`:"";if(a==="3000"||a==="5173"){const l=`${s}//${r}:3000/api/logs-ws`;if(t==="logs-api")return`${l}/api${p}`;if(t==="logs-wg")return`${l}/wireguard${p}`;if(t==="status")return`${s}//${r}:3000/api/status-ws${p}`}const m=`${s}//${c}/api/logs-ws`;return t==="logs-api"?`${m}/api${p}`:t==="logs-wg"?`${m}/wireguard${p}`:t==="status"?`${s}//${c}/api/status-ws${p}`:`${s}//${c}/ws${p}`};T.interceptors.request.use(t=>{const s=localStorage.getItem("wg-api-token")||sessionStorage.getItem("wg-api-token");return s&&(t.headers["X-Api-Token"]=s),t.metadata={startTime:new Date},t});T.interceptors.response.use(t=>{const s=t.config.metadata?new Date-t.config.metadata.startTime:"unknown";return(window.location.port==="5173"||t.status>=500)&&console.log(`[API-PERF] ${t.config.method.toUpperCase()} ${t.config.url} took ${s}ms`),t},t=>{var c,d,p,m,l,o,n,x,u;const s=(c=t.config)!=null&&c.metadata?new Date-t.config.metadata.startTime:null,r=(d=t.response)==null?void 0:d.status,a=((m=(p=t.response)==null?void 0:p.data)==null?void 0:m.error)||((o=(l=t.response)==null?void 0:l.data)==null?void 0:o.message);return(window.location.port==="5173"||r>=400)&&console.error(`[API-ERR] ${(x=(n=t.config)==null?void 0:n.method)==null?void 0:x.toUpperCase()} ${(u=t.config)==null?void 0:u.url} failed after ${s}ms:`,a),(r===401||r===403&&a==="Account expired")&&sr(),Promise.reject(t)});function sr(){["wg-api-token","wg-user-role","wg-user-username"].forEach(s=>{localStorage.removeItem(s),sessionStorage.removeItem(s)}),window.location.href="/login"}const ar=({onLogin:t})=>{const{theme:s,mode:r}=Q(),[a,c]=h.useState(""),[d,p]=h.useState(""),[m,l]=h.useState(!1),[o,n]=h.useState(""),[x,u]=h.useState(!1),[b,y]=h.useState(""),[g,w]=h.useState(!1),[E,N]=h.useState(!1),f=r==="dark",v=async j=>{var z,D,k,R;j.preventDefault(),w(!0),y("");try{const{data:U}=await T.post("/auth/login",{username:a,password:d,token:o});U.valid&&U.token?t(U.token,E,U.role,a):y(U.error||"Identifiants invalides")}catch(U){((z=U.response)==null?void 0:z.status)===429?y("Trop de tentatives. Réessayez plus tard."):((D=U.response)==null?void 0:D.status)===403&&U.response.data.error==="2FA_REQUIRED"?(u(!0),y("")):y(((R=(k=U.response)==null?void 0:k.data)==null?void 0:R.error)||"Erreur de connexion au serveur")}finally{w(!1)}};return e.jsxs("div",{className:"min-h-screen flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-700 bg-[var(--bg-canvas)]",children:[e.jsxs("div",{className:"absolute inset-0 pointer-events-none overflow-hidden",children:[e.jsx(L.div,{animate:{scale:[1,1.3,1],opacity:f?[.08,.18,.08]:[.03,.06,.03]},transition:{duration:12,repeat:1/0,ease:"easeInOut"},className:i("absolute -top-[20%] -left-[10%] w-[80vw] h-[80vw] rounded-full blur-[160px] max-w-3xl",`bg-${s}-600/20`)}),e.jsx(L.div,{animate:{scale:[1,1.2,1],opacity:f?[.05,.12,.05]:[.02,.04,.02]},transition:{duration:18,repeat:1/0,delay:3,ease:"easeInOut"},className:"absolute -bottom-[20%] -right-[10%] w-[70vw] h-[70vw] rounded-full blur-[160px] bg-emerald-600/10 max-w-2xl"}),e.jsx("div",{className:i("absolute inset-0 bg-[size:50px_50px]",f?"bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)]":"bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)]")})]}),e.jsx(L.div,{initial:{opacity:0,y:32,scale:.98},animate:{opacity:1,y:0,scale:1},transition:{duration:.8,ease:[.23,1,.32,1]},className:"w-full max-w-[460px] relative z-10",children:e.jsxs("div",{className:"glass-card p-10 md:p-14 overflow-hidden relative shadow-2xl",children:[e.jsx("div",{className:i("absolute inset-0 opacity-[0.03] pointer-events-none",`bg-gradient-to-br from-${s}-500 to-transparent`)}),e.jsxs("div",{className:"text-center mb-12 relative z-10",children:[e.jsxs(L.div,{whileHover:{rotate:5,scale:1.05},transition:{type:"spring",stiffness:400},className:"inline-flex relative mb-8",children:[e.jsx("div",{className:i("absolute inset-0 blur-3xl opacity-20 rounded-full",`bg-${s}-500`)}),e.jsx("div",{className:i("relative p-6 rounded-[2rem] border shadow-2xl transition-all duration-700",f?"bg-slate-950/80 border-white/10 text-emerald-500":"bg-white border-slate-200 text-emerald-600"),children:e.jsx(fe,{size:48,strokeWidth:1.5})})]}),e.jsx("h1",{className:i("text-5xl font-black tracking-tighter mb-3 italic transition-colors duration-700 uppercase",f?"text-white":"text-slate-900"),children:window.APP_TITLE||"WG-FUX"}),e.jsx("p",{className:"text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60",children:"Zero Latency Engine — v4.0.1"})]}),e.jsxs("form",{onSubmit:v,className:"space-y-6 relative z-10",children:[e.jsx(le,{mode:"wait",children:x?e.jsxs(L.div,{initial:{opacity:0,scale:.95},animate:{opacity:1,scale:1},exit:{opacity:0,scale:.95},className:"text-center space-y-6",children:[e.jsx("div",{className:i("inline-flex p-5 rounded-3xl transition-colors",f?"bg-white/5":"bg-slate-50",`text-${s}-500`),children:e.jsx(Rt,{size:40})}),e.jsxs("div",{children:[e.jsx("h3",{className:i("text-xl font-black uppercase tracking-tight mb-1",f?"text-white":"text-slate-900"),children:"Double Facteur"}),e.jsx("p",{className:"text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60",children:"Synchronisation Sentinel requise"})]}),e.jsx("input",{type:"text",value:o,onChange:j=>n(j.target.value.replace(/\D/g,"").slice(0,6)),className:"w-full glass-input text-center text-3xl font-mono font-black tracking-[0.6em]",placeholder:"000000",autoFocus:!0,maxLength:6,inputMode:"numeric"})]},"totp-field"):e.jsxs(L.div,{initial:{opacity:0,x:-10},animate:{opacity:1,x:0},exit:{opacity:0,x:10},className:"space-y-5",children:[e.jsxs("div",{className:"group space-y-2",children:[e.jsx("label",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 opacity-50",children:"Identifiant Unique"}),e.jsxs("div",{className:"relative",children:[e.jsx(Ne,{className:i("absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300",f?"text-slate-600 group-focus-within:text-white":"text-slate-400 group-focus-within:text-slate-900"),size:18}),e.jsx("input",{type:"text",value:a,onChange:j=>c(j.target.value),className:"w-full glass-input pl-12",placeholder:"SECRET_ID",autoFocus:!0,autoComplete:"username"})]})]}),e.jsxs("div",{className:"group space-y-2",children:[e.jsx("label",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 opacity-50",children:"Clé de Chiffrement"}),e.jsxs("div",{className:"relative",children:[e.jsx(Ct,{className:i("absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300",f?"text-slate-600 group-focus-within:text-white":"text-slate-400 group-focus-within:text-slate-900"),size:18}),e.jsx("input",{type:m?"text":"password",value:d,onChange:j=>p(j.target.value),className:"w-full glass-input pl-12 pr-12",placeholder:"••••••••",autoComplete:"current-password"}),e.jsx("button",{type:"button",onClick:()=>l(!m),className:i("absolute right-4 top-1/2 -translate-y-1/2 transition-colors",f?"text-slate-600 hover:text-white":"text-slate-400 hover:text-slate-900"),children:m?e.jsx(rs,{size:18}):e.jsx(is,{size:18})})]})]})]},"login-fields")}),e.jsxs("div",{className:"flex items-center justify-between py-1",children:[e.jsxs("label",{className:"flex items-center gap-2.5 cursor-pointer group select-none",children:[e.jsx("div",{onClick:()=>N(!E),className:i("w-5 h-5 rounded-lg border flex items-center justify-center transition-all duration-300",E?`bg-${s}-600 border-${s}-600`:f?"bg-slate-950 border-white/10 group-hover:border-white/20":"bg-white border-slate-200 group-hover:border-slate-300"),children:E&&e.jsx(ls,{size:11,className:"text-white",strokeWidth:4})}),e.jsx("input",{type:"checkbox",checked:E,onChange:j=>N(j.target.checked),className:"hidden"}),e.jsx("span",{className:i("text-[9px] font-black uppercase tracking-[0.2em] transition-colors",f?"text-slate-600 group-hover:text-slate-400":"text-slate-400 group-hover:text-slate-600"),children:"Mémoriser"})]}),e.jsx("p",{onClick:()=>alert("Récupération de clé : Contactez votre administrateur Sentinel."),className:"text-[9px] font-black uppercase tracking-widest text-indigo-500/50 hover:text-indigo-500 cursor-pointer transition-colors duration-300",children:"Clé perdue ?"})]}),e.jsx(le,{children:b&&e.jsxs(L.div,{initial:{opacity:0,y:-4},animate:{opacity:1,y:0},exit:{opacity:0},className:"flex items-center gap-3 p-4 rounded-2xl bg-red-500/5 border border-red-500/10",children:[e.jsx(At,{size:18,className:"text-red-500 flex-shrink-0"}),e.jsx("p",{className:"text-[10px] font-black text-red-500 leading-relaxed uppercase tracking-widest",children:b})]})}),e.jsxs("button",{type:"submit",disabled:g||!a||!d||x&&o.length<6,className:i("group relative w-full py-5 text-white rounded-2xl font-black uppercase text-xs tracking-[0.3em] overflow-hidden transition-all duration-500 active:scale-[0.97] disabled:opacity-20 shadow-xl",`bg-${s}-600 hover:bg-${s}-500 shadow-${s}-600/30`),children:[e.jsx("div",{className:"absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"}),e.jsxs("div",{className:"relative flex items-center justify-center gap-3",children:[g?e.jsx(J,{className:"animate-spin text-white",size:18}):x?e.jsx(os,{size:18}):e.jsx(ut,{size:18,strokeWidth:3}),e.jsx("span",{children:g?"Séquençage...":!a||!d?"Identifiants requis":x?"Valider Phase 2":"Démarrer Session"})]})]})]}),e.jsx("div",{className:i("mt-12 pt-8 border-t text-center relative z-10",f?"border-slate-500/10":"border-slate-200"),children:e.jsx("p",{className:i("text-[8px] font-black tracking-[0.5em] uppercase transition-colors duration-700 opacity-40",f?"text-white":"text-slate-500"),children:"Sentinel Crypto-Guard — Layer v4.0.1"})})]})})]})},ue={token:"wg-api-token",role:"wg-user-role",username:"wg-user-username",cache:"wg-fux-cache"},rr=()=>({token:localStorage.getItem(ue.token)||sessionStorage.getItem(ue.token),role:localStorage.getItem(ue.role),username:localStorage.getItem(ue.username)}),ir=()=>{const[t,s]=h.useState(rr);return{session:t,login:(c,d,p,m)=>{d?localStorage.setItem(ue.token,c):sessionStorage.setItem(ue.token,c),p&&localStorage.setItem(ue.role,p),m&&localStorage.setItem(ue.username,m),s({token:c,role:p||null,username:m||null})},logout:()=>{localStorage.removeItem(ue.token),sessionStorage.removeItem(ue.token),localStorage.removeItem(ue.role),localStorage.removeItem(ue.username),sessionStorage.removeItem(ue.cache),s({token:null,role:null,username:null})}}},As=h.createContext(),lr=({children:t})=>{const[s,r]=h.useState([]),a=(d,p="info")=>{const m=Date.now();r(l=>[...l,{id:m,message:d,type:p}]),setTimeout(()=>r(l=>l.filter(o=>o.id!==m)),5e3)},c=d=>r(p=>p.filter(m=>m.id!==d));return e.jsxs(As.Provider,{value:{addToast:a},children:[t,e.jsx("div",{className:"fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none",children:e.jsx(le,{children:s.map(d=>e.jsxs(L.div,{initial:{opacity:0,x:20,scale:.9},animate:{opacity:1,x:0,scale:1},exit:{opacity:0,x:20,scale:.9},className:"pointer-events-auto flex items-center gap-3 px-4 py-3 bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl",children:[d.type==="success"&&e.jsx(mt,{className:"text-emerald-400",size:20}),d.type==="error"&&e.jsx(At,{className:"text-red-400",size:20}),d.type==="info"&&e.jsx(ht,{className:"text-indigo-400",size:20}),e.jsx("span",{className:"text-sm font-bold text-white",children:d.message}),e.jsx("button",{onClick:()=>c(d.id),className:"ml-2 text-slate-500 hover:text-white transition-colors",children:e.jsx(Fe,{size:16})})]},d.id))})})]})},ke=()=>h.useContext(As);class or extends h.Component{constructor(r){super(r);Ot(this,"handleReset",()=>{this.setState({hasError:!1,error:null,errorInfo:null})});this.state={hasError:!1,error:null,errorInfo:null}}static getDerivedStateFromError(r){return{hasError:!0,error:r}}componentDidCatch(r,a){this.setState({errorInfo:a}),console.error("[ERROR-BOUNDARY] Component crashed:",r,a)}render(){var r,a;if(this.state.hasError){const{fallback:c,sectionName:d}=this.props;return c?e.jsx(c,{error:this.state.error,onReset:this.handleReset}):e.jsxs("div",{className:"flex flex-col items-center justify-center p-10 rounded-3xl bg-slate-900/50 border border-red-500/20 backdrop-blur-xl text-center min-h-[200px]",children:[e.jsx("div",{className:"p-4 rounded-2xl bg-red-500/10 text-red-400 mb-6",children:e.jsx(Be,{size:32})}),e.jsxs("h3",{className:"text-lg font-black text-white uppercase tracking-tight mb-2",children:[d||"Composant"," — Erreur Critique"]}),e.jsx("p",{className:"text-xs text-slate-500 font-mono mb-1 max-w-sm",children:((r=this.state.error)==null?void 0:r.message)||"Une erreur inattendue est survenue."}),((a=this.state.errorInfo)==null?void 0:a.componentStack)&&e.jsxs("details",{className:"mt-4 text-left w-full max-w-md",children:[e.jsx("summary",{className:"text-[10px] text-slate-600 uppercase tracking-widest cursor-pointer mb-2",children:"Stack Trace"}),e.jsx("pre",{className:"text-[9px] text-slate-700 overflow-auto bg-slate-950 rounded-xl p-4 max-h-48",children:this.state.errorInfo.componentStack})]}),e.jsxs("button",{onClick:this.handleReset,className:"mt-6 flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all border border-white/10",children:[e.jsx(J,{size:14}),"Réinitialiser"]})]})}return this.props.children}}const nr={fr:{dashboard:"Tableau de bord",containers:"Conteneurs",users_manage:"Utilisateurs",logs:"Logs",topology:"Topologie",optimization:"Optimisation",settings:"Paramètres",logout:"Déconnexion",configs:"Configurations",support:"Support",active_core:"Cœur Actif",uptime:"Temps Activité",reboot_system:"Redémarrer Système",secure_portal:"Espace Utilisateur Sécurisé",no_config:"Aucune configuration disponible",contact_admin:"Contactez l'administrateur."},en:{dashboard:"Dashboard",containers:"Containers",users_manage:"Users",logs:"Logs",topology:"Topology",optimization:"Optimization",settings:"Settings",logout:"Logout",configs:"Configurations",support:"Support",active_core:"Active Core",uptime:"Uptime",reboot_system:"Reboot System",secure_portal:"Secure User Portal",no_config:"No configuration available",contact_admin:"Contact administrator."}},Ms=h.createContext(),cr=({children:t})=>{const[s,r]=h.useState(localStorage.getItem("app-lang")||"fr");h.useEffect(()=>{localStorage.setItem("app-lang",s)},[s]);const a=c=>{var d;return((d=nr[s])==null?void 0:d[c])||c};return e.jsx(Ms.Provider,{value:{lang:s,setLang:r,t:a},children:t})},dr=()=>h.useContext(Ms),xr=({activeSection:t,setActiveSection:s,isOpen:r,onClose:a,onLogout:c,uptime:d})=>{const{theme:p,setTheme:m,mode:l,setMode:o}=Q(),n=l==="dark",{lang:x,setLang:u,t:b}=dr(),{addToast:y}=ke(),[g,w]=h.useState(()=>localStorage.getItem("sidebar-collapsed")==="true"),E=()=>{w(j=>(localStorage.setItem("sidebar-collapsed",String(!j)),!j))},N=[{id:"dashboard",icon:e.jsx(Bs,{size:20}),label:b("dashboard")},{id:"containers",icon:e.jsx(ye,{size:20}),label:b("containers")},{id:"users",icon:e.jsx(Ne,{size:20}),label:b("users_manage"),hidden:localStorage.getItem("wg-user-role")!=="admin"},{id:"logs",icon:e.jsx(Mt,{size:20}),label:b("logs")},{id:"topology",icon:e.jsx(de,{size:20}),label:b("topology")},{id:"dns",icon:e.jsx(Ge,{size:20}),label:"DNS Editor"},{id:"optimization",icon:e.jsx(He,{size:20}),label:b("optimization")},{id:"audit",icon:e.jsx(fe,{size:20}),label:"Audit"},{id:"settings",icon:e.jsx(bt,{size:20}),label:b("settings"),hidden:localStorage.getItem("wg-user-role")!=="admin"}],f=async()=>{if(window.confirm("Êtes-vous sûr de vouloir redémarrer le service WireGuard ?"))try{await T.post("/system/restart/wireguard"),y("Service WireGuard redémarré.","success")}catch{y("Erreur lors du redémarrage.","error")}},v=[{id:"indigo",color:"bg-indigo-500"},{id:"cyan",color:"bg-cyan-500"},{id:"rose",color:"bg-rose-500"}];return e.jsxs(e.Fragment,{children:[e.jsx(le,{children:r&&e.jsx(L.div,{initial:{opacity:0},animate:{opacity:1},exit:{opacity:0},className:"fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden",onClick:a})}),e.jsxs("aside",{className:i("fixed inset-y-0 left-0 z-50 flex flex-col h-screen glass-panel border-r border-white/5 transition-all duration-300 ease-in-out",g?"md:w-20":"md:w-64 lg:w-72","w-64 -translate-x-full md:translate-x-0 md:relative md:z-auto",r&&"translate-x-0 shadow-2xl"),children:[e.jsxs("div",{className:i("flex justify-between items-center transition-all duration-500",g?"p-4 py-6":"p-8 pb-10"),children:[e.jsxs("div",{className:i("flex items-center gap-4 overflow-hidden",g&&"md:hidden"),children:[e.jsx("div",{className:"relative group flex-shrink-0",children:e.jsx("div",{className:i("relative p-3 rounded-2xl shadow-2xl border transition-all duration-500",`bg-${p}-600 shadow-${p}-600/20`,n?"border-white/10":"border-white/20"),children:e.jsx(fe,{className:"text-white",size:g?20:28,strokeWidth:2.5})})}),e.jsxs("div",{children:[e.jsx("h1",{className:i("text-2xl font-black italic tracking-tighter transition-colors duration-500",n?"text-white":"text-slate-900"),children:window.APP_TITLE||"WG-FUX"}),e.jsxs("div",{className:"flex items-center gap-1.5",children:[e.jsx("p",{className:i("text-[8px] font-extrabold tracking-[0.2em] uppercase opacity-70",`text-${p}-500`),children:"PLATINUM CORE"}),e.jsx("div",{className:"h-1 w-1 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"})]})]})]}),g&&e.jsx("div",{className:i("hidden md:flex items-center justify-center w-full"),children:e.jsx("div",{className:i("p-2.5 rounded-2xl shadow-xl border",`bg-${p}-600`,n?"border-white/10":"border-white/20"),children:e.jsx(fe,{className:"text-white",size:20,strokeWidth:2.5})})}),e.jsx("button",{onClick:a,className:"md:hidden p-3 rounded-2xl transition-all border text-slate-500 hover:text-white hover:bg-white/10 border-white/5",children:e.jsx(Fe,{size:24})})]}),e.jsx("button",{onClick:E,className:i("hidden md:flex absolute -right-3.5 top-12 w-7 h-7 items-center justify-center border rounded-full transition-all shadow-xl z-10",n?"bg-slate-800 border-white/10 text-slate-400 hover:text-white":"bg-white border-slate-200 text-slate-400 hover:text-slate-900"),title:g?"Développer":"Réduire",children:g?e.jsx(Le,{size:14}):e.jsx(ns,{size:14})}),e.jsxs("nav",{className:"flex-1 px-3 space-y-1.5 overflow-y-auto custom-scrollbar",children:[N.filter(j=>!j.hidden).map(j=>{const z=t===j.id;return e.jsxs("button",{onClick:()=>{s(j.id),a()},title:g?j.label:void 0,className:i("group relative w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300",g?"md:justify-center md:px-0":"",z?`bg-${p}-600 text-white shadow-lg shadow-${p}-600/20`:n?"text-slate-500 hover:bg-white/5 hover:text-slate-200":"text-slate-500 hover:bg-black/5 hover:text-slate-900"),children:[z&&e.jsx(L.div,{layoutId:"activeNav",className:"absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-white rounded-r-full shadow-[0_0_15px_white]"}),e.jsx("div",{className:i("transition-transform duration-300 flex-shrink-0",!z&&"group-hover:scale-110 group-hover:rotate-3"),children:Te.cloneElement(j.icon,{size:18,className:z?"text-white":i("transition-colors",n?"group-hover:text-white":"group-hover:text-slate-900")})}),e.jsx("span",{className:i("font-bold text-xs tracking-wide uppercase whitespace-nowrap transition-all duration-300 overflow-hidden",g?"md:w-0 md:opacity-0":"w-auto opacity-100",z?"text-white":i("transition-colors",n?"text-slate-500 group-hover:text-white":"text-slate-400 group-hover:text-slate-900")),children:j.label}),!g&&z&&e.jsx(L.div,{initial:{opacity:0,x:-5},animate:{opacity:1,x:0},className:"ml-auto",children:e.jsx(Le,{size:14})})]},j.id)}),e.jsxs("button",{onClick:()=>{c(),a()},className:i("group w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300 mt-6",n?"text-slate-500 hover:bg-red-500/10 hover:text-red-400":"text-slate-400 hover:bg-red-50 hover:text-red-600",g&&"md:justify-center md:px-0"),title:g?"Déconnexion":void 0,children:[e.jsx(Gs,{size:18,className:"group-hover:scale-110 group-hover:rotate-3 transition-transform flex-shrink-0"}),e.jsx("span",{className:i("font-bold text-xs tracking-wide uppercase transition-all duration-300 overflow-hidden text-slate-500 group-hover:text-red-400",g?"md:w-0 md:opacity-0":"w-auto opacity-100"),children:b("logout")})]})]}),e.jsx("div",{className:i("p-4 mt-auto transition-all duration-500",g&&"md:hidden"),children:e.jsxs("div",{className:i("relative overflow-hidden glass-card p-4 md:p-6 group border shadow-2xl",n?"border-white/5":"border-slate-100"),children:[e.jsx(et,{className:i("absolute -right-6 -bottom-6 opacity-[0.03] w-32 h-32 rotate-12 group-hover:rotate-45 transition-transform duration-700 pointer-events-none",n?"text-white":"text-slate-900")}),e.jsxs("div",{className:"relative z-10",children:[e.jsxs("div",{className:"flex items-center justify-between mb-4",children:[e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsxs("span",{className:"relative flex h-1.5 w-1.5",children:[e.jsx("span",{className:"animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"}),e.jsx("span",{className:"relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"})]}),e.jsx("span",{className:"text-[9px] font-black text-emerald-500 uppercase tracking-widest",children:"SENTINEL ACTIVE"})]}),e.jsx("span",{className:i("text-[9px] font-mono px-2 py-0.5 rounded-md border",n?"text-slate-500 bg-white/5 border-white/5":"text-slate-400 bg-black/5 border-slate-200"),children:window.WG_INTERFACE||"wg0"})]}),e.jsxs("div",{className:"space-y-2 mb-5",children:[e.jsxs("div",{className:"flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-tight",children:[e.jsx("span",{children:"Version"}),e.jsx("span",{className:i("font-mono px-2 py-0.5 rounded-md",n?"text-white bg-white/5":"text-slate-900 bg-black/5"),children:"v3.1.0-Plat"})]}),e.jsxs("div",{className:"flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-tight",children:[e.jsx("span",{children:b("uptime")}),e.jsx("span",{className:i("font-mono",`text-${p}-500`),children:d||"..."})]})]}),e.jsxs("button",{onClick:f,className:i("w-full py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl border transition-all flex items-center justify-center gap-2 group/btn",n?"bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 border-white/5 hover:border-red-500/20":"bg-black/5 hover:bg-red-50 text-slate-500 hover:text-red-600 border-slate-200 hover:border-red-200"),children:[e.jsx(J,{size:12,className:"group-hover/btn:rotate-180 transition-transform duration-700"}),b("reboot_system")]}),e.jsxs("div",{className:i("flex items-center justify-between gap-2 mt-5 pt-5 border-t",n?"border-white/5":"border-slate-100"),children:[e.jsxs("div",{className:"flex gap-2",children:[e.jsx("button",{onClick:()=>o(l==="dark"?"light":"dark"),className:"p-2 rounded-xl transition-all bg-white/5 text-slate-400 hover:text-white",title:"Changer de mode",children:l==="dark"?e.jsx(Ft,{size:14}):e.jsx(Ut,{size:14})}),e.jsx("button",{onClick:()=>u(x==="fr"?"en":"fr"),className:"p-2 rounded-xl transition-all text-[10px] font-black w-10 bg-white/5 text-slate-400 hover:text-white",title:"Changer de langue",children:x.toUpperCase()})]}),e.jsx("div",{className:i("flex gap-2 p-1 rounded-full",n?"bg-white/5":"bg-black/5"),children:v.map(j=>e.jsx("button",{onClick:()=>m(j.id),className:i("w-3.5 h-3.5 rounded-full transition-all duration-300 border border-transparent",j.color,p===j.id?n?"ring-2 ring-white scale-110":"ring-2 ring-indigo-500 scale-110":"opacity-30 hover:opacity-100"),title:j.id},j.id))})]})]})]})}),g&&e.jsxs("div",{className:i("hidden md:flex flex-col items-center gap-3 p-4 mt-auto border-t",n?"border-white/5":"border-slate-100"),children:[e.jsx("button",{onClick:()=>o(l==="dark"?"light":"dark"),className:i("p-2.5 rounded-xl transition-all",n?"bg-white/5 text-slate-400 hover:text-white":"bg-black/5 text-slate-500 hover:text-slate-900"),title:"Thème",children:l==="dark"?e.jsx(Ft,{size:16}):e.jsx(Ut,{size:16})}),e.jsx("button",{onClick:f,className:i("p-2.5 rounded-xl transition-all",n?"bg-white/5 text-slate-400 hover:text-red-400":"bg-black/5 text-slate-500 hover:text-red-600"),title:"Redémarrer WireGuard",children:e.jsx(J,{size:16})})]})]})]})},he=({className:t,style:s,...r})=>e.jsx("div",{className:i("animate-shimmer rounded-2xl bg-white/[0.06]",t),style:s,...r}),pr=()=>e.jsxs("div",{className:"space-y-6 animate-in fade-in duration-500",children:[e.jsxs("div",{className:"grid grid-cols-1 xl:grid-cols-12 gap-6",children:[e.jsx("div",{className:"xl:col-span-8",children:e.jsxs("div",{className:"bg-slate-900/40 border border-white/5 rounded-[2.5rem] p-8 space-y-8 min-h-[320px]",children:[e.jsxs("div",{className:"flex justify-between items-start flex-wrap gap-4",children:[e.jsxs("div",{className:"space-y-3",children:[e.jsx(he,{className:"h-10 w-56"}),e.jsx(he,{className:"h-3 w-44"})]}),e.jsx(he,{className:"h-8 w-28 rounded-full"})]}),e.jsx("div",{className:"grid grid-cols-2 md:grid-cols-4 gap-6",children:[...Array(4)].map((t,s)=>e.jsx(he,{className:"h-24 rounded-2xl"},s))}),e.jsxs("div",{className:"grid grid-cols-2 gap-4",children:[e.jsx(he,{className:"h-24 rounded-2xl"}),e.jsx(he,{className:"h-24 rounded-2xl"})]})]})}),e.jsxs("div",{className:"xl:col-span-4 flex flex-col gap-6",children:[e.jsx(he,{className:"h-28 rounded-[2.5rem]"}),e.jsx(he,{className:"h-48 rounded-[2.5rem]"}),e.jsx(he,{className:"h-24 rounded-[2.5rem]"})]})]}),e.jsxs("div",{className:"grid grid-cols-1 xl:grid-cols-3 gap-6",children:[e.jsx("div",{className:"xl:col-span-2",children:e.jsx(he,{className:"h-64 rounded-[2.5rem]"})}),e.jsxs("div",{className:"flex flex-col gap-6",children:[e.jsx(he,{className:"h-[7.5rem] rounded-[2.5rem]"}),e.jsx(he,{className:"h-[7.5rem] rounded-[2.5rem]"})]})]})]}),Jt=[{id:"dashboard",label:"Tableau de Bord",icon:de,desc:"Statistiques temps réel"},{id:"containers",label:"Conteneurs",icon:ye,desc:"Gestion des peers WireGuard"},{id:"users",label:"Utilisateurs",icon:Ne,desc:"Accès opérateurs"},{id:"logs",label:"Logs Système",icon:Mt,desc:"Journaux d'accès et sécurité"},{id:"audit",label:"Audit",icon:fe,desc:"Contrôle de sécurité"},{id:"optimization",label:"Optimisation",icon:He,desc:"Profils réseau"},{id:"settings",label:"Paramètres",icon:bt,desc:"Configuration système"}],ur=({isOpen:t,onClose:s,clients:r=[],onNavigate:a})=>{const{theme:c,isDark:d}=Q(),[p,m]=h.useState(""),[l,o]=h.useState(0),n=h.useRef(null);h.useEffect(()=>{t&&(m(""),o(0),setTimeout(()=>{var g;return(g=n.current)==null?void 0:g.focus()},60))},[t]);const x=[];if(p.length>=1){const g=p.toLowerCase();Jt.filter(w=>w.label.toLowerCase().includes(g)||w.desc.toLowerCase().includes(g)).forEach(w=>x.push({...w,category:"Navigation",type:"section"})),r.filter(w=>{var E;return((E=w.name)==null?void 0:E.toLowerCase().includes(g))||(w.ip||"").includes(g)||(w.container||"").toLowerCase().includes(g)}).slice(0,6).forEach(w=>x.push({id:w.id,label:w.name,desc:`${w.container} · ${w.ip}`,icon:ye,type:"client",category:"Peers"}))}h.useEffect(()=>{const g=w=>{if(t){if(w.key==="Escape"){s();return}w.key==="ArrowDown"&&(w.preventDefault(),o(E=>Math.min(E+1,x.length-1))),w.key==="ArrowUp"&&(w.preventDefault(),o(E=>Math.max(E-1,0))),w.key==="Enter"&&x[l]&&u(x[l])}};return document.addEventListener("keydown",g),()=>document.removeEventListener("keydown",g)},[t,x,l]),h.useEffect(()=>{o(0)},[p]);const u=g=>{a(g.type==="client"?"containers":g.id),s()},b=[...new Set(x.map(g=>g.category))];let y=0;return e.jsx(le,{children:t&&e.jsxs("div",{className:"fixed inset-0 z-[200] flex items-start justify-center pt-16 sm:pt-24 px-4",children:[e.jsx(L.div,{initial:{opacity:0},animate:{opacity:1},exit:{opacity:0},className:i("absolute inset-0 backdrop-blur-sm transition-colors duration-700",d?"bg-slate-950/60":"bg-slate-200/40"),onClick:s}),e.jsxs(L.div,{initial:{opacity:0,scale:.95,y:-20},animate:{opacity:1,scale:1,y:0},exit:{opacity:0,scale:.95,y:-20},transition:{type:"spring",damping:28,stiffness:350},className:"relative w-full max-w-xl glass-panel border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden",children:[e.jsx("div",{className:"absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-32 blur-[80px] opacity-30 pointer-events-none",style:{background:"var(--theme-color, #4f46e5)"}}),e.jsxs("div",{className:"flex items-center gap-4 px-6 py-5 border-b border-white/5 relative z-10",children:[e.jsx(it,{size:20,className:i("flex-shrink-0 transition-colors",p?`text-${c}-400`:"text-slate-500")}),e.jsx("input",{ref:n,type:"text",value:p,onChange:g=>m(g.target.value),placeholder:"Rechercher peers, sections, IP...",className:i("flex-1 bg-transparent font-mono text-sm outline-none transition-colors",d?"text-white placeholder:text-slate-600":"text-slate-900 placeholder:text-slate-400")}),e.jsxs("div",{className:"flex items-center gap-2 flex-shrink-0",children:[e.jsx("kbd",{className:i("hidden sm:block px-2 py-1 border rounded-lg text-[10px] font-black uppercase tracking-widest",d?"bg-white/5 border-white/10 text-slate-500":"bg-black/5 border-slate-200 text-slate-400"),children:"ESC"}),e.jsx("button",{onClick:s,className:i("p-1.5 rounded-xl transition-all",d?"hover:bg-white/10 text-slate-500 hover:text-white":"hover:bg-black/5 text-slate-400 hover:text-slate-900"),children:e.jsx(Fe,{size:16})})]})]}),e.jsx("div",{className:"max-h-[360px] overflow-y-auto custom-scrollbar p-2",children:p.length===0?e.jsxs("div",{className:"py-10 text-center",children:[e.jsx("div",{className:i("inline-flex p-4 rounded-2xl mb-4",`bg-${c}-600/10 text-${c}-400`),children:e.jsx(Ws,{size:28})}),e.jsx("p",{className:i("text-[11px] font-black uppercase tracking-widest",d?"text-white":"text-slate-900"),children:"Recherche Globale"}),e.jsx("p",{className:"text-[10px] text-slate-600 mt-1",children:"Peers · Sections · Adresses IP"}),e.jsx("div",{className:"flex justify-center gap-4 mt-5",children:Jt.slice(0,4).map(g=>e.jsxs("button",{onClick:()=>u(g),className:i("flex flex-col items-center gap-2 p-3 rounded-2xl transition-all group",d?"hover:bg-white/5":"hover:bg-black/5"),children:[e.jsx("div",{className:i("p-2.5 rounded-xl transition-all",d?"bg-white/5 group-hover:bg-white/10":"bg-black/5 group-hover:bg-black/10",`text-${c}-400`),children:e.jsx(g.icon,{size:16})}),e.jsx("span",{className:i("text-[9px] font-black uppercase tracking-widest transition-colors",d?"text-slate-500 group-hover:text-white":"text-slate-400 group-hover:text-slate-900"),children:g.label})]},g.id))})]}):x.length===0?e.jsxs("div",{className:"py-10 text-center",children:[e.jsx("p",{className:"text-[11px] font-black text-slate-500 uppercase tracking-widest",children:"Aucun résultat"}),e.jsxs("p",{className:"text-[10px] text-slate-700 mt-1",children:["pour « ",p," »"]})]}):b.map(g=>e.jsxs("div",{className:"mb-2",children:[e.jsx("div",{className:"text-[9px] font-black text-slate-600 uppercase tracking-widest px-3 py-2",children:g}),x.filter(w=>w.category===g).map(w=>{const E=y++;return e.jsxs("button",{onClick:()=>u(w),className:i("w-full flex items-center gap-4 px-3 py-3 rounded-2xl transition-all group text-left",l===E?`bg-${c}-600/10 border border-${c}-500/20`:"hover:bg-white/5 border border-transparent"),children:[e.jsx("div",{className:i("p-2.5 rounded-xl transition-all flex-shrink-0",l===E?`bg-${c}-600 text-white`:i(d?"bg-white/5 group-hover:bg-white/10":"bg-black/5 group-hover:bg-black/10",`text-${c}-400`)),children:e.jsx(w.icon,{size:16})}),e.jsxs("div",{className:"flex-1 min-w-0",children:[e.jsx("div",{className:i("text-sm font-black uppercase tracking-tight truncate",d?"text-white":"text-slate-900"),children:w.label}),e.jsx("div",{className:"text-[10px] text-slate-500 font-mono truncate",children:w.desc})]}),e.jsx(ut,{size:14,className:i("transition-colors",d?"text-slate-600 group-hover:text-slate-400":"text-slate-400 group-hover:text-slate-600")})]},`${w.id}-${E}`)})]},g))}),e.jsxs("div",{className:"px-6 py-3 border-t border-white/5 flex items-center gap-6 text-[9px] font-black text-slate-600 uppercase tracking-widest",children:[e.jsxs("span",{className:"flex items-center gap-1.5",children:[e.jsx("kbd",{className:"px-1.5 py-0.5 bg-white/5 rounded border border-white/10",children:"↑↓"})," Naviguer"]}),e.jsxs("span",{className:"flex items-center gap-1.5",children:[e.jsx("kbd",{className:"px-1.5 py-0.5 bg-white/5 rounded border border-white/10",children:"↵"})," Sélectionner"]}),e.jsxs("span",{className:"flex items-center gap-1.5",children:[e.jsx("kbd",{className:"px-1.5 py-0.5 bg-white/5 rounded border border-white/10",children:"ESC"})," Fermer"]})]})]})]})})},mr=({isOpen:t,onConfirm:s,onCancel:r,title:a="Confirmer la suppression",message:c="Cette action est irréversible.",confirmLabel:d="Supprimer",intent:p="danger"})=>{const{mode:m}=Q(),l=m==="dark",o=h.useRef(null);h.useEffect(()=>{t&&o.current&&setTimeout(()=>{var x;return(x=o.current)==null?void 0:x.focus()},50)},[t]),h.useEffect(()=>{if(!t)return;const x=u=>{u.key==="Escape"&&r()};return window.addEventListener("keydown",x),()=>window.removeEventListener("keydown",x)},[t,r]);const n=p==="danger";return e.jsx(le,{children:t&&e.jsxs(L.div,{initial:{opacity:0},animate:{opacity:1},exit:{opacity:0},transition:{duration:.15},className:"fixed inset-0 z-[9999] flex items-center justify-center p-4",onClick:r,role:"dialog","aria-modal":"true","aria-labelledby":"confirm-modal-title",children:[e.jsx("div",{className:i("absolute inset-0 backdrop-blur-sm transition-colors duration-700",l?"bg-slate-950/60":"bg-slate-200/40")}),e.jsxs(L.div,{initial:{scale:.9,opacity:0,y:20},animate:{scale:1,opacity:1,y:0},exit:{scale:.95,opacity:0,y:10},transition:{duration:.2,ease:[.23,1,.32,1]},className:"relative w-full max-w-sm glass-panel border rounded-[2.5rem] p-8 shadow-2xl overflow-hidden",onClick:x=>x.stopPropagation(),children:[e.jsx("div",{className:i("absolute inset-0 rounded-[2.5rem] opacity-[0.06] pointer-events-none",n?"bg-gradient-to-br from-red-500 to-transparent":"bg-gradient-to-br from-amber-500 to-transparent")}),e.jsx("button",{onClick:r,className:i("absolute top-6 right-6 p-2 rounded-xl transition-all",l?"text-slate-600 hover:text-white hover:bg-white/5":"text-slate-400 hover:text-slate-900 hover:bg-black/5"),children:e.jsx(Fe,{size:18})}),e.jsx("div",{className:i("w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-2xl",n?"bg-red-500/10 text-red-400":"bg-amber-500/10 text-amber-400"),children:n?e.jsx(Pe,{size:28,strokeWidth:1.5}):e.jsx(Bt,{size:28,strokeWidth:1.5})}),e.jsx("h2",{id:"confirm-modal-title",className:i("text-xl font-black text-center uppercase tracking-tight mb-3 transition-colors",l?"text-white":"text-slate-900"),children:a}),e.jsx("div",{className:i("text-sm text-center leading-relaxed mb-8 transition-colors",l?"text-slate-400":"text-slate-500"),children:typeof c=="string"?e.jsx("p",{children:c}):c}),n&&e.jsxs("div",{className:"flex items-start gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/15 mb-6",children:[e.jsx(Be,{size:16,className:"text-red-400 flex-shrink-0 mt-0.5"}),e.jsx("p",{className:"text-[11px] text-red-400 font-bold uppercase tracking-wide leading-relaxed",children:"Cette action est permanente et ne peut pas être annulée."})]}),e.jsxs("div",{className:"flex gap-3 relative z-10",children:[e.jsx("button",{onClick:r,className:i("flex-1 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border",l?"bg-slate-800 hover:bg-slate-700 text-slate-300 border-white/5 hover:border-white/10":"bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200"),children:"Annuler"}),e.jsxs("button",{ref:o,onClick:s,className:i("flex-1 py-3 rounded-2xl text-white text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2",n?"bg-red-600 hover:bg-red-500 shadow-red-600/30":"bg-amber-600 hover:bg-amber-500 shadow-amber-600/30"),children:[n?e.jsx(Pe,{size:14}):e.jsx(Bt,{size:14}),d]})]})]})]})})},lt=({isOpen:t,onClose:s,title:r,children:a,className:c,maxWidth:d="max-w-md"})=>{const{mode:p}=Q(),m=p==="dark";return e.jsx(le,{children:t&&e.jsxs("div",{className:"fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6",children:[e.jsx(L.div,{initial:{opacity:0},animate:{opacity:1},exit:{opacity:0},onClick:s,className:i("absolute inset-0 backdrop-blur-sm",m?"bg-slate-950/70":"bg-indigo-50/95")}),e.jsxs(L.div,{initial:{opacity:0,scale:.95,y:20},animate:{opacity:1,scale:1,y:0},exit:{opacity:0,scale:.95,y:20},transition:{type:"spring",damping:25,stiffness:300},className:i("relative w-full backdrop-blur-3xl rounded-[2.5rem] shadow-2xl overflow-hidden p-8 md:p-10",m?"bg-slate-900/80 border border-white/10 shadow-black/50":"bg-white border border-slate-200/80 shadow-slate-200/60",d,c),children:[e.jsxs("div",{className:"flex items-center justify-between mb-8",children:[r&&e.jsx("h3",{className:i("text-2xl font-black tracking-tight uppercase",m?"text-white":"text-slate-900"),children:r}),e.jsx("button",{onClick:s,className:i("p-3 rounded-2xl transition-all",m?"bg-white/5 text-slate-500 hover:text-white hover:bg-white/10":"bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200"),children:e.jsx(Fe,{size:24})})]}),e.jsx("div",{className:"relative z-10",children:a}),e.jsx("div",{className:"absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none"}),e.jsx("div",{className:"absolute -bottom-24 -left-24 w-64 h-64 bg-rose-500/10 blur-[100px] rounded-full pointer-events-none"})]})]})})},hr=({isOpen:t,onClose:s,onCreate:r,targetContainer:a})=>{const{theme:c}=Q(),[d,p]=h.useState(""),[m,l]=h.useState(!1),[o,n]=h.useState(0),[x,u]=h.useState(0),[b,y]=h.useState({value:30,unit:"days"}),[g,w]=h.useState(!0),E=f=>{f&&T.get("/clients").then(v=>{const z=(v.data||[]).filter(R=>R.container===f);let D=z.length+1,k=`${f}-${String(D).padStart(2,"0")}`;for(;z.some(R=>R.name===k);)D++,k=`${f}-${String(D).padStart(2,"0")}`;p(k)}).catch(()=>{})};h.useEffect(()=>{t&&(p(""),a&&E(a))},[t,a]);const N=async f=>{if(f.preventDefault(),d.trim()&&a){l(!0);try{let v="";if(!g){const j=new Date;b.unit==="days"&&j.setDate(j.getDate()+parseInt(b.value)),b.unit==="hours"&&j.setHours(j.getHours()+parseInt(b.value)),v=j.toISOString().split("T")[0]}await r(d,a,v,o,x),s()}catch(v){console.error("Erreur création client:",v)}finally{l(!1)}}};return e.jsx(lt,{isOpen:t,onClose:s,title:"Initialisation de Peer",maxWidth:"max-w-xl",children:e.jsxs("form",{onSubmit:N,className:"space-y-10",children:[e.jsxs("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-8",children:[e.jsxs("div",{className:"space-y-6",children:[e.jsxs("div",{children:[e.jsx("label",{className:"block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose",children:"Nom du Client"}),e.jsxs("div",{className:"relative group",children:[e.jsx(Rt,{className:"absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors",size:18}),e.jsx("input",{type:"text",value:d,onChange:f=>p(f.target.value),className:"w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono",placeholder:"ex: galaxy-s24",autoFocus:!0})]})]}),e.jsxs("div",{children:[e.jsx("label",{className:"block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose",children:"Groupe Tactique (Conteneur)"}),e.jsxs("div",{className:"relative group",children:[e.jsx(tt,{className:"absolute left-4 top-1/2 -translate-y-1/2 text-slate-500",size:18}),e.jsx("input",{type:"text",value:a||"Aucun",disabled:!0,className:"w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono cursor-not-allowed opacity-50"})]}),e.jsx("p",{className:"mt-2 text-[9px] text-slate-500 italic",children:"Le client sera ajouté dans ce conteneur en cours."})]})]}),e.jsxs("div",{className:"space-y-6",children:[e.jsxs("div",{children:[e.jsxs("div",{className:"flex justify-between items-center mb-2",children:[e.jsx("label",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest",children:"Validité temporelle"}),e.jsxs("label",{className:"flex items-center gap-2 cursor-pointer group",children:[e.jsx("input",{type:"checkbox",checked:g,onChange:f=>w(f.target.checked),className:i("w-4 h-4 rounded border-white/10 bg-slate-950",`text-${c}-600 focus:ring-${c}-500`)}),e.jsx("span",{className:"text-[10px] font-black uppercase text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors",children:"Illimité"})]})]}),!g&&e.jsxs("div",{className:"flex gap-4 animate-in slide-in-from-top-2 duration-300",children:[e.jsxs("div",{className:"relative flex-1",children:[e.jsx(gt,{className:"absolute left-4 top-1/2 -translate-y-1/2 text-slate-500",size:16}),e.jsx("input",{type:"number",value:b.value,onChange:f=>y({...b,value:f.target.value}),className:"w-full pl-12 pr-4 py-4 glass-input rounded-2xl font-mono"})]}),e.jsxs("select",{value:b.unit,onChange:f=>y({...b,unit:f.target.value}),className:"px-4 py-4 glass-input rounded-2xl font-bold uppercase tracking-widest text-[10px]",children:[e.jsx("option",{value:"days",children:"Jours"}),e.jsx("option",{value:"hours",children:"Heures"})]})]})]}),e.jsxs("div",{children:[e.jsxs("div",{className:"flex justify-between items-center mb-2",children:[e.jsx("label",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest",children:"Quota de Données"}),e.jsx("span",{className:i("text-[10px] font-black font-mono",`text-${c}-400`),children:o>0?`${o} GB`:"∞ GB"})]}),e.jsxs("div",{className:"flex items-center gap-4 py-2",children:[e.jsx(tt,{size:16,className:"text-slate-500"}),e.jsx("input",{type:"range",min:"0",max:"100",value:o,onChange:f=>n(f.target.value),className:i("w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer",`accent-${c}-500`)})]})]}),e.jsxs("div",{children:[e.jsxs("div",{className:"flex justify-between items-center mb-2",children:[e.jsx("label",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest",children:"Bande passante"}),e.jsx("span",{className:i("text-[10px] font-black font-mono",`text-${c}-400`),children:x>0?`${x} Mbps`:"∞ Mbps"})]}),e.jsxs("div",{className:"flex items-center gap-4 py-2",children:[e.jsx(He,{size:16,className:"text-slate-500"}),e.jsx("input",{type:"range",min:"0",max:"100",step:"5",value:x,onChange:f=>u(f.target.value),className:i("w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer",`accent-${c}-500`)})]})]})]})]}),e.jsxs("div",{className:"pt-6 border-t border-white/5 flex flex-col sm:flex-row gap-4",children:[e.jsx("button",{type:"button",onClick:s,className:"flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-[0.2em] rounded-2xl border border-white/5 hover:border-white/10 transition-all",children:"Annuler Mission"}),e.jsxs("button",{type:"submit",disabled:m||!d.trim()||!a,className:i("flex-[2] py-4 text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed",`bg-${c}-600 hover:bg-${c}-500 shadow-${c}-600/30`),children:[m?e.jsx(J,{className:"animate-spin",size:18}):e.jsx(qe,{size:18,strokeWidth:3}),"Initialiser l'accès Peer"]})]})]})})},We=({children:t,onClick:s,variant:r="primary",className:a,icon:c,loading:d=!1,disabled:p=!1,size:m="md"})=>{const l={primary:"bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30 text-white border-transparent",secondary:"bg-white/10 hover:bg-white/15 text-white border-white/5",ghost:"bg-transparent hover:bg-white/5 text-slate-400 hover:text-white border-transparent",danger:"bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20 shadow-rose-500/10",success:"bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10"},o={sm:"px-4 py-2 text-[10px]",md:"px-6 py-3 text-xs",lg:"px-8 py-4 text-sm"};return e.jsxs(L.button,{whileHover:{scale:1.02},whileTap:{scale:.98},disabled:p||d,onClick:s,className:i("relative flex items-center justify-center gap-3 font-black uppercase tracking-widest border transition-all duration-300 rounded-2xl shadow-xl group",l[r],o[m],(p||d)&&"opacity-50 cursor-not-allowed grayscale",a),children:[d?e.jsx("span",{className:"w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"}):c&&e.jsx(c,{size:m==="sm"?14:18,className:"opacity-80"}),e.jsx("span",{className:"relative z-10",children:t}),e.jsx("div",{className:"absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"})]})},br=({isOpen:t,onClose:s,onCreate:r})=>{const{theme:a}=Q(),[c,d]=h.useState(""),[p,m]=h.useState(!1);h.useEffect(()=>{t&&d("")},[t]);const l=async o=>{if(o.preventDefault(),c.trim()){m(!0);try{await r(c.trim()),s()}catch(n){console.error("Erreur création conteneur:",n)}finally{m(!1)}}};return e.jsx(lt,{isOpen:t,onClose:s,title:"Nouveau Conteneur",maxWidth:"max-w-md",children:e.jsxs("form",{onSubmit:l,className:"space-y-8",children:[e.jsx("div",{className:"space-y-6",children:e.jsxs("div",{children:[e.jsx("label",{className:"block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose",children:"Nom du Conteneur (Groupe)"}),e.jsxs("div",{className:"relative group",children:[e.jsx(ye,{className:"absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors",size:18}),e.jsx("input",{type:"text",value:c,onChange:o=>d(o.target.value.replace(/[^a-zA-Z0-9_\-]/g,"")),className:"w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono",placeholder:"ex: famille, serveurs",maxLength:30,autoFocus:!0,required:!0})]}),e.jsx("p",{className:"mt-2 text-[9px] text-slate-500",children:"Uniquement lettres, chiffres, tirets et underscores."})]})}),e.jsxs("div",{className:"flex items-center gap-3 pt-4 border-t border-white/5",children:[e.jsx("button",{type:"button",onClick:s,className:"flex-1 px-4 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all",disabled:p,children:"Annuler"}),e.jsx(We,{type:"submit",variant:"primary",icon:qe,loading:p,disabled:!c.trim()||p,className:"flex-1 py-3.5 shadow-xl",children:"Créer"})]})]})})};var gr=Object.defineProperty,wt=Object.getOwnPropertySymbols,$s=Object.prototype.hasOwnProperty,Ds=Object.prototype.propertyIsEnumerable,Zt=(t,s,r)=>s in t?gr(t,s,{enumerable:!0,configurable:!0,writable:!0,value:r}):t[s]=r,fr=(t,s)=>{for(var r in s||(s={}))$s.call(s,r)&&Zt(t,r,s[r]);if(wt)for(var r of wt(s))Ds.call(s,r)&&Zt(t,r,s[r]);return t},wr=(t,s)=>{var r={};for(var a in t)$s.call(t,a)&&s.indexOf(a)<0&&(r[a]=t[a]);if(t!=null&&wt)for(var a of wt(t))s.indexOf(a)<0&&Ds.call(t,a)&&(r[a]=t[a]);return r};/**
+var Ls = Object.defineProperty;
+var Ps = (t, s, r) =>
+  s in t ? Ls(t, s, { enumerable: !0, configurable: !0, writable: !0, value: r }) : (t[s] = r);
+var Ot = (t, s, r) => Ps(t, typeof s != 'symbol' ? s + '' : s, r);
+import {
+  r as _s,
+  g as Os,
+  a as h,
+  j as e,
+  c as Fs,
+  b as Us,
+  m as L,
+  S as fe,
+  A as le,
+  U as Ne,
+  K as Ct,
+  E as rs,
+  d as is,
+  e as Rt,
+  C as ls,
+  f as At,
+  R as J,
+  L as os,
+  h as ut,
+  i as mt,
+  I as ht,
+  X as Fe,
+  T as Be,
+  H as Bs,
+  P as ye,
+  F as Mt,
+  k as de,
+  G as Ge,
+  l as He,
+  n as bt,
+  o as Le,
+  p as ns,
+  q as Te,
+  s as Gs,
+  t as et,
+  u as Ft,
+  M as Ut,
+  v as it,
+  w as Ws,
+  x as Pe,
+  y as Bt,
+  D as tt,
+  z as gt,
+  B as qe,
+  J as Hs,
+  N as _e,
+  O as be,
+  Q as $t,
+  Z as Ae,
+  V as Gt,
+  W as vt,
+  Y as Dt,
+  _ as It,
+  $ as Tt,
+  a0 as Lt,
+  a1 as jt,
+  a2 as st,
+  a3 as at,
+  a4 as qs,
+  a5 as St,
+  a6 as zt,
+  a7 as cs,
+  a8 as Wt,
+  a9 as Vs,
+  aa as Qs,
+  ab as Ks,
+  ac as Ys,
+  ad as ds,
+  ae as xs,
+  af as ps,
+  ag as us,
+  ah as Xs,
+  ai as Js,
+  aj as Zs,
+  ak as ea,
+  al as ta,
+  am as sa,
+  an as aa,
+  ao as ra,
+  ap as ia,
+  aq as la,
+} from './ui-libs-gf68Jbhb.js';
+(function () {
+  const s = document.createElement('link').relList;
+  if (s && s.supports && s.supports('modulepreload')) return;
+  for (const c of document.querySelectorAll('link[rel="modulepreload"]')) a(c);
+  new MutationObserver((c) => {
+    for (const d of c)
+      if (d.type === 'childList')
+        for (const p of d.addedNodes) p.tagName === 'LINK' && p.rel === 'modulepreload' && a(p);
+  }).observe(document, { childList: !0, subtree: !0 });
+  function r(c) {
+    const d = {};
+    return (
+      c.integrity && (d.integrity = c.integrity),
+      c.referrerPolicy && (d.referrerPolicy = c.referrerPolicy),
+      c.crossOrigin === 'use-credentials'
+        ? (d.credentials = 'include')
+        : c.crossOrigin === 'anonymous'
+          ? (d.credentials = 'omit')
+          : (d.credentials = 'same-origin'),
+      d
+    );
+  }
+  function a(c) {
+    if (c.ep) return;
+    c.ep = !0;
+    const d = r(c);
+    fetch(c.href, d);
+  }
+})();
+var ct = {},
+  Ht;
+function oa() {
+  if (Ht) return ct;
+  Ht = 1;
+  var t = _s();
+  return ((ct.createRoot = t.createRoot), (ct.hydrateRoot = t.hydrateRoot), ct);
+}
+var na = oa();
+const ca = Os(na),
+  ms = h.createContext(),
+  da = ({ children: t }) => {
+    const [s, r] = h.useState(localStorage.getItem('theme-color') || 'indigo'),
+      a = () => {
+        const l = new URLSearchParams(window.location.search).get('theme');
+        return l === 'light' || l === 'dark' ? l : localStorage.getItem('theme-mode') || 'light';
+      },
+      [c, d] = h.useState(a()),
+      p = c === 'dark';
+    return (
+      h.useEffect(() => {
+        (document.documentElement.classList.toggle('dark', c === 'dark'),
+          localStorage.setItem('theme-mode', c));
+      }, [c]),
+      h.useEffect(() => {
+        localStorage.setItem('theme-color', s);
+      }, [s]),
+      e.jsx(ms.Provider, {
+        value: { theme: s, setTheme: r, mode: c, setMode: d, isDark: p },
+        children: t,
+      })
+    );
+  },
+  Q = () => h.useContext(ms),
+  xa = (t, s) => {
+    const r = new Array(t.length + s.length);
+    for (let a = 0; a < t.length; a++) r[a] = t[a];
+    for (let a = 0; a < s.length; a++) r[t.length + a] = s[a];
+    return r;
+  },
+  pa = (t, s) => ({ classGroupId: t, validator: s }),
+  hs = (t = new Map(), s = null, r) => ({ nextPart: t, validators: s, classGroupId: r }),
+  ft = '-',
+  qt = [],
+  ua = 'arbitrary..',
+  ma = (t) => {
+    const s = ba(t),
+      { conflictingClassGroups: r, conflictingClassGroupModifiers: a } = t;
+    return {
+      getClassGroupId: (p) => {
+        if (p.startsWith('[') && p.endsWith(']')) return ha(p);
+        const m = p.split(ft),
+          l = m[0] === '' && m.length > 1 ? 1 : 0;
+        return bs(m, l, s);
+      },
+      getConflictingClassGroupIds: (p, m) => {
+        if (m) {
+          const l = a[p],
+            o = r[p];
+          return l ? (o ? xa(o, l) : l) : o || qt;
+        }
+        return r[p] || qt;
+      },
+    };
+  },
+  bs = (t, s, r) => {
+    if (t.length - s === 0) return r.classGroupId;
+    const c = t[s],
+      d = r.nextPart.get(c);
+    if (d) {
+      const o = bs(t, s + 1, d);
+      if (o) return o;
+    }
+    const p = r.validators;
+    if (p === null) return;
+    const m = s === 0 ? t.join(ft) : t.slice(s).join(ft),
+      l = p.length;
+    for (let o = 0; o < l; o++) {
+      const n = p[o];
+      if (n.validator(m)) return n.classGroupId;
+    }
+  },
+  ha = (t) =>
+    t.slice(1, -1).indexOf(':') === -1
+      ? void 0
+      : (() => {
+          const s = t.slice(1, -1),
+            r = s.indexOf(':'),
+            a = s.slice(0, r);
+          return a ? ua + a : void 0;
+        })(),
+  ba = (t) => {
+    const { theme: s, classGroups: r } = t;
+    return ga(r, s);
+  },
+  ga = (t, s) => {
+    const r = hs();
+    for (const a in t) {
+      const c = t[a];
+      Pt(c, r, a, s);
+    }
+    return r;
+  },
+  Pt = (t, s, r, a) => {
+    const c = t.length;
+    for (let d = 0; d < c; d++) {
+      const p = t[d];
+      fa(p, s, r, a);
+    }
+  },
+  fa = (t, s, r, a) => {
+    if (typeof t == 'string') {
+      wa(t, s, r);
+      return;
+    }
+    if (typeof t == 'function') {
+      va(t, s, r, a);
+      return;
+    }
+    ja(t, s, r, a);
+  },
+  wa = (t, s, r) => {
+    const a = t === '' ? s : gs(s, t);
+    a.classGroupId = r;
+  },
+  va = (t, s, r, a) => {
+    if (ya(t)) {
+      Pt(t(a), s, r, a);
+      return;
+    }
+    (s.validators === null && (s.validators = []), s.validators.push(pa(r, t)));
+  },
+  ja = (t, s, r, a) => {
+    const c = Object.entries(t),
+      d = c.length;
+    for (let p = 0; p < d; p++) {
+      const [m, l] = c[p];
+      Pt(l, gs(s, m), r, a);
+    }
+  },
+  gs = (t, s) => {
+    let r = t;
+    const a = s.split(ft),
+      c = a.length;
+    for (let d = 0; d < c; d++) {
+      const p = a[d];
+      let m = r.nextPart.get(p);
+      (m || ((m = hs()), r.nextPart.set(p, m)), (r = m));
+    }
+    return r;
+  },
+  ya = (t) => 'isThemeGetter' in t && t.isThemeGetter === !0,
+  Na = (t) => {
+    if (t < 1) return { get: () => {}, set: () => {} };
+    let s = 0,
+      r = Object.create(null),
+      a = Object.create(null);
+    const c = (d, p) => {
+      ((r[d] = p), s++, s > t && ((s = 0), (a = r), (r = Object.create(null))));
+    };
+    return {
+      get(d) {
+        let p = r[d];
+        if (p !== void 0) return p;
+        if ((p = a[d]) !== void 0) return (c(d, p), p);
+      },
+      set(d, p) {
+        d in r ? (r[d] = p) : c(d, p);
+      },
+    };
+  },
+  Et = '!',
+  Vt = ':',
+  ka = [],
+  Qt = (t, s, r, a, c) => ({
+    modifiers: t,
+    hasImportantModifier: s,
+    baseClassName: r,
+    maybePostfixModifierPosition: a,
+    isExternal: c,
+  }),
+  Ca = (t) => {
+    const { prefix: s, experimentalParseClassName: r } = t;
+    let a = (c) => {
+      const d = [];
+      let p = 0,
+        m = 0,
+        l = 0,
+        o;
+      const n = c.length;
+      for (let g = 0; g < n; g++) {
+        const w = c[g];
+        if (p === 0 && m === 0) {
+          if (w === Vt) {
+            (d.push(c.slice(l, g)), (l = g + 1));
+            continue;
+          }
+          if (w === '/') {
+            o = g;
+            continue;
+          }
+        }
+        w === '[' ? p++ : w === ']' ? p-- : w === '(' ? m++ : w === ')' && m--;
+      }
+      const x = d.length === 0 ? c : c.slice(l);
+      let u = x,
+        b = !1;
+      x.endsWith(Et)
+        ? ((u = x.slice(0, -1)), (b = !0))
+        : x.startsWith(Et) && ((u = x.slice(1)), (b = !0));
+      const y = o && o > l ? o - l : void 0;
+      return Qt(d, b, u, y);
+    };
+    if (s) {
+      const c = s + Vt,
+        d = a;
+      a = (p) => (p.startsWith(c) ? d(p.slice(c.length)) : Qt(ka, !1, p, void 0, !0));
+    }
+    if (r) {
+      const c = a;
+      a = (d) => r({ className: d, parseClassName: c });
+    }
+    return a;
+  },
+  Sa = (t) => {
+    const s = new Map();
+    return (
+      t.orderSensitiveModifiers.forEach((r, a) => {
+        s.set(r, 1e6 + a);
+      }),
+      (r) => {
+        const a = [];
+        let c = [];
+        for (let d = 0; d < r.length; d++) {
+          const p = r[d],
+            m = p[0] === '[',
+            l = s.has(p);
+          m || l ? (c.length > 0 && (c.sort(), a.push(...c), (c = [])), a.push(p)) : c.push(p);
+        }
+        return (c.length > 0 && (c.sort(), a.push(...c)), a);
+      }
+    );
+  },
+  za = (t) => ({ cache: Na(t.cacheSize), parseClassName: Ca(t), sortModifiers: Sa(t), ...ma(t) }),
+  Ea = /\s+/,
+  Ra = (t, s) => {
+    const {
+        parseClassName: r,
+        getClassGroupId: a,
+        getConflictingClassGroupIds: c,
+        sortModifiers: d,
+      } = s,
+      p = [],
+      m = t.trim().split(Ea);
+    let l = '';
+    for (let o = m.length - 1; o >= 0; o -= 1) {
+      const n = m[o],
+        {
+          isExternal: x,
+          modifiers: u,
+          hasImportantModifier: b,
+          baseClassName: y,
+          maybePostfixModifierPosition: g,
+        } = r(n);
+      if (x) {
+        l = n + (l.length > 0 ? ' ' + l : l);
+        continue;
+      }
+      let w = !!g,
+        E = a(w ? y.substring(0, g) : y);
+      if (!E) {
+        if (!w) {
+          l = n + (l.length > 0 ? ' ' + l : l);
+          continue;
+        }
+        if (((E = a(y)), !E)) {
+          l = n + (l.length > 0 ? ' ' + l : l);
+          continue;
+        }
+        w = !1;
+      }
+      const N = u.length === 0 ? '' : u.length === 1 ? u[0] : d(u).join(':'),
+        f = b ? N + Et : N,
+        v = f + E;
+      if (p.indexOf(v) > -1) continue;
+      p.push(v);
+      const j = c(E, w);
+      for (let z = 0; z < j.length; ++z) {
+        const D = j[z];
+        p.push(f + D);
+      }
+      l = n + (l.length > 0 ? ' ' + l : l);
+    }
+    return l;
+  },
+  Aa = (...t) => {
+    let s = 0,
+      r,
+      a,
+      c = '';
+    for (; s < t.length; ) (r = t[s++]) && (a = fs(r)) && (c && (c += ' '), (c += a));
+    return c;
+  },
+  fs = (t) => {
+    if (typeof t == 'string') return t;
+    let s,
+      r = '';
+    for (let a = 0; a < t.length; a++) t[a] && (s = fs(t[a])) && (r && (r += ' '), (r += s));
+    return r;
+  },
+  Ma = (t, ...s) => {
+    let r, a, c, d;
+    const p = (l) => {
+        const o = s.reduce((n, x) => x(n), t());
+        return ((r = za(o)), (a = r.cache.get), (c = r.cache.set), (d = m), m(l));
+      },
+      m = (l) => {
+        const o = a(l);
+        if (o) return o;
+        const n = Ra(l, r);
+        return (c(l, n), n);
+      };
+    return ((d = p), (...l) => d(Aa(...l)));
+  },
+  $a = [],
+  te = (t) => {
+    const s = (r) => r[t] || $a;
+    return ((s.isThemeGetter = !0), s);
+  },
+  ws = /^\[(?:(\w[\w-]*):)?(.+)\]$/i,
+  vs = /^\((?:(\w[\w-]*):)?(.+)\)$/i,
+  Da = /^\d+(?:\.\d+)?\/\d+(?:\.\d+)?$/,
+  Ia = /^(\d+(\.\d+)?)?(xs|sm|md|lg|xl)$/,
+  Ta =
+    /\d+(%|px|r?em|[sdl]?v([hwib]|min|max)|pt|pc|in|cm|mm|cap|ch|ex|r?lh|cq(w|h|i|b|min|max))|\b(calc|min|max|clamp)\(.+\)|^0$/,
+  La = /^(rgba?|hsla?|hwb|(ok)?(lab|lch)|color-mix)\(.+\)$/,
+  Pa = /^(inset_)?-?((\d+)?\.?(\d+)[a-z]+|0)_-?((\d+)?\.?(\d+)[a-z]+|0)/,
+  _a =
+    /^(url|image|image-set|cross-fade|element|(repeating-)?(linear|radial|conic)-gradient)\(.+\)$/,
+  Ee = (t) => Da.test(t),
+  F = (t) => !!t && !Number.isNaN(Number(t)),
+  Re = (t) => !!t && Number.isInteger(Number(t)),
+  Nt = (t) => t.endsWith('%') && F(t.slice(0, -1)),
+  je = (t) => Ia.test(t),
+  js = () => !0,
+  Oa = (t) => Ta.test(t) && !La.test(t),
+  _t = () => !1,
+  Fa = (t) => Pa.test(t),
+  Ua = (t) => _a.test(t),
+  Ba = (t) => !A(t) && !M(t),
+  Ga = (t) => Me(t, ks, _t),
+  A = (t) => ws.test(t),
+  Ie = (t) => Me(t, Cs, Oa),
+  Kt = (t) => Me(t, Xa, F),
+  Wa = (t) => Me(t, zs, js),
+  Ha = (t) => Me(t, Ss, _t),
+  Yt = (t) => Me(t, ys, _t),
+  qa = (t) => Me(t, Ns, Ua),
+  dt = (t) => Me(t, Es, Fa),
+  M = (t) => vs.test(t),
+  Xe = (t) => Ue(t, Cs),
+  Va = (t) => Ue(t, Ss),
+  Xt = (t) => Ue(t, ys),
+  Qa = (t) => Ue(t, ks),
+  Ka = (t) => Ue(t, Ns),
+  xt = (t) => Ue(t, Es, !0),
+  Ya = (t) => Ue(t, zs, !0),
+  Me = (t, s, r) => {
+    const a = ws.exec(t);
+    return a ? (a[1] ? s(a[1]) : r(a[2])) : !1;
+  },
+  Ue = (t, s, r = !1) => {
+    const a = vs.exec(t);
+    return a ? (a[1] ? s(a[1]) : r) : !1;
+  },
+  ys = (t) => t === 'position' || t === 'percentage',
+  Ns = (t) => t === 'image' || t === 'url',
+  ks = (t) => t === 'length' || t === 'size' || t === 'bg-size',
+  Cs = (t) => t === 'length',
+  Xa = (t) => t === 'number',
+  Ss = (t) => t === 'family-name',
+  zs = (t) => t === 'number' || t === 'weight',
+  Es = (t) => t === 'shadow',
+  Ja = () => {
+    const t = te('color'),
+      s = te('font'),
+      r = te('text'),
+      a = te('font-weight'),
+      c = te('tracking'),
+      d = te('leading'),
+      p = te('breakpoint'),
+      m = te('container'),
+      l = te('spacing'),
+      o = te('radius'),
+      n = te('shadow'),
+      x = te('inset-shadow'),
+      u = te('text-shadow'),
+      b = te('drop-shadow'),
+      y = te('blur'),
+      g = te('perspective'),
+      w = te('aspect'),
+      E = te('ease'),
+      N = te('animate'),
+      f = () => ['auto', 'avoid', 'all', 'avoid-page', 'page', 'left', 'right', 'column'],
+      v = () => [
+        'center',
+        'top',
+        'bottom',
+        'left',
+        'right',
+        'top-left',
+        'left-top',
+        'top-right',
+        'right-top',
+        'bottom-right',
+        'right-bottom',
+        'bottom-left',
+        'left-bottom',
+      ],
+      j = () => [...v(), M, A],
+      z = () => ['auto', 'hidden', 'clip', 'visible', 'scroll'],
+      D = () => ['auto', 'contain', 'none'],
+      k = () => [M, A, l],
+      R = () => [Ee, 'full', 'auto', ...k()],
+      U = () => [Re, 'none', 'subgrid', M, A],
+      G = () => ['auto', { span: ['full', Re, M, A] }, Re, M, A],
+      X = () => [Re, 'auto', M, A],
+      C = () => ['auto', 'min', 'max', 'fr', M, A],
+      P = () => [
+        'start',
+        'end',
+        'center',
+        'between',
+        'around',
+        'evenly',
+        'stretch',
+        'baseline',
+        'center-safe',
+        'end-safe',
+      ],
+      B = () => ['start', 'end', 'center', 'stretch', 'center-safe', 'end-safe'],
+      S = () => ['auto', ...k()],
+      O = () => [
+        Ee,
+        'auto',
+        'full',
+        'dvw',
+        'dvh',
+        'lvw',
+        'lvh',
+        'svw',
+        'svh',
+        'min',
+        'max',
+        'fit',
+        ...k(),
+      ],
+      q = () => [Ee, 'screen', 'full', 'dvw', 'lvw', 'svw', 'min', 'max', 'fit', ...k()],
+      Z = () => [Ee, 'screen', 'full', 'lh', 'dvh', 'lvh', 'svh', 'min', 'max', 'fit', ...k()],
+      $ = () => [t, M, A],
+      se = () => [...v(), Xt, Yt, { position: [M, A] }],
+      I = () => ['no-repeat', { repeat: ['', 'x', 'y', 'space', 'round'] }],
+      xe = () => ['auto', 'cover', 'contain', Qa, Ga, { size: [M, A] }],
+      ae = () => [Nt, Xe, Ie],
+      K = () => ['', 'none', 'full', o, M, A],
+      H = () => ['', F, Xe, Ie],
+      pe = () => ['solid', 'dashed', 'dotted', 'double'],
+      ge = () => [
+        'normal',
+        'multiply',
+        'screen',
+        'overlay',
+        'darken',
+        'lighten',
+        'color-dodge',
+        'color-burn',
+        'hard-light',
+        'soft-light',
+        'difference',
+        'exclusion',
+        'hue',
+        'saturation',
+        'color',
+        'luminosity',
+      ],
+      Y = () => [F, Nt, Xt, Yt],
+      Ce = () => ['', 'none', y, M, A],
+      we = () => ['none', F, M, A],
+      re = () => ['none', F, M, A],
+      Se = () => [F, M, A],
+      me = () => [Ee, 'full', ...k()];
+    return {
+      cacheSize: 500,
+      theme: {
+        animate: ['spin', 'ping', 'pulse', 'bounce'],
+        aspect: ['video'],
+        blur: [je],
+        breakpoint: [je],
+        color: [js],
+        container: [je],
+        'drop-shadow': [je],
+        ease: ['in', 'out', 'in-out'],
+        font: [Ba],
+        'font-weight': [
+          'thin',
+          'extralight',
+          'light',
+          'normal',
+          'medium',
+          'semibold',
+          'bold',
+          'extrabold',
+          'black',
+        ],
+        'inset-shadow': [je],
+        leading: ['none', 'tight', 'snug', 'normal', 'relaxed', 'loose'],
+        perspective: ['dramatic', 'near', 'normal', 'midrange', 'distant', 'none'],
+        radius: [je],
+        shadow: [je],
+        spacing: ['px', F],
+        text: [je],
+        'text-shadow': [je],
+        tracking: ['tighter', 'tight', 'normal', 'wide', 'wider', 'widest'],
+      },
+      classGroups: {
+        aspect: [{ aspect: ['auto', 'square', Ee, A, M, w] }],
+        container: ['container'],
+        columns: [{ columns: [F, A, M, m] }],
+        'break-after': [{ 'break-after': f() }],
+        'break-before': [{ 'break-before': f() }],
+        'break-inside': [{ 'break-inside': ['auto', 'avoid', 'avoid-page', 'avoid-column'] }],
+        'box-decoration': [{ 'box-decoration': ['slice', 'clone'] }],
+        box: [{ box: ['border', 'content'] }],
+        display: [
+          'block',
+          'inline-block',
+          'inline',
+          'flex',
+          'inline-flex',
+          'table',
+          'inline-table',
+          'table-caption',
+          'table-cell',
+          'table-column',
+          'table-column-group',
+          'table-footer-group',
+          'table-header-group',
+          'table-row-group',
+          'table-row',
+          'flow-root',
+          'grid',
+          'inline-grid',
+          'contents',
+          'list-item',
+          'hidden',
+        ],
+        sr: ['sr-only', 'not-sr-only'],
+        float: [{ float: ['right', 'left', 'none', 'start', 'end'] }],
+        clear: [{ clear: ['left', 'right', 'both', 'none', 'start', 'end'] }],
+        isolation: ['isolate', 'isolation-auto'],
+        'object-fit': [{ object: ['contain', 'cover', 'fill', 'none', 'scale-down'] }],
+        'object-position': [{ object: j() }],
+        overflow: [{ overflow: z() }],
+        'overflow-x': [{ 'overflow-x': z() }],
+        'overflow-y': [{ 'overflow-y': z() }],
+        overscroll: [{ overscroll: D() }],
+        'overscroll-x': [{ 'overscroll-x': D() }],
+        'overscroll-y': [{ 'overscroll-y': D() }],
+        position: ['static', 'fixed', 'absolute', 'relative', 'sticky'],
+        inset: [{ inset: R() }],
+        'inset-x': [{ 'inset-x': R() }],
+        'inset-y': [{ 'inset-y': R() }],
+        start: [{ 'inset-s': R(), start: R() }],
+        end: [{ 'inset-e': R(), end: R() }],
+        'inset-bs': [{ 'inset-bs': R() }],
+        'inset-be': [{ 'inset-be': R() }],
+        top: [{ top: R() }],
+        right: [{ right: R() }],
+        bottom: [{ bottom: R() }],
+        left: [{ left: R() }],
+        visibility: ['visible', 'invisible', 'collapse'],
+        z: [{ z: [Re, 'auto', M, A] }],
+        basis: [{ basis: [Ee, 'full', 'auto', m, ...k()] }],
+        'flex-direction': [{ flex: ['row', 'row-reverse', 'col', 'col-reverse'] }],
+        'flex-wrap': [{ flex: ['nowrap', 'wrap', 'wrap-reverse'] }],
+        flex: [{ flex: [F, Ee, 'auto', 'initial', 'none', A] }],
+        grow: [{ grow: ['', F, M, A] }],
+        shrink: [{ shrink: ['', F, M, A] }],
+        order: [{ order: [Re, 'first', 'last', 'none', M, A] }],
+        'grid-cols': [{ 'grid-cols': U() }],
+        'col-start-end': [{ col: G() }],
+        'col-start': [{ 'col-start': X() }],
+        'col-end': [{ 'col-end': X() }],
+        'grid-rows': [{ 'grid-rows': U() }],
+        'row-start-end': [{ row: G() }],
+        'row-start': [{ 'row-start': X() }],
+        'row-end': [{ 'row-end': X() }],
+        'grid-flow': [{ 'grid-flow': ['row', 'col', 'dense', 'row-dense', 'col-dense'] }],
+        'auto-cols': [{ 'auto-cols': C() }],
+        'auto-rows': [{ 'auto-rows': C() }],
+        gap: [{ gap: k() }],
+        'gap-x': [{ 'gap-x': k() }],
+        'gap-y': [{ 'gap-y': k() }],
+        'justify-content': [{ justify: [...P(), 'normal'] }],
+        'justify-items': [{ 'justify-items': [...B(), 'normal'] }],
+        'justify-self': [{ 'justify-self': ['auto', ...B()] }],
+        'align-content': [{ content: ['normal', ...P()] }],
+        'align-items': [{ items: [...B(), { baseline: ['', 'last'] }] }],
+        'align-self': [{ self: ['auto', ...B(), { baseline: ['', 'last'] }] }],
+        'place-content': [{ 'place-content': P() }],
+        'place-items': [{ 'place-items': [...B(), 'baseline'] }],
+        'place-self': [{ 'place-self': ['auto', ...B()] }],
+        p: [{ p: k() }],
+        px: [{ px: k() }],
+        py: [{ py: k() }],
+        ps: [{ ps: k() }],
+        pe: [{ pe: k() }],
+        pbs: [{ pbs: k() }],
+        pbe: [{ pbe: k() }],
+        pt: [{ pt: k() }],
+        pr: [{ pr: k() }],
+        pb: [{ pb: k() }],
+        pl: [{ pl: k() }],
+        m: [{ m: S() }],
+        mx: [{ mx: S() }],
+        my: [{ my: S() }],
+        ms: [{ ms: S() }],
+        me: [{ me: S() }],
+        mbs: [{ mbs: S() }],
+        mbe: [{ mbe: S() }],
+        mt: [{ mt: S() }],
+        mr: [{ mr: S() }],
+        mb: [{ mb: S() }],
+        ml: [{ ml: S() }],
+        'space-x': [{ 'space-x': k() }],
+        'space-x-reverse': ['space-x-reverse'],
+        'space-y': [{ 'space-y': k() }],
+        'space-y-reverse': ['space-y-reverse'],
+        size: [{ size: O() }],
+        'inline-size': [{ inline: ['auto', ...q()] }],
+        'min-inline-size': [{ 'min-inline': ['auto', ...q()] }],
+        'max-inline-size': [{ 'max-inline': ['none', ...q()] }],
+        'block-size': [{ block: ['auto', ...Z()] }],
+        'min-block-size': [{ 'min-block': ['auto', ...Z()] }],
+        'max-block-size': [{ 'max-block': ['none', ...Z()] }],
+        w: [{ w: [m, 'screen', ...O()] }],
+        'min-w': [{ 'min-w': [m, 'screen', 'none', ...O()] }],
+        'max-w': [{ 'max-w': [m, 'screen', 'none', 'prose', { screen: [p] }, ...O()] }],
+        h: [{ h: ['screen', 'lh', ...O()] }],
+        'min-h': [{ 'min-h': ['screen', 'lh', 'none', ...O()] }],
+        'max-h': [{ 'max-h': ['screen', 'lh', ...O()] }],
+        'font-size': [{ text: ['base', r, Xe, Ie] }],
+        'font-smoothing': ['antialiased', 'subpixel-antialiased'],
+        'font-style': ['italic', 'not-italic'],
+        'font-weight': [{ font: [a, Ya, Wa] }],
+        'font-stretch': [
+          {
+            'font-stretch': [
+              'ultra-condensed',
+              'extra-condensed',
+              'condensed',
+              'semi-condensed',
+              'normal',
+              'semi-expanded',
+              'expanded',
+              'extra-expanded',
+              'ultra-expanded',
+              Nt,
+              A,
+            ],
+          },
+        ],
+        'font-family': [{ font: [Va, Ha, s] }],
+        'font-features': [{ 'font-features': [A] }],
+        'fvn-normal': ['normal-nums'],
+        'fvn-ordinal': ['ordinal'],
+        'fvn-slashed-zero': ['slashed-zero'],
+        'fvn-figure': ['lining-nums', 'oldstyle-nums'],
+        'fvn-spacing': ['proportional-nums', 'tabular-nums'],
+        'fvn-fraction': ['diagonal-fractions', 'stacked-fractions'],
+        tracking: [{ tracking: [c, M, A] }],
+        'line-clamp': [{ 'line-clamp': [F, 'none', M, Kt] }],
+        leading: [{ leading: [d, ...k()] }],
+        'list-image': [{ 'list-image': ['none', M, A] }],
+        'list-style-position': [{ list: ['inside', 'outside'] }],
+        'list-style-type': [{ list: ['disc', 'decimal', 'none', M, A] }],
+        'text-alignment': [{ text: ['left', 'center', 'right', 'justify', 'start', 'end'] }],
+        'placeholder-color': [{ placeholder: $() }],
+        'text-color': [{ text: $() }],
+        'text-decoration': ['underline', 'overline', 'line-through', 'no-underline'],
+        'text-decoration-style': [{ decoration: [...pe(), 'wavy'] }],
+        'text-decoration-thickness': [{ decoration: [F, 'from-font', 'auto', M, Ie] }],
+        'text-decoration-color': [{ decoration: $() }],
+        'underline-offset': [{ 'underline-offset': [F, 'auto', M, A] }],
+        'text-transform': ['uppercase', 'lowercase', 'capitalize', 'normal-case'],
+        'text-overflow': ['truncate', 'text-ellipsis', 'text-clip'],
+        'text-wrap': [{ text: ['wrap', 'nowrap', 'balance', 'pretty'] }],
+        indent: [{ indent: k() }],
+        'vertical-align': [
+          {
+            align: [
+              'baseline',
+              'top',
+              'middle',
+              'bottom',
+              'text-top',
+              'text-bottom',
+              'sub',
+              'super',
+              M,
+              A,
+            ],
+          },
+        ],
+        whitespace: [
+          { whitespace: ['normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap', 'break-spaces'] },
+        ],
+        break: [{ break: ['normal', 'words', 'all', 'keep'] }],
+        wrap: [{ wrap: ['break-word', 'anywhere', 'normal'] }],
+        hyphens: [{ hyphens: ['none', 'manual', 'auto'] }],
+        content: [{ content: ['none', M, A] }],
+        'bg-attachment': [{ bg: ['fixed', 'local', 'scroll'] }],
+        'bg-clip': [{ 'bg-clip': ['border', 'padding', 'content', 'text'] }],
+        'bg-origin': [{ 'bg-origin': ['border', 'padding', 'content'] }],
+        'bg-position': [{ bg: se() }],
+        'bg-repeat': [{ bg: I() }],
+        'bg-size': [{ bg: xe() }],
+        'bg-image': [
+          {
+            bg: [
+              'none',
+              {
+                linear: [{ to: ['t', 'tr', 'r', 'br', 'b', 'bl', 'l', 'tl'] }, Re, M, A],
+                radial: ['', M, A],
+                conic: [Re, M, A],
+              },
+              Ka,
+              qa,
+            ],
+          },
+        ],
+        'bg-color': [{ bg: $() }],
+        'gradient-from-pos': [{ from: ae() }],
+        'gradient-via-pos': [{ via: ae() }],
+        'gradient-to-pos': [{ to: ae() }],
+        'gradient-from': [{ from: $() }],
+        'gradient-via': [{ via: $() }],
+        'gradient-to': [{ to: $() }],
+        rounded: [{ rounded: K() }],
+        'rounded-s': [{ 'rounded-s': K() }],
+        'rounded-e': [{ 'rounded-e': K() }],
+        'rounded-t': [{ 'rounded-t': K() }],
+        'rounded-r': [{ 'rounded-r': K() }],
+        'rounded-b': [{ 'rounded-b': K() }],
+        'rounded-l': [{ 'rounded-l': K() }],
+        'rounded-ss': [{ 'rounded-ss': K() }],
+        'rounded-se': [{ 'rounded-se': K() }],
+        'rounded-ee': [{ 'rounded-ee': K() }],
+        'rounded-es': [{ 'rounded-es': K() }],
+        'rounded-tl': [{ 'rounded-tl': K() }],
+        'rounded-tr': [{ 'rounded-tr': K() }],
+        'rounded-br': [{ 'rounded-br': K() }],
+        'rounded-bl': [{ 'rounded-bl': K() }],
+        'border-w': [{ border: H() }],
+        'border-w-x': [{ 'border-x': H() }],
+        'border-w-y': [{ 'border-y': H() }],
+        'border-w-s': [{ 'border-s': H() }],
+        'border-w-e': [{ 'border-e': H() }],
+        'border-w-bs': [{ 'border-bs': H() }],
+        'border-w-be': [{ 'border-be': H() }],
+        'border-w-t': [{ 'border-t': H() }],
+        'border-w-r': [{ 'border-r': H() }],
+        'border-w-b': [{ 'border-b': H() }],
+        'border-w-l': [{ 'border-l': H() }],
+        'divide-x': [{ 'divide-x': H() }],
+        'divide-x-reverse': ['divide-x-reverse'],
+        'divide-y': [{ 'divide-y': H() }],
+        'divide-y-reverse': ['divide-y-reverse'],
+        'border-style': [{ border: [...pe(), 'hidden', 'none'] }],
+        'divide-style': [{ divide: [...pe(), 'hidden', 'none'] }],
+        'border-color': [{ border: $() }],
+        'border-color-x': [{ 'border-x': $() }],
+        'border-color-y': [{ 'border-y': $() }],
+        'border-color-s': [{ 'border-s': $() }],
+        'border-color-e': [{ 'border-e': $() }],
+        'border-color-bs': [{ 'border-bs': $() }],
+        'border-color-be': [{ 'border-be': $() }],
+        'border-color-t': [{ 'border-t': $() }],
+        'border-color-r': [{ 'border-r': $() }],
+        'border-color-b': [{ 'border-b': $() }],
+        'border-color-l': [{ 'border-l': $() }],
+        'divide-color': [{ divide: $() }],
+        'outline-style': [{ outline: [...pe(), 'none', 'hidden'] }],
+        'outline-offset': [{ 'outline-offset': [F, M, A] }],
+        'outline-w': [{ outline: ['', F, Xe, Ie] }],
+        'outline-color': [{ outline: $() }],
+        shadow: [{ shadow: ['', 'none', n, xt, dt] }],
+        'shadow-color': [{ shadow: $() }],
+        'inset-shadow': [{ 'inset-shadow': ['none', x, xt, dt] }],
+        'inset-shadow-color': [{ 'inset-shadow': $() }],
+        'ring-w': [{ ring: H() }],
+        'ring-w-inset': ['ring-inset'],
+        'ring-color': [{ ring: $() }],
+        'ring-offset-w': [{ 'ring-offset': [F, Ie] }],
+        'ring-offset-color': [{ 'ring-offset': $() }],
+        'inset-ring-w': [{ 'inset-ring': H() }],
+        'inset-ring-color': [{ 'inset-ring': $() }],
+        'text-shadow': [{ 'text-shadow': ['none', u, xt, dt] }],
+        'text-shadow-color': [{ 'text-shadow': $() }],
+        opacity: [{ opacity: [F, M, A] }],
+        'mix-blend': [{ 'mix-blend': [...ge(), 'plus-darker', 'plus-lighter'] }],
+        'bg-blend': [{ 'bg-blend': ge() }],
+        'mask-clip': [
+          { 'mask-clip': ['border', 'padding', 'content', 'fill', 'stroke', 'view'] },
+          'mask-no-clip',
+        ],
+        'mask-composite': [{ mask: ['add', 'subtract', 'intersect', 'exclude'] }],
+        'mask-image-linear-pos': [{ 'mask-linear': [F] }],
+        'mask-image-linear-from-pos': [{ 'mask-linear-from': Y() }],
+        'mask-image-linear-to-pos': [{ 'mask-linear-to': Y() }],
+        'mask-image-linear-from-color': [{ 'mask-linear-from': $() }],
+        'mask-image-linear-to-color': [{ 'mask-linear-to': $() }],
+        'mask-image-t-from-pos': [{ 'mask-t-from': Y() }],
+        'mask-image-t-to-pos': [{ 'mask-t-to': Y() }],
+        'mask-image-t-from-color': [{ 'mask-t-from': $() }],
+        'mask-image-t-to-color': [{ 'mask-t-to': $() }],
+        'mask-image-r-from-pos': [{ 'mask-r-from': Y() }],
+        'mask-image-r-to-pos': [{ 'mask-r-to': Y() }],
+        'mask-image-r-from-color': [{ 'mask-r-from': $() }],
+        'mask-image-r-to-color': [{ 'mask-r-to': $() }],
+        'mask-image-b-from-pos': [{ 'mask-b-from': Y() }],
+        'mask-image-b-to-pos': [{ 'mask-b-to': Y() }],
+        'mask-image-b-from-color': [{ 'mask-b-from': $() }],
+        'mask-image-b-to-color': [{ 'mask-b-to': $() }],
+        'mask-image-l-from-pos': [{ 'mask-l-from': Y() }],
+        'mask-image-l-to-pos': [{ 'mask-l-to': Y() }],
+        'mask-image-l-from-color': [{ 'mask-l-from': $() }],
+        'mask-image-l-to-color': [{ 'mask-l-to': $() }],
+        'mask-image-x-from-pos': [{ 'mask-x-from': Y() }],
+        'mask-image-x-to-pos': [{ 'mask-x-to': Y() }],
+        'mask-image-x-from-color': [{ 'mask-x-from': $() }],
+        'mask-image-x-to-color': [{ 'mask-x-to': $() }],
+        'mask-image-y-from-pos': [{ 'mask-y-from': Y() }],
+        'mask-image-y-to-pos': [{ 'mask-y-to': Y() }],
+        'mask-image-y-from-color': [{ 'mask-y-from': $() }],
+        'mask-image-y-to-color': [{ 'mask-y-to': $() }],
+        'mask-image-radial': [{ 'mask-radial': [M, A] }],
+        'mask-image-radial-from-pos': [{ 'mask-radial-from': Y() }],
+        'mask-image-radial-to-pos': [{ 'mask-radial-to': Y() }],
+        'mask-image-radial-from-color': [{ 'mask-radial-from': $() }],
+        'mask-image-radial-to-color': [{ 'mask-radial-to': $() }],
+        'mask-image-radial-shape': [{ 'mask-radial': ['circle', 'ellipse'] }],
+        'mask-image-radial-size': [
+          { 'mask-radial': [{ closest: ['side', 'corner'], farthest: ['side', 'corner'] }] },
+        ],
+        'mask-image-radial-pos': [{ 'mask-radial-at': v() }],
+        'mask-image-conic-pos': [{ 'mask-conic': [F] }],
+        'mask-image-conic-from-pos': [{ 'mask-conic-from': Y() }],
+        'mask-image-conic-to-pos': [{ 'mask-conic-to': Y() }],
+        'mask-image-conic-from-color': [{ 'mask-conic-from': $() }],
+        'mask-image-conic-to-color': [{ 'mask-conic-to': $() }],
+        'mask-mode': [{ mask: ['alpha', 'luminance', 'match'] }],
+        'mask-origin': [
+          { 'mask-origin': ['border', 'padding', 'content', 'fill', 'stroke', 'view'] },
+        ],
+        'mask-position': [{ mask: se() }],
+        'mask-repeat': [{ mask: I() }],
+        'mask-size': [{ mask: xe() }],
+        'mask-type': [{ 'mask-type': ['alpha', 'luminance'] }],
+        'mask-image': [{ mask: ['none', M, A] }],
+        filter: [{ filter: ['', 'none', M, A] }],
+        blur: [{ blur: Ce() }],
+        brightness: [{ brightness: [F, M, A] }],
+        contrast: [{ contrast: [F, M, A] }],
+        'drop-shadow': [{ 'drop-shadow': ['', 'none', b, xt, dt] }],
+        'drop-shadow-color': [{ 'drop-shadow': $() }],
+        grayscale: [{ grayscale: ['', F, M, A] }],
+        'hue-rotate': [{ 'hue-rotate': [F, M, A] }],
+        invert: [{ invert: ['', F, M, A] }],
+        saturate: [{ saturate: [F, M, A] }],
+        sepia: [{ sepia: ['', F, M, A] }],
+        'backdrop-filter': [{ 'backdrop-filter': ['', 'none', M, A] }],
+        'backdrop-blur': [{ 'backdrop-blur': Ce() }],
+        'backdrop-brightness': [{ 'backdrop-brightness': [F, M, A] }],
+        'backdrop-contrast': [{ 'backdrop-contrast': [F, M, A] }],
+        'backdrop-grayscale': [{ 'backdrop-grayscale': ['', F, M, A] }],
+        'backdrop-hue-rotate': [{ 'backdrop-hue-rotate': [F, M, A] }],
+        'backdrop-invert': [{ 'backdrop-invert': ['', F, M, A] }],
+        'backdrop-opacity': [{ 'backdrop-opacity': [F, M, A] }],
+        'backdrop-saturate': [{ 'backdrop-saturate': [F, M, A] }],
+        'backdrop-sepia': [{ 'backdrop-sepia': ['', F, M, A] }],
+        'border-collapse': [{ border: ['collapse', 'separate'] }],
+        'border-spacing': [{ 'border-spacing': k() }],
+        'border-spacing-x': [{ 'border-spacing-x': k() }],
+        'border-spacing-y': [{ 'border-spacing-y': k() }],
+        'table-layout': [{ table: ['auto', 'fixed'] }],
+        caption: [{ caption: ['top', 'bottom'] }],
+        transition: [
+          { transition: ['', 'all', 'colors', 'opacity', 'shadow', 'transform', 'none', M, A] },
+        ],
+        'transition-behavior': [{ transition: ['normal', 'discrete'] }],
+        duration: [{ duration: [F, 'initial', M, A] }],
+        ease: [{ ease: ['linear', 'initial', E, M, A] }],
+        delay: [{ delay: [F, M, A] }],
+        animate: [{ animate: ['none', N, M, A] }],
+        backface: [{ backface: ['hidden', 'visible'] }],
+        perspective: [{ perspective: [g, M, A] }],
+        'perspective-origin': [{ 'perspective-origin': j() }],
+        rotate: [{ rotate: we() }],
+        'rotate-x': [{ 'rotate-x': we() }],
+        'rotate-y': [{ 'rotate-y': we() }],
+        'rotate-z': [{ 'rotate-z': we() }],
+        scale: [{ scale: re() }],
+        'scale-x': [{ 'scale-x': re() }],
+        'scale-y': [{ 'scale-y': re() }],
+        'scale-z': [{ 'scale-z': re() }],
+        'scale-3d': ['scale-3d'],
+        skew: [{ skew: Se() }],
+        'skew-x': [{ 'skew-x': Se() }],
+        'skew-y': [{ 'skew-y': Se() }],
+        transform: [{ transform: [M, A, '', 'none', 'gpu', 'cpu'] }],
+        'transform-origin': [{ origin: j() }],
+        'transform-style': [{ transform: ['3d', 'flat'] }],
+        translate: [{ translate: me() }],
+        'translate-x': [{ 'translate-x': me() }],
+        'translate-y': [{ 'translate-y': me() }],
+        'translate-z': [{ 'translate-z': me() }],
+        'translate-none': ['translate-none'],
+        accent: [{ accent: $() }],
+        appearance: [{ appearance: ['none', 'auto'] }],
+        'caret-color': [{ caret: $() }],
+        'color-scheme': [
+          { scheme: ['normal', 'dark', 'light', 'light-dark', 'only-dark', 'only-light'] },
+        ],
+        cursor: [
+          {
+            cursor: [
+              'auto',
+              'default',
+              'pointer',
+              'wait',
+              'text',
+              'move',
+              'help',
+              'not-allowed',
+              'none',
+              'context-menu',
+              'progress',
+              'cell',
+              'crosshair',
+              'vertical-text',
+              'alias',
+              'copy',
+              'no-drop',
+              'grab',
+              'grabbing',
+              'all-scroll',
+              'col-resize',
+              'row-resize',
+              'n-resize',
+              'e-resize',
+              's-resize',
+              'w-resize',
+              'ne-resize',
+              'nw-resize',
+              'se-resize',
+              'sw-resize',
+              'ew-resize',
+              'ns-resize',
+              'nesw-resize',
+              'nwse-resize',
+              'zoom-in',
+              'zoom-out',
+              M,
+              A,
+            ],
+          },
+        ],
+        'field-sizing': [{ 'field-sizing': ['fixed', 'content'] }],
+        'pointer-events': [{ 'pointer-events': ['auto', 'none'] }],
+        resize: [{ resize: ['none', '', 'y', 'x'] }],
+        'scroll-behavior': [{ scroll: ['auto', 'smooth'] }],
+        'scroll-m': [{ 'scroll-m': k() }],
+        'scroll-mx': [{ 'scroll-mx': k() }],
+        'scroll-my': [{ 'scroll-my': k() }],
+        'scroll-ms': [{ 'scroll-ms': k() }],
+        'scroll-me': [{ 'scroll-me': k() }],
+        'scroll-mbs': [{ 'scroll-mbs': k() }],
+        'scroll-mbe': [{ 'scroll-mbe': k() }],
+        'scroll-mt': [{ 'scroll-mt': k() }],
+        'scroll-mr': [{ 'scroll-mr': k() }],
+        'scroll-mb': [{ 'scroll-mb': k() }],
+        'scroll-ml': [{ 'scroll-ml': k() }],
+        'scroll-p': [{ 'scroll-p': k() }],
+        'scroll-px': [{ 'scroll-px': k() }],
+        'scroll-py': [{ 'scroll-py': k() }],
+        'scroll-ps': [{ 'scroll-ps': k() }],
+        'scroll-pe': [{ 'scroll-pe': k() }],
+        'scroll-pbs': [{ 'scroll-pbs': k() }],
+        'scroll-pbe': [{ 'scroll-pbe': k() }],
+        'scroll-pt': [{ 'scroll-pt': k() }],
+        'scroll-pr': [{ 'scroll-pr': k() }],
+        'scroll-pb': [{ 'scroll-pb': k() }],
+        'scroll-pl': [{ 'scroll-pl': k() }],
+        'snap-align': [{ snap: ['start', 'end', 'center', 'align-none'] }],
+        'snap-stop': [{ snap: ['normal', 'always'] }],
+        'snap-type': [{ snap: ['none', 'x', 'y', 'both'] }],
+        'snap-strictness': [{ snap: ['mandatory', 'proximity'] }],
+        touch: [{ touch: ['auto', 'none', 'manipulation'] }],
+        'touch-x': [{ 'touch-pan': ['x', 'left', 'right'] }],
+        'touch-y': [{ 'touch-pan': ['y', 'up', 'down'] }],
+        'touch-pz': ['touch-pinch-zoom'],
+        select: [{ select: ['none', 'text', 'all', 'auto'] }],
+        'will-change': [{ 'will-change': ['auto', 'scroll', 'contents', 'transform', M, A] }],
+        fill: [{ fill: ['none', ...$()] }],
+        'stroke-w': [{ stroke: [F, Xe, Ie, Kt] }],
+        stroke: [{ stroke: ['none', ...$()] }],
+        'forced-color-adjust': [{ 'forced-color-adjust': ['auto', 'none'] }],
+      },
+      conflictingClassGroups: {
+        overflow: ['overflow-x', 'overflow-y'],
+        overscroll: ['overscroll-x', 'overscroll-y'],
+        inset: [
+          'inset-x',
+          'inset-y',
+          'inset-bs',
+          'inset-be',
+          'start',
+          'end',
+          'top',
+          'right',
+          'bottom',
+          'left',
+        ],
+        'inset-x': ['right', 'left'],
+        'inset-y': ['top', 'bottom'],
+        flex: ['basis', 'grow', 'shrink'],
+        gap: ['gap-x', 'gap-y'],
+        p: ['px', 'py', 'ps', 'pe', 'pbs', 'pbe', 'pt', 'pr', 'pb', 'pl'],
+        px: ['pr', 'pl'],
+        py: ['pt', 'pb'],
+        m: ['mx', 'my', 'ms', 'me', 'mbs', 'mbe', 'mt', 'mr', 'mb', 'ml'],
+        mx: ['mr', 'ml'],
+        my: ['mt', 'mb'],
+        size: ['w', 'h'],
+        'font-size': ['leading'],
+        'fvn-normal': [
+          'fvn-ordinal',
+          'fvn-slashed-zero',
+          'fvn-figure',
+          'fvn-spacing',
+          'fvn-fraction',
+        ],
+        'fvn-ordinal': ['fvn-normal'],
+        'fvn-slashed-zero': ['fvn-normal'],
+        'fvn-figure': ['fvn-normal'],
+        'fvn-spacing': ['fvn-normal'],
+        'fvn-fraction': ['fvn-normal'],
+        'line-clamp': ['display', 'overflow'],
+        rounded: [
+          'rounded-s',
+          'rounded-e',
+          'rounded-t',
+          'rounded-r',
+          'rounded-b',
+          'rounded-l',
+          'rounded-ss',
+          'rounded-se',
+          'rounded-ee',
+          'rounded-es',
+          'rounded-tl',
+          'rounded-tr',
+          'rounded-br',
+          'rounded-bl',
+        ],
+        'rounded-s': ['rounded-ss', 'rounded-es'],
+        'rounded-e': ['rounded-se', 'rounded-ee'],
+        'rounded-t': ['rounded-tl', 'rounded-tr'],
+        'rounded-r': ['rounded-tr', 'rounded-br'],
+        'rounded-b': ['rounded-br', 'rounded-bl'],
+        'rounded-l': ['rounded-tl', 'rounded-bl'],
+        'border-spacing': ['border-spacing-x', 'border-spacing-y'],
+        'border-w': [
+          'border-w-x',
+          'border-w-y',
+          'border-w-s',
+          'border-w-e',
+          'border-w-bs',
+          'border-w-be',
+          'border-w-t',
+          'border-w-r',
+          'border-w-b',
+          'border-w-l',
+        ],
+        'border-w-x': ['border-w-r', 'border-w-l'],
+        'border-w-y': ['border-w-t', 'border-w-b'],
+        'border-color': [
+          'border-color-x',
+          'border-color-y',
+          'border-color-s',
+          'border-color-e',
+          'border-color-bs',
+          'border-color-be',
+          'border-color-t',
+          'border-color-r',
+          'border-color-b',
+          'border-color-l',
+        ],
+        'border-color-x': ['border-color-r', 'border-color-l'],
+        'border-color-y': ['border-color-t', 'border-color-b'],
+        translate: ['translate-x', 'translate-y', 'translate-none'],
+        'translate-none': ['translate', 'translate-x', 'translate-y', 'translate-z'],
+        'scroll-m': [
+          'scroll-mx',
+          'scroll-my',
+          'scroll-ms',
+          'scroll-me',
+          'scroll-mbs',
+          'scroll-mbe',
+          'scroll-mt',
+          'scroll-mr',
+          'scroll-mb',
+          'scroll-ml',
+        ],
+        'scroll-mx': ['scroll-mr', 'scroll-ml'],
+        'scroll-my': ['scroll-mt', 'scroll-mb'],
+        'scroll-p': [
+          'scroll-px',
+          'scroll-py',
+          'scroll-ps',
+          'scroll-pe',
+          'scroll-pbs',
+          'scroll-pbe',
+          'scroll-pt',
+          'scroll-pr',
+          'scroll-pb',
+          'scroll-pl',
+        ],
+        'scroll-px': ['scroll-pr', 'scroll-pl'],
+        'scroll-py': ['scroll-pt', 'scroll-pb'],
+        touch: ['touch-x', 'touch-y', 'touch-pz'],
+        'touch-x': ['touch'],
+        'touch-y': ['touch'],
+        'touch-pz': ['touch'],
+      },
+      conflictingClassGroupModifiers: { 'font-size': ['leading'] },
+      orderSensitiveModifiers: [
+        '*',
+        '**',
+        'after',
+        'backdrop',
+        'before',
+        'details-content',
+        'file',
+        'first-letter',
+        'first-line',
+        'marker',
+        'placeholder',
+        'selection',
+      ],
+    };
+  },
+  Za = Ma(Ja);
+function i(...t) {
+  return Za(Fs(t));
+}
+const ee = (t) => {
+    if (!t || t <= 0) return '0 B';
+    const s = 1024,
+      r = ['B', 'KB', 'MB', 'GB', 'TB'],
+      a = Math.floor(Math.log(t) / Math.log(s)),
+      c = Math.max(0, Math.min(a, r.length - 1));
+    return parseFloat((t / Math.pow(s, c)).toFixed(2)) + ' ' + r[c];
+  },
+  er = () => {
+    const { hostname: t, protocol: s, port: r } = window.location;
+    return r === '3000' || r === '5173' ? `${s}//${t}:3000/api` : '/api';
+  },
+  tr = er(),
+  T = Us.create({ baseURL: tr, headers: { 'Content-Type': 'application/json' } }),
+  Rs = (t) => {
+    const s = window.location.protocol === 'https:' ? 'wss:' : 'ws:',
+      { hostname: r, port: a, host: c } = window.location,
+      d = localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token') || '',
+      p = d ? `?token=${encodeURIComponent(d)}` : '';
+    if (a === '3000' || a === '5173') {
+      const l = `${s}//${r}:3000/api/logs-ws`;
+      if (t === 'logs-api') return `${l}/api${p}`;
+      if (t === 'logs-wg') return `${l}/wireguard${p}`;
+      if (t === 'status') return `${s}//${r}:3000/api/status-ws${p}`;
+    }
+    const m = `${s}//${c}/api/logs-ws`;
+    return t === 'logs-api'
+      ? `${m}/api${p}`
+      : t === 'logs-wg'
+        ? `${m}/wireguard${p}`
+        : t === 'status'
+          ? `${s}//${c}/api/status-ws${p}`
+          : `${s}//${c}/ws${p}`;
+  };
+T.interceptors.request.use((t) => {
+  const s = localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token');
+  return (s && (t.headers['X-Api-Token'] = s), (t.metadata = { startTime: new Date() }), t);
+});
+T.interceptors.response.use(
+  (t) => {
+    const s = t.config.metadata ? new Date() - t.config.metadata.startTime : 'unknown';
+    return (
+      (window.location.port === '5173' || t.status >= 500) &&
+        console.log(`[API-PERF] ${t.config.method.toUpperCase()} ${t.config.url} took ${s}ms`),
+      t
+    );
+  },
+  (t) => {
+    var c, d, p, m, l, o, n, x, u;
+    const s =
+        (c = t.config) != null && c.metadata ? new Date() - t.config.metadata.startTime : null,
+      r = (d = t.response) == null ? void 0 : d.status,
+      a =
+        ((m = (p = t.response) == null ? void 0 : p.data) == null ? void 0 : m.error) ||
+        ((o = (l = t.response) == null ? void 0 : l.data) == null ? void 0 : o.message);
+    return (
+      (window.location.port === '5173' || r >= 400) &&
+        console.error(
+          `[API-ERR] ${(x = (n = t.config) == null ? void 0 : n.method) == null ? void 0 : x.toUpperCase()} ${(u = t.config) == null ? void 0 : u.url} failed after ${s}ms:`,
+          a
+        ),
+      (r === 401 || (r === 403 && a === 'Account expired')) && sr(),
+      Promise.reject(t)
+    );
+  }
+);
+function sr() {
+  (['wg-api-token', 'wg-user-role', 'wg-user-username'].forEach((s) => {
+    (localStorage.removeItem(s), sessionStorage.removeItem(s));
+  }),
+    (window.location.href = '/login'));
+}
+const ar = ({ onLogin: t }) => {
+    const { theme: s, mode: r } = Q(),
+      [a, c] = h.useState(''),
+      [d, p] = h.useState(''),
+      [m, l] = h.useState(!1),
+      [o, n] = h.useState(''),
+      [x, u] = h.useState(!1),
+      [b, y] = h.useState(''),
+      [g, w] = h.useState(!1),
+      [E, N] = h.useState(!1),
+      f = r === 'dark',
+      v = async (j) => {
+        var z, D, k, R;
+        (j.preventDefault(), w(!0), y(''));
+        try {
+          const { data: U } = await T.post('/auth/login', { username: a, password: d, token: o });
+          U.valid && U.token ? t(U.token, E, U.role, a) : y(U.error || 'Identifiants invalides');
+        } catch (U) {
+          ((z = U.response) == null ? void 0 : z.status) === 429
+            ? y('Trop de tentatives. Réessayez plus tard.')
+            : ((D = U.response) == null ? void 0 : D.status) === 403 &&
+                U.response.data.error === '2FA_REQUIRED'
+              ? (u(!0), y(''))
+              : y(
+                  ((R = (k = U.response) == null ? void 0 : k.data) == null ? void 0 : R.error) ||
+                    'Erreur de connexion au serveur'
+                );
+        } finally {
+          w(!1);
+        }
+      };
+    return e.jsxs('div', {
+      className:
+        'min-h-screen flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-700 bg-[var(--bg-canvas)]',
+      children: [
+        e.jsxs('div', {
+          className: 'absolute inset-0 pointer-events-none overflow-hidden',
+          children: [
+            e.jsx(L.div, {
+              animate: { scale: [1, 1.3, 1], opacity: f ? [0.08, 0.18, 0.08] : [0.03, 0.06, 0.03] },
+              transition: { duration: 12, repeat: 1 / 0, ease: 'easeInOut' },
+              className: i(
+                'absolute -top-[20%] -left-[10%] w-[80vw] h-[80vw] rounded-full blur-[160px] max-w-3xl',
+                `bg-${s}-600/20`
+              ),
+            }),
+            e.jsx(L.div, {
+              animate: { scale: [1, 1.2, 1], opacity: f ? [0.05, 0.12, 0.05] : [0.02, 0.04, 0.02] },
+              transition: { duration: 18, repeat: 1 / 0, delay: 3, ease: 'easeInOut' },
+              className:
+                'absolute -bottom-[20%] -right-[10%] w-[70vw] h-[70vw] rounded-full blur-[160px] bg-emerald-600/10 max-w-2xl',
+            }),
+            e.jsx('div', {
+              className: i(
+                'absolute inset-0 bg-[size:50px_50px]',
+                f
+                  ? 'bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)]'
+                  : 'bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)]'
+              ),
+            }),
+          ],
+        }),
+        e.jsx(L.div, {
+          initial: { opacity: 0, y: 32, scale: 0.98 },
+          animate: { opacity: 1, y: 0, scale: 1 },
+          transition: { duration: 0.8, ease: [0.23, 1, 0.32, 1] },
+          className: 'w-full max-w-[460px] relative z-10',
+          children: e.jsxs('div', {
+            className: 'glass-card p-10 md:p-14 overflow-hidden relative shadow-2xl',
+            children: [
+              e.jsx('div', {
+                className: i(
+                  'absolute inset-0 opacity-[0.03] pointer-events-none',
+                  `bg-gradient-to-br from-${s}-500 to-transparent`
+                ),
+              }),
+              e.jsxs('div', {
+                className: 'text-center mb-12 relative z-10',
+                children: [
+                  e.jsxs(L.div, {
+                    whileHover: { rotate: 5, scale: 1.05 },
+                    transition: { type: 'spring', stiffness: 400 },
+                    className: 'inline-flex relative mb-8',
+                    children: [
+                      e.jsx('div', {
+                        className: i(
+                          'absolute inset-0 blur-3xl opacity-20 rounded-full',
+                          `bg-${s}-500`
+                        ),
+                      }),
+                      e.jsx('div', {
+                        className: i(
+                          'relative p-6 rounded-[2rem] border shadow-2xl transition-all duration-700',
+                          f
+                            ? 'bg-slate-950/80 border-white/10 text-emerald-500'
+                            : 'bg-white border-slate-200 text-emerald-600'
+                        ),
+                        children: e.jsx(fe, { size: 48, strokeWidth: 1.5 }),
+                      }),
+                    ],
+                  }),
+                  e.jsx('h1', {
+                    className: i(
+                      'text-5xl font-black tracking-tighter mb-3 italic transition-colors duration-700 uppercase',
+                      f ? 'text-white' : 'text-slate-900'
+                    ),
+                    children: window.APP_TITLE || 'WG-FUX',
+                  }),
+                  e.jsx('p', {
+                    className:
+                      'text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60',
+                    children: 'Zero Latency Engine — v4.0.1',
+                  }),
+                ],
+              }),
+              e.jsxs('form', {
+                onSubmit: v,
+                className: 'space-y-6 relative z-10',
+                children: [
+                  e.jsx(le, {
+                    mode: 'wait',
+                    children: x
+                      ? e.jsxs(
+                          L.div,
+                          {
+                            initial: { opacity: 0, scale: 0.95 },
+                            animate: { opacity: 1, scale: 1 },
+                            exit: { opacity: 0, scale: 0.95 },
+                            className: 'text-center space-y-6',
+                            children: [
+                              e.jsx('div', {
+                                className: i(
+                                  'inline-flex p-5 rounded-3xl transition-colors',
+                                  f ? 'bg-white/5' : 'bg-slate-50',
+                                  `text-${s}-500`
+                                ),
+                                children: e.jsx(Rt, { size: 40 }),
+                              }),
+                              e.jsxs('div', {
+                                children: [
+                                  e.jsx('h3', {
+                                    className: i(
+                                      'text-xl font-black uppercase tracking-tight mb-1',
+                                      f ? 'text-white' : 'text-slate-900'
+                                    ),
+                                    children: 'Double Facteur',
+                                  }),
+                                  e.jsx('p', {
+                                    className:
+                                      'text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60',
+                                    children: 'Synchronisation Sentinel requise',
+                                  }),
+                                ],
+                              }),
+                              e.jsx('input', {
+                                type: 'text',
+                                value: o,
+                                onChange: (j) => n(j.target.value.replace(/\D/g, '').slice(0, 6)),
+                                className:
+                                  'w-full glass-input text-center text-3xl font-mono font-black tracking-[0.6em]',
+                                placeholder: '000000',
+                                autoFocus: !0,
+                                maxLength: 6,
+                                inputMode: 'numeric',
+                              }),
+                            ],
+                          },
+                          'totp-field'
+                        )
+                      : e.jsxs(
+                          L.div,
+                          {
+                            initial: { opacity: 0, x: -10 },
+                            animate: { opacity: 1, x: 0 },
+                            exit: { opacity: 0, x: 10 },
+                            className: 'space-y-5',
+                            children: [
+                              e.jsxs('div', {
+                                className: 'group space-y-2',
+                                children: [
+                                  e.jsx('label', {
+                                    className:
+                                      'text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 opacity-50',
+                                    children: 'Identifiant Unique',
+                                  }),
+                                  e.jsxs('div', {
+                                    className: 'relative',
+                                    children: [
+                                      e.jsx(Ne, {
+                                        className: i(
+                                          'absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300',
+                                          f
+                                            ? 'text-slate-600 group-focus-within:text-white'
+                                            : 'text-slate-400 group-focus-within:text-slate-900'
+                                        ),
+                                        size: 18,
+                                      }),
+                                      e.jsx('input', {
+                                        type: 'text',
+                                        value: a,
+                                        onChange: (j) => c(j.target.value),
+                                        className: 'w-full glass-input pl-12',
+                                        placeholder: 'SECRET_ID',
+                                        autoFocus: !0,
+                                        autoComplete: 'username',
+                                      }),
+                                    ],
+                                  }),
+                                ],
+                              }),
+                              e.jsxs('div', {
+                                className: 'group space-y-2',
+                                children: [
+                                  e.jsx('label', {
+                                    className:
+                                      'text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 opacity-50',
+                                    children: 'Clé de Chiffrement',
+                                  }),
+                                  e.jsxs('div', {
+                                    className: 'relative',
+                                    children: [
+                                      e.jsx(Ct, {
+                                        className: i(
+                                          'absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300',
+                                          f
+                                            ? 'text-slate-600 group-focus-within:text-white'
+                                            : 'text-slate-400 group-focus-within:text-slate-900'
+                                        ),
+                                        size: 18,
+                                      }),
+                                      e.jsx('input', {
+                                        type: m ? 'text' : 'password',
+                                        value: d,
+                                        onChange: (j) => p(j.target.value),
+                                        className: 'w-full glass-input pl-12 pr-12',
+                                        placeholder: '••••••••',
+                                        autoComplete: 'current-password',
+                                      }),
+                                      e.jsx('button', {
+                                        type: 'button',
+                                        onClick: () => l(!m),
+                                        className: i(
+                                          'absolute right-4 top-1/2 -translate-y-1/2 transition-colors',
+                                          f
+                                            ? 'text-slate-600 hover:text-white'
+                                            : 'text-slate-400 hover:text-slate-900'
+                                        ),
+                                        children: m
+                                          ? e.jsx(rs, { size: 18 })
+                                          : e.jsx(is, { size: 18 }),
+                                      }),
+                                    ],
+                                  }),
+                                ],
+                              }),
+                            ],
+                          },
+                          'login-fields'
+                        ),
+                  }),
+                  e.jsxs('div', {
+                    className: 'flex items-center justify-between py-1',
+                    children: [
+                      e.jsxs('label', {
+                        className: 'flex items-center gap-2.5 cursor-pointer group select-none',
+                        children: [
+                          e.jsx('div', {
+                            onClick: () => N(!E),
+                            className: i(
+                              'w-5 h-5 rounded-lg border flex items-center justify-center transition-all duration-300',
+                              E
+                                ? `bg-${s}-600 border-${s}-600`
+                                : f
+                                  ? 'bg-slate-950 border-white/10 group-hover:border-white/20'
+                                  : 'bg-white border-slate-200 group-hover:border-slate-300'
+                            ),
+                            children:
+                              E && e.jsx(ls, { size: 11, className: 'text-white', strokeWidth: 4 }),
+                          }),
+                          e.jsx('input', {
+                            type: 'checkbox',
+                            checked: E,
+                            onChange: (j) => N(j.target.checked),
+                            className: 'hidden',
+                          }),
+                          e.jsx('span', {
+                            className: i(
+                              'text-[9px] font-black uppercase tracking-[0.2em] transition-colors',
+                              f
+                                ? 'text-slate-600 group-hover:text-slate-400'
+                                : 'text-slate-400 group-hover:text-slate-600'
+                            ),
+                            children: 'Mémoriser',
+                          }),
+                        ],
+                      }),
+                      e.jsx('p', {
+                        onClick: () =>
+                          alert('Récupération de clé : Contactez votre administrateur Sentinel.'),
+                        className:
+                          'text-[9px] font-black uppercase tracking-widest text-indigo-500/50 hover:text-indigo-500 cursor-pointer transition-colors duration-300',
+                        children: 'Clé perdue ?',
+                      }),
+                    ],
+                  }),
+                  e.jsx(le, {
+                    children:
+                      b &&
+                      e.jsxs(L.div, {
+                        initial: { opacity: 0, y: -4 },
+                        animate: { opacity: 1, y: 0 },
+                        exit: { opacity: 0 },
+                        className:
+                          'flex items-center gap-3 p-4 rounded-2xl bg-red-500/5 border border-red-500/10',
+                        children: [
+                          e.jsx(At, { size: 18, className: 'text-red-500 flex-shrink-0' }),
+                          e.jsx('p', {
+                            className:
+                              'text-[10px] font-black text-red-500 leading-relaxed uppercase tracking-widest',
+                            children: b,
+                          }),
+                        ],
+                      }),
+                  }),
+                  e.jsxs('button', {
+                    type: 'submit',
+                    disabled: g || !a || !d || (x && o.length < 6),
+                    className: i(
+                      'group relative w-full py-5 text-white rounded-2xl font-black uppercase text-xs tracking-[0.3em] overflow-hidden transition-all duration-500 active:scale-[0.97] disabled:opacity-20 shadow-xl',
+                      `bg-${s}-600 hover:bg-${s}-500 shadow-${s}-600/30`
+                    ),
+                    children: [
+                      e.jsx('div', {
+                        className:
+                          'absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000',
+                      }),
+                      e.jsxs('div', {
+                        className: 'relative flex items-center justify-center gap-3',
+                        children: [
+                          g
+                            ? e.jsx(J, { className: 'animate-spin text-white', size: 18 })
+                            : x
+                              ? e.jsx(os, { size: 18 })
+                              : e.jsx(ut, { size: 18, strokeWidth: 3 }),
+                          e.jsx('span', {
+                            children: g
+                              ? 'Séquençage...'
+                              : !a || !d
+                                ? 'Identifiants requis'
+                                : x
+                                  ? 'Valider Phase 2'
+                                  : 'Démarrer Session',
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+              e.jsx('div', {
+                className: i(
+                  'mt-12 pt-8 border-t text-center relative z-10',
+                  f ? 'border-slate-500/10' : 'border-slate-200'
+                ),
+                children: e.jsx('p', {
+                  className: i(
+                    'text-[8px] font-black tracking-[0.5em] uppercase transition-colors duration-700 opacity-40',
+                    f ? 'text-white' : 'text-slate-500'
+                  ),
+                  children: 'Sentinel Crypto-Guard — Layer v4.0.1',
+                }),
+              }),
+            ],
+          }),
+        }),
+      ],
+    });
+  },
+  ue = {
+    token: 'wg-api-token',
+    role: 'wg-user-role',
+    username: 'wg-user-username',
+    cache: 'wg-fux-cache',
+  },
+  rr = () => ({
+    token: localStorage.getItem(ue.token) || sessionStorage.getItem(ue.token),
+    role: localStorage.getItem(ue.role),
+    username: localStorage.getItem(ue.username),
+  }),
+  ir = () => {
+    const [t, s] = h.useState(rr);
+    return {
+      session: t,
+      login: (c, d, p, m) => {
+        (d ? localStorage.setItem(ue.token, c) : sessionStorage.setItem(ue.token, c),
+          p && localStorage.setItem(ue.role, p),
+          m && localStorage.setItem(ue.username, m),
+          s({ token: c, role: p || null, username: m || null }));
+      },
+      logout: () => {
+        (localStorage.removeItem(ue.token),
+          sessionStorage.removeItem(ue.token),
+          localStorage.removeItem(ue.role),
+          localStorage.removeItem(ue.username),
+          sessionStorage.removeItem(ue.cache),
+          s({ token: null, role: null, username: null }));
+      },
+    };
+  },
+  As = h.createContext(),
+  lr = ({ children: t }) => {
+    const [s, r] = h.useState([]),
+      a = (d, p = 'info') => {
+        const m = Date.now();
+        (r((l) => [...l, { id: m, message: d, type: p }]),
+          setTimeout(() => r((l) => l.filter((o) => o.id !== m)), 5e3));
+      },
+      c = (d) => r((p) => p.filter((m) => m.id !== d));
+    return e.jsxs(As.Provider, {
+      value: { addToast: a },
+      children: [
+        t,
+        e.jsx('div', {
+          className: 'fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none',
+          children: e.jsx(le, {
+            children: s.map((d) =>
+              e.jsxs(
+                L.div,
+                {
+                  initial: { opacity: 0, x: 20, scale: 0.9 },
+                  animate: { opacity: 1, x: 0, scale: 1 },
+                  exit: { opacity: 0, x: 20, scale: 0.9 },
+                  className:
+                    'pointer-events-auto flex items-center gap-3 px-4 py-3 bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl',
+                  children: [
+                    d.type === 'success' && e.jsx(mt, { className: 'text-emerald-400', size: 20 }),
+                    d.type === 'error' && e.jsx(At, { className: 'text-red-400', size: 20 }),
+                    d.type === 'info' && e.jsx(ht, { className: 'text-indigo-400', size: 20 }),
+                    e.jsx('span', {
+                      className: 'text-sm font-bold text-white',
+                      children: d.message,
+                    }),
+                    e.jsx('button', {
+                      onClick: () => c(d.id),
+                      className: 'ml-2 text-slate-500 hover:text-white transition-colors',
+                      children: e.jsx(Fe, { size: 16 }),
+                    }),
+                  ],
+                },
+                d.id
+              )
+            ),
+          }),
+        }),
+      ],
+    });
+  },
+  ke = () => h.useContext(As);
+class or extends h.Component {
+  constructor(r) {
+    super(r);
+    Ot(this, 'handleReset', () => {
+      this.setState({ hasError: !1, error: null, errorInfo: null });
+    });
+    this.state = { hasError: !1, error: null, errorInfo: null };
+  }
+  static getDerivedStateFromError(r) {
+    return { hasError: !0, error: r };
+  }
+  componentDidCatch(r, a) {
+    (this.setState({ errorInfo: a }), console.error('[ERROR-BOUNDARY] Component crashed:', r, a));
+  }
+  render() {
+    var r, a;
+    if (this.state.hasError) {
+      const { fallback: c, sectionName: d } = this.props;
+      return c
+        ? e.jsx(c, { error: this.state.error, onReset: this.handleReset })
+        : e.jsxs('div', {
+            className:
+              'flex flex-col items-center justify-center p-10 rounded-3xl bg-slate-900/50 border border-red-500/20 backdrop-blur-xl text-center min-h-[200px]',
+            children: [
+              e.jsx('div', {
+                className: 'p-4 rounded-2xl bg-red-500/10 text-red-400 mb-6',
+                children: e.jsx(Be, { size: 32 }),
+              }),
+              e.jsxs('h3', {
+                className: 'text-lg font-black text-white uppercase tracking-tight mb-2',
+                children: [d || 'Composant', ' — Erreur Critique'],
+              }),
+              e.jsx('p', {
+                className: 'text-xs text-slate-500 font-mono mb-1 max-w-sm',
+                children:
+                  ((r = this.state.error) == null ? void 0 : r.message) ||
+                  'Une erreur inattendue est survenue.',
+              }),
+              ((a = this.state.errorInfo) == null ? void 0 : a.componentStack) &&
+                e.jsxs('details', {
+                  className: 'mt-4 text-left w-full max-w-md',
+                  children: [
+                    e.jsx('summary', {
+                      className:
+                        'text-[10px] text-slate-600 uppercase tracking-widest cursor-pointer mb-2',
+                      children: 'Stack Trace',
+                    }),
+                    e.jsx('pre', {
+                      className:
+                        'text-[9px] text-slate-700 overflow-auto bg-slate-950 rounded-xl p-4 max-h-48',
+                      children: this.state.errorInfo.componentStack,
+                    }),
+                  ],
+                }),
+              e.jsxs('button', {
+                onClick: this.handleReset,
+                className:
+                  'mt-6 flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all border border-white/10',
+                children: [e.jsx(J, { size: 14 }), 'Réinitialiser'],
+              }),
+            ],
+          });
+    }
+    return this.props.children;
+  }
+}
+const nr = {
+    fr: {
+      dashboard: 'Tableau de bord',
+      containers: 'Conteneurs',
+      users_manage: 'Utilisateurs',
+      logs: 'Logs',
+      topology: 'Topologie',
+      optimization: 'Optimisation',
+      settings: 'Paramètres',
+      logout: 'Déconnexion',
+      configs: 'Configurations',
+      support: 'Support',
+      active_core: 'Cœur Actif',
+      uptime: 'Temps Activité',
+      reboot_system: 'Redémarrer Système',
+      secure_portal: 'Espace Utilisateur Sécurisé',
+      no_config: 'Aucune configuration disponible',
+      contact_admin: "Contactez l'administrateur.",
+    },
+    en: {
+      dashboard: 'Dashboard',
+      containers: 'Containers',
+      users_manage: 'Users',
+      logs: 'Logs',
+      topology: 'Topology',
+      optimization: 'Optimization',
+      settings: 'Settings',
+      logout: 'Logout',
+      configs: 'Configurations',
+      support: 'Support',
+      active_core: 'Active Core',
+      uptime: 'Uptime',
+      reboot_system: 'Reboot System',
+      secure_portal: 'Secure User Portal',
+      no_config: 'No configuration available',
+      contact_admin: 'Contact administrator.',
+    },
+  },
+  Ms = h.createContext(),
+  cr = ({ children: t }) => {
+    const [s, r] = h.useState(localStorage.getItem('app-lang') || 'fr');
+    h.useEffect(() => {
+      localStorage.setItem('app-lang', s);
+    }, [s]);
+    const a = (c) => {
+      var d;
+      return ((d = nr[s]) == null ? void 0 : d[c]) || c;
+    };
+    return e.jsx(Ms.Provider, { value: { lang: s, setLang: r, t: a }, children: t });
+  },
+  dr = () => h.useContext(Ms),
+  xr = ({
+    activeSection: t,
+    setActiveSection: s,
+    isOpen: r,
+    onClose: a,
+    onLogout: c,
+    uptime: d,
+  }) => {
+    const { theme: p, setTheme: m, mode: l, setMode: o } = Q(),
+      n = l === 'dark',
+      { lang: x, setLang: u, t: b } = dr(),
+      { addToast: y } = ke(),
+      [g, w] = h.useState(() => localStorage.getItem('sidebar-collapsed') === 'true'),
+      E = () => {
+        w((j) => (localStorage.setItem('sidebar-collapsed', String(!j)), !j));
+      },
+      N = [
+        { id: 'dashboard', icon: e.jsx(Bs, { size: 20 }), label: b('dashboard') },
+        { id: 'containers', icon: e.jsx(ye, { size: 20 }), label: b('containers') },
+        {
+          id: 'users',
+          icon: e.jsx(Ne, { size: 20 }),
+          label: b('users_manage'),
+          hidden: localStorage.getItem('wg-user-role') !== 'admin',
+        },
+        { id: 'logs', icon: e.jsx(Mt, { size: 20 }), label: b('logs') },
+        { id: 'topology', icon: e.jsx(de, { size: 20 }), label: b('topology') },
+        { id: 'dns', icon: e.jsx(Ge, { size: 20 }), label: 'DNS Editor' },
+        { id: 'optimization', icon: e.jsx(He, { size: 20 }), label: b('optimization') },
+        { id: 'audit', icon: e.jsx(fe, { size: 20 }), label: 'Audit' },
+        {
+          id: 'settings',
+          icon: e.jsx(bt, { size: 20 }),
+          label: b('settings'),
+          hidden: localStorage.getItem('wg-user-role') !== 'admin',
+        },
+      ],
+      f = async () => {
+        if (window.confirm('Êtes-vous sûr de vouloir redémarrer le service WireGuard ?'))
+          try {
+            (await T.post('/system/restart/wireguard'),
+              y('Service WireGuard redémarré.', 'success'));
+          } catch {
+            y('Erreur lors du redémarrage.', 'error');
+          }
+      },
+      v = [
+        { id: 'indigo', color: 'bg-indigo-500' },
+        { id: 'cyan', color: 'bg-cyan-500' },
+        { id: 'rose', color: 'bg-rose-500' },
+      ];
+    return e.jsxs(e.Fragment, {
+      children: [
+        e.jsx(le, {
+          children:
+            r &&
+            e.jsx(L.div, {
+              initial: { opacity: 0 },
+              animate: { opacity: 1 },
+              exit: { opacity: 0 },
+              className: 'fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden',
+              onClick: a,
+            }),
+        }),
+        e.jsxs('aside', {
+          className: i(
+            'fixed inset-y-0 left-0 z-50 flex flex-col h-screen glass-panel border-r border-white/5 transition-all duration-300 ease-in-out',
+            g ? 'md:w-20' : 'md:w-64 lg:w-72',
+            'w-64 -translate-x-full md:translate-x-0 md:relative md:z-auto',
+            r && 'translate-x-0 shadow-2xl'
+          ),
+          children: [
+            e.jsxs('div', {
+              className: i(
+                'flex justify-between items-center transition-all duration-500',
+                g ? 'p-4 py-6' : 'p-8 pb-10'
+              ),
+              children: [
+                e.jsxs('div', {
+                  className: i('flex items-center gap-4 overflow-hidden', g && 'md:hidden'),
+                  children: [
+                    e.jsx('div', {
+                      className: 'relative group flex-shrink-0',
+                      children: e.jsx('div', {
+                        className: i(
+                          'relative p-3 rounded-2xl shadow-2xl border transition-all duration-500',
+                          `bg-${p}-600 shadow-${p}-600/20`,
+                          n ? 'border-white/10' : 'border-white/20'
+                        ),
+                        children: e.jsx(fe, {
+                          className: 'text-white',
+                          size: g ? 20 : 28,
+                          strokeWidth: 2.5,
+                        }),
+                      }),
+                    }),
+                    e.jsxs('div', {
+                      children: [
+                        e.jsx('h1', {
+                          className: i(
+                            'text-2xl font-black italic tracking-tighter transition-colors duration-500',
+                            n ? 'text-white' : 'text-slate-900'
+                          ),
+                          children: window.APP_TITLE || 'WG-FUX',
+                        }),
+                        e.jsxs('div', {
+                          className: 'flex items-center gap-1.5',
+                          children: [
+                            e.jsx('p', {
+                              className: i(
+                                'text-[8px] font-extrabold tracking-[0.2em] uppercase opacity-70',
+                                `text-${p}-500`
+                              ),
+                              children: 'PLATINUM CORE',
+                            }),
+                            e.jsx('div', {
+                              className:
+                                'h-1 w-1 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]',
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                g &&
+                  e.jsx('div', {
+                    className: i('hidden md:flex items-center justify-center w-full'),
+                    children: e.jsx('div', {
+                      className: i(
+                        'p-2.5 rounded-2xl shadow-xl border',
+                        `bg-${p}-600`,
+                        n ? 'border-white/10' : 'border-white/20'
+                      ),
+                      children: e.jsx(fe, { className: 'text-white', size: 20, strokeWidth: 2.5 }),
+                    }),
+                  }),
+                e.jsx('button', {
+                  onClick: a,
+                  className:
+                    'md:hidden p-3 rounded-2xl transition-all border text-slate-500 hover:text-white hover:bg-white/10 border-white/5',
+                  children: e.jsx(Fe, { size: 24 }),
+                }),
+              ],
+            }),
+            e.jsx('button', {
+              onClick: E,
+              className: i(
+                'hidden md:flex absolute -right-3.5 top-12 w-7 h-7 items-center justify-center border rounded-full transition-all shadow-xl z-10',
+                n
+                  ? 'bg-slate-800 border-white/10 text-slate-400 hover:text-white'
+                  : 'bg-white border-slate-200 text-slate-400 hover:text-slate-900'
+              ),
+              title: g ? 'Développer' : 'Réduire',
+              children: g ? e.jsx(Le, { size: 14 }) : e.jsx(ns, { size: 14 }),
+            }),
+            e.jsxs('nav', {
+              className: 'flex-1 px-3 space-y-1.5 overflow-y-auto custom-scrollbar',
+              children: [
+                N.filter((j) => !j.hidden).map((j) => {
+                  const z = t === j.id;
+                  return e.jsxs(
+                    'button',
+                    {
+                      onClick: () => {
+                        (s(j.id), a());
+                      },
+                      title: g ? j.label : void 0,
+                      className: i(
+                        'group relative w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300',
+                        g ? 'md:justify-center md:px-0' : '',
+                        z
+                          ? `bg-${p}-600 text-white shadow-lg shadow-${p}-600/20`
+                          : n
+                            ? 'text-slate-500 hover:bg-white/5 hover:text-slate-200'
+                            : 'text-slate-500 hover:bg-black/5 hover:text-slate-900'
+                      ),
+                      children: [
+                        z &&
+                          e.jsx(L.div, {
+                            layoutId: 'activeNav',
+                            className:
+                              'absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-white rounded-r-full shadow-[0_0_15px_white]',
+                          }),
+                        e.jsx('div', {
+                          className: i(
+                            'transition-transform duration-300 flex-shrink-0',
+                            !z && 'group-hover:scale-110 group-hover:rotate-3'
+                          ),
+                          children: Te.cloneElement(j.icon, {
+                            size: 18,
+                            className: z
+                              ? 'text-white'
+                              : i(
+                                  'transition-colors',
+                                  n ? 'group-hover:text-white' : 'group-hover:text-slate-900'
+                                ),
+                          }),
+                        }),
+                        e.jsx('span', {
+                          className: i(
+                            'font-bold text-xs tracking-wide uppercase whitespace-nowrap transition-all duration-300 overflow-hidden',
+                            g ? 'md:w-0 md:opacity-0' : 'w-auto opacity-100',
+                            z
+                              ? 'text-white'
+                              : i(
+                                  'transition-colors',
+                                  n
+                                    ? 'text-slate-500 group-hover:text-white'
+                                    : 'text-slate-400 group-hover:text-slate-900'
+                                )
+                          ),
+                          children: j.label,
+                        }),
+                        !g &&
+                          z &&
+                          e.jsx(L.div, {
+                            initial: { opacity: 0, x: -5 },
+                            animate: { opacity: 1, x: 0 },
+                            className: 'ml-auto',
+                            children: e.jsx(Le, { size: 14 }),
+                          }),
+                      ],
+                    },
+                    j.id
+                  );
+                }),
+                e.jsxs('button', {
+                  onClick: () => {
+                    (c(), a());
+                  },
+                  className: i(
+                    'group w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300 mt-6',
+                    n
+                      ? 'text-slate-500 hover:bg-red-500/10 hover:text-red-400'
+                      : 'text-slate-400 hover:bg-red-50 hover:text-red-600',
+                    g && 'md:justify-center md:px-0'
+                  ),
+                  title: g ? 'Déconnexion' : void 0,
+                  children: [
+                    e.jsx(Gs, {
+                      size: 18,
+                      className:
+                        'group-hover:scale-110 group-hover:rotate-3 transition-transform flex-shrink-0',
+                    }),
+                    e.jsx('span', {
+                      className: i(
+                        'font-bold text-xs tracking-wide uppercase transition-all duration-300 overflow-hidden text-slate-500 group-hover:text-red-400',
+                        g ? 'md:w-0 md:opacity-0' : 'w-auto opacity-100'
+                      ),
+                      children: b('logout'),
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            e.jsx('div', {
+              className: i('p-4 mt-auto transition-all duration-500', g && 'md:hidden'),
+              children: e.jsxs('div', {
+                className: i(
+                  'relative overflow-hidden glass-card p-4 md:p-6 group border shadow-2xl',
+                  n ? 'border-white/5' : 'border-slate-100'
+                ),
+                children: [
+                  e.jsx(et, {
+                    className: i(
+                      'absolute -right-6 -bottom-6 opacity-[0.03] w-32 h-32 rotate-12 group-hover:rotate-45 transition-transform duration-700 pointer-events-none',
+                      n ? 'text-white' : 'text-slate-900'
+                    ),
+                  }),
+                  e.jsxs('div', {
+                    className: 'relative z-10',
+                    children: [
+                      e.jsxs('div', {
+                        className: 'flex items-center justify-between mb-4',
+                        children: [
+                          e.jsxs('div', {
+                            className: 'flex items-center gap-2',
+                            children: [
+                              e.jsxs('span', {
+                                className: 'relative flex h-1.5 w-1.5',
+                                children: [
+                                  e.jsx('span', {
+                                    className:
+                                      'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75',
+                                  }),
+                                  e.jsx('span', {
+                                    className:
+                                      'relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500',
+                                  }),
+                                ],
+                              }),
+                              e.jsx('span', {
+                                className:
+                                  'text-[9px] font-black text-emerald-500 uppercase tracking-widest',
+                                children: 'SENTINEL ACTIVE',
+                              }),
+                            ],
+                          }),
+                          e.jsx('span', {
+                            className: i(
+                              'text-[9px] font-mono px-2 py-0.5 rounded-md border',
+                              n
+                                ? 'text-slate-500 bg-white/5 border-white/5'
+                                : 'text-slate-400 bg-black/5 border-slate-200'
+                            ),
+                            children: window.WG_INTERFACE || 'wg0',
+                          }),
+                        ],
+                      }),
+                      e.jsxs('div', {
+                        className: 'space-y-2 mb-5',
+                        children: [
+                          e.jsxs('div', {
+                            className:
+                              'flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-tight',
+                            children: [
+                              e.jsx('span', { children: 'Version' }),
+                              e.jsx('span', {
+                                className: i(
+                                  'font-mono px-2 py-0.5 rounded-md',
+                                  n ? 'text-white bg-white/5' : 'text-slate-900 bg-black/5'
+                                ),
+                                children: 'v3.1.0-Plat',
+                              }),
+                            ],
+                          }),
+                          e.jsxs('div', {
+                            className:
+                              'flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-tight',
+                            children: [
+                              e.jsx('span', { children: b('uptime') }),
+                              e.jsx('span', {
+                                className: i('font-mono', `text-${p}-500`),
+                                children: d || '...',
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
+                      e.jsxs('button', {
+                        onClick: f,
+                        className: i(
+                          'w-full py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl border transition-all flex items-center justify-center gap-2 group/btn',
+                          n
+                            ? 'bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 border-white/5 hover:border-red-500/20'
+                            : 'bg-black/5 hover:bg-red-50 text-slate-500 hover:text-red-600 border-slate-200 hover:border-red-200'
+                        ),
+                        children: [
+                          e.jsx(J, {
+                            size: 12,
+                            className:
+                              'group-hover/btn:rotate-180 transition-transform duration-700',
+                          }),
+                          b('reboot_system'),
+                        ],
+                      }),
+                      e.jsxs('div', {
+                        className: i(
+                          'flex items-center justify-between gap-2 mt-5 pt-5 border-t',
+                          n ? 'border-white/5' : 'border-slate-100'
+                        ),
+                        children: [
+                          e.jsxs('div', {
+                            className: 'flex gap-2',
+                            children: [
+                              e.jsx('button', {
+                                onClick: () => o(l === 'dark' ? 'light' : 'dark'),
+                                className:
+                                  'p-2 rounded-xl transition-all bg-white/5 text-slate-400 hover:text-white',
+                                title: 'Changer de mode',
+                                children:
+                                  l === 'dark' ? e.jsx(Ft, { size: 14 }) : e.jsx(Ut, { size: 14 }),
+                              }),
+                              e.jsx('button', {
+                                onClick: () => u(x === 'fr' ? 'en' : 'fr'),
+                                className:
+                                  'p-2 rounded-xl transition-all text-[10px] font-black w-10 bg-white/5 text-slate-400 hover:text-white',
+                                title: 'Changer de langue',
+                                children: x.toUpperCase(),
+                              }),
+                            ],
+                          }),
+                          e.jsx('div', {
+                            className: i(
+                              'flex gap-2 p-1 rounded-full',
+                              n ? 'bg-white/5' : 'bg-black/5'
+                            ),
+                            children: v.map((j) =>
+                              e.jsx(
+                                'button',
+                                {
+                                  onClick: () => m(j.id),
+                                  className: i(
+                                    'w-3.5 h-3.5 rounded-full transition-all duration-300 border border-transparent',
+                                    j.color,
+                                    p === j.id
+                                      ? n
+                                        ? 'ring-2 ring-white scale-110'
+                                        : 'ring-2 ring-indigo-500 scale-110'
+                                      : 'opacity-30 hover:opacity-100'
+                                  ),
+                                  title: j.id,
+                                },
+                                j.id
+                              )
+                            ),
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+            }),
+            g &&
+              e.jsxs('div', {
+                className: i(
+                  'hidden md:flex flex-col items-center gap-3 p-4 mt-auto border-t',
+                  n ? 'border-white/5' : 'border-slate-100'
+                ),
+                children: [
+                  e.jsx('button', {
+                    onClick: () => o(l === 'dark' ? 'light' : 'dark'),
+                    className: i(
+                      'p-2.5 rounded-xl transition-all',
+                      n
+                        ? 'bg-white/5 text-slate-400 hover:text-white'
+                        : 'bg-black/5 text-slate-500 hover:text-slate-900'
+                    ),
+                    title: 'Thème',
+                    children: l === 'dark' ? e.jsx(Ft, { size: 16 }) : e.jsx(Ut, { size: 16 }),
+                  }),
+                  e.jsx('button', {
+                    onClick: f,
+                    className: i(
+                      'p-2.5 rounded-xl transition-all',
+                      n
+                        ? 'bg-white/5 text-slate-400 hover:text-red-400'
+                        : 'bg-black/5 text-slate-500 hover:text-red-600'
+                    ),
+                    title: 'Redémarrer WireGuard',
+                    children: e.jsx(J, { size: 16 }),
+                  }),
+                ],
+              }),
+          ],
+        }),
+      ],
+    });
+  },
+  he = ({ className: t, style: s, ...r }) =>
+    e.jsx('div', {
+      className: i('animate-shimmer rounded-2xl bg-white/[0.06]', t),
+      style: s,
+      ...r,
+    }),
+  pr = () =>
+    e.jsxs('div', {
+      className: 'space-y-6 animate-in fade-in duration-500',
+      children: [
+        e.jsxs('div', {
+          className: 'grid grid-cols-1 xl:grid-cols-12 gap-6',
+          children: [
+            e.jsx('div', {
+              className: 'xl:col-span-8',
+              children: e.jsxs('div', {
+                className:
+                  'bg-slate-900/40 border border-white/5 rounded-[2.5rem] p-8 space-y-8 min-h-[320px]',
+                children: [
+                  e.jsxs('div', {
+                    className: 'flex justify-between items-start flex-wrap gap-4',
+                    children: [
+                      e.jsxs('div', {
+                        className: 'space-y-3',
+                        children: [
+                          e.jsx(he, { className: 'h-10 w-56' }),
+                          e.jsx(he, { className: 'h-3 w-44' }),
+                        ],
+                      }),
+                      e.jsx(he, { className: 'h-8 w-28 rounded-full' }),
+                    ],
+                  }),
+                  e.jsx('div', {
+                    className: 'grid grid-cols-2 md:grid-cols-4 gap-6',
+                    children: [...Array(4)].map((t, s) =>
+                      e.jsx(he, { className: 'h-24 rounded-2xl' }, s)
+                    ),
+                  }),
+                  e.jsxs('div', {
+                    className: 'grid grid-cols-2 gap-4',
+                    children: [
+                      e.jsx(he, { className: 'h-24 rounded-2xl' }),
+                      e.jsx(he, { className: 'h-24 rounded-2xl' }),
+                    ],
+                  }),
+                ],
+              }),
+            }),
+            e.jsxs('div', {
+              className: 'xl:col-span-4 flex flex-col gap-6',
+              children: [
+                e.jsx(he, { className: 'h-28 rounded-[2.5rem]' }),
+                e.jsx(he, { className: 'h-48 rounded-[2.5rem]' }),
+                e.jsx(he, { className: 'h-24 rounded-[2.5rem]' }),
+              ],
+            }),
+          ],
+        }),
+        e.jsxs('div', {
+          className: 'grid grid-cols-1 xl:grid-cols-3 gap-6',
+          children: [
+            e.jsx('div', {
+              className: 'xl:col-span-2',
+              children: e.jsx(he, { className: 'h-64 rounded-[2.5rem]' }),
+            }),
+            e.jsxs('div', {
+              className: 'flex flex-col gap-6',
+              children: [
+                e.jsx(he, { className: 'h-[7.5rem] rounded-[2.5rem]' }),
+                e.jsx(he, { className: 'h-[7.5rem] rounded-[2.5rem]' }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    }),
+  Jt = [
+    { id: 'dashboard', label: 'Tableau de Bord', icon: de, desc: 'Statistiques temps réel' },
+    { id: 'containers', label: 'Conteneurs', icon: ye, desc: 'Gestion des peers WireGuard' },
+    { id: 'users', label: 'Utilisateurs', icon: Ne, desc: 'Accès opérateurs' },
+    { id: 'logs', label: 'Logs Système', icon: Mt, desc: "Journaux d'accès et sécurité" },
+    { id: 'audit', label: 'Audit', icon: fe, desc: 'Contrôle de sécurité' },
+    { id: 'optimization', label: 'Optimisation', icon: He, desc: 'Profils réseau' },
+    { id: 'settings', label: 'Paramètres', icon: bt, desc: 'Configuration système' },
+  ],
+  ur = ({ isOpen: t, onClose: s, clients: r = [], onNavigate: a }) => {
+    const { theme: c, isDark: d } = Q(),
+      [p, m] = h.useState(''),
+      [l, o] = h.useState(0),
+      n = h.useRef(null);
+    h.useEffect(() => {
+      t &&
+        (m(''),
+        o(0),
+        setTimeout(() => {
+          var g;
+          return (g = n.current) == null ? void 0 : g.focus();
+        }, 60));
+    }, [t]);
+    const x = [];
+    if (p.length >= 1) {
+      const g = p.toLowerCase();
+      (Jt.filter(
+        (w) => w.label.toLowerCase().includes(g) || w.desc.toLowerCase().includes(g)
+      ).forEach((w) => x.push({ ...w, category: 'Navigation', type: 'section' })),
+        r
+          .filter((w) => {
+            var E;
+            return (
+              ((E = w.name) == null ? void 0 : E.toLowerCase().includes(g)) ||
+              (w.ip || '').includes(g) ||
+              (w.container || '').toLowerCase().includes(g)
+            );
+          })
+          .slice(0, 6)
+          .forEach((w) =>
+            x.push({
+              id: w.id,
+              label: w.name,
+              desc: `${w.container} · ${w.ip}`,
+              icon: ye,
+              type: 'client',
+              category: 'Peers',
+            })
+          ));
+    }
+    (h.useEffect(() => {
+      const g = (w) => {
+        if (t) {
+          if (w.key === 'Escape') {
+            s();
+            return;
+          }
+          (w.key === 'ArrowDown' && (w.preventDefault(), o((E) => Math.min(E + 1, x.length - 1))),
+            w.key === 'ArrowUp' && (w.preventDefault(), o((E) => Math.max(E - 1, 0))),
+            w.key === 'Enter' && x[l] && u(x[l]));
+        }
+      };
+      return (
+        document.addEventListener('keydown', g),
+        () => document.removeEventListener('keydown', g)
+      );
+    }, [t, x, l]),
+      h.useEffect(() => {
+        o(0);
+      }, [p]));
+    const u = (g) => {
+        (a(g.type === 'client' ? 'containers' : g.id), s());
+      },
+      b = [...new Set(x.map((g) => g.category))];
+    let y = 0;
+    return e.jsx(le, {
+      children:
+        t &&
+        e.jsxs('div', {
+          className: 'fixed inset-0 z-[200] flex items-start justify-center pt-16 sm:pt-24 px-4',
+          children: [
+            e.jsx(L.div, {
+              initial: { opacity: 0 },
+              animate: { opacity: 1 },
+              exit: { opacity: 0 },
+              className: i(
+                'absolute inset-0 backdrop-blur-sm transition-colors duration-700',
+                d ? 'bg-slate-950/60' : 'bg-slate-200/40'
+              ),
+              onClick: s,
+            }),
+            e.jsxs(L.div, {
+              initial: { opacity: 0, scale: 0.95, y: -20 },
+              animate: { opacity: 1, scale: 1, y: 0 },
+              exit: { opacity: 0, scale: 0.95, y: -20 },
+              transition: { type: 'spring', damping: 28, stiffness: 350 },
+              className:
+                'relative w-full max-w-xl glass-panel border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden',
+              children: [
+                e.jsx('div', {
+                  className:
+                    'absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-32 blur-[80px] opacity-30 pointer-events-none',
+                  style: { background: 'var(--theme-color, #4f46e5)' },
+                }),
+                e.jsxs('div', {
+                  className:
+                    'flex items-center gap-4 px-6 py-5 border-b border-white/5 relative z-10',
+                  children: [
+                    e.jsx(it, {
+                      size: 20,
+                      className: i(
+                        'flex-shrink-0 transition-colors',
+                        p ? `text-${c}-400` : 'text-slate-500'
+                      ),
+                    }),
+                    e.jsx('input', {
+                      ref: n,
+                      type: 'text',
+                      value: p,
+                      onChange: (g) => m(g.target.value),
+                      placeholder: 'Rechercher peers, sections, IP...',
+                      className: i(
+                        'flex-1 bg-transparent font-mono text-sm outline-none transition-colors',
+                        d
+                          ? 'text-white placeholder:text-slate-600'
+                          : 'text-slate-900 placeholder:text-slate-400'
+                      ),
+                    }),
+                    e.jsxs('div', {
+                      className: 'flex items-center gap-2 flex-shrink-0',
+                      children: [
+                        e.jsx('kbd', {
+                          className: i(
+                            'hidden sm:block px-2 py-1 border rounded-lg text-[10px] font-black uppercase tracking-widest',
+                            d
+                              ? 'bg-white/5 border-white/10 text-slate-500'
+                              : 'bg-black/5 border-slate-200 text-slate-400'
+                          ),
+                          children: 'ESC',
+                        }),
+                        e.jsx('button', {
+                          onClick: s,
+                          className: i(
+                            'p-1.5 rounded-xl transition-all',
+                            d
+                              ? 'hover:bg-white/10 text-slate-500 hover:text-white'
+                              : 'hover:bg-black/5 text-slate-400 hover:text-slate-900'
+                          ),
+                          children: e.jsx(Fe, { size: 16 }),
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsx('div', {
+                  className: 'max-h-[360px] overflow-y-auto custom-scrollbar p-2',
+                  children:
+                    p.length === 0
+                      ? e.jsxs('div', {
+                          className: 'py-10 text-center',
+                          children: [
+                            e.jsx('div', {
+                              className: i(
+                                'inline-flex p-4 rounded-2xl mb-4',
+                                `bg-${c}-600/10 text-${c}-400`
+                              ),
+                              children: e.jsx(Ws, { size: 28 }),
+                            }),
+                            e.jsx('p', {
+                              className: i(
+                                'text-[11px] font-black uppercase tracking-widest',
+                                d ? 'text-white' : 'text-slate-900'
+                              ),
+                              children: 'Recherche Globale',
+                            }),
+                            e.jsx('p', {
+                              className: 'text-[10px] text-slate-600 mt-1',
+                              children: 'Peers · Sections · Adresses IP',
+                            }),
+                            e.jsx('div', {
+                              className: 'flex justify-center gap-4 mt-5',
+                              children: Jt.slice(0, 4).map((g) =>
+                                e.jsxs(
+                                  'button',
+                                  {
+                                    onClick: () => u(g),
+                                    className: i(
+                                      'flex flex-col items-center gap-2 p-3 rounded-2xl transition-all group',
+                                      d ? 'hover:bg-white/5' : 'hover:bg-black/5'
+                                    ),
+                                    children: [
+                                      e.jsx('div', {
+                                        className: i(
+                                          'p-2.5 rounded-xl transition-all',
+                                          d
+                                            ? 'bg-white/5 group-hover:bg-white/10'
+                                            : 'bg-black/5 group-hover:bg-black/10',
+                                          `text-${c}-400`
+                                        ),
+                                        children: e.jsx(g.icon, { size: 16 }),
+                                      }),
+                                      e.jsx('span', {
+                                        className: i(
+                                          'text-[9px] font-black uppercase tracking-widest transition-colors',
+                                          d
+                                            ? 'text-slate-500 group-hover:text-white'
+                                            : 'text-slate-400 group-hover:text-slate-900'
+                                        ),
+                                        children: g.label,
+                                      }),
+                                    ],
+                                  },
+                                  g.id
+                                )
+                              ),
+                            }),
+                          ],
+                        })
+                      : x.length === 0
+                        ? e.jsxs('div', {
+                            className: 'py-10 text-center',
+                            children: [
+                              e.jsx('p', {
+                                className:
+                                  'text-[11px] font-black text-slate-500 uppercase tracking-widest',
+                                children: 'Aucun résultat',
+                              }),
+                              e.jsxs('p', {
+                                className: 'text-[10px] text-slate-700 mt-1',
+                                children: ['pour « ', p, ' »'],
+                              }),
+                            ],
+                          })
+                        : b.map((g) =>
+                            e.jsxs(
+                              'div',
+                              {
+                                className: 'mb-2',
+                                children: [
+                                  e.jsx('div', {
+                                    className:
+                                      'text-[9px] font-black text-slate-600 uppercase tracking-widest px-3 py-2',
+                                    children: g,
+                                  }),
+                                  x
+                                    .filter((w) => w.category === g)
+                                    .map((w) => {
+                                      const E = y++;
+                                      return e.jsxs(
+                                        'button',
+                                        {
+                                          onClick: () => u(w),
+                                          className: i(
+                                            'w-full flex items-center gap-4 px-3 py-3 rounded-2xl transition-all group text-left',
+                                            l === E
+                                              ? `bg-${c}-600/10 border border-${c}-500/20`
+                                              : 'hover:bg-white/5 border border-transparent'
+                                          ),
+                                          children: [
+                                            e.jsx('div', {
+                                              className: i(
+                                                'p-2.5 rounded-xl transition-all flex-shrink-0',
+                                                l === E
+                                                  ? `bg-${c}-600 text-white`
+                                                  : i(
+                                                      d
+                                                        ? 'bg-white/5 group-hover:bg-white/10'
+                                                        : 'bg-black/5 group-hover:bg-black/10',
+                                                      `text-${c}-400`
+                                                    )
+                                              ),
+                                              children: e.jsx(w.icon, { size: 16 }),
+                                            }),
+                                            e.jsxs('div', {
+                                              className: 'flex-1 min-w-0',
+                                              children: [
+                                                e.jsx('div', {
+                                                  className: i(
+                                                    'text-sm font-black uppercase tracking-tight truncate',
+                                                    d ? 'text-white' : 'text-slate-900'
+                                                  ),
+                                                  children: w.label,
+                                                }),
+                                                e.jsx('div', {
+                                                  className:
+                                                    'text-[10px] text-slate-500 font-mono truncate',
+                                                  children: w.desc,
+                                                }),
+                                              ],
+                                            }),
+                                            e.jsx(ut, {
+                                              size: 14,
+                                              className: i(
+                                                'transition-colors',
+                                                d
+                                                  ? 'text-slate-600 group-hover:text-slate-400'
+                                                  : 'text-slate-400 group-hover:text-slate-600'
+                                              ),
+                                            }),
+                                          ],
+                                        },
+                                        `${w.id}-${E}`
+                                      );
+                                    }),
+                                ],
+                              },
+                              g
+                            )
+                          ),
+                }),
+                e.jsxs('div', {
+                  className:
+                    'px-6 py-3 border-t border-white/5 flex items-center gap-6 text-[9px] font-black text-slate-600 uppercase tracking-widest',
+                  children: [
+                    e.jsxs('span', {
+                      className: 'flex items-center gap-1.5',
+                      children: [
+                        e.jsx('kbd', {
+                          className: 'px-1.5 py-0.5 bg-white/5 rounded border border-white/10',
+                          children: '↑↓',
+                        }),
+                        ' Naviguer',
+                      ],
+                    }),
+                    e.jsxs('span', {
+                      className: 'flex items-center gap-1.5',
+                      children: [
+                        e.jsx('kbd', {
+                          className: 'px-1.5 py-0.5 bg-white/5 rounded border border-white/10',
+                          children: '↵',
+                        }),
+                        ' Sélectionner',
+                      ],
+                    }),
+                    e.jsxs('span', {
+                      className: 'flex items-center gap-1.5',
+                      children: [
+                        e.jsx('kbd', {
+                          className: 'px-1.5 py-0.5 bg-white/5 rounded border border-white/10',
+                          children: 'ESC',
+                        }),
+                        ' Fermer',
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+    });
+  },
+  mr = ({
+    isOpen: t,
+    onConfirm: s,
+    onCancel: r,
+    title: a = 'Confirmer la suppression',
+    message: c = 'Cette action est irréversible.',
+    confirmLabel: d = 'Supprimer',
+    intent: p = 'danger',
+  }) => {
+    const { mode: m } = Q(),
+      l = m === 'dark',
+      o = h.useRef(null);
+    (h.useEffect(() => {
+      t &&
+        o.current &&
+        setTimeout(() => {
+          var x;
+          return (x = o.current) == null ? void 0 : x.focus();
+        }, 50);
+    }, [t]),
+      h.useEffect(() => {
+        if (!t) return;
+        const x = (u) => {
+          u.key === 'Escape' && r();
+        };
+        return (
+          window.addEventListener('keydown', x),
+          () => window.removeEventListener('keydown', x)
+        );
+      }, [t, r]));
+    const n = p === 'danger';
+    return e.jsx(le, {
+      children:
+        t &&
+        e.jsxs(L.div, {
+          initial: { opacity: 0 },
+          animate: { opacity: 1 },
+          exit: { opacity: 0 },
+          transition: { duration: 0.15 },
+          className: 'fixed inset-0 z-[9999] flex items-center justify-center p-4',
+          onClick: r,
+          role: 'dialog',
+          'aria-modal': 'true',
+          'aria-labelledby': 'confirm-modal-title',
+          children: [
+            e.jsx('div', {
+              className: i(
+                'absolute inset-0 backdrop-blur-sm transition-colors duration-700',
+                l ? 'bg-slate-950/60' : 'bg-slate-200/40'
+              ),
+            }),
+            e.jsxs(L.div, {
+              initial: { scale: 0.9, opacity: 0, y: 20 },
+              animate: { scale: 1, opacity: 1, y: 0 },
+              exit: { scale: 0.95, opacity: 0, y: 10 },
+              transition: { duration: 0.2, ease: [0.23, 1, 0.32, 1] },
+              className:
+                'relative w-full max-w-sm glass-panel border rounded-[2.5rem] p-8 shadow-2xl overflow-hidden',
+              onClick: (x) => x.stopPropagation(),
+              children: [
+                e.jsx('div', {
+                  className: i(
+                    'absolute inset-0 rounded-[2.5rem] opacity-[0.06] pointer-events-none',
+                    n
+                      ? 'bg-gradient-to-br from-red-500 to-transparent'
+                      : 'bg-gradient-to-br from-amber-500 to-transparent'
+                  ),
+                }),
+                e.jsx('button', {
+                  onClick: r,
+                  className: i(
+                    'absolute top-6 right-6 p-2 rounded-xl transition-all',
+                    l
+                      ? 'text-slate-600 hover:text-white hover:bg-white/5'
+                      : 'text-slate-400 hover:text-slate-900 hover:bg-black/5'
+                  ),
+                  children: e.jsx(Fe, { size: 18 }),
+                }),
+                e.jsx('div', {
+                  className: i(
+                    'w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-2xl',
+                    n ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'
+                  ),
+                  children: n
+                    ? e.jsx(Pe, { size: 28, strokeWidth: 1.5 })
+                    : e.jsx(Bt, { size: 28, strokeWidth: 1.5 }),
+                }),
+                e.jsx('h2', {
+                  id: 'confirm-modal-title',
+                  className: i(
+                    'text-xl font-black text-center uppercase tracking-tight mb-3 transition-colors',
+                    l ? 'text-white' : 'text-slate-900'
+                  ),
+                  children: a,
+                }),
+                e.jsx('div', {
+                  className: i(
+                    'text-sm text-center leading-relaxed mb-8 transition-colors',
+                    l ? 'text-slate-400' : 'text-slate-500'
+                  ),
+                  children: typeof c == 'string' ? e.jsx('p', { children: c }) : c,
+                }),
+                n &&
+                  e.jsxs('div', {
+                    className:
+                      'flex items-start gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/15 mb-6',
+                    children: [
+                      e.jsx(Be, { size: 16, className: 'text-red-400 flex-shrink-0 mt-0.5' }),
+                      e.jsx('p', {
+                        className:
+                          'text-[11px] text-red-400 font-bold uppercase tracking-wide leading-relaxed',
+                        children: 'Cette action est permanente et ne peut pas être annulée.',
+                      }),
+                    ],
+                  }),
+                e.jsxs('div', {
+                  className: 'flex gap-3 relative z-10',
+                  children: [
+                    e.jsx('button', {
+                      onClick: r,
+                      className: i(
+                        'flex-1 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border',
+                        l
+                          ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-white/5 hover:border-white/10'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+                      ),
+                      children: 'Annuler',
+                    }),
+                    e.jsxs('button', {
+                      ref: o,
+                      onClick: s,
+                      className: i(
+                        'flex-1 py-3 rounded-2xl text-white text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2',
+                        n
+                          ? 'bg-red-600 hover:bg-red-500 shadow-red-600/30'
+                          : 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/30'
+                      ),
+                      children: [n ? e.jsx(Pe, { size: 14 }) : e.jsx(Bt, { size: 14 }), d],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+    });
+  },
+  lt = ({
+    isOpen: t,
+    onClose: s,
+    title: r,
+    children: a,
+    className: c,
+    maxWidth: d = 'max-w-md',
+  }) => {
+    const { mode: p } = Q(),
+      m = p === 'dark';
+    return e.jsx(le, {
+      children:
+        t &&
+        e.jsxs('div', {
+          className: 'fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6',
+          children: [
+            e.jsx(L.div, {
+              initial: { opacity: 0 },
+              animate: { opacity: 1 },
+              exit: { opacity: 0 },
+              onClick: s,
+              className: i(
+                'absolute inset-0 backdrop-blur-sm',
+                m ? 'bg-slate-950/70' : 'bg-indigo-50/95'
+              ),
+            }),
+            e.jsxs(L.div, {
+              initial: { opacity: 0, scale: 0.95, y: 20 },
+              animate: { opacity: 1, scale: 1, y: 0 },
+              exit: { opacity: 0, scale: 0.95, y: 20 },
+              transition: { type: 'spring', damping: 25, stiffness: 300 },
+              className: i(
+                'relative w-full backdrop-blur-3xl rounded-[2.5rem] shadow-2xl overflow-hidden p-8 md:p-10',
+                m
+                  ? 'bg-slate-900/80 border border-white/10 shadow-black/50'
+                  : 'bg-white border border-slate-200/80 shadow-slate-200/60',
+                d,
+                c
+              ),
+              children: [
+                e.jsxs('div', {
+                  className: 'flex items-center justify-between mb-8',
+                  children: [
+                    r &&
+                      e.jsx('h3', {
+                        className: i(
+                          'text-2xl font-black tracking-tight uppercase',
+                          m ? 'text-white' : 'text-slate-900'
+                        ),
+                        children: r,
+                      }),
+                    e.jsx('button', {
+                      onClick: s,
+                      className: i(
+                        'p-3 rounded-2xl transition-all',
+                        m
+                          ? 'bg-white/5 text-slate-500 hover:text-white hover:bg-white/10'
+                          : 'bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200'
+                      ),
+                      children: e.jsx(Fe, { size: 24 }),
+                    }),
+                  ],
+                }),
+                e.jsx('div', { className: 'relative z-10', children: a }),
+                e.jsx('div', {
+                  className:
+                    'absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none',
+                }),
+                e.jsx('div', {
+                  className:
+                    'absolute -bottom-24 -left-24 w-64 h-64 bg-rose-500/10 blur-[100px] rounded-full pointer-events-none',
+                }),
+              ],
+            }),
+          ],
+        }),
+    });
+  },
+  hr = ({ isOpen: t, onClose: s, onCreate: r, targetContainer: a }) => {
+    const { theme: c } = Q(),
+      [d, p] = h.useState(''),
+      [m, l] = h.useState(!1),
+      [o, n] = h.useState(0),
+      [x, u] = h.useState(0),
+      [b, y] = h.useState({ value: 30, unit: 'days' }),
+      [g, w] = h.useState(!0),
+      E = (f) => {
+        f &&
+          T.get('/clients')
+            .then((v) => {
+              const z = (v.data || []).filter((R) => R.container === f);
+              let D = z.length + 1,
+                k = `${f}-${String(D).padStart(2, '0')}`;
+              for (; z.some((R) => R.name === k); )
+                (D++, (k = `${f}-${String(D).padStart(2, '0')}`));
+              p(k);
+            })
+            .catch(() => {});
+      };
+    h.useEffect(() => {
+      t && (p(''), a && E(a));
+    }, [t, a]);
+    const N = async (f) => {
+      if ((f.preventDefault(), d.trim() && a)) {
+        l(!0);
+        try {
+          let v = '';
+          if (!g) {
+            const j = new Date();
+            (b.unit === 'days' && j.setDate(j.getDate() + parseInt(b.value)),
+              b.unit === 'hours' && j.setHours(j.getHours() + parseInt(b.value)),
+              (v = j.toISOString().split('T')[0]));
+          }
+          (await r(d, a, v, o, x), s());
+        } catch (v) {
+          console.error('Erreur création client:', v);
+        } finally {
+          l(!1);
+        }
+      }
+    };
+    return e.jsx(lt, {
+      isOpen: t,
+      onClose: s,
+      title: 'Initialisation de Peer',
+      maxWidth: 'max-w-xl',
+      children: e.jsxs('form', {
+        onSubmit: N,
+        className: 'space-y-10',
+        children: [
+          e.jsxs('div', {
+            className: 'grid grid-cols-1 md:grid-cols-2 gap-8',
+            children: [
+              e.jsxs('div', {
+                className: 'space-y-6',
+                children: [
+                  e.jsxs('div', {
+                    children: [
+                      e.jsx('label', {
+                        className:
+                          'block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose',
+                        children: 'Nom du Client',
+                      }),
+                      e.jsxs('div', {
+                        className: 'relative group',
+                        children: [
+                          e.jsx(Rt, {
+                            className:
+                              'absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors',
+                            size: 18,
+                          }),
+                          e.jsx('input', {
+                            type: 'text',
+                            value: d,
+                            onChange: (f) => p(f.target.value),
+                            className: 'w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono',
+                            placeholder: 'ex: galaxy-s24',
+                            autoFocus: !0,
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                  e.jsxs('div', {
+                    children: [
+                      e.jsx('label', {
+                        className:
+                          'block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose',
+                        children: 'Groupe Tactique (Conteneur)',
+                      }),
+                      e.jsxs('div', {
+                        className: 'relative group',
+                        children: [
+                          e.jsx(tt, {
+                            className: 'absolute left-4 top-1/2 -translate-y-1/2 text-slate-500',
+                            size: 18,
+                          }),
+                          e.jsx('input', {
+                            type: 'text',
+                            value: a || 'Aucun',
+                            disabled: !0,
+                            className:
+                              'w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono cursor-not-allowed opacity-50',
+                          }),
+                        ],
+                      }),
+                      e.jsx('p', {
+                        className: 'mt-2 text-[9px] text-slate-500 italic',
+                        children: 'Le client sera ajouté dans ce conteneur en cours.',
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+              e.jsxs('div', {
+                className: 'space-y-6',
+                children: [
+                  e.jsxs('div', {
+                    children: [
+                      e.jsxs('div', {
+                        className: 'flex justify-between items-center mb-2',
+                        children: [
+                          e.jsx('label', {
+                            className:
+                              'text-[10px] font-black text-slate-500 uppercase tracking-widest',
+                            children: 'Validité temporelle',
+                          }),
+                          e.jsxs('label', {
+                            className: 'flex items-center gap-2 cursor-pointer group',
+                            children: [
+                              e.jsx('input', {
+                                type: 'checkbox',
+                                checked: g,
+                                onChange: (f) => w(f.target.checked),
+                                className: i(
+                                  'w-4 h-4 rounded border-white/10 bg-slate-950',
+                                  `text-${c}-600 focus:ring-${c}-500`
+                                ),
+                              }),
+                              e.jsx('span', {
+                                className:
+                                  'text-[10px] font-black uppercase text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors',
+                                children: 'Illimité',
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
+                      !g &&
+                        e.jsxs('div', {
+                          className: 'flex gap-4 animate-in slide-in-from-top-2 duration-300',
+                          children: [
+                            e.jsxs('div', {
+                              className: 'relative flex-1',
+                              children: [
+                                e.jsx(gt, {
+                                  className:
+                                    'absolute left-4 top-1/2 -translate-y-1/2 text-slate-500',
+                                  size: 16,
+                                }),
+                                e.jsx('input', {
+                                  type: 'number',
+                                  value: b.value,
+                                  onChange: (f) => y({ ...b, value: f.target.value }),
+                                  className:
+                                    'w-full pl-12 pr-4 py-4 glass-input rounded-2xl font-mono',
+                                }),
+                              ],
+                            }),
+                            e.jsxs('select', {
+                              value: b.unit,
+                              onChange: (f) => y({ ...b, unit: f.target.value }),
+                              className:
+                                'px-4 py-4 glass-input rounded-2xl font-bold uppercase tracking-widest text-[10px]',
+                              children: [
+                                e.jsx('option', { value: 'days', children: 'Jours' }),
+                                e.jsx('option', { value: 'hours', children: 'Heures' }),
+                              ],
+                            }),
+                          ],
+                        }),
+                    ],
+                  }),
+                  e.jsxs('div', {
+                    children: [
+                      e.jsxs('div', {
+                        className: 'flex justify-between items-center mb-2',
+                        children: [
+                          e.jsx('label', {
+                            className:
+                              'text-[10px] font-black text-slate-500 uppercase tracking-widest',
+                            children: 'Quota de Données',
+                          }),
+                          e.jsx('span', {
+                            className: i('text-[10px] font-black font-mono', `text-${c}-400`),
+                            children: o > 0 ? `${o} GB` : '∞ GB',
+                          }),
+                        ],
+                      }),
+                      e.jsxs('div', {
+                        className: 'flex items-center gap-4 py-2',
+                        children: [
+                          e.jsx(tt, { size: 16, className: 'text-slate-500' }),
+                          e.jsx('input', {
+                            type: 'range',
+                            min: '0',
+                            max: '100',
+                            value: o,
+                            onChange: (f) => n(f.target.value),
+                            className: i(
+                              'w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer',
+                              `accent-${c}-500`
+                            ),
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                  e.jsxs('div', {
+                    children: [
+                      e.jsxs('div', {
+                        className: 'flex justify-between items-center mb-2',
+                        children: [
+                          e.jsx('label', {
+                            className:
+                              'text-[10px] font-black text-slate-500 uppercase tracking-widest',
+                            children: 'Bande passante',
+                          }),
+                          e.jsx('span', {
+                            className: i('text-[10px] font-black font-mono', `text-${c}-400`),
+                            children: x > 0 ? `${x} Mbps` : '∞ Mbps',
+                          }),
+                        ],
+                      }),
+                      e.jsxs('div', {
+                        className: 'flex items-center gap-4 py-2',
+                        children: [
+                          e.jsx(He, { size: 16, className: 'text-slate-500' }),
+                          e.jsx('input', {
+                            type: 'range',
+                            min: '0',
+                            max: '100',
+                            step: '5',
+                            value: x,
+                            onChange: (f) => u(f.target.value),
+                            className: i(
+                              'w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer',
+                              `accent-${c}-500`
+                            ),
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          }),
+          e.jsxs('div', {
+            className: 'pt-6 border-t border-white/5 flex flex-col sm:flex-row gap-4',
+            children: [
+              e.jsx('button', {
+                type: 'button',
+                onClick: s,
+                className:
+                  'flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-[0.2em] rounded-2xl border border-white/5 hover:border-white/10 transition-all',
+                children: 'Annuler Mission',
+              }),
+              e.jsxs('button', {
+                type: 'submit',
+                disabled: m || !d.trim() || !a,
+                className: i(
+                  'flex-[2] py-4 text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed',
+                  `bg-${c}-600 hover:bg-${c}-500 shadow-${c}-600/30`
+                ),
+                children: [
+                  m
+                    ? e.jsx(J, { className: 'animate-spin', size: 18 })
+                    : e.jsx(qe, { size: 18, strokeWidth: 3 }),
+                  "Initialiser l'accès Peer",
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+    });
+  },
+  We = ({
+    children: t,
+    onClick: s,
+    variant: r = 'primary',
+    className: a,
+    icon: c,
+    loading: d = !1,
+    disabled: p = !1,
+    size: m = 'md',
+  }) => {
+    const l = {
+        primary:
+          'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30 text-white border-transparent',
+        secondary: 'bg-white/10 hover:bg-white/15 text-white border-white/5',
+        ghost: 'bg-transparent hover:bg-white/5 text-slate-400 hover:text-white border-transparent',
+        danger:
+          'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20 shadow-rose-500/10',
+        success:
+          'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10',
+      },
+      o = { sm: 'px-4 py-2 text-[10px]', md: 'px-6 py-3 text-xs', lg: 'px-8 py-4 text-sm' };
+    return e.jsxs(L.button, {
+      whileHover: { scale: 1.02 },
+      whileTap: { scale: 0.98 },
+      disabled: p || d,
+      onClick: s,
+      className: i(
+        'relative flex items-center justify-center gap-3 font-black uppercase tracking-widest border transition-all duration-300 rounded-2xl shadow-xl group',
+        l[r],
+        o[m],
+        (p || d) && 'opacity-50 cursor-not-allowed grayscale',
+        a
+      ),
+      children: [
+        d
+          ? e.jsx('span', {
+              className:
+                'w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin',
+            })
+          : c && e.jsx(c, { size: m === 'sm' ? 14 : 18, className: 'opacity-80' }),
+        e.jsx('span', { className: 'relative z-10', children: t }),
+        e.jsx('div', {
+          className:
+            'absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none',
+        }),
+      ],
+    });
+  },
+  br = ({ isOpen: t, onClose: s, onCreate: r }) => {
+    const { theme: a } = Q(),
+      [c, d] = h.useState(''),
+      [p, m] = h.useState(!1);
+    h.useEffect(() => {
+      t && d('');
+    }, [t]);
+    const l = async (o) => {
+      if ((o.preventDefault(), c.trim())) {
+        m(!0);
+        try {
+          (await r(c.trim()), s());
+        } catch (n) {
+          console.error('Erreur création conteneur:', n);
+        } finally {
+          m(!1);
+        }
+      }
+    };
+    return e.jsx(lt, {
+      isOpen: t,
+      onClose: s,
+      title: 'Nouveau Conteneur',
+      maxWidth: 'max-w-md',
+      children: e.jsxs('form', {
+        onSubmit: l,
+        className: 'space-y-8',
+        children: [
+          e.jsx('div', {
+            className: 'space-y-6',
+            children: e.jsxs('div', {
+              children: [
+                e.jsx('label', {
+                  className:
+                    'block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose',
+                  children: 'Nom du Conteneur (Groupe)',
+                }),
+                e.jsxs('div', {
+                  className: 'relative group',
+                  children: [
+                    e.jsx(ye, {
+                      className:
+                        'absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors',
+                      size: 18,
+                    }),
+                    e.jsx('input', {
+                      type: 'text',
+                      value: c,
+                      onChange: (o) => d(o.target.value.replace(/[^a-zA-Z0-9_\-]/g, '')),
+                      className: 'w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono',
+                      placeholder: 'ex: famille, serveurs',
+                      maxLength: 30,
+                      autoFocus: !0,
+                      required: !0,
+                    }),
+                  ],
+                }),
+                e.jsx('p', {
+                  className: 'mt-2 text-[9px] text-slate-500',
+                  children: 'Uniquement lettres, chiffres, tirets et underscores.',
+                }),
+              ],
+            }),
+          }),
+          e.jsxs('div', {
+            className: 'flex items-center gap-3 pt-4 border-t border-white/5',
+            children: [
+              e.jsx('button', {
+                type: 'button',
+                onClick: s,
+                className:
+                  'flex-1 px-4 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all',
+                disabled: p,
+                children: 'Annuler',
+              }),
+              e.jsx(We, {
+                type: 'submit',
+                variant: 'primary',
+                icon: qe,
+                loading: p,
+                disabled: !c.trim() || p,
+                className: 'flex-1 py-3.5 shadow-xl',
+                children: 'Créer',
+              }),
+            ],
+          }),
+        ],
+      }),
+    });
+  };
+var gr = Object.defineProperty,
+  wt = Object.getOwnPropertySymbols,
+  $s = Object.prototype.hasOwnProperty,
+  Ds = Object.prototype.propertyIsEnumerable,
+  Zt = (t, s, r) =>
+    s in t ? gr(t, s, { enumerable: !0, configurable: !0, writable: !0, value: r }) : (t[s] = r),
+  fr = (t, s) => {
+    for (var r in s || (s = {})) $s.call(s, r) && Zt(t, r, s[r]);
+    if (wt) for (var r of wt(s)) Ds.call(s, r) && Zt(t, r, s[r]);
+    return t;
+  },
+  wr = (t, s) => {
+    var r = {};
+    for (var a in t) $s.call(t, a) && s.indexOf(a) < 0 && (r[a] = t[a]);
+    if (t != null && wt) for (var a of wt(t)) s.indexOf(a) < 0 && Ds.call(t, a) && (r[a] = t[a]);
+    return r;
+  };
+/**
  * @license QR Code generator library (TypeScript)
  * Copyright (c) Project Nayuki.
  * SPDX-License-Identifier: MIT
- */var Oe;(t=>{const s=class{constructor(l,o,n,x){if(this.version=l,this.errorCorrectionLevel=o,this.modules=[],this.isFunction=[],l<s.MIN_VERSION||l>s.MAX_VERSION)throw new RangeError("Version value out of range");if(x<-1||x>7)throw new RangeError("Mask value out of range");this.size=l*4+17;let u=[];for(let y=0;y<this.size;y++)u.push(!1);for(let y=0;y<this.size;y++)this.modules.push(u.slice()),this.isFunction.push(u.slice());this.drawFunctionPatterns();const b=this.addEccAndInterleave(n);if(this.drawCodewords(b),x==-1){let y=1e9;for(let g=0;g<8;g++){this.applyMask(g),this.drawFormatBits(g);const w=this.getPenaltyScore();w<y&&(x=g,y=w),this.applyMask(g)}}d(0<=x&&x<=7),this.mask=x,this.applyMask(x),this.drawFormatBits(x),this.isFunction=[]}static encodeText(l,o){const n=t.QrSegment.makeSegments(l);return s.encodeSegments(n,o)}static encodeBinary(l,o){const n=t.QrSegment.makeBytes(l);return s.encodeSegments([n],o)}static encodeSegments(l,o,n=1,x=40,u=-1,b=!0){if(!(s.MIN_VERSION<=n&&n<=x&&x<=s.MAX_VERSION)||u<-1||u>7)throw new RangeError("Invalid value");let y,g;for(y=n;;y++){const f=s.getNumDataCodewords(y,o)*8,v=m.getTotalBits(l,y);if(v<=f){g=v;break}if(y>=x)throw new RangeError("Data too long")}for(const f of[s.Ecc.MEDIUM,s.Ecc.QUARTILE,s.Ecc.HIGH])b&&g<=s.getNumDataCodewords(y,f)*8&&(o=f);let w=[];for(const f of l){a(f.mode.modeBits,4,w),a(f.numChars,f.mode.numCharCountBits(y),w);for(const v of f.getData())w.push(v)}d(w.length==g);const E=s.getNumDataCodewords(y,o)*8;d(w.length<=E),a(0,Math.min(4,E-w.length),w),a(0,(8-w.length%8)%8,w),d(w.length%8==0);for(let f=236;w.length<E;f^=253)a(f,8,w);let N=[];for(;N.length*8<w.length;)N.push(0);return w.forEach((f,v)=>N[v>>>3]|=f<<7-(v&7)),new s(y,o,N,u)}getModule(l,o){return 0<=l&&l<this.size&&0<=o&&o<this.size&&this.modules[o][l]}getModules(){return this.modules}drawFunctionPatterns(){for(let n=0;n<this.size;n++)this.setFunctionModule(6,n,n%2==0),this.setFunctionModule(n,6,n%2==0);this.drawFinderPattern(3,3),this.drawFinderPattern(this.size-4,3),this.drawFinderPattern(3,this.size-4);const l=this.getAlignmentPatternPositions(),o=l.length;for(let n=0;n<o;n++)for(let x=0;x<o;x++)n==0&&x==0||n==0&&x==o-1||n==o-1&&x==0||this.drawAlignmentPattern(l[n],l[x]);this.drawFormatBits(0),this.drawVersion()}drawFormatBits(l){const o=this.errorCorrectionLevel.formatBits<<3|l;let n=o;for(let u=0;u<10;u++)n=n<<1^(n>>>9)*1335;const x=(o<<10|n)^21522;d(x>>>15==0);for(let u=0;u<=5;u++)this.setFunctionModule(8,u,c(x,u));this.setFunctionModule(8,7,c(x,6)),this.setFunctionModule(8,8,c(x,7)),this.setFunctionModule(7,8,c(x,8));for(let u=9;u<15;u++)this.setFunctionModule(14-u,8,c(x,u));for(let u=0;u<8;u++)this.setFunctionModule(this.size-1-u,8,c(x,u));for(let u=8;u<15;u++)this.setFunctionModule(8,this.size-15+u,c(x,u));this.setFunctionModule(8,this.size-8,!0)}drawVersion(){if(this.version<7)return;let l=this.version;for(let n=0;n<12;n++)l=l<<1^(l>>>11)*7973;const o=this.version<<12|l;d(o>>>18==0);for(let n=0;n<18;n++){const x=c(o,n),u=this.size-11+n%3,b=Math.floor(n/3);this.setFunctionModule(u,b,x),this.setFunctionModule(b,u,x)}}drawFinderPattern(l,o){for(let n=-4;n<=4;n++)for(let x=-4;x<=4;x++){const u=Math.max(Math.abs(x),Math.abs(n)),b=l+x,y=o+n;0<=b&&b<this.size&&0<=y&&y<this.size&&this.setFunctionModule(b,y,u!=2&&u!=4)}}drawAlignmentPattern(l,o){for(let n=-2;n<=2;n++)for(let x=-2;x<=2;x++)this.setFunctionModule(l+x,o+n,Math.max(Math.abs(x),Math.abs(n))!=1)}setFunctionModule(l,o,n){this.modules[o][l]=n,this.isFunction[o][l]=!0}addEccAndInterleave(l){const o=this.version,n=this.errorCorrectionLevel;if(l.length!=s.getNumDataCodewords(o,n))throw new RangeError("Invalid argument");const x=s.NUM_ERROR_CORRECTION_BLOCKS[n.ordinal][o],u=s.ECC_CODEWORDS_PER_BLOCK[n.ordinal][o],b=Math.floor(s.getNumRawDataModules(o)/8),y=x-b%x,g=Math.floor(b/x);let w=[];const E=s.reedSolomonComputeDivisor(u);for(let f=0,v=0;f<x;f++){let j=l.slice(v,v+g-u+(f<y?0:1));v+=j.length;const z=s.reedSolomonComputeRemainder(j,E);f<y&&j.push(0),w.push(j.concat(z))}let N=[];for(let f=0;f<w[0].length;f++)w.forEach((v,j)=>{(f!=g-u||j>=y)&&N.push(v[f])});return d(N.length==b),N}drawCodewords(l){if(l.length!=Math.floor(s.getNumRawDataModules(this.version)/8))throw new RangeError("Invalid argument");let o=0;for(let n=this.size-1;n>=1;n-=2){n==6&&(n=5);for(let x=0;x<this.size;x++)for(let u=0;u<2;u++){const b=n-u,g=(n+1&2)==0?this.size-1-x:x;!this.isFunction[g][b]&&o<l.length*8&&(this.modules[g][b]=c(l[o>>>3],7-(o&7)),o++)}}d(o==l.length*8)}applyMask(l){if(l<0||l>7)throw new RangeError("Mask value out of range");for(let o=0;o<this.size;o++)for(let n=0;n<this.size;n++){let x;switch(l){case 0:x=(n+o)%2==0;break;case 1:x=o%2==0;break;case 2:x=n%3==0;break;case 3:x=(n+o)%3==0;break;case 4:x=(Math.floor(n/3)+Math.floor(o/2))%2==0;break;case 5:x=n*o%2+n*o%3==0;break;case 6:x=(n*o%2+n*o%3)%2==0;break;case 7:x=((n+o)%2+n*o%3)%2==0;break;default:throw new Error("Unreachable")}!this.isFunction[o][n]&&x&&(this.modules[o][n]=!this.modules[o][n])}}getPenaltyScore(){let l=0;for(let u=0;u<this.size;u++){let b=!1,y=0,g=[0,0,0,0,0,0,0];for(let w=0;w<this.size;w++)this.modules[u][w]==b?(y++,y==5?l+=s.PENALTY_N1:y>5&&l++):(this.finderPenaltyAddHistory(y,g),b||(l+=this.finderPenaltyCountPatterns(g)*s.PENALTY_N3),b=this.modules[u][w],y=1);l+=this.finderPenaltyTerminateAndCount(b,y,g)*s.PENALTY_N3}for(let u=0;u<this.size;u++){let b=!1,y=0,g=[0,0,0,0,0,0,0];for(let w=0;w<this.size;w++)this.modules[w][u]==b?(y++,y==5?l+=s.PENALTY_N1:y>5&&l++):(this.finderPenaltyAddHistory(y,g),b||(l+=this.finderPenaltyCountPatterns(g)*s.PENALTY_N3),b=this.modules[w][u],y=1);l+=this.finderPenaltyTerminateAndCount(b,y,g)*s.PENALTY_N3}for(let u=0;u<this.size-1;u++)for(let b=0;b<this.size-1;b++){const y=this.modules[u][b];y==this.modules[u][b+1]&&y==this.modules[u+1][b]&&y==this.modules[u+1][b+1]&&(l+=s.PENALTY_N2)}let o=0;for(const u of this.modules)o=u.reduce((b,y)=>b+(y?1:0),o);const n=this.size*this.size,x=Math.ceil(Math.abs(o*20-n*10)/n)-1;return d(0<=x&&x<=9),l+=x*s.PENALTY_N4,d(0<=l&&l<=2568888),l}getAlignmentPatternPositions(){if(this.version==1)return[];{const l=Math.floor(this.version/7)+2,o=this.version==32?26:Math.ceil((this.version*4+4)/(l*2-2))*2;let n=[6];for(let x=this.size-7;n.length<l;x-=o)n.splice(1,0,x);return n}}static getNumRawDataModules(l){if(l<s.MIN_VERSION||l>s.MAX_VERSION)throw new RangeError("Version number out of range");let o=(16*l+128)*l+64;if(l>=2){const n=Math.floor(l/7)+2;o-=(25*n-10)*n-55,l>=7&&(o-=36)}return d(208<=o&&o<=29648),o}static getNumDataCodewords(l,o){return Math.floor(s.getNumRawDataModules(l)/8)-s.ECC_CODEWORDS_PER_BLOCK[o.ordinal][l]*s.NUM_ERROR_CORRECTION_BLOCKS[o.ordinal][l]}static reedSolomonComputeDivisor(l){if(l<1||l>255)throw new RangeError("Degree out of range");let o=[];for(let x=0;x<l-1;x++)o.push(0);o.push(1);let n=1;for(let x=0;x<l;x++){for(let u=0;u<o.length;u++)o[u]=s.reedSolomonMultiply(o[u],n),u+1<o.length&&(o[u]^=o[u+1]);n=s.reedSolomonMultiply(n,2)}return o}static reedSolomonComputeRemainder(l,o){let n=o.map(x=>0);for(const x of l){const u=x^n.shift();n.push(0),o.forEach((b,y)=>n[y]^=s.reedSolomonMultiply(b,u))}return n}static reedSolomonMultiply(l,o){if(l>>>8||o>>>8)throw new RangeError("Byte out of range");let n=0;for(let x=7;x>=0;x--)n=n<<1^(n>>>7)*285,n^=(o>>>x&1)*l;return d(n>>>8==0),n}finderPenaltyCountPatterns(l){const o=l[1];d(o<=this.size*3);const n=o>0&&l[2]==o&&l[3]==o*3&&l[4]==o&&l[5]==o;return(n&&l[0]>=o*4&&l[6]>=o?1:0)+(n&&l[6]>=o*4&&l[0]>=o?1:0)}finderPenaltyTerminateAndCount(l,o,n){return l&&(this.finderPenaltyAddHistory(o,n),o=0),o+=this.size,this.finderPenaltyAddHistory(o,n),this.finderPenaltyCountPatterns(n)}finderPenaltyAddHistory(l,o){o[0]==0&&(l+=this.size),o.pop(),o.unshift(l)}};let r=s;r.MIN_VERSION=1,r.MAX_VERSION=40,r.PENALTY_N1=3,r.PENALTY_N2=3,r.PENALTY_N3=40,r.PENALTY_N4=10,r.ECC_CODEWORDS_PER_BLOCK=[[-1,7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28,28,28,30,30,26,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],[-1,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28],[-1,13,22,18,26,18,24,18,22,20,24,28,26,24,20,30,24,28,28,26,30,28,30,30,30,30,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],[-1,17,28,22,16,22,28,26,26,24,28,24,28,22,24,24,30,28,28,26,28,30,24,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30]],r.NUM_ERROR_CORRECTION_BLOCKS=[[-1,1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25],[-1,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49],[-1,1,1,2,2,4,4,6,6,8,8,8,10,12,16,12,17,16,18,21,20,23,23,25,27,29,34,34,35,38,40,43,45,48,51,53,56,59,62,65,68],[-1,1,1,2,4,4,4,5,6,8,8,11,11,16,16,18,16,19,21,25,25,25,34,30,32,35,37,40,42,45,48,51,54,57,60,63,66,70,74,77,81]],t.QrCode=r;function a(l,o,n){if(o<0||o>31||l>>>o)throw new RangeError("Value out of range");for(let x=o-1;x>=0;x--)n.push(l>>>x&1)}function c(l,o){return(l>>>o&1)!=0}function d(l){if(!l)throw new Error("Assertion error")}const p=class{constructor(l,o,n){if(this.mode=l,this.numChars=o,this.bitData=n,o<0)throw new RangeError("Invalid argument");this.bitData=n.slice()}static makeBytes(l){let o=[];for(const n of l)a(n,8,o);return new p(p.Mode.BYTE,l.length,o)}static makeNumeric(l){if(!p.isNumeric(l))throw new RangeError("String contains non-numeric characters");let o=[];for(let n=0;n<l.length;){const x=Math.min(l.length-n,3);a(parseInt(l.substr(n,x),10),x*3+1,o),n+=x}return new p(p.Mode.NUMERIC,l.length,o)}static makeAlphanumeric(l){if(!p.isAlphanumeric(l))throw new RangeError("String contains unencodable characters in alphanumeric mode");let o=[],n;for(n=0;n+2<=l.length;n+=2){let x=p.ALPHANUMERIC_CHARSET.indexOf(l.charAt(n))*45;x+=p.ALPHANUMERIC_CHARSET.indexOf(l.charAt(n+1)),a(x,11,o)}return n<l.length&&a(p.ALPHANUMERIC_CHARSET.indexOf(l.charAt(n)),6,o),new p(p.Mode.ALPHANUMERIC,l.length,o)}static makeSegments(l){return l==""?[]:p.isNumeric(l)?[p.makeNumeric(l)]:p.isAlphanumeric(l)?[p.makeAlphanumeric(l)]:[p.makeBytes(p.toUtf8ByteArray(l))]}static makeEci(l){let o=[];if(l<0)throw new RangeError("ECI assignment value out of range");if(l<128)a(l,8,o);else if(l<16384)a(2,2,o),a(l,14,o);else if(l<1e6)a(6,3,o),a(l,21,o);else throw new RangeError("ECI assignment value out of range");return new p(p.Mode.ECI,0,o)}static isNumeric(l){return p.NUMERIC_REGEX.test(l)}static isAlphanumeric(l){return p.ALPHANUMERIC_REGEX.test(l)}getData(){return this.bitData.slice()}static getTotalBits(l,o){let n=0;for(const x of l){const u=x.mode.numCharCountBits(o);if(x.numChars>=1<<u)return 1/0;n+=4+u+x.bitData.length}return n}static toUtf8ByteArray(l){l=encodeURI(l);let o=[];for(let n=0;n<l.length;n++)l.charAt(n)!="%"?o.push(l.charCodeAt(n)):(o.push(parseInt(l.substr(n+1,2),16)),n+=2);return o}};let m=p;m.NUMERIC_REGEX=/^[0-9]*$/,m.ALPHANUMERIC_REGEX=/^[A-Z0-9 $%*+.\/:-]*$/,m.ALPHANUMERIC_CHARSET="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:",t.QrSegment=m})(Oe||(Oe={}));(t=>{(s=>{const r=class{constructor(c,d){this.ordinal=c,this.formatBits=d}};let a=r;a.LOW=new r(0,1),a.MEDIUM=new r(1,0),a.QUARTILE=new r(2,3),a.HIGH=new r(3,2),s.Ecc=a})(t.QrCode||(t.QrCode={}))})(Oe||(Oe={}));(t=>{(s=>{const r=class{constructor(c,d){this.modeBits=c,this.numBitsCharCount=d}numCharCountBits(c){return this.numBitsCharCount[Math.floor((c+7)/17)]}};let a=r;a.NUMERIC=new r(1,[10,12,14]),a.ALPHANUMERIC=new r(2,[9,11,13]),a.BYTE=new r(4,[8,16,16]),a.KANJI=new r(8,[8,10,12]),a.ECI=new r(7,[0,0,0]),s.Mode=a})(t.QrSegment||(t.QrSegment={}))})(Oe||(Oe={}));var Ze=Oe;/**
+ */ var Oe;
+((t) => {
+  const s = class {
+    constructor(l, o, n, x) {
+      if (
+        ((this.version = l),
+        (this.errorCorrectionLevel = o),
+        (this.modules = []),
+        (this.isFunction = []),
+        l < s.MIN_VERSION || l > s.MAX_VERSION)
+      )
+        throw new RangeError('Version value out of range');
+      if (x < -1 || x > 7) throw new RangeError('Mask value out of range');
+      this.size = l * 4 + 17;
+      let u = [];
+      for (let y = 0; y < this.size; y++) u.push(!1);
+      for (let y = 0; y < this.size; y++)
+        (this.modules.push(u.slice()), this.isFunction.push(u.slice()));
+      this.drawFunctionPatterns();
+      const b = this.addEccAndInterleave(n);
+      if ((this.drawCodewords(b), x == -1)) {
+        let y = 1e9;
+        for (let g = 0; g < 8; g++) {
+          (this.applyMask(g), this.drawFormatBits(g));
+          const w = this.getPenaltyScore();
+          (w < y && ((x = g), (y = w)), this.applyMask(g));
+        }
+      }
+      (d(0 <= x && x <= 7),
+        (this.mask = x),
+        this.applyMask(x),
+        this.drawFormatBits(x),
+        (this.isFunction = []));
+    }
+    static encodeText(l, o) {
+      const n = t.QrSegment.makeSegments(l);
+      return s.encodeSegments(n, o);
+    }
+    static encodeBinary(l, o) {
+      const n = t.QrSegment.makeBytes(l);
+      return s.encodeSegments([n], o);
+    }
+    static encodeSegments(l, o, n = 1, x = 40, u = -1, b = !0) {
+      if (!(s.MIN_VERSION <= n && n <= x && x <= s.MAX_VERSION) || u < -1 || u > 7)
+        throw new RangeError('Invalid value');
+      let y, g;
+      for (y = n; ; y++) {
+        const f = s.getNumDataCodewords(y, o) * 8,
+          v = m.getTotalBits(l, y);
+        if (v <= f) {
+          g = v;
+          break;
+        }
+        if (y >= x) throw new RangeError('Data too long');
+      }
+      for (const f of [s.Ecc.MEDIUM, s.Ecc.QUARTILE, s.Ecc.HIGH])
+        b && g <= s.getNumDataCodewords(y, f) * 8 && (o = f);
+      let w = [];
+      for (const f of l) {
+        (a(f.mode.modeBits, 4, w), a(f.numChars, f.mode.numCharCountBits(y), w));
+        for (const v of f.getData()) w.push(v);
+      }
+      d(w.length == g);
+      const E = s.getNumDataCodewords(y, o) * 8;
+      (d(w.length <= E),
+        a(0, Math.min(4, E - w.length), w),
+        a(0, (8 - (w.length % 8)) % 8, w),
+        d(w.length % 8 == 0));
+      for (let f = 236; w.length < E; f ^= 253) a(f, 8, w);
+      let N = [];
+      for (; N.length * 8 < w.length; ) N.push(0);
+      return (w.forEach((f, v) => (N[v >>> 3] |= f << (7 - (v & 7)))), new s(y, o, N, u));
+    }
+    getModule(l, o) {
+      return 0 <= l && l < this.size && 0 <= o && o < this.size && this.modules[o][l];
+    }
+    getModules() {
+      return this.modules;
+    }
+    drawFunctionPatterns() {
+      for (let n = 0; n < this.size; n++)
+        (this.setFunctionModule(6, n, n % 2 == 0), this.setFunctionModule(n, 6, n % 2 == 0));
+      (this.drawFinderPattern(3, 3),
+        this.drawFinderPattern(this.size - 4, 3),
+        this.drawFinderPattern(3, this.size - 4));
+      const l = this.getAlignmentPatternPositions(),
+        o = l.length;
+      for (let n = 0; n < o; n++)
+        for (let x = 0; x < o; x++)
+          (n == 0 && x == 0) ||
+            (n == 0 && x == o - 1) ||
+            (n == o - 1 && x == 0) ||
+            this.drawAlignmentPattern(l[n], l[x]);
+      (this.drawFormatBits(0), this.drawVersion());
+    }
+    drawFormatBits(l) {
+      const o = (this.errorCorrectionLevel.formatBits << 3) | l;
+      let n = o;
+      for (let u = 0; u < 10; u++) n = (n << 1) ^ ((n >>> 9) * 1335);
+      const x = ((o << 10) | n) ^ 21522;
+      d(x >>> 15 == 0);
+      for (let u = 0; u <= 5; u++) this.setFunctionModule(8, u, c(x, u));
+      (this.setFunctionModule(8, 7, c(x, 6)),
+        this.setFunctionModule(8, 8, c(x, 7)),
+        this.setFunctionModule(7, 8, c(x, 8)));
+      for (let u = 9; u < 15; u++) this.setFunctionModule(14 - u, 8, c(x, u));
+      for (let u = 0; u < 8; u++) this.setFunctionModule(this.size - 1 - u, 8, c(x, u));
+      for (let u = 8; u < 15; u++) this.setFunctionModule(8, this.size - 15 + u, c(x, u));
+      this.setFunctionModule(8, this.size - 8, !0);
+    }
+    drawVersion() {
+      if (this.version < 7) return;
+      let l = this.version;
+      for (let n = 0; n < 12; n++) l = (l << 1) ^ ((l >>> 11) * 7973);
+      const o = (this.version << 12) | l;
+      d(o >>> 18 == 0);
+      for (let n = 0; n < 18; n++) {
+        const x = c(o, n),
+          u = this.size - 11 + (n % 3),
+          b = Math.floor(n / 3);
+        (this.setFunctionModule(u, b, x), this.setFunctionModule(b, u, x));
+      }
+    }
+    drawFinderPattern(l, o) {
+      for (let n = -4; n <= 4; n++)
+        for (let x = -4; x <= 4; x++) {
+          const u = Math.max(Math.abs(x), Math.abs(n)),
+            b = l + x,
+            y = o + n;
+          0 <= b &&
+            b < this.size &&
+            0 <= y &&
+            y < this.size &&
+            this.setFunctionModule(b, y, u != 2 && u != 4);
+        }
+    }
+    drawAlignmentPattern(l, o) {
+      for (let n = -2; n <= 2; n++)
+        for (let x = -2; x <= 2; x++)
+          this.setFunctionModule(l + x, o + n, Math.max(Math.abs(x), Math.abs(n)) != 1);
+    }
+    setFunctionModule(l, o, n) {
+      ((this.modules[o][l] = n), (this.isFunction[o][l] = !0));
+    }
+    addEccAndInterleave(l) {
+      const o = this.version,
+        n = this.errorCorrectionLevel;
+      if (l.length != s.getNumDataCodewords(o, n)) throw new RangeError('Invalid argument');
+      const x = s.NUM_ERROR_CORRECTION_BLOCKS[n.ordinal][o],
+        u = s.ECC_CODEWORDS_PER_BLOCK[n.ordinal][o],
+        b = Math.floor(s.getNumRawDataModules(o) / 8),
+        y = x - (b % x),
+        g = Math.floor(b / x);
+      let w = [];
+      const E = s.reedSolomonComputeDivisor(u);
+      for (let f = 0, v = 0; f < x; f++) {
+        let j = l.slice(v, v + g - u + (f < y ? 0 : 1));
+        v += j.length;
+        const z = s.reedSolomonComputeRemainder(j, E);
+        (f < y && j.push(0), w.push(j.concat(z)));
+      }
+      let N = [];
+      for (let f = 0; f < w[0].length; f++)
+        w.forEach((v, j) => {
+          (f != g - u || j >= y) && N.push(v[f]);
+        });
+      return (d(N.length == b), N);
+    }
+    drawCodewords(l) {
+      if (l.length != Math.floor(s.getNumRawDataModules(this.version) / 8))
+        throw new RangeError('Invalid argument');
+      let o = 0;
+      for (let n = this.size - 1; n >= 1; n -= 2) {
+        n == 6 && (n = 5);
+        for (let x = 0; x < this.size; x++)
+          for (let u = 0; u < 2; u++) {
+            const b = n - u,
+              g = ((n + 1) & 2) == 0 ? this.size - 1 - x : x;
+            !this.isFunction[g][b] &&
+              o < l.length * 8 &&
+              ((this.modules[g][b] = c(l[o >>> 3], 7 - (o & 7))), o++);
+          }
+      }
+      d(o == l.length * 8);
+    }
+    applyMask(l) {
+      if (l < 0 || l > 7) throw new RangeError('Mask value out of range');
+      for (let o = 0; o < this.size; o++)
+        for (let n = 0; n < this.size; n++) {
+          let x;
+          switch (l) {
+            case 0:
+              x = (n + o) % 2 == 0;
+              break;
+            case 1:
+              x = o % 2 == 0;
+              break;
+            case 2:
+              x = n % 3 == 0;
+              break;
+            case 3:
+              x = (n + o) % 3 == 0;
+              break;
+            case 4:
+              x = (Math.floor(n / 3) + Math.floor(o / 2)) % 2 == 0;
+              break;
+            case 5:
+              x = ((n * o) % 2) + ((n * o) % 3) == 0;
+              break;
+            case 6:
+              x = (((n * o) % 2) + ((n * o) % 3)) % 2 == 0;
+              break;
+            case 7:
+              x = (((n + o) % 2) + ((n * o) % 3)) % 2 == 0;
+              break;
+            default:
+              throw new Error('Unreachable');
+          }
+          !this.isFunction[o][n] && x && (this.modules[o][n] = !this.modules[o][n]);
+        }
+    }
+    getPenaltyScore() {
+      let l = 0;
+      for (let u = 0; u < this.size; u++) {
+        let b = !1,
+          y = 0,
+          g = [0, 0, 0, 0, 0, 0, 0];
+        for (let w = 0; w < this.size; w++)
+          this.modules[u][w] == b
+            ? (y++, y == 5 ? (l += s.PENALTY_N1) : y > 5 && l++)
+            : (this.finderPenaltyAddHistory(y, g),
+              b || (l += this.finderPenaltyCountPatterns(g) * s.PENALTY_N3),
+              (b = this.modules[u][w]),
+              (y = 1));
+        l += this.finderPenaltyTerminateAndCount(b, y, g) * s.PENALTY_N3;
+      }
+      for (let u = 0; u < this.size; u++) {
+        let b = !1,
+          y = 0,
+          g = [0, 0, 0, 0, 0, 0, 0];
+        for (let w = 0; w < this.size; w++)
+          this.modules[w][u] == b
+            ? (y++, y == 5 ? (l += s.PENALTY_N1) : y > 5 && l++)
+            : (this.finderPenaltyAddHistory(y, g),
+              b || (l += this.finderPenaltyCountPatterns(g) * s.PENALTY_N3),
+              (b = this.modules[w][u]),
+              (y = 1));
+        l += this.finderPenaltyTerminateAndCount(b, y, g) * s.PENALTY_N3;
+      }
+      for (let u = 0; u < this.size - 1; u++)
+        for (let b = 0; b < this.size - 1; b++) {
+          const y = this.modules[u][b];
+          y == this.modules[u][b + 1] &&
+            y == this.modules[u + 1][b] &&
+            y == this.modules[u + 1][b + 1] &&
+            (l += s.PENALTY_N2);
+        }
+      let o = 0;
+      for (const u of this.modules) o = u.reduce((b, y) => b + (y ? 1 : 0), o);
+      const n = this.size * this.size,
+        x = Math.ceil(Math.abs(o * 20 - n * 10) / n) - 1;
+      return (d(0 <= x && x <= 9), (l += x * s.PENALTY_N4), d(0 <= l && l <= 2568888), l);
+    }
+    getAlignmentPatternPositions() {
+      if (this.version == 1) return [];
+      {
+        const l = Math.floor(this.version / 7) + 2,
+          o = this.version == 32 ? 26 : Math.ceil((this.version * 4 + 4) / (l * 2 - 2)) * 2;
+        let n = [6];
+        for (let x = this.size - 7; n.length < l; x -= o) n.splice(1, 0, x);
+        return n;
+      }
+    }
+    static getNumRawDataModules(l) {
+      if (l < s.MIN_VERSION || l > s.MAX_VERSION)
+        throw new RangeError('Version number out of range');
+      let o = (16 * l + 128) * l + 64;
+      if (l >= 2) {
+        const n = Math.floor(l / 7) + 2;
+        ((o -= (25 * n - 10) * n - 55), l >= 7 && (o -= 36));
+      }
+      return (d(208 <= o && o <= 29648), o);
+    }
+    static getNumDataCodewords(l, o) {
+      return (
+        Math.floor(s.getNumRawDataModules(l) / 8) -
+        s.ECC_CODEWORDS_PER_BLOCK[o.ordinal][l] * s.NUM_ERROR_CORRECTION_BLOCKS[o.ordinal][l]
+      );
+    }
+    static reedSolomonComputeDivisor(l) {
+      if (l < 1 || l > 255) throw new RangeError('Degree out of range');
+      let o = [];
+      for (let x = 0; x < l - 1; x++) o.push(0);
+      o.push(1);
+      let n = 1;
+      for (let x = 0; x < l; x++) {
+        for (let u = 0; u < o.length; u++)
+          ((o[u] = s.reedSolomonMultiply(o[u], n)), u + 1 < o.length && (o[u] ^= o[u + 1]));
+        n = s.reedSolomonMultiply(n, 2);
+      }
+      return o;
+    }
+    static reedSolomonComputeRemainder(l, o) {
+      let n = o.map((x) => 0);
+      for (const x of l) {
+        const u = x ^ n.shift();
+        (n.push(0), o.forEach((b, y) => (n[y] ^= s.reedSolomonMultiply(b, u))));
+      }
+      return n;
+    }
+    static reedSolomonMultiply(l, o) {
+      if (l >>> 8 || o >>> 8) throw new RangeError('Byte out of range');
+      let n = 0;
+      for (let x = 7; x >= 0; x--) ((n = (n << 1) ^ ((n >>> 7) * 285)), (n ^= ((o >>> x) & 1) * l));
+      return (d(n >>> 8 == 0), n);
+    }
+    finderPenaltyCountPatterns(l) {
+      const o = l[1];
+      d(o <= this.size * 3);
+      const n = o > 0 && l[2] == o && l[3] == o * 3 && l[4] == o && l[5] == o;
+      return (n && l[0] >= o * 4 && l[6] >= o ? 1 : 0) + (n && l[6] >= o * 4 && l[0] >= o ? 1 : 0);
+    }
+    finderPenaltyTerminateAndCount(l, o, n) {
+      return (
+        l && (this.finderPenaltyAddHistory(o, n), (o = 0)),
+        (o += this.size),
+        this.finderPenaltyAddHistory(o, n),
+        this.finderPenaltyCountPatterns(n)
+      );
+    }
+    finderPenaltyAddHistory(l, o) {
+      (o[0] == 0 && (l += this.size), o.pop(), o.unshift(l));
+    }
+  };
+  let r = s;
+  ((r.MIN_VERSION = 1),
+    (r.MAX_VERSION = 40),
+    (r.PENALTY_N1 = 3),
+    (r.PENALTY_N2 = 3),
+    (r.PENALTY_N3 = 40),
+    (r.PENALTY_N4 = 10),
+    (r.ECC_CODEWORDS_PER_BLOCK = [
+      [
+        -1, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28, 28, 28,
+        30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+      ],
+      [
+        -1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26, 26, 28,
+        28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+      ],
+      [
+        -1, 13, 22, 18, 26, 18, 24, 18, 22, 20, 24, 28, 26, 24, 20, 30, 24, 28, 28, 26, 30, 28, 30,
+        30, 30, 30, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+      ],
+      [
+        -1, 17, 28, 22, 16, 22, 28, 26, 26, 24, 28, 24, 28, 22, 24, 24, 30, 28, 28, 26, 28, 30, 24,
+        30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+      ],
+    ]),
+    (r.NUM_ERROR_CORRECTION_BLOCKS = [
+      [
+        -1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8, 8, 9, 9, 10, 12, 12, 12, 13,
+        14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25,
+      ],
+      [
+        -1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16, 17, 17, 18, 20, 21,
+        23, 25, 26, 28, 29, 31, 33, 35, 37, 38, 40, 43, 45, 47, 49,
+      ],
+      [
+        -1, 1, 1, 2, 2, 4, 4, 6, 6, 8, 8, 8, 10, 12, 16, 12, 17, 16, 18, 21, 20, 23, 23, 25, 27, 29,
+        34, 34, 35, 38, 40, 43, 45, 48, 51, 53, 56, 59, 62, 65, 68,
+      ],
+      [
+        -1, 1, 1, 2, 4, 4, 4, 5, 6, 8, 8, 11, 11, 16, 16, 18, 16, 19, 21, 25, 25, 25, 34, 30, 32,
+        35, 37, 40, 42, 45, 48, 51, 54, 57, 60, 63, 66, 70, 74, 77, 81,
+      ],
+    ]),
+    (t.QrCode = r));
+  function a(l, o, n) {
+    if (o < 0 || o > 31 || l >>> o) throw new RangeError('Value out of range');
+    for (let x = o - 1; x >= 0; x--) n.push((l >>> x) & 1);
+  }
+  function c(l, o) {
+    return ((l >>> o) & 1) != 0;
+  }
+  function d(l) {
+    if (!l) throw new Error('Assertion error');
+  }
+  const p = class {
+    constructor(l, o, n) {
+      if (((this.mode = l), (this.numChars = o), (this.bitData = n), o < 0))
+        throw new RangeError('Invalid argument');
+      this.bitData = n.slice();
+    }
+    static makeBytes(l) {
+      let o = [];
+      for (const n of l) a(n, 8, o);
+      return new p(p.Mode.BYTE, l.length, o);
+    }
+    static makeNumeric(l) {
+      if (!p.isNumeric(l)) throw new RangeError('String contains non-numeric characters');
+      let o = [];
+      for (let n = 0; n < l.length; ) {
+        const x = Math.min(l.length - n, 3);
+        (a(parseInt(l.substr(n, x), 10), x * 3 + 1, o), (n += x));
+      }
+      return new p(p.Mode.NUMERIC, l.length, o);
+    }
+    static makeAlphanumeric(l) {
+      if (!p.isAlphanumeric(l))
+        throw new RangeError('String contains unencodable characters in alphanumeric mode');
+      let o = [],
+        n;
+      for (n = 0; n + 2 <= l.length; n += 2) {
+        let x = p.ALPHANUMERIC_CHARSET.indexOf(l.charAt(n)) * 45;
+        ((x += p.ALPHANUMERIC_CHARSET.indexOf(l.charAt(n + 1))), a(x, 11, o));
+      }
+      return (
+        n < l.length && a(p.ALPHANUMERIC_CHARSET.indexOf(l.charAt(n)), 6, o),
+        new p(p.Mode.ALPHANUMERIC, l.length, o)
+      );
+    }
+    static makeSegments(l) {
+      return l == ''
+        ? []
+        : p.isNumeric(l)
+          ? [p.makeNumeric(l)]
+          : p.isAlphanumeric(l)
+            ? [p.makeAlphanumeric(l)]
+            : [p.makeBytes(p.toUtf8ByteArray(l))];
+    }
+    static makeEci(l) {
+      let o = [];
+      if (l < 0) throw new RangeError('ECI assignment value out of range');
+      if (l < 128) a(l, 8, o);
+      else if (l < 16384) (a(2, 2, o), a(l, 14, o));
+      else if (l < 1e6) (a(6, 3, o), a(l, 21, o));
+      else throw new RangeError('ECI assignment value out of range');
+      return new p(p.Mode.ECI, 0, o);
+    }
+    static isNumeric(l) {
+      return p.NUMERIC_REGEX.test(l);
+    }
+    static isAlphanumeric(l) {
+      return p.ALPHANUMERIC_REGEX.test(l);
+    }
+    getData() {
+      return this.bitData.slice();
+    }
+    static getTotalBits(l, o) {
+      let n = 0;
+      for (const x of l) {
+        const u = x.mode.numCharCountBits(o);
+        if (x.numChars >= 1 << u) return 1 / 0;
+        n += 4 + u + x.bitData.length;
+      }
+      return n;
+    }
+    static toUtf8ByteArray(l) {
+      l = encodeURI(l);
+      let o = [];
+      for (let n = 0; n < l.length; n++)
+        l.charAt(n) != '%'
+          ? o.push(l.charCodeAt(n))
+          : (o.push(parseInt(l.substr(n + 1, 2), 16)), (n += 2));
+      return o;
+    }
+  };
+  let m = p;
+  ((m.NUMERIC_REGEX = /^[0-9]*$/),
+    (m.ALPHANUMERIC_REGEX = /^[A-Z0-9 $%*+.\/:-]*$/),
+    (m.ALPHANUMERIC_CHARSET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:'),
+    (t.QrSegment = m));
+})(Oe || (Oe = {}));
+((t) => {
+  ((s) => {
+    const r = class {
+      constructor(c, d) {
+        ((this.ordinal = c), (this.formatBits = d));
+      }
+    };
+    let a = r;
+    ((a.LOW = new r(0, 1)),
+      (a.MEDIUM = new r(1, 0)),
+      (a.QUARTILE = new r(2, 3)),
+      (a.HIGH = new r(3, 2)),
+      (s.Ecc = a));
+  })(t.QrCode || (t.QrCode = {}));
+})(Oe || (Oe = {}));
+((t) => {
+  ((s) => {
+    const r = class {
+      constructor(c, d) {
+        ((this.modeBits = c), (this.numBitsCharCount = d));
+      }
+      numCharCountBits(c) {
+        return this.numBitsCharCount[Math.floor((c + 7) / 17)];
+      }
+    };
+    let a = r;
+    ((a.NUMERIC = new r(1, [10, 12, 14])),
+      (a.ALPHANUMERIC = new r(2, [9, 11, 13])),
+      (a.BYTE = new r(4, [8, 16, 16])),
+      (a.KANJI = new r(8, [8, 10, 12])),
+      (a.ECI = new r(7, [0, 0, 0])),
+      (s.Mode = a));
+  })(t.QrSegment || (t.QrSegment = {}));
+})(Oe || (Oe = {}));
+var Ze = Oe;
+/**
  * @license qrcode.react
  * Copyright (c) Paul O'Shannessy
  * SPDX-License-Identifier: ISC
- */var vr={L:Ze.QrCode.Ecc.LOW,M:Ze.QrCode.Ecc.MEDIUM,Q:Ze.QrCode.Ecc.QUARTILE,H:Ze.QrCode.Ecc.HIGH},jr=128,yr="L",Nr="#FFFFFF",kr="#000000",Cr=!1,Is=4,Sr=.1;function zr(t,s=0){const r=[];return t.forEach(function(a,c){let d=null;a.forEach(function(p,m){if(!p&&d!==null){r.push(`M${d+s} ${c+s}h${m-d}v1H${d+s}z`),d=null;return}if(m===a.length-1){if(!p)return;d===null?r.push(`M${m+s},${c+s} h1v1H${m+s}z`):r.push(`M${d+s},${c+s} h${m+1-d}v1H${d+s}z`);return}p&&d===null&&(d=m)})}),r.join("")}function Er(t,s){return t.slice().map((r,a)=>a<s.y||a>=s.y+s.h?r:r.map((c,d)=>d<s.x||d>=s.x+s.w?c:!1))}function Rr(t,s,r,a){if(a==null)return null;const c=r?Is:0,d=t.length+c*2,p=Math.floor(s*Sr),m=d/s,l=(a.width||p)*m,o=(a.height||p)*m,n=a.x==null?t.length/2-l/2:a.x*m,x=a.y==null?t.length/2-o/2:a.y*m;let u=null;if(a.excavate){let b=Math.floor(n),y=Math.floor(x),g=Math.ceil(l+n-b),w=Math.ceil(o+x-y);u={x:b,y,w:g,h:w}}return{x:n,y:x,h:o,w:l,excavation:u}}(function(){try{new Path2D().addPath(new Path2D)}catch{return!1}return!0})();function Ar(t){const s=t,{value:r,size:a=jr,level:c=yr,bgColor:d=Nr,fgColor:p=kr,includeMargin:m=Cr,imageSettings:l}=s,o=wr(s,["value","size","level","bgColor","fgColor","includeMargin","imageSettings"]);let n=Ze.QrCode.encodeText(r,vr[c]).getModules();const x=m?Is:0,u=n.length+x*2,b=Rr(n,a,m,l);let y=null;l!=null&&b!=null&&(b.excavation!=null&&(n=Er(n,b.excavation)),y=Te.createElement("image",{xlinkHref:l.src,height:b.h,width:b.w,x:b.x+x,y:b.y+x,preserveAspectRatio:"none"}));const g=zr(n,x);return Te.createElement("svg",fr({height:a,width:a,viewBox:`0 0 ${u} ${u}`},o),Te.createElement("path",{fill:d,d:`M0,0 h${u}v${u}H0z`,shapeRendering:"crispEdges"}),Te.createElement("path",{fill:p,d:g,shapeRendering:"crispEdges"}),y)}const Mr=({isOpen:t,onClose:s,client:r,onDownload:a})=>{const{theme:c}=Q(),[d,p]=h.useState(!1);if(!r)return null;const m=()=>{(async()=>{if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(r.config);else{const o=document.createElement("textarea");o.value=r.config,o.style.position="fixed",o.style.left="-9999px",o.style.top="0",document.body.appendChild(o),o.focus(),o.select(),document.execCommand("copy"),document.body.removeChild(o)}p(!0),setTimeout(()=>p(!1),2e3)})().catch(console.error)};return e.jsx(lt,{isOpen:t,onClose:s,title:"Tactical Configuration",maxWidth:"max-w-4xl",className:"p-0 overflow-hidden",children:e.jsxs("div",{className:"flex flex-col md:flex-row h-full",children:[e.jsxs("div",{className:"bg-white p-12 flex flex-col items-center justify-center md:w-[40%] bg-[radial-gradient(circle_at_center,white_0%,#f1f5f9_100%)]",children:[e.jsx(L.div,{initial:{scale:.8,opacity:0},animate:{scale:1,opacity:1},className:"bg-white p-4 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-200 mb-10",children:e.jsx(Ar,{value:r.config,size:220,level:"H",includeMargin:!0})}),e.jsxs("div",{className:"text-center space-y-2",children:[e.jsxs("div",{className:"flex items-center justify-center gap-2 text-slate-900 font-black uppercase tracking-widest text-sm",children:[e.jsx(Rt,{size:18})," Mobile Scan"]}),e.jsx("p",{className:"text-slate-500 font-bold text-[10px] uppercase tracking-widest opacity-60",children:"Utilisez l'app WireGuard officielle"})]})]}),e.jsxs("div",{className:"p-8 md:p-12 md:w-[60%] flex flex-col bg-slate-950/40 backdrop-blur-3xl border-l border-white/5",children:[e.jsx("div",{className:"flex items-center justify-between mb-8",children:e.jsxs("div",{className:"flex items-center gap-4",children:[e.jsx("div",{className:i("p-3 rounded-2xl",`bg-${c}-600 text-white shadow-2xl shadow-${c}-600/30`),children:e.jsx(Mt,{size:24})}),e.jsxs("div",{children:[e.jsx("h3",{className:"text-xl font-black text-white tracking-widest uppercase mb-1",children:r.name}),e.jsxs("span",{className:i("text-[10px] font-mono font-bold tracking-widest",`text-${c}-400`),children:[r.name.toLowerCase(),".conf"]})]})]})}),e.jsxs("div",{className:"relative flex-1 bg-black/40 rounded-[2rem] border border-white/5 p-6 group overflow-hidden shadow-inner",children:[e.jsx("div",{className:"absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none opacity-20"}),e.jsx("pre",{className:i("font-mono text-[10px] leading-relaxed md:text-xs overflow-auto h-64 md:h-80 custom-scrollbar whitespace-pre-wrap pr-4",`text-${c}-300/80`),children:r.config}),e.jsx("button",{onClick:m,className:i("absolute top-6 right-6 p-4 backdrop-blur-3xl text-white rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl border border-white/10 hover:scale-110 active:scale-95",`bg-${c}-600/80 hover:bg-${c}-600`),children:e.jsx(le,{mode:"wait",children:d?e.jsx(L.div,{initial:{scale:.5},animate:{scale:1},children:e.jsx(ls,{size:20})},"check"):e.jsx(L.div,{initial:{scale:.5},animate:{scale:1},children:e.jsx(Hs,{size:20})},"copy")})})]}),e.jsx("div",{className:"mt-10 flex flex-col sm:flex-row gap-4",children:e.jsxs("button",{onClick:()=>a(r.name,r.config),className:i("flex-1 py-4 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 hover:scale-105",`bg-${c}-600 hover:bg-${c}-500 shadow-${c}-600/30`),children:[e.jsx(_e,{size:20})," Télécharger .conf"]})})]})]})})},$r=({isOpen:t,onClose:s,onCreate:r})=>{const{theme:a}=Q(),[c,d]=h.useState(""),[p,m]=h.useState(""),[l,o]=h.useState(""),[n,x]=h.useState("viewer"),[u,b]=h.useState(!1),[y,g]=h.useState(!1),[w,E]=h.useState(""),N=async v=>{var j,z;if(v.preventDefault(),E(""),!c.trim()){E("Nom d'utilisateur requis");return}if(p.length<8){E("Mot de passe : 8 caractères minimum");return}if(p!==l){E("Les mots de passe ne correspondent pas");return}g(!0);try{await r(c.trim(),p,n),d(""),m(""),o(""),x("viewer"),s()}catch(D){E(((z=(j=D==null?void 0:D.response)==null?void 0:j.data)==null?void 0:z.error)||"Erreur lors de la création")}finally{g(!1)}},f=[{id:"viewer",label:"Viewer",desc:"Lecture seule",color:"slate"},{id:"admin",label:"Admin",desc:"Accès complet",color:a}];return e.jsx(lt,{isOpen:t,onClose:s,title:"Créer un Opérateur",maxWidth:"max-w-md",children:e.jsxs("form",{onSubmit:N,className:"space-y-6",children:[e.jsxs("div",{children:[e.jsx("label",{className:"block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest",children:"Identifiant"}),e.jsxs("div",{className:"relative group",children:[e.jsx(Ne,{className:"absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors",size:18}),e.jsx("input",{type:"text",value:c,onChange:v=>d(v.target.value),className:"w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono",placeholder:"ex: operateur01",autoFocus:!0})]})]}),e.jsxs("div",{children:[e.jsx("label",{className:"block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest",children:"Mot de Passe"}),e.jsxs("div",{className:"relative group",children:[e.jsx(Ct,{className:"absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors",size:18}),e.jsx("input",{type:u?"text":"password",value:p,onChange:v=>m(v.target.value),className:"w-full pl-12 pr-12 py-4 glass-input rounded-2xl font-mono",placeholder:"••••••••"}),e.jsx("button",{type:"button",onClick:()=>b(!u),className:"absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors",children:u?e.jsx(rs,{size:18}):e.jsx(is,{size:18})})]})]}),e.jsxs("div",{children:[e.jsx("label",{className:"block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest",children:"Confirmer le Mot de Passe"}),e.jsxs("div",{className:"relative group",children:[e.jsx(Ct,{className:"absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors",size:18}),e.jsx("input",{type:u?"text":"password",value:l,onChange:v=>o(v.target.value),className:"w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono",placeholder:"••••••••"})]})]}),e.jsxs("div",{children:[e.jsx("label",{className:"block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest",children:"Rôle Système"}),e.jsx("div",{className:"grid grid-cols-2 gap-3",children:f.map(v=>e.jsxs("button",{type:"button",onClick:()=>x(v.id),className:i("flex flex-col items-center gap-2 py-4 rounded-2xl border transition-all duration-300 text-center",n===v.id?`bg-${v.color}-500/10 border-${v.color}-500/40 text-${v.color}-400 shadow-lg shadow-${v.color}-500/10`:"bg-white/5 border-white/5 text-slate-500 hover:border-white/10 hover:text-slate-300"),children:[e.jsx(be,{size:20}),e.jsxs("div",{children:[e.jsx("div",{className:"text-[11px] font-black uppercase tracking-widest",children:v.label}),e.jsx("div",{className:"text-[9px] opacity-60 mt-0.5",children:v.desc})]})]},v.id))})]}),w&&e.jsx("div",{className:"p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-tight",children:w}),e.jsxs("div",{className:"flex gap-4 pt-2",children:[e.jsx("button",{type:"button",onClick:s,className:"flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-widest rounded-2xl border border-white/5 transition-all",children:"Annuler"}),e.jsxs("button",{type:"submit",disabled:y||!c||!p||!l,className:i("flex-[2] py-4 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30",`bg-${a}-600 hover:bg-${a}-500 shadow-${a}-600/30`),children:[y?e.jsx(J,{className:"animate-spin",size:18}):e.jsx(qe,{size:18,strokeWidth:3}),"Créer l'Opérateur"]})]})]})})},Dr=({isOpen:t,onClose:s,client:r,onSave:a})=>{var f;const{theme:c}=Q(),{addToast:d}=ke(),[p,m]=h.useState(0),[l,o]=h.useState(0),[n,x]=h.useState(!0),[u,b]=h.useState(""),[y,g]=h.useState(!1);h.useEffect(()=>{if(r&&t){m(r.quota||0),o(r.uploadLimit||0);const v=!!r.expiry;x(!v),b(v?r.expiry.split("T")[0]:"")}},[r,t]);const w=async v=>{var j,z;v.preventDefault(),g(!0);try{await T.patch(`/clients/${r.container}/${r.name}`,{quota:parseInt(p),uploadLimit:parseInt(l),expiry:n?null:u}),d(`Peer ${r.name} mis à jour avec succès`,"success"),a==null||a(),s()}catch(D){d(((z=(j=D==null?void 0:D.response)==null?void 0:j.data)==null?void 0:z.error)||"Erreur de mise à jour","error")}finally{g(!1)}};if(!r)return null;const N=(v=>{const j=["emerald","indigo","rose","amber","cyan","purple"];return j[Math.abs((D=>D.split("").reduce((k,R)=>(k=(k<<5)-k+R.charCodeAt(0),k&k),0))(v||""))%j.length]})(r.container);return e.jsx(lt,{isOpen:t,onClose:s,title:"Éditer Peer",maxWidth:"max-w-lg",children:e.jsxs("form",{onSubmit:w,className:"space-y-8",children:[e.jsxs("div",{className:i("flex items-center gap-4 p-5 rounded-2xl border",`bg-${N}-500/5 border-${N}-500/20`),children:[e.jsx("div",{className:i("w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-xl",`bg-${N}-600`),children:(f=r==null?void 0:r.name)==null?void 0:f.charAt(0).toUpperCase()}),e.jsxs("div",{className:"flex-1 min-w-0",children:[e.jsx("div",{className:"text-lg font-black text-white uppercase tracking-tight truncate",children:r==null?void 0:r.name}),e.jsxs("div",{className:"flex items-center gap-2 mt-1",children:[e.jsx("span",{className:i("text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest",`bg-${N}-500/10 text-${N}-400 border-${N}-500/20`),children:r==null?void 0:r.container}),e.jsx("span",{className:"text-[10px] font-mono text-slate-500",children:r==null?void 0:r.ip})]})]}),e.jsx(be,{size:20,className:i("flex-shrink-0",`text-${N}-500/40`)})]}),e.jsxs("div",{className:"space-y-3",children:[e.jsxs("div",{className:"flex justify-between items-center",children:[e.jsxs("label",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2",children:[e.jsx(tt,{size:14})," Quota de Données"]}),e.jsx("span",{className:i("text-sm font-black font-mono",`text-${c}-400`),children:p>0?`${p} GB`:"∞ Illimité"})]}),e.jsx("div",{className:"flex items-center gap-4",children:e.jsx("input",{type:"range",min:"0",max:"200",step:"5",value:p,onChange:v=>m(v.target.value),className:"w-full accent-indigo-500"})}),e.jsxs("div",{className:"flex justify-between text-[9px] font-mono text-slate-600",children:[e.jsx("span",{children:"0 (illimité)"}),e.jsx("span",{children:"50 GB"}),e.jsx("span",{children:"100 GB"}),e.jsx("span",{children:"200 GB"})]})]}),e.jsxs("div",{className:"space-y-3",children:[e.jsxs("div",{className:"flex justify-between items-center",children:[e.jsxs("label",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2",children:[e.jsx(He,{size:14})," Bande Passante Max"]}),e.jsx("span",{className:i("text-sm font-black font-mono",`text-${c}-400`),children:l>0?`${l} Mbps`:"∞ Illimité"})]}),e.jsx("div",{className:"flex items-center gap-4",children:e.jsx("input",{type:"range",min:"0",max:"1000",step:"10",value:l,onChange:v=>o(v.target.value),className:"w-full accent-indigo-500"})}),e.jsxs("div",{className:"flex justify-between text-[9px] font-mono text-slate-600",children:[e.jsx("span",{children:"0 (illimité)"}),e.jsx("span",{children:"250 Mbps"}),e.jsx("span",{children:"500 Mbps"}),e.jsx("span",{children:"1 Gbps"})]})]}),e.jsxs("div",{className:"space-y-3",children:[e.jsxs("div",{className:"flex justify-between items-center",children:[e.jsxs("label",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2",children:[e.jsx(gt,{size:14})," Expiration"]}),e.jsxs("label",{className:"flex items-center gap-2 cursor-pointer group",children:[e.jsx("div",{onClick:()=>x(!n),className:i("w-10 h-5 rounded-full transition-all relative border border-white/10 cursor-pointer",n?"bg-emerald-600":"bg-slate-800"),children:e.jsx("div",{className:i("absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white shadow-md transition-all",n?"left-[calc(100%-1rem)]":"left-0.5")})}),e.jsx("span",{className:"text-[10px] font-black uppercase text-slate-400 group-hover:text-white transition-colors",children:"Illimité"})]})]}),!n&&e.jsxs("div",{className:"relative group animate-in slide-in-from-top-2 duration-300",children:[e.jsx(gt,{className:"absolute left-4 top-1/2 -translate-y-1/2 text-slate-500",size:16}),e.jsx("input",{type:"date",value:u,onChange:v=>b(v.target.value),min:new Date().toISOString().split("T")[0],className:"w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"})]})]}),e.jsxs("div",{className:"flex gap-4 pt-2 border-t border-white/5",children:[e.jsx("button",{type:"button",onClick:s,className:"flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-widest rounded-2xl border border-white/5 transition-all",children:"Annuler"}),e.jsxs("button",{type:"submit",disabled:y,className:i("flex-[2] py-4 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30",`bg-${c}-600 hover:bg-${c}-500 shadow-${c}-600/30`),children:[y?e.jsx(J,{className:"animate-spin",size:18}):e.jsx($t,{size:18}),"Sauvegarder"]})]})]})})},Ir=(t,s={})=>{const[r,a]=h.useState(null),[c,d]=h.useState("CONNECTING"),p=h.useRef(null),m=h.useRef(0),l=3e4,o=h.useRef(null),n=h.useRef(s.onMessage),x=h.useRef(s.onOpen);h.useEffect(()=>{n.current=s.onMessage},[s.onMessage]),h.useEffect(()=>{x.current=s.onOpen},[s.onOpen]),h.useEffect(()=>{let b=!0;const y=()=>{if(!(!t||!b)){p.current&&p.current.close(),o.current&&clearTimeout(o.current);try{p.current=new WebSocket(t),d("CONNECTING"),p.current.onopen=()=>{b&&(d("OPEN"),m.current=0,x.current&&x.current())},p.current.onmessage=g=>{if(!b)return;let w;try{w=JSON.parse(g.data)}catch{w=g.data}a(w),n.current&&n.current(w)},p.current.onclose=()=>{if(!b)return;d("CLOSED");const g=Math.min(1e3*Math.pow(2,m.current),l);m.current+=1,o.current=setTimeout(()=>{b&&y()},g)},p.current.onerror=()=>{p.current&&p.current.close()}}catch{b&&d("CLOSED")}}};return y(),()=>{b=!1,o.current&&clearTimeout(o.current),p.current&&(p.current.onclose=null,p.current.close())}},[t]);const u=h.useCallback(b=>{var y;((y=p.current)==null?void 0:y.readyState)===WebSocket.OPEN&&p.current.send(typeof b=="string"?b:JSON.stringify(b))},[]);return{data:r,status:c,send:u}},es="wg-fux-cache",Tr=3e4,Lr=5e3,ts=15e3,Pr=t=>{const{addToast:s}=ke(),r=h.useRef({clients:[],timestamp:null}),[a,c]=h.useState([]),[d,p]=h.useState([]),[m,l]=h.useState([]),[o,n]=h.useState({}),[x,u]=h.useState({cpu:0,memory:0,disk:0}),[b,y]=h.useState([]),[g,w]=h.useState({}),[E,N]=h.useState(!0),[f,v]=h.useState({status:"unknown"}),[j,z]=h.useState({}),[D,k]=h.useState(""),[R,U]=h.useState({loading:!1,data:null}),[G,X]=h.useState({status:"offline",lastHeartbeat:null,stats:{}}),[C,P]=h.useState({status:"unknown"}),[B,S]=h.useState([]),O=h.useCallback(async()=>{try{const I=await T.get("/system/adguard-status");P(I.data)}catch{P({status:"inactive"})}},[]);Ir(Rs("status"),{onMessage:I=>{var ae,K;if(!I||typeof I!="object")return;if(I.type==="peer_status"&&Array.isArray(I.onlinePeers)){S(I.onlinePeers);return}if(I.type==="client_event"||I.type==="peer_connected"||I.type==="peer_disconnected"){const H=I.name||((ae=I.client)==null?void 0:ae.name)||"Peer",pe=I.container||((K=I.client)==null?void 0:K.container)||"",ge=I.type!=="peer_disconnected"&&(I.event==="connected"||I.type==="peer_connected");s(`${H}${pe?" ("+pe+")":""} ${ge?"connecté":"déconnecté"}`,ge?"success":"info"),$()}}});const q=h.useCallback(async()=>{try{const I=await T.get("/sentinel/status");X(I.data)}catch{X(I=>({...I,status:"error"}))}},[]),Z=t==null?void 0:t.role,$=h.useCallback(async()=>{var I,xe;try{const ae=Z==="admin",[K,H,pe,ge,Y]=await Promise.all([T.get("/clients"),T.get("/system/stats").catch(()=>({data:{}})),T.get("/system/health").catch(()=>({data:{status:"unhealthy"}})),T.get("/clients/containers").catch(()=>({data:[]})),ae?T.get("/users").catch(()=>({data:[]})):Promise.resolve({data:[]})]),Ce=Date.now(),we=K.data||[],{clients:re,timestamp:Se}=r.current,me=Se?(Ce-Se)/1e3:0;p(ge.data||[]),l(Y.data||[]);const $e=we.map(ne=>{const oe=re.find(ve=>ve.publicKey===ne.publicKey),ze=Number(ne.downloadBytes)||0,Qe=Number(ne.uploadBytes)||0,_=oe&&Number(oe.downloadBytes)||0,W=oe&&Number(oe.uploadBytes)||0;let V=0,ie=0;return oe&&me>0&&(V=Math.max(0,(ze-_)/me),ie=Math.max(0,(Qe-W)/me)),{...ne,downloadRate:V,uploadRate:ie}});c($e),r.current={clients:we,timestamp:Ce};const ot=((I=H.data)==null?void 0:I.network)||{};n(ot),u(((xe=H.data)==null?void 0:xe.system)||{cpu:0,memory:0,disk:0}),v(pe.data||{status:"unknown"});const nt=$e.reduce((ne,oe)=>ne+(oe.downloadRate||0),0),yt=$e.reduce((ne,oe)=>ne+(oe.uploadRate||0),0),Ve=new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});y(ne=>[...ne,{time:Ve,download:nt,upload:yt}].slice(-20)),w(ne=>{const oe={...ne};return $e.forEach(ze=>{const Qe=oe[ze.id]||[];oe[ze.id]=[...Qe,{time:Ve,dl:ze.downloadRate||0,ul:ze.uploadRate||0}].slice(-20)}),oe}),N(!1);try{sessionStorage.setItem(es,JSON.stringify({clients:$e,stats:ot,ts:Ce}))}catch{}}catch(ae){console.error("[useDashboardData] Fetch error:",ae),N(!1)}},[Z]);return h.useEffect(()=>{const I=sessionStorage.getItem(es);if(I)try{const{clients:H,stats:pe,ts:ge}=JSON.parse(I);Date.now()-ge<Tr&&setTimeout(()=>{c(H),n(pe),N(!1)},0)}catch{}T.get("/system/uptime").then(H=>k(H.data.uptime)).catch(()=>{}),T.get("/system/config").then(H=>z(H.data)).catch(()=>{}),$(),q(),O();const xe=setInterval($,Lr),ae=setInterval(q,ts),K=setInterval(O,ts);return()=>{clearInterval(xe),clearInterval(ae),clearInterval(K)}},[$,q,O]),{clients:a,allContainers:d,users:m,stats:o,systemStats:x,trafficData:b,clientsHistory:g,loading:E,health:f,config:j,uptime:D,speedtest:R,sentinelStatus:G,adguardStatus:C,onlinePeers:B,fetchData:$,fetchSentinel:q,handleRunSpeedtest:async()=>{U({loading:!0,data:null});try{const I=await T.post("/system/speedtest");U({loading:!1,data:I.data}),s("Test de flux complété","success")}catch{U({loading:!1,data:null}),s("Erreur Speedtest","error")}},setUsers:l}},pt=({label:t,value:s,sub:r,icon:a,delay:c=0})=>{const{theme:d,isDark:p}=Q();return e.jsxs(L.div,{initial:{opacity:0,y:30},animate:{opacity:1,y:0},transition:{delay:c,duration:.8,ease:[.16,1,.3,1]},className:"relative overflow-hidden glass-card p-4 md:p-6 group shadow-2xl",children:[e.jsx("div",{className:i("absolute -inset-1 bg-gradient-to-r from-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-1000",p?"via-white/5":"via-black/5",`group-hover:via-${d}-500/10`)}),e.jsx("div",{className:i("absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12 group-hover:rotate-0",p?`text-${d}-500`:"text-slate-900"),children:a&&e.jsx(a,{size:120})}),e.jsxs("div",{className:"relative z-10",children:[e.jsxs("div",{className:"flex items-center justify-between mb-4",children:[e.jsx("p",{className:"text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]",children:t}),a&&e.jsx("div",{className:i("p-2.5 rounded-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-lg shadow-black/20",`bg-${d}-500/10 text-${d}-400 border border-${d}-500/10`),children:e.jsx(a,{size:18})})]}),e.jsx("p",{className:"text-3xl sm:text-4xl 2xl:text-5xl font-black text-slate-900 dark:text-white font-mono tracking-tighter mb-2 group-hover:scale-105 transition-transform duration-500 origin-left truncate",children:s}),r&&e.jsxs("div",{className:i("flex items-center gap-2 mt-4 pt-4 border-t transition-colors",p?"border-white/5":"border-black/5"),children:[e.jsx("span",{className:i("h-1.5 w-1.5 rounded-full animate-pulse",`bg-${d}-500 shadow-[0_0_8px_currentColor]`)}),e.jsx("span",{className:i("text-[10px] font-black uppercase tracking-widest opacity-60",`text-${d}-400`),children:r})]})]})]})},kt=({value:t,label:s,color:r,icon:a})=>{const{isDark:c}=Q(),d=36,p=2*Math.PI*d,m=p-t/100*p;return e.jsxs("div",{className:"relative flex flex-col items-center group cursor-help shrink-0",children:[e.jsxs("div",{className:"relative w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 transform transition-transform duration-500 group-hover:scale-110",children:[e.jsxs("svg",{viewBox:"0 0 112 112",className:"w-full h-full transform -rotate-90 drop-shadow-2xl",children:[e.jsx("circle",{cx:"56",cy:"56",r:d,stroke:"currentColor",strokeWidth:"8",fill:"transparent",className:i("transition-colors",c?"text-white/5":"text-black/5")}),e.jsx(L.circle,{cx:"56",cy:"56",r:d,stroke:"currentColor",strokeWidth:"8",fill:"transparent",initial:{strokeDashoffset:p},animate:{strokeDashoffset:m},transition:{duration:1.5,ease:"easeOut"},className:i("transition-all duration-500",r),strokeDasharray:p,strokeLinecap:"round"})]}),e.jsxs("div",{className:"absolute inset-0 flex flex-col items-center justify-center",children:[e.jsx(a,{size:18,className:"text-slate-500 mb-1 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300 md:hidden"}),e.jsx(a,{size:24,className:"text-slate-500 mb-1 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300 hidden md:block"}),e.jsxs("span",{className:"text-sm md:text-xl font-black text-slate-900 dark:text-white font-mono",children:[t,"%"]})]})]}),e.jsx("span",{className:"mt-4 text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-slate-300 transition-colors duration-300",children:s}),e.jsx("div",{className:i("absolute -bottom-2 w-0 h-0.5 bg-current transition-all duration-500 group-hover:w-12",r==null?void 0:r.replace("text-","bg-"))})]})},ce=({children:t,className:s,animate:r=!0,delay:a=0,hover:c=!0,onClick:d})=>{const p=e.jsxs("div",{onClick:d,className:i("relative overflow-hidden glass-card rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500",c&&"hover:shadow-indigo-500/5 hover:-translate-y-1",d&&"cursor-pointer active:scale-95",s),children:[e.jsx("div",{className:"absolute -inset-1 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 hover:opacity-100 blur-xl transition-opacity duration-1000"}),e.jsx("div",{className:"relative z-10",children:t})]});return r?e.jsx(L.div,{initial:{opacity:0,y:30},whileInView:{opacity:1,y:0},viewport:{once:!0},transition:{duration:.8,delay:a,ease:[.16,1,.3,1]},children:p}):p},_r=()=>{const{theme:t,isDark:s}=Q(),[r,a]=h.useState([]),[c,d]=h.useState(!0),p=async()=>{try{const o=(await T.get("/system/traffic-history")).data.map(n=>{var x;return{name:((x=n.time.split("T")[1])==null?void 0:x.slice(0,5))||n.time,down:n.rx/(1024*1024),up:n.tx/(1024*1024)}});a(o),d(!1)}catch(l){console.error("Failed to fetch telemetry:",l)}};h.useEffect(()=>{p();const l=setInterval(p,1e4);return()=>clearInterval(l)},[]);const m=({active:l,payload:o,label:n})=>{var x,u;return l&&o&&o.length?e.jsxs("div",{className:i("backdrop-blur-2xl border p-4 rounded-2xl shadow-2xl transition-colors",s?"bg-slate-900/90 border-white/10":"bg-white border-black/5"),children:[e.jsxs("p",{className:i("text-[10px] font-black uppercase tracking-widest mb-2 border-b pb-2",s?"text-slate-500 border-white/5":"text-slate-400 border-black/5"),children:[n," - LIVE TELEMETRY"]}),e.jsxs("div",{className:"space-y-1",children:[e.jsxs("div",{className:"flex items-center justify-between gap-8",children:[e.jsxs("span",{className:"text-xs text-indigo-400 font-bold flex items-center gap-1",children:[e.jsx(_e,{size:10})," DOWNLOAD"]}),e.jsxs("span",{className:i("text-sm font-black font-mono",s?"text-white":"text-slate-900"),children:[(((x=o[0])==null?void 0:x.value)??0).toFixed(2)," MB"]})]}),e.jsxs("div",{className:"flex items-center justify-between gap-8",children:[e.jsxs("span",{className:"text-xs text-rose-400 font-bold flex items-center gap-1",children:[e.jsx(Gt,{size:10})," UPLOAD"]}),e.jsxs("span",{className:i("text-sm font-black font-mono",s?"text-white":"text-slate-900"),children:[(((u=o[1])==null?void 0:u.value)??0).toFixed(2)," MB"]})]})]})]}):null};return c?e.jsx("div",{className:i("h-80 w-full flex items-center justify-center rounded-3xl animate-pulse",s?"bg-slate-900/20":"bg-black/5"),children:e.jsx(Ae,{className:i("animate-bounce",s?"text-slate-700":"text-slate-300"),size:32})}):e.jsxs(L.div,{initial:{opacity:0,scale:.95},animate:{opacity:1,scale:1},className:i("backdrop-blur-2xl border rounded-3xl p-8 relative overflow-hidden group transition-all",s?"bg-slate-900/40 border-white/5":"bg-white/80 border-black/5 shadow-sm"),children:[e.jsx("div",{className:"absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"}),e.jsxs("div",{className:"flex items-center justify-between mb-8",children:[e.jsxs("div",{children:[e.jsx("h3",{className:"text-xs font-black text-slate-500 uppercase tracking-[0.3em] mb-1",children:"Système SENTINEL"}),e.jsxs("h2",{className:i("text-2xl font-black tracking-tighter flex items-center gap-2",s?"text-white":"text-slate-900"),children:["Télémétrie Live ",e.jsx("span",{className:"h-2 w-2 rounded-full bg-indigo-500 animate-ping"})]})]}),e.jsxs("div",{className:"flex gap-2",children:[e.jsxs("div",{className:"flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full",children:[e.jsx(_e,{size:12,className:"text-indigo-400"}),e.jsx("span",{className:i("text-[10px] font-black",s?"text-indigo-100":"text-indigo-900"),children:"DOWNLOAD"})]}),e.jsxs("div",{className:"flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-full",children:[e.jsx(Gt,{size:12,className:"text-rose-400"}),e.jsx("span",{className:i("text-[10px] font-black",s?"text-rose-100":"text-rose-900"),children:"UPLOAD"})]})]})]}),e.jsx("div",{className:"h-72 w-full relative",children:r.length===0?e.jsxs("div",{className:i("absolute inset-0 flex flex-col items-center justify-center rounded-3xl border border-dashed",s?"bg-white/[0.02] border-white/5":"bg-black/[0.02] border-black/5"),children:[e.jsx(de,{size:48,className:i("mb-4",s?"text-slate-800":"text-slate-200")}),e.jsx("p",{className:i("text-[10px] font-black uppercase tracking-[0.3em]",s?"text-slate-600":"text-slate-400"),children:"Initialisation des flux Sentinel..."}),e.jsx("p",{className:i("text-[8px] font-bold uppercase tracking-widest mt-2",s?"text-slate-700":"text-slate-300"),children:"(Données disponibles après le premier cycle d'audit)"})]}):e.jsx(vt,{width:"100%",height:"100%",children:e.jsxs(Dt,{data:r,children:[e.jsxs("defs",{children:[e.jsxs("linearGradient",{id:"colorDown",x1:"0",y1:"0",x2:"0",y2:"1",children:[e.jsx("stop",{offset:"5%",stopColor:"#6366f1",stopOpacity:.4}),e.jsx("stop",{offset:"95%",stopColor:"#6366f1",stopOpacity:0})]}),e.jsxs("linearGradient",{id:"colorUp",x1:"0",y1:"0",x2:"0",y2:"1",children:[e.jsx("stop",{offset:"5%",stopColor:"#f43f5e",stopOpacity:.4}),e.jsx("stop",{offset:"95%",stopColor:"#f43f5e",stopOpacity:0})]})]}),e.jsx(It,{strokeDasharray:"3 3",vertical:!1,stroke:s?"rgba(255,255,255,0.03)":"rgba(0,0,0,0.03)"}),e.jsx(Tt,{dataKey:"name",axisLine:!1,tickLine:!1,tick:{fill:"#475569",fontSize:10,fontWeight:900}}),e.jsx(Lt,{axisLine:!1,tickLine:!1,tick:{fill:"#475569",fontSize:10,fontWeight:900},tickFormatter:l=>`${l}MB`}),e.jsx(jt,{content:e.jsx(m,{})}),e.jsx(st,{type:"monotone",dataKey:"down",stroke:"#6366f1",strokeWidth:3,fillOpacity:1,fill:"url(#colorDown)",animationDuration:2e3,isAnimationActive:!0}),e.jsx(st,{type:"monotone",dataKey:"up",stroke:"#f43f5e",strokeWidth:3,fillOpacity:1,fill:"url(#colorUp)",animationDuration:2e3,isAnimationActive:!0})]})})}),e.jsxs("div",{className:i("mt-6 pt-6 border-t flex items-center justify-between",s?"border-white/5":"border-black/5"),children:[e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx(de,{size:18,className:"text-indigo-500 animate-pulse"}),e.jsx("span",{className:"text-[10px] font-bold text-slate-500 uppercase tracking-widest",children:"Mise à jour en temps réel via Drizzle/SQLite"})]}),e.jsxs("div",{className:i("flex items-center gap-2 px-4 py-2 rounded-xl border",s?"bg-white/5 border-white/5":"bg-black/5 border-black/5"),children:[e.jsx("span",{className:"text-[10px] font-black text-slate-400",children:"STATUS:"}),e.jsx("span",{className:"text-[10px] font-black text-emerald-500 tracking-widest",children:"OPTIMAL"})]})]})]})},Or=({stats:t,trafficData:s,systemStats:r,clients:a,health:c,config:d,onRunSpeedtest:p,speedtest:m,onCreateClient:l,sentinel:o,adguardStatus:n,onNavigate:x})=>{var z,D,k,R,U,G,X;const{theme:u,isDark:b}=Q(),y=(r==null?void 0:r.cpu)||0,g=(r==null?void 0:r.memory)||0,w=(r==null?void 0:r.disk)||0,E=h.useMemo(()=>{if(!a||!Array.isArray(a))return[];const C=a.reduce((P,B)=>{const S=B.container||"Défaut",O=(B.downloadBytes||0)+(B.uploadBytes||0);return O>0&&(P[S]||(P[S]=0),P[S]+=O),P},{});return Object.entries(C).map(([P,B])=>({name:P,value:B})).sort((P,B)=>B.value-P.value)},[a]),N=["#6366f1","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4"],{topClient:f,topClientRate:v}=h.useMemo(()=>{if(!a||!Array.isArray(a)||a.length===0)return{topClient:{name:"Aucun",downloadRate:0,uploadRate:0},topClientRate:0};const C=a.reduce((B,S)=>{const O=(B.downloadRate||0)+(B.uploadRate||0);return(S.downloadRate||0)+(S.uploadRate||0)>O?S:B},{name:"Aucun",downloadRate:0,uploadRate:0}),P=(C.downloadRate||0)+(C.uploadRate||0);return{topClient:C,topClientRate:P}},[a]),j=h.useMemo(()=>a?a.filter(C=>C.quota>0).map(C=>({name:C.name,container:C.container,pct:Math.min(100,C.usageTotal/(C.quota*1024*1024*1024)*100)})).filter(C=>C.pct>80).sort((C,P)=>P.pct-C.pct):[],[a]);return e.jsxs("div",{className:"space-y-6 md:space-y-10 animate-in slide-in-from-bottom-10 duration-700",children:[j.length>0&&e.jsxs("div",{className:"flex items-start gap-4 p-4 bg-rose-500/5 border border-rose-500/20 rounded-2xl animate-in slide-in-from-top-2 duration-500",children:[e.jsx("div",{className:"p-2 rounded-xl bg-rose-500/10 text-rose-400 flex-shrink-0",children:e.jsx(Be,{size:18})}),e.jsxs("div",{className:"flex-1 min-w-0",children:[e.jsxs("p",{className:"text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2",children:["⚠ ",j.length," Peer",j.length>1?"s":""," en Quota Critique"]}),e.jsx("div",{className:"flex flex-wrap gap-2",children:j.map(C=>e.jsxs("span",{className:"inline-flex items-center gap-1.5 text-[9px] font-mono text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20",children:[e.jsx("span",{className:i("w-1.5 h-1.5 rounded-full",C.pct>=100?"bg-red-500":"bg-rose-400")}),C.name," — ",C.pct.toFixed(0),"%"]},C.name))})]}),x&&e.jsxs("button",{onClick:()=>x("containers"),className:"flex items-center gap-1 text-[10px] font-black text-rose-400 hover:text-rose-300 uppercase tracking-widest flex-shrink-0 transition-colors",children:["Gérer ",e.jsx(Le,{size:12})]})]}),e.jsxs("div",{className:"grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-12 gap-6 md:gap-8",children:[e.jsx("div",{className:"2xl:col-span-8",children:e.jsxs(ce,{className:"p-6 md:p-10 flex flex-col justify-between group min-h-[320px]",children:[e.jsx("div",{className:"absolute -right-10 -bottom-10 pointer-events-none",children:e.jsx(at,{className:i("w-[200px] h-[200px] md:w-[300px] md:h-[300px] group-hover:scale-110 group-hover:rotate-6 transition-transform duration-1000 ease-in-out",b?"text-white/[0.015]":"text-black/[0.015]")})}),e.jsxs("div",{className:"space-y-6 md:space-y-10",children:[e.jsxs("div",{className:"flex items-start justify-between flex-wrap gap-4",children:[e.jsxs("div",{children:[e.jsxs("div",{className:"flex items-center gap-3 mb-2",children:[e.jsx(be,{className:i("fill-current opacity-80",`text-${u}-500`),size:28}),e.jsx("h2",{className:i("text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-black tracking-widest italic uppercase transition-colors shrink-0",b?"text-white":"text-slate-900"),children:"Protocole Actif"})]}),e.jsx("p",{className:"text-slate-500 font-mono text-[10px] tracking-[0.3em] uppercase opacity-60",children:"System Security Integrated: 100% Integrity"})]}),e.jsx("div",{className:i("px-4 py-2 rounded-full text-[10px] font-black tracking-[0.2em] border whitespace-nowrap",c.status==="healthy"?"bg-emerald-500/10 border-emerald-500/20 text-emerald-400 animate-pulse":"bg-amber-500/10 border-amber-500/20 text-amber-400"),children:c.status==="healthy"?"OPERATIONAL":"CHECKING"})]}),e.jsxs("div",{className:"grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8",children:[e.jsx(pt,{label:"Peers Actifs",value:t.connectedClients??0,sub:"CONNECTÉS",icon:Ne,delay:0}),e.jsx(pt,{label:"MTU Tunnel",value:(d==null?void 0:d.mtu)||"1420",icon:de,delay:.1}),e.jsx(pt,{label:"Port Liaison",value:(d==null?void 0:d.port)||"51820",icon:qs,delay:.2}),e.jsx(pt,{label:"Health Shield",value:c.status==="healthy"?"Optimal":"Checking",sub:c.status==="healthy"?"STABLE":"PENDING",icon:fe,delay:.3})]}),e.jsxs("div",{className:"grid grid-cols-1 sm:grid-cols-2 gap-4",children:[e.jsxs("div",{className:i("backdrop-blur-3xl p-5 md:p-8 rounded-[1.5rem] flex items-center justify-between group/rx transition-all duration-500",b?"bg-slate-950/40 border-white/5 hover:border-emerald-500/20":"bg-white/80 border-black/5 hover:border-emerald-500/30 shadow-sm"),children:[e.jsxs("div",{children:[e.jsx("p",{className:"text-[10px] font-black text-emerald-500/70 uppercase tracking-widest mb-1",children:"Total Download (RX)"}),e.jsx("p",{className:i("text-2xl md:text-4xl font-mono font-black tracking-tighter transition-colors",b?"text-white":"text-slate-900"),children:(t==null?void 0:t.totalDownload)||"0 B"})]}),e.jsx("div",{className:"p-3 md:p-4 rounded-2xl bg-emerald-500/10 text-emerald-500 group-hover/rx:scale-110 group-hover/rx:rotate-12 transition-transform shadow-2xl",children:e.jsx(St,{size:24})})]}),e.jsxs("div",{className:i("backdrop-blur-3xl p-5 md:p-8 rounded-[1.5rem] flex items-center justify-between group/tx transition-all duration-500",b?"bg-slate-950/40 border-white/5 hover:border-indigo-500/20":"bg-white/80 border-black/5 hover:border-indigo-500/30 shadow-sm"),children:[e.jsxs("div",{children:[e.jsx("p",{className:"text-[10px] font-black text-indigo-500/70 uppercase tracking-widest mb-1",children:"Total Upload (TX)"}),e.jsx("p",{className:i("text-2xl md:text-4xl font-mono font-black tracking-tighter transition-colors",b?"text-white":"text-slate-900"),children:(t==null?void 0:t.totalUpload)||"0 B"})]}),e.jsx("div",{className:"p-3 md:p-4 rounded-2xl bg-indigo-500/10 text-indigo-500 group-hover/tx:scale-110 group-hover/tx:rotate-12 transition-transform shadow-2xl",children:e.jsx(zt,{size:24})})]})]})]})]})}),e.jsxs("div",{className:"lg:col-span-1 2xl:col-span-4 flex flex-col gap-6",children:[e.jsxs("div",{className:"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6",children:[e.jsxs(ce,{className:i("p-6 flex items-center justify-between group transition-all",b?"bg-gradient-to-br from-emerald-500/10 to-teal-950/20 border-emerald-500/20":"bg-white/80 border-emerald-500/10 shadow-sm"),children:[e.jsxs("div",{className:"min-w-0",children:[e.jsxs("div",{className:"flex items-center gap-2 mb-2",children:[e.jsx("div",{className:i("h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0",(o==null?void 0:o.status)==="healthy"?"bg-emerald-500 shadow-[0_0_10px_#10b981]":"bg-red-500")}),e.jsx("p",{className:"text-[10px] font-black text-emerald-500/80 uppercase tracking-widest truncate",children:"Sentinel Watchdog V2"})]}),e.jsx("h4",{className:i("text-lg md:text-xl font-black italic tracking-tight uppercase transition-colors",b?"text-white":"text-slate-900"),children:(o==null?void 0:o.status)==="healthy"?"Secured":(o==null?void 0:o.status)==="error"?"Offline":"Searching"}),e.jsxs("p",{className:"text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight truncate",children:["Pulse: ",o!=null&&o.lastHeartbeat?new Date(o.lastHeartbeat).toLocaleTimeString():"Await Heartbeat"]})]}),e.jsx("div",{className:"p-3 md:p-4 rounded-2xl bg-emerald-500/10 text-emerald-500 shadow-2xl group-hover:scale-110 transition-transform flex-shrink-0 ml-4",children:e.jsx(fe,{size:24})})]}),e.jsxs(ce,{className:i("p-6 flex items-center justify-between group transition-all",b?"bg-gradient-to-br from-blue-500/10 to-indigo-950/20 border-blue-500/20":"bg-white/80 border-blue-500/10 shadow-sm"),children:[e.jsxs("div",{className:"min-w-0",children:[e.jsxs("div",{className:"flex items-center gap-2 mb-2",children:[e.jsx("div",{className:i("h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0",(n==null?void 0:n.status)==="active"?"bg-blue-500 shadow-[0_0_10px_#3b82f6]":"bg-red-500")}),e.jsx("p",{className:"text-[10px] font-black text-blue-500/80 uppercase tracking-widest truncate",children:"DNS Safe Filter"})]}),e.jsx("h4",{className:i("text-lg md:text-xl font-black italic tracking-tight uppercase transition-colors",b?"text-white":"text-slate-900"),children:(n==null?void 0:n.status)==="active"?"Filtered":"Disabled"}),e.jsx("p",{className:"text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight truncate",children:"Engine: AdGuard Home"})]}),e.jsx("div",{className:"p-3 md:p-4 rounded-2xl bg-blue-500/10 text-blue-500 shadow-2xl group-hover:scale-110 transition-transform flex-shrink-0 ml-4",children:e.jsx(be,{size:24})})]})]}),e.jsxs(ce,{className:"flex-1 p-6 md:p-8 flex flex-col justify-center gap-6 group",hover:!0,children:[e.jsx("div",{className:i("absolute top-0 left-0 p-8 opacity-[0.02] pointer-events-none",b?"text-white":"text-black"),children:e.jsx(de,{size:100})}),e.jsxs("h3",{className:i("text-lg font-black flex items-center gap-3 italic uppercase tracking-tighter transition-colors",b?"text-white":"text-slate-900"),children:[e.jsx(et,{className:i(`text-${u}-400`),size:18})," Core Resources"]}),e.jsxs("div",{className:"flex justify-around items-center py-2",children:[e.jsx(kt,{label:"CPU",value:y,color:"text-indigo-500",icon:et}),e.jsx(kt,{label:"RAM",value:g,color:"text-purple-500",icon:Ae}),e.jsx(kt,{label:"DISK",value:w,color:"text-emerald-500",icon:cs})]})]}),e.jsxs(ce,{className:i("p-5 md:p-6 flex items-center gap-4 group transition-all",b?"bg-gradient-to-br from-slate-900/60 to-indigo-900/20":"bg-white/80 border-indigo-500/5 shadow-sm"),children:[e.jsx("div",{className:i("p-3 rounded-2xl bg-white/5 shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 flex-shrink-0",v>0?`text-${u}-400`:"text-slate-600"),children:e.jsx(de,{size:22,className:v>0?"animate-[pulse_1s_infinite]":""})}),e.jsxs("div",{className:"flex-1 min-w-0",children:[e.jsx("p",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1",children:"Top Active Client"}),e.jsx("h4",{className:i("text-base md:text-lg font-black truncate italic tracking-tight transition-colors",b?"text-white":"text-slate-900"),children:f.name||"Station Inactive"}),e.jsxs("p",{className:i("text-xs font-mono font-bold mt-0.5",`text-${u}-400`),children:[ee(v),"/s Burst"]})]})]})]})]}),e.jsxs("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-12 gap-6 lg:gap-8",children:[e.jsx("div",{className:"md:col-span-2 lg:col-span-2 2xl:col-span-8",children:e.jsx(_r,{})}),e.jsxs("div",{className:"lg:col-span-1 2xl:col-span-4 flex flex-col gap-6",children:[e.jsxs(ce,{className:"p-6 group flex-1",hover:!0,children:[e.jsxs("h3",{className:"text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 flex items-center gap-3",children:[e.jsx(Wt,{size:13,className:i(`text-${u}-400`)})," Répartition Tactique"]}),e.jsx("div",{className:"h-44 w-full",children:E.length>0?e.jsx(vt,{width:"100%",height:"100%",children:e.jsxs(Vs,{children:[e.jsx(Qs,{data:E,cx:"50%",cy:"50%",innerRadius:50,outerRadius:70,paddingAngle:6,dataKey:"value",stroke:"none",children:E.map((C,P)=>e.jsx(Ks,{fill:N[P%N.length]},P))}),e.jsx(jt,{formatter:C=>ee(C),contentStyle:{backgroundColor:"#020617",border:"none",borderRadius:"1rem",color:"#fff",fontSize:"11px"}})]})}):e.jsxs("div",{className:"h-full flex flex-col items-center justify-center text-slate-600 opacity-40 italic gap-3",children:[e.jsx(Wt,{size:28}),e.jsx("span",{className:"text-[10px] font-black uppercase tracking-widest",children:"Aucun flux détecté"})]})})]}),e.jsxs(ce,{className:"p-6 group flex-1",hover:!0,children:[e.jsx("div",{className:i("absolute top-0 right-0 p-6 opacity-[0.02] pointer-events-none",b?"text-white":"text-black"),children:e.jsx(He,{size:80})}),e.jsx("h3",{className:"text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-5",children:"System Speedtest"}),m!=null&&m.loading?e.jsxs("div",{className:"flex flex-col items-center justify-center py-4 gap-3",children:[e.jsx(J,{size:36,className:i("animate-spin",`text-${u}-600`)}),e.jsx("p",{className:i("text-[10px] font-black animate-pulse uppercase tracking-[0.3em] transition-colors",b?"text-white":"text-slate-900"),children:"Test en cours..."})]}):m!=null&&m.data?e.jsxs("div",{className:"grid grid-cols-2 gap-4",children:[e.jsxs("div",{className:"space-y-1",children:[e.jsxs("div",{className:"flex items-center gap-2 text-emerald-400",children:[e.jsx(St,{size:13})," ",e.jsx("span",{className:"text-[9px] font-black uppercase",children:"Down"})]}),e.jsx("div",{className:i("text-2xl md:text-3xl font-mono font-black transition-colors",b?"text-white":"text-slate-900"),children:(((z=m.data)==null?void 0:z.download)||0)>1e3?((((D=m.data)==null?void 0:D.download)||0)/1e6).toFixed(1):(((k=m.data)==null?void 0:k.download)||0).toFixed(1)}),e.jsx("div",{className:"text-[9px] text-slate-500 font-bold uppercase",children:"Mbps"})]}),e.jsxs("div",{className:"space-y-1",children:[e.jsxs("div",{className:"flex items-center gap-2 text-indigo-400",children:[e.jsx(zt,{size:13})," ",e.jsx("span",{className:"text-[9px] font-black uppercase",children:"Up"})]}),e.jsx("div",{className:i("text-2xl md:text-3xl font-mono font-black transition-colors",b?"text-white":"text-slate-900"),children:(((R=m.data)==null?void 0:R.upload)||0)>1e3?((((U=m.data)==null?void 0:U.upload)||0)/1e6).toFixed(1):(((G=m.data)==null?void 0:G.upload)||0).toFixed(1)}),e.jsx("div",{className:"text-[9px] text-slate-500 font-bold uppercase",children:"Mbps"})]}),e.jsxs("div",{className:"col-span-2 pt-3 border-t border-white/5 flex justify-between items-center",children:[e.jsxs("span",{className:"text-[10px] font-mono text-slate-500 uppercase",children:["Ping: ",(X=m.data)!=null&&X.ping?`${m.data.ping.toFixed(0)}ms`:"N/A"]}),e.jsx(We,{variant:"ghost",size:"sm",onClick:p,className:"text-indigo-400 text-[10px]",children:"Relancer"})]})]}):e.jsxs("div",{className:"flex flex-col items-center justify-center py-4 gap-4",children:[e.jsx("div",{className:i("text-3xl font-black italic transition-colors",b?"text-white/10":"text-black/5"),children:"--Mbps"}),e.jsx(We,{variant:"primary",onClick:p,className:"w-full",children:"Lancer Test de Flux"})]})]})]})]})]})},Fr=({clients:t,onSelectClient:s,onlinePeers:r=[]})=>{const a=h.useRef(null),[c,d]=h.useState({width:0,height:0}),[p,m]=h.useState({x:0,y:0,zoom:1}),[l,o]=h.useState(!1),[n,x]=h.useState({x:0,y:0}),[u,b]=h.useState(null),y=h.useRef(null),{theme:g,isDark:w}=Q(),E=h.useMemo(()=>{const S=new Set(r);return[...t].map(O=>({...O,isOnline:O.isOnline||S.has(O.publicKey)}))},[t,r]),N=h.useMemo(()=>[...E].sort((S,O)=>(S.container||"").localeCompare(O.container||"")||(S.name||"").localeCompare(O.name||"")),[E]),f=h.useMemo(()=>[...new Set(E.map(S=>S.container))].sort(),[E]);h.useEffect(()=>{const S=()=>{a.current&&d({width:a.current.offsetWidth,height:a.current.offsetHeight})};return S(),window.addEventListener("resize",S),()=>window.removeEventListener("resize",S)},[]);const v=S=>{S.target.closest("button")||(o(!0),x({x:S.clientX,y:S.clientY}))},j=S=>{if(!l)return;const O=S.clientX-n.x,q=S.clientY-n.y;m(Z=>({...Z,x:Z.x+O,y:Z.y+q})),x({x:S.clientX,y:S.clientY})},z=()=>o(!1),D=c.width/2,k=c.height/2,R=c.width<768||typeof window<"u"&&window.innerWidth<768,C=Math.max((R?32:64)+(R?20:32)+60,Math.min(D,k)*(R?.45:.7)),P=S=>{u===S.id?b(null):b(S.id),y.current?(clearTimeout(y.current),y.current=null):y.current=setTimeout(()=>{s&&s(S),y.current=null},250)},B=S=>{const O={emerald:"#10b981",indigo:"#6366f1",rose:"#f43f5e",amber:"#f59e0b",cyan:"#06b6d4",purple:"#a855f7",sky:"#0ea5e9"},q=["emerald","indigo","rose","amber","cyan","purple","sky"],Z=q[f.indexOf(S)%q.length];return{name:Z,hex:O[Z]}};return c.width===0?e.jsx("div",{ref:a,className:"col-span-12 w-full h-[calc(100vh-100px)]"}):e.jsxs("div",{ref:a,className:i("col-span-12 w-full relative h-[calc(100vh-100px)] backdrop-blur-3xl rounded-3xl border overflow-hidden group select-none shadow-2xl cursor-grab active:cursor-grabbing transition-all",w?"bg-slate-900/40 border-white/5":"bg-white/80 border-black/5"),onMouseDown:v,onMouseMove:j,onMouseUp:z,onMouseLeave:z,children:[e.jsxs(L.div,{animate:{x:p.x,y:p.y,scale:p.zoom},transition:l?{type:"just"}:{type:"spring",stiffness:300,damping:30},style:{width:"100%",height:"100%",position:"absolute",top:0,left:0},children:[e.jsx("div",{className:i("absolute inset-0 bg-[size:60px_60px] pointer-events-none transition-colors",w?"bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)]":"bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)]")}),e.jsx("div",{className:"absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200vmax] h-[200vmax] pointer-events-none flex items-center justify-center",children:e.jsx("div",{className:i("w-full h-full rounded-full bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,transparent_320deg,currentColor_360deg)] opacity-[0.07] animate-[spin_8s_linear_infinite]",`text-${g}-500`)})}),e.jsxs("div",{className:"absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center",children:[e.jsx("div",{className:i("absolute rounded-full border transition-colors",w?"border-white/5":"border-black/5"),style:{width:C*.8,height:C*.8}}),e.jsx("div",{className:i("absolute rounded-full border-2 transition-colors",w?"border-white/10":"border-black/10"),style:{width:C*2,height:C*2}}),e.jsx("div",{className:i("absolute rounded-full border animate-pulse transition-colors",w?"border-white/10 shadow-[inset_0_0_100px_rgba(255,255,255,0.03)]":"border-black/10 shadow-[inset_0_0_100px_rgba(0,0,0,0.03)]"),style:{width:C*3,height:C*3}})]}),e.jsx("svg",{className:"absolute inset-0 w-full h-full pointer-events-none drop-shadow-2xl",children:N.map((S,O)=>{const q=O*(2*Math.PI)/N.length-Math.PI/2,Z=D+C*Math.cos(q),$=k+C*Math.sin(q),se=S.isOnline,I=S.downloadRate+S.uploadRate>1024,xe=B(S.container);return!D||!k?null:e.jsxs("g",{children:[e.jsx(L.line,{x1:D,y1:k,x2:Z,y2:$,initial:{pathLength:0,opacity:0},animate:{pathLength:1,opacity:se?.6:.1},stroke:se?I?xe.hex:w?"rgba(255, 255, 255, 0.2)":"rgba(0, 0, 0, 0.2)":w?"rgba(255, 255, 255, 0.05)":"rgba(0, 0, 0, 0.05)",strokeWidth:se?I?"2":"1.5":"1",strokeDasharray:se?"0":"5,5"}),se&&e.jsx("circle",{r:I?"3":"2",fill:I?xe.hex:"#818cf8",children:e.jsx("animateMotion",{dur:I?`${Math.max(.4,4-Math.log10(S.downloadRate+S.uploadRate+1))}s`:"4s",repeatCount:"indefinite",path:`M${D},${k} L${Z},${$}`})})]},`link-${S.id}`)})}),e.jsxs("div",{className:"absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center group/hub",children:[e.jsxs("div",{className:i("rounded-[3.5rem] shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] flex items-center justify-center relative z-10 transition-all duration-700 group-hover/hub:scale-110 border-4",R?"w-16 h-16 rounded-[2rem]":"w-32 h-32",`bg-${g}-600 shadow-${g}-600/40 border-${g}-400/20`),children:[e.jsx(at,{size:R?28:48,className:"text-white drop-shadow-2xl"}),e.jsx("div",{className:i("absolute inset-0 border border-white/20 animate-pulse",R?"rounded-[2rem]":"rounded-[3.5rem]")})]}),e.jsx("div",{className:i("mt-8 px-6 py-2 backdrop-blur-3xl border rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] opacity-0 group-hover/hub:opacity-100 transition-all duration-500 transform translate-y-4 group-hover/hub:translate-y-0 shadow-2xl",w?"bg-slate-950/90 border-white/10":"bg-white border-black/10",`text-${g}-400 shadow-${g}-500/10`),children:"HUB-CORE-ALPHA"})]}),N.map((S,O)=>{const q=O*(2*Math.PI)/N.length-Math.PI/2,Z=D+C*Math.cos(q),$=k+C*Math.sin(q),se=S.isOnline,I=B(S.container);return e.jsxs(L.div,{initial:{scale:0,opacity:0},animate:{scale:1,opacity:1},transition:{delay:O*.05,type:"spring"},className:"absolute z-20 group/node cursor-pointer",style:{left:Z,top:$,transform:"translate(-50%, -50%)"},onClick:()=>P(S),children:[e.jsxs("div",{className:i("backdrop-blur-md border-[3px] rounded-2xl flex items-center justify-center transition-all duration-500 group-hover/node:scale-125 shadow-2xl",R?"w-10 h-10":"w-16 h-16",se?i(w?"bg-slate-900/80":"bg-white/80",`border-${I.name}-500/50 group-hover/node:bg-${I.name}-900/90 group-hover/node:border-${I.name}-400 group-hover/node:shadow-${I.name}-600/20`):i(w?"bg-slate-950/80 border-white/5 group-hover/node:bg-slate-900":"bg-white border-black/5 group-hover/node:bg-slate-50","group-hover/node:border-white/20")),children:[e.jsx(Ne,{size:R?18:28,className:i("transition-all duration-300",se?`text-${I.name}-400 group-hover/node:text-white group-hover/node:rotate-6`:"text-slate-700 group-hover/node:text-slate-400")}),se&&e.jsx("span",{className:i("absolute -top-1.5 -right-1.5 rounded-full border-4",R?"w-3.5 h-3.5 border-[3px]":"w-4 h-4",w?"border-slate-950":"border-white","bg-emerald-500 shadow-[0_0_15px_#10b981]")})]}),e.jsx(le,{children:e.jsxs("div",{className:i("absolute top-full left-1/2 -translate-x-1/2 mt-8 w-64 backdrop-blur-3xl border rounded-2xl p-6 transition-all duration-500 pointer-events-none scale-90 z-50 shadow-2xl origin-top",w?"bg-slate-950/90 border-white/10":"bg-white border-black/10",u===S.id?"opacity-100 scale-100":"opacity-0 group-hover/node:opacity-100 group-hover/node:scale-100"),children:[e.jsx("div",{className:i("absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rotate-45 border-t border-l",w?"bg-slate-950 border-white/10":"bg-white border-black/10")}),e.jsxs("div",{className:i("flex items-center justify-between mb-6 pb-4 border-b",w?"border-white/5":"border-black/5"),children:[e.jsxs("div",{children:[e.jsx("span",{className:i("text-md font-black tracking-tight block truncate max-w-[140px] transition-colors",w?"text-white":"text-slate-900"),children:S.name}),e.jsx("span",{className:i("text-[9px] font-black uppercase tracking-widest",`text-${I.name}-400`),children:S.container})]}),e.jsx("div",{className:i("px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase",se?"bg-emerald-500/10 text-emerald-400 border-emerald-500/20":w?"bg-slate-900 text-slate-500 border-white/5":"bg-slate-100 text-slate-400 border-black/5"),children:se?"Active":"Offline"})]}),e.jsxs("div",{className:"space-y-3 font-mono text-[10px] text-slate-500",children:[e.jsxs("div",{className:"flex justify-between",children:[e.jsx("span",{children:"Tact IP"})," ",e.jsx("span",{className:w?"text-slate-100":"text-slate-900",children:S.ip})]}),e.jsxs("div",{className:"flex justify-between",children:[e.jsx("span",{children:"Endpoint"})," ",e.jsx("span",{className:w?"text-slate-300":"text-slate-600",children:S.endpoint||"—"})]}),e.jsxs("div",{className:"flex justify-between",children:[e.jsx("span",{children:"Burst DL"})," ",e.jsxs("span",{className:"text-emerald-400",children:[ee(S.downloadRate||S.rx||0),"/s"]})]}),e.jsxs("div",{className:"flex justify-between",children:[e.jsx("span",{children:"Burst UL"})," ",e.jsxs("span",{className:"text-indigo-400",children:[ee(S.uploadRate||S.tx||0),"/s"]})]}),S.usageTotal>0&&e.jsxs("div",{className:i("flex justify-between border-t pt-2 mt-2",w?"border-white/5":"border-black/5"),children:[e.jsx("span",{children:"Total usage"}),e.jsx("span",{className:"text-amber-400 font-bold",children:ee(S.usageTotal)})]}),S.lastHandshake>0&&e.jsxs("div",{className:"flex justify-between",children:[e.jsx("span",{children:"Last seen"}),e.jsxs("span",{className:"text-slate-400",children:[Math.floor((Date.now()/1e3-S.lastHandshake)/60),"m ago"]})]})]})]})})]},S.id)})]}),e.jsx("div",{className:"absolute top-8 left-8 z-30 pointer-events-none transition-all",children:e.jsxs("div",{className:i("flex items-center gap-4 p-4 backdrop-blur-2xl border rounded-3xl",w?"bg-slate-950/40 border-white/5":"bg-white/80 border-black/5 shadow-sm"),children:[e.jsx("div",{className:i("p-3 rounded-2xl shadow-2xl animate-pulse",`bg-${g}-600 text-white`),children:e.jsx(de,{size:24})}),e.jsxs("div",{children:[e.jsx("h3",{className:i("text-xl font-black tracking-tight uppercase transition-colors",w?"text-white":"text-slate-900"),children:"Tactical Radar"}),e.jsx("p",{className:i("text-[10px] font-black tracking-widest uppercase opacity-60",`text-${g}-400`),children:"Deep Space Network Monitoring"})]})]})}),e.jsxs("div",{className:"absolute bottom-8 right-8 flex flex-col gap-3 z-30",children:[e.jsx("button",{onClick:()=>m(S=>({...S,zoom:Math.min(S.zoom+.2,4)})),className:i("p-3 rounded-2xl border shadow-2xl transition-all",w?"bg-slate-900/90 hover:bg-slate-800 text-white border-white/10":"bg-white hover:bg-slate-50 text-slate-900 border-black/10"),children:e.jsx(qe,{size:20})}),e.jsx("button",{onClick:()=>m(S=>({...S,zoom:Math.max(S.zoom-.2,.5)})),className:i("p-3 rounded-2xl border shadow-2xl transition-all",w?"bg-slate-900/90 hover:bg-slate-800 text-white border-white/10":"bg-white hover:bg-slate-50 text-slate-900 border-black/10"),children:e.jsx(Ys,{size:20})}),e.jsx("button",{onClick:()=>m({x:0,y:0,zoom:1}),className:i("p-3 rounded-2xl border shadow-2xl transition-all",w?"bg-slate-900/90 hover:bg-slate-800 text-white border-white/10":"bg-white hover:bg-slate-50 text-slate-900 border-black/10"),children:e.jsx(J,{size:20})})]}),e.jsxs("div",{className:i("absolute bottom-8 left-8 hidden md:flex flex-col gap-3 p-6 backdrop-blur-2xl border rounded-[2rem] z-20 transition-all",w?"bg-slate-950/40 border-white/5":"bg-white/80 border-black/5 shadow-sm"),children:[e.jsx("span",{className:i("text-[10px] font-black uppercase tracking-widest mb-2 opacity-60 transition-colors",w?"text-white":"text-slate-900"),children:"Goupes Tactiques"}),e.jsx("div",{className:"grid grid-cols-2 gap-x-6 gap-y-3",children:f.map(S=>{const O=B(S);return e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx("span",{className:i("w-2 h-2 rounded-full",`bg-${O.name}-500 shadow-[0_0_8px_currentColor]`)}),e.jsx("span",{className:"text-[9px] font-bold text-slate-400 font-mono uppercase truncate max-w-[80px]",children:S})]},S)})})]})]})},ss=["indigo","emerald","rose","amber","cyan","purple"],as=t=>ss[Math.abs((r=>r.split("").reduce((a,c)=>(a=(a<<5)-a+c.charCodeAt(0),a&a),0))(t||""))%ss.length],rt=t=>t.isOnline===!0,Ts=t=>t&&new Date(t)<new Date,Ur=t=>!t||Ts(t)?!1:(new Date(t)-new Date)/(1e3*60*60*24)<=7,Br=({name:t,clients:s,color:r,onClick:a,onDeleteContainer:c,idx:d})=>{const p=s.filter(rt).length,m=s.reduce((x,u)=>x+(u.downloadRate||0),0),l=s.reduce((x,u)=>x+(u.uploadRate||0),0),o=s.reduce((x,u)=>x+(u.downloadBytes||0),0),n=s.reduce((x,u)=>x+(u.uploadBytes||0),0);return s.filter(x=>!x.quota||x.quota<=0?!1:x.usageTotal/(x.quota*1024*1024*1024)*100>80).length,e.jsx(L.div,{initial:{opacity:0,scale:.9},animate:{opacity:1,scale:1},whileHover:{y:-5},transition:{delay:d*.05,duration:.4,ease:[.16,1,.3,1]},children:e.jsxs(ce,{onClick:a,className:"p-0 overflow-hidden cursor-pointer group relative border-white/5 hover:border-white/10",children:[e.jsx("div",{className:i("absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-700 bg-gradient-to-br",`from-${r}-500 to-transparent`)}),e.jsx("div",{className:i("h-1.5 w-full transition-all duration-700 group-hover:h-2 opacity-80",`bg-${r}-500 shadow-md shadow-${r}-500/50`)}),e.jsxs("div",{className:"p-6 space-y-6 relative z-10",children:[e.jsxs("div",{className:"flex items-center justify-between",children:[e.jsxs("div",{className:"flex items-center gap-4",children:[e.jsx("div",{className:i("p-3 rounded-2xl border transition-all duration-500 group-hover:scale-110 group-hover:rotate-6",`bg-${r}-500/10 text-${r}-400 border-${r}-500/20`),children:e.jsx(ye,{size:24})}),e.jsxs("div",{className:"min-w-0",children:[e.jsx("h3",{className:"text-xl font-black text-white uppercase tracking-tight truncate",children:t}),e.jsx("div",{className:"flex items-center gap-1.5 mt-0.5",children:e.jsxs("span",{className:i("text-[8px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest",p>0?"bg-emerald-500/10 text-emerald-400 border-emerald-500/20":"bg-slate-800 text-slate-500"),children:[p,"/",s.length," EN LIGNE"]})})]})]}),e.jsxs("div",{className:"flex gap-2 items-center",children:[s.length===0&&c&&e.jsx("button",{onClick:x=>{x.stopPropagation(),c(t)},className:i("w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 text-slate-500 border-white/5"),children:e.jsx(Pe,{size:14})}),e.jsx("div",{className:i("w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 group-hover:bg-white/10",`text-${r}-400 border-${r}-500/10`),children:e.jsx(Le,{size:16,className:"group-hover:translate-x-0.5 transition-transform"})})]})]}),e.jsxs("div",{className:"grid grid-cols-2 gap-4",children:[e.jsxs("div",{className:"space-y-1",children:[e.jsx("span",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest block",children:"Flux Sortant"}),e.jsxs("div",{className:"flex items-end gap-1.5",children:[e.jsx("span",{className:"text-lg font-mono font-black text-white italic",children:ee(m)}),e.jsx("span",{className:"text-[9px] text-slate-600 mb-1",children:"/S"})]})]}),e.jsxs("div",{className:"space-y-1",children:[e.jsx("span",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest block",children:"Flux Entrant"}),e.jsxs("div",{className:"flex items-end gap-1.5",children:[e.jsx("span",{className:"text-lg font-mono font-black text-white italic",children:ee(l)}),e.jsx("span",{className:"text-[9px] text-slate-600 mb-1",children:"/S"})]})]})]}),e.jsxs("div",{className:"pt-4 border-t border-white/5 flex items-center justify-between",children:[e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx("div",{className:"flex -space-x-2",children:s.slice(0,3).map((x,u)=>e.jsx("div",{className:i("w-6 h-6 rounded-lg border-2 border-slate-950 flex items-center justify-center text-[8px] font-black text-white",rt(x)?`bg-${r}-500 shadow-lg shadow-${r}-500/20`:"bg-slate-800"),children:x.name.charAt(0)},u))}),s.length>3&&e.jsxs("span",{className:"text-[9px] font-black text-slate-600",children:["+",s.length-3]})]}),e.jsxs("div",{className:"flex flex-col items-end",children:[e.jsx("span",{className:"text-[9px] font-mono text-slate-500 uppercase",children:"Volume Total"}),e.jsx("span",{className:"text-[10px] font-mono font-black text-white",children:ee(o+n)})]})]})]})]})})},Gr=({client:t,color:s,onSelect:r,onToggle:a,onEdit:c,onQRCode:d,onDelete:p})=>{const m=rt(t),l=Ts(t.expiry),o=Ur(t.expiry),n=t.quota>0?Math.min(100,t.usageTotal/(t.quota*1024*1024*1024)*100):0;return e.jsxs(ce,{onClick:()=>r(t),className:"p-5 group cursor-pointer border-white/5 hover:border-white/20 transition-all duration-300",children:[e.jsxs("div",{className:"flex items-center justify-between mb-5",children:[e.jsxs("div",{className:"flex items-center gap-4",children:[e.jsx("div",{className:i("w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black text-white shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6",m?`bg-${s}-500 shadow-${s}-500/30`:"bg-slate-800 text-slate-500"),children:t.name.charAt(0).toUpperCase()}),e.jsxs("div",{children:[e.jsx("h4",{className:"text-sm font-black text-white uppercase tracking-tight truncate",children:t.name}),e.jsxs("div",{className:"flex items-center gap-2 mt-0.5",children:[e.jsx("span",{className:i("w-1.5 h-1.5 rounded-full",m?"bg-emerald-500 animate-pulse":"bg-slate-600")}),e.jsx("span",{className:"text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest",children:m?"Actif":"Offline"})]})]})]}),e.jsxs("div",{className:"text-right",children:[e.jsx("span",{className:"block text-[10px] font-mono font-bold text-white/40 mb-0.5",children:t.ip}),(l||o)&&e.jsx("span",{className:i("text-[8px] font-extrabold px-2 py-0.5 rounded-lg border uppercase tracking-tighter",l?"bg-red-500/10 text-red-400 border-red-500/20":"bg-amber-500/10 text-amber-400 border-amber-500/20"),children:l?"Expiré":"Bientôt"})]})]}),e.jsxs("div",{className:"space-y-4 mb-5",children:[e.jsxs("div",{className:"flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5",children:[e.jsxs("div",{className:"space-y-0.5",children:[e.jsx("span",{className:"text-[8px] font-black text-slate-500 uppercase tracking-widest block",children:"Download"}),e.jsxs("span",{className:"text-xs font-mono font-black text-emerald-400",children:[ee(t.downloadRate),"/s"]})]}),e.jsx("div",{className:"h-6 w-px bg-white/10"}),e.jsxs("div",{className:"space-y-0.5 text-right",children:[e.jsx("span",{className:"text-[8px] font-black text-slate-500 uppercase tracking-widest block",children:"Upload"}),e.jsxs("span",{className:"text-xs font-mono font-black text-indigo-400",children:[ee(t.uploadRate),"/s"]})]})]}),t.quota>0&&e.jsxs("div",{className:"space-y-2",children:[e.jsxs("div",{className:"flex justify-between text-[9px] font-black uppercase text-slate-500",children:[e.jsx("span",{children:"Quota Usage"}),e.jsxs("span",{className:n>80?"text-rose-400":"text-white",children:[n.toFixed(1),"%"]})]}),e.jsx("div",{className:"h-1 w-full bg-white/5 rounded-full overflow-hidden",children:e.jsx("div",{className:i("h-full rounded-full",n>80?"bg-rose-500":`bg-${s}-500`),style:{width:`${n}%`}})})]})]}),e.jsxs("div",{className:"flex items-center justify-between pt-4 border-t border-white/5",children:[e.jsxs("div",{className:"flex gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity",children:[e.jsx("button",{onClick:x=>{x.stopPropagation(),c(t)},className:"p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all",title:"Modifier",children:e.jsx(ds,{size:14})}),e.jsx("button",{onClick:x=>{x.stopPropagation(),a(t.container,t.name,!t.enabled)},className:"p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-all",title:t.enabled?"Désactiver":"Activer",children:t.enabled?e.jsx(xs,{size:14}):e.jsx(ps,{size:14})}),e.jsx("button",{onClick:x=>{x.stopPropagation(),d(t)},className:"p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400 transition-all",title:"Configuration / QR Code",children:e.jsx(us,{size:14})}),e.jsx("button",{onClick:x=>{x.stopPropagation(),p(t)},className:"p-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all",title:"Supprimer",children:e.jsx(Pe,{size:14})})]}),e.jsx("div",{className:i("p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300",`bg-${s}-500/10 text-${s}-400`),children:e.jsx(Le,{size:14,className:"group-hover:translate-x-0.5 transition-transform"})})]})]})},Wr=({clients:t=[],allContainers:s=[],activeContainer:r=null,setActiveContainer:a,onSelect:c,onToggle:d,onEdit:p,onQRCode:m,onDelete:l,onDeleteContainer:o,onCreateClient:n,onCreateContainer:x})=>{const{theme:u}=Q(),[b,y]=h.useState(""),g=t.reduce((v,j)=>{const z=j.container||"default";return v[z]||(v[z]=[]),v[z].push(j),v},{});Array.isArray(s)&&s.forEach(v=>{g[v]||(g[v]=[])});const w=Object.entries(g),E=r?(g[r]||[]).filter(v=>!b||v.name.toLowerCase().includes(b.toLowerCase())||(v.ip||"").includes(b)):[],N=r?as(r):u,f=()=>{const v=r?E:t,j=["Nom","Container","IP","Statut","DL","UL","Quota (GB)","Expiration"],z=v.map(G=>[G.name,G.container,G.ip,rt(G)?"En ligne":"Hors ligne",ee(G.downloadBytes||0),ee(G.uploadBytes||0),G.quota>0?`${G.quota}`:"Illimité",G.expiry?new Date(G.expiry).toLocaleDateString("fr-FR"):"Illimité"]),D=[j,...z].map(G=>G.map(X=>`"${X}"`).join(",")).join(`
-`),k=new Blob(["\uFEFF"+D],{type:"text/csv;charset=utf-8;"}),R=URL.createObjectURL(k);Object.assign(document.createElement("a"),{href:R,download:`wg-fux-peers-${new Date().toISOString().split("T")[0]}.csv`}).click(),URL.revokeObjectURL(R)};return e.jsxs("div",{className:"space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700",children:[e.jsxs(ce,{className:"flex flex-col sm:flex-row gap-4 items-center justify-between p-5",children:[e.jsxs("div",{className:"flex items-center gap-3 w-full sm:w-auto",children:[e.jsx(le,{children:r&&e.jsxs(L.button,{initial:{opacity:0,x:-12},animate:{opacity:1,x:0},exit:{opacity:0,x:-12},onClick:()=>{a(null),y("")},className:i("flex items-center gap-2 px-3 py-2.5 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all flex-shrink-0",`bg-${N}-500/10 text-${N}-400 border-${N}-500/20 hover:bg-${N}-500/20`),children:[e.jsx(ns,{size:15}),e.jsx("span",{className:"hidden sm:inline",children:"Conteneurs"})]})}),e.jsx("div",{className:"min-w-0",children:r?e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx(ye,{size:16,className:i(`text-${N}-400`)}),e.jsx("span",{className:"text-white font-black text-sm uppercase tracking-tight truncate",children:r}),e.jsxs("span",{className:i("text-[9px] px-2 py-0.5 rounded-full border font-black uppercase",`bg-${N}-500/10 text-${N}-400 border-${N}-500/20`),children:[(g[r]||[]).length," peers"]})]}):e.jsxs("div",{className:"flex items-center gap-2 text-slate-400",children:[e.jsx(ye,{size:16}),e.jsxs("span",{className:"font-black text-sm uppercase tracking-tight",children:[w.length," Conteneur",w.length>1?"s":""]})]})})]}),e.jsxs("div",{className:"flex items-center gap-3 w-full sm:w-auto",children:[e.jsx(le,{children:r&&e.jsxs(L.div,{initial:{opacity:0,width:0},animate:{opacity:1,width:"auto"},exit:{opacity:0,width:0},className:"relative group overflow-hidden",children:[e.jsx(it,{className:"absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors",size:15}),e.jsx("input",{type:"text",placeholder:"Rechercher...",value:b,onChange:v=>y(v.target.value),className:"pl-9 pr-4 py-2.5 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/20 text-sm text-white w-48 font-mono"})]})}),e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx("button",{onClick:f,className:"hidden sm:flex items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 text-slate-400 hover:text-white transition-all group",title:"Exporter CSV",children:e.jsx(_e,{size:16,className:"group-hover:-translate-y-0.5 transition-transform"})}),e.jsxs(We,{variant:"primary",icon:qe,onClick:()=>{r?n(r):x()},className:"flex-shrink-0",children:[e.jsx("span",{className:"hidden sm:inline",children:r?"Nouveau Peer":"Nouveau Conteneur"}),e.jsx("span",{className:"sm:hidden",children:"Créer"})]})]})]})]}),e.jsx(le,{mode:"wait",children:r?e.jsxs(L.div,{initial:{opacity:0,y:20},animate:{opacity:1,y:0},exit:{opacity:0,y:-20},transition:{duration:.25,ease:[.16,1,.3,1]},className:"space-y-4",children:[(()=>{const v=g[r]||[],j=v.filter(rt).length;return e.jsxs(L.div,{initial:{opacity:0,x:20},animate:{opacity:1,x:0},className:i("flex flex-col md:flex-row items-start md:items-center gap-6 p-6 rounded-[2rem] border relative overflow-hidden group",`bg-${N}-500/5 border-${N}-500/15`),children:[e.jsx("div",{className:i("absolute inset-0 bg-gradient-to-r from-transparent to-white/[0.02] pointer-events-none")}),e.jsx("div",{className:i("p-4 rounded-2xl shadow-2xl",`bg-${N}-500/10 text-${N}-400`),children:e.jsx(ye,{size:24})}),e.jsxs("div",{className:"flex-1 min-w-0",children:[e.jsx("h2",{className:"text-xl font-black text-white italic uppercase tracking-tighter mb-1",children:r}),e.jsxs("div",{className:"flex items-center gap-4",children:[e.jsxs("span",{className:"flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest",children:[e.jsx(Ne,{size:12})," ",v.length," Peers Total"]}),e.jsx("div",{className:"h-1 w-1 rounded-full bg-slate-700"}),e.jsxs("span",{className:"flex items-center gap-1.5 text-[10px] font-black text-emerald-400 uppercase tracking-widest",children:[e.jsx(de,{size:12})," ",j," Actifs"]})]})]}),e.jsxs("div",{className:"hidden md:flex gap-8 px-8 border-l border-white/10 font-mono",children:[e.jsxs("div",{className:"text-right",children:[e.jsx("span",{className:"block text-[10px] font-black text-slate-500 uppercase mb-1",children:"Download"}),e.jsxs("span",{className:"text-xl font-black text-white",children:[ee(v.reduce((z,D)=>z+(D.downloadRate||0),0)),"/s"]})]}),e.jsxs("div",{className:"text-right",children:[e.jsx("span",{className:"block text-[10px] font-black text-slate-500 uppercase mb-1",children:"Upload"}),e.jsxs("span",{className:"text-xl font-black text-white",children:[ee(v.reduce((z,D)=>z+(D.uploadRate||0),0)),"/s"]})]})]})]})})(),E.length===0?e.jsxs(ce,{className:"flex flex-col items-center justify-center py-20 border-dashed",hover:!1,children:[e.jsx("div",{className:"p-6 bg-white/5 rounded-full mb-4",children:e.jsx(Ne,{size:40,className:"text-slate-600"})}),e.jsx("h3",{className:"text-lg font-black text-white uppercase mb-1",children:b?"Aucun résultat":"Conteneur Vide"}),e.jsx("p",{className:"text-slate-500 text-[10px] font-black uppercase tracking-widest",children:b?`Aucun peer ne correspond à "${b}"`:"Aucun peer dans ce conteneur"})]}):e.jsx("div",{className:"grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5",children:e.jsx(le,{mode:"popLayout",children:E.map((v,j)=>e.jsx(L.div,{initial:{opacity:0,scale:.95},animate:{opacity:1,scale:1},exit:{opacity:0,scale:.95},transition:{delay:j*.04,duration:.3},children:e.jsx(Gr,{client:v,color:N,onSelect:c,onToggle:d,onEdit:p,onQRCode:m,onDelete:l})},v.id))})})]},`container-${r}`):e.jsx(L.div,{initial:{opacity:0,y:20},animate:{opacity:1,y:0},exit:{opacity:0,y:-20},transition:{duration:.25,ease:[.16,1,.3,1]},children:w.length===0?e.jsxs(ce,{className:"flex flex-col items-center justify-center py-32 border-dashed",hover:!1,children:[e.jsx("div",{className:"p-8 bg-white/5 rounded-full mb-6",children:e.jsx(ye,{size:64,className:"text-slate-600"})}),e.jsx("h3",{className:"text-2xl font-black text-white tracking-widest uppercase mb-2",children:"Initialisation Requise"}),e.jsx("p",{className:"text-slate-500 font-bold uppercase text-[10px] tracking-widest",children:'Créez votre premier conteneur depuis le bouton "+" ci-dessus'})]}):e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5",children:w.map(([v,j],z)=>e.jsx(Br,{name:v,clients:j,color:as(v),onDeleteContainer:o,idx:z,onClick:()=>a(v)},v))})},"container-grid")})]})},Hr=({client:t,onBack:s,onToggle:r,onDelete:a,onQRCode:c,onEdit:d})=>{const{theme:p}=Q(),[m,l]=h.useState([]),[o,n]=h.useState(!1),[x,u]=h.useState([]),[b,y]=h.useState([]),[g,w]=h.useState("realtime");h.useEffect(()=>{if(x.length===0){const f=Array.from({length:60},(v,j)=>({time:new Date(Date.now()-(60-j)*5e3).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),download:0,upload:0}));u(f)}const N=new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});u(f=>[...f.slice(1),{time:N,download:t.downloadRate||0,upload:t.uploadRate||0}])},[t]),h.useEffect(()=>{n(!0),T.get(`/clients/${t.container}/${t.name}/history`).then(N=>l(N.data)).catch(console.error).finally(()=>n(!1))},[t.id]),h.useEffect(()=>{g==="history"&&T.get(`/clients/${t.container}/${t.name}/history-hours`).then(N=>{const f=N.data.map((v,j)=>{const z=N.data[j-1]||v,D=j===0?0:Math.max(0,v.rx-z.rx),k=j===0?0:Math.max(0,v.tx-z.tx);return{time:new Date(v.time).toLocaleString("fr-FR",{day:"numeric",month:"short",hour:"2-digit"}),download:D,upload:k}});y(f)}).catch(()=>{})},[g,t.id]);const E=t.lastHandshake?new Date(t.lastHandshake*1e3).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"Jamais";return e.jsxs(L.div,{initial:{opacity:0,x:20},animate:{opacity:1,x:0},exit:{opacity:0,x:-20},className:"space-y-8",children:[e.jsxs("button",{onClick:s,className:"group flex items-center gap-3 text-slate-500 hover:text-white transition-all bg-white/5 px-6 py-2 rounded-2xl border border-white/5 hover:border-white/20",children:[e.jsx(Le,{className:"rotate-180 transform transition-transform group-hover:-translate-x-1",size:20}),e.jsx("span",{className:"font-black text-xs uppercase tracking-widest text-slate-400 group-hover:text-white",children:"Retour Tactique"})]}),e.jsx("div",{className:"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4",children:[{label:"Daily quota",value:ee(t.usageDaily||0),icon:de,color:"emerald"},{label:"Data Total",value:ee(t.usageTotal||0),icon:tt,color:"indigo"},{label:"Burst DL",value:ee(t.downloadBytes),icon:St,color:"cyan"},{label:"Burst UL",value:ee(t.uploadBytes),icon:zt,color:"rose"}].map((N,f)=>e.jsxs("div",{className:"bg-slate-950/40 backdrop-blur-3xl p-6 rounded-3xl border border-white/5 flex items-center gap-5 group hover:border-white/10 transition-all",children:[e.jsx("div",{className:i("p-4 rounded-2xl shadow-2xl",`bg-${N.color}-500/10 text-${N.color}-400`),children:e.jsx(N.icon,{size:24})}),e.jsxs("div",{children:[e.jsx("div",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1",children:N.label}),e.jsx("div",{className:"text-xl font-mono font-black text-white tracking-tighter",children:N.value})]})]},f))}),e.jsxs("div",{className:"relative overflow-hidden bg-slate-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 p-8 group shadow-2xl",children:[e.jsx("div",{className:"absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-1000 rotate-12 scale-150",children:e.jsx(tt,{size:200})}),e.jsxs("div",{className:"relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10",children:[e.jsxs("div",{className:"space-y-4",children:[e.jsxs("div",{className:"flex items-center gap-4",children:[e.jsx("div",{className:i("p-4 rounded-[1.5rem] shadow-2xl",`bg-${p}-600 text-white shadow-${p}-600/30`),children:e.jsx(ht,{size:32})}),e.jsxs("div",{children:[e.jsx("h2",{className:"text-4xl font-black text-white tracking-widest uppercase mb-1",children:t.name}),e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx("span",{className:i("text-sm font-mono font-bold",`text-${p}-400`),children:t.ip}),e.jsx("span",{className:"w-1 h-1 bg-slate-700 rounded-full"}),e.jsx("span",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest",children:t.container})]})]})]}),e.jsxs("div",{className:"flex items-center gap-2 bg-white/5 py-1.5 px-4 rounded-xl border border-white/5 w-fit",children:[e.jsx("div",{className:i("h-1.5 w-1.5 rounded-full animate-pulse",t.enabled?"bg-emerald-500 shadow-[0_0_8px_#10b981]":"bg-slate-600")}),e.jsxs("span",{className:"text-[10px] font-black text-slate-400 uppercase tracking-widest",children:["Dernière activité: ",E]})]})]}),e.jsx("div",{className:"flex flex-wrap gap-4",children:[{icon:ds,label:"Modifier",color:"indigo",onClick:()=>d(t)},{icon:t.enabled?xs:ps,label:t.enabled?"Désactiver":"Activer",color:"amber",onClick:()=>r(t.container,t.name,!t.enabled)},{icon:us,label:"QR Code",color:p,onClick:()=>c(t)},{icon:Pe,label:"Supprimer",color:"rose",onClick:()=>a(t)}].map((N,f)=>e.jsx("button",{onClick:N.onClick,className:i("p-5 rounded-2xl transition-all duration-300 hover:scale-110 active:scale-95 shadow-xl border border-white/5",`bg-${N.color}-500/10 text-${N.color}-400 hover:bg-${N.color}-500/20 hover:border-${N.color}-500/20 shadow-${N.color}-500/5`),title:N.label,children:e.jsx(N.icon,{size:24})},f))})]})]}),e.jsxs("div",{className:"grid grid-cols-1 xl:grid-cols-3 gap-8",children:[e.jsxs("div",{className:"xl:col-span-2 bg-slate-950/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 shadow-2xl",children:[e.jsxs("div",{className:"flex flex-col sm:flex-row items-center justify-between gap-6 mb-10",children:[e.jsxs("h3",{className:"text-xl font-black text-white flex items-center gap-4 uppercase tracking-tighter",children:[e.jsx(de,{size:24,className:i(`text-${p}-400`)})," Spectre Réseau"]}),e.jsx("div",{className:"flex bg-slate-900/60 p-2 rounded-2xl border border-white/5 shadow-inner",children:[{id:"realtime",label:"Temps réel"},{id:"history",label:"72 Heures"}].map(N=>e.jsx("button",{onClick:()=>w(N.id),className:i("px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500",g===N.id?`bg-${p}-600 text-white shadow-2xl`:"text-slate-500 hover:text-white"),children:N.label},N.id))})]}),e.jsx("div",{className:"h-80 w-full",children:e.jsx(vt,{width:"100%",height:"100%",children:e.jsxs(Dt,{data:g==="realtime"?x:b,children:[e.jsxs("defs",{children:[e.jsxs("linearGradient",{id:"colorRxDet",x1:"0",y1:"0",x2:"0",y2:"1",children:[e.jsx("stop",{offset:"5%",stopColor:"#10b981",stopOpacity:.3}),e.jsx("stop",{offset:"95%",stopColor:"#10b981",stopOpacity:0})]}),e.jsxs("linearGradient",{id:"colorTxDet",x1:"0",y1:"0",x2:"0",y2:"1",children:[e.jsx("stop",{offset:"5%",stopColor:"#6366f1",stopOpacity:.3}),e.jsx("stop",{offset:"95%",stopColor:"#6366f1",stopOpacity:0})]})]}),e.jsx(It,{strokeDasharray:"3 3",stroke:"#1e293b",vertical:!1}),e.jsx(Tt,{dataKey:"time",stroke:"#475569",fontSize:10,tickLine:!1,axisLine:!1,fontFamily:"monospace",minTickGap:40}),e.jsx(Lt,{stroke:"#475569",fontSize:10,tickLine:!1,axisLine:!1,fontFamily:"monospace",tickFormatter:N=>ee(N)}),e.jsx(jt,{contentStyle:{backgroundColor:"#020617",border:"1px solid #1e293b",borderRadius:"1.5rem",boxShadow:"0 20px 50px rgba(0,0,0,0.5)"},itemStyle:{fontFamily:"monospace",fontSize:"11px",fontWeight:"bold"},labelStyle:{marginBottom:"8px",opacity:.5},formatter:N=>[ee(N)+(g==="realtime"?"/s":""),""]}),e.jsx(st,{type:"monotone",dataKey:"download",name:"Download",stroke:"#10b981",strokeWidth:4,fillOpacity:1,fill:"url(#colorRxDet)",isAnimationActive:!1}),e.jsx(st,{type:"monotone",dataKey:"upload",name:"Upload",stroke:"#6366f1",strokeWidth:4,fillOpacity:1,fill:"url(#colorTxDet)",isAnimationActive:!1})]})})})]}),e.jsxs("div",{className:"bg-slate-950/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 shadow-2xl flex flex-col",children:[e.jsxs("h3",{className:"text-xl font-black text-white mb-8 flex items-center gap-4 uppercase tracking-tighter",children:[e.jsx(Xs,{size:24,className:i(`text-${p}-400`)})," Blackbox Log"]}),e.jsx("div",{className:"flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4",children:o?e.jsxs("div",{className:"flex flex-col items-center justify-center py-20 gap-4 opacity-40",children:[e.jsx(J,{className:"animate-spin text-slate-500",size:32}),e.jsx("span",{className:"text-[10px] font-black uppercase tracking-widest",children:"Scanning logs..."})]}):m.length===0?e.jsxs("div",{className:"flex flex-col items-center justify-center py-20 gap-4 opacity-40",children:[e.jsx(ht,{className:"text-slate-500",size:32}),e.jsx("span",{className:"text-[10px] font-black uppercase tracking-widest",children:"No logs found"})]}):m.map((N,f)=>e.jsxs("div",{className:"bg-white/5 p-4 rounded-2xl border border-white/5 hover:border-white/10 hover:bg-white/10 transition-all group",children:[e.jsxs("div",{className:"flex justify-between items-start mb-2",children:[e.jsx("span",{className:"text-[10px] font-mono font-bold text-slate-400 group-hover:text-white transition-colors",children:new Date(N.time).toLocaleString()}),e.jsx("span",{className:i("px-2 py-0.5 rounded-lg text-[8px] font-black tracking-widest uppercase border",N.realIp?"bg-emerald-500/10 text-emerald-400 border-emerald-500/20":"bg-slate-800 text-slate-500 border-white/10"),children:N.realIp?"DETECTÉ / ACTIF":"INACTIF"})]}),e.jsxs("div",{className:"grid grid-cols-2 gap-4 mt-4",children:[e.jsxs("div",{className:"space-y-1",children:[e.jsx("div",{className:"text-[8px] font-black text-slate-500 uppercase",children:"IP Réelle (Endpoint)"}),e.jsx("div",{className:"text-xs font-mono font-bold text-indigo-400",children:N.realIp||"Masquée / N/A"})]}),e.jsxs("div",{className:"space-y-1 text-right",children:[e.jsx("div",{className:"text-[8px] font-black text-slate-500 uppercase",children:"Handshake Scan"}),e.jsx("div",{className:"text-[10px] font-mono font-bold text-emerald-500",children:new Date(N.timestamp).toLocaleTimeString()})]})]})]},f))})]})]})]})},qr=({users:t=[],loading:s=!1,onCreateUser:r,onDelete:a})=>{const{theme:c}=Q(),[d,p]=h.useState(""),m=t.filter(l=>l.username.toLowerCase().includes(d.toLowerCase())||l.role.toLowerCase().includes(d.toLowerCase()));return e.jsxs("div",{className:"space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700",children:[e.jsxs(ce,{className:"flex flex-col lg:flex-row justify-between items-center gap-8",children:[e.jsxs("div",{className:"flex items-center gap-6",children:[e.jsx("div",{className:i("w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl",`bg-${c}-600/20 text-${c}-400 border border-${c}-500/20`),children:e.jsx(Ne,{size:32})}),e.jsxs("div",{children:[e.jsx("h2",{className:"text-3xl font-black text-white tracking-tighter italic uppercase",children:"Gestion des Opérateurs"}),e.jsx("p",{className:"text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase opacity-60",children:"System Access Control"})]})]}),e.jsxs("div",{className:"flex flex-col md:flex-row gap-4 w-full lg:w-auto items-center",children:[e.jsxs("div",{className:"relative group w-full md:w-auto",children:[e.jsx(it,{className:"absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors",size:20}),e.jsx("input",{type:"text",placeholder:"Rechercher un opérateur...",value:d,onChange:l=>p(l.target.value),className:"pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/20 focus:bg-white/10 text-sm text-white w-full md:w-80 transition-all font-mono"})]}),e.jsx(We,{variant:"primary",icon:qe,className:"w-full md:w-auto",onClick:r,children:"Créer un Accès"})]})]}),e.jsxs(ce,{className:"p-0 overflow-hidden",hover:!1,children:[e.jsx("div",{className:"overflow-x-auto",children:e.jsxs("table",{className:"w-full text-left border-collapse",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5",children:[e.jsx("th",{className:"px-10 py-8",children:"Identité Opérateur"}),e.jsx("th",{className:"px-8 py-8",children:"Rôle Système"}),e.jsx("th",{className:"px-8 py-8",children:"Statut"}),e.jsx("th",{className:"px-10 py-8 text-right",children:"Intervention"})]})}),e.jsx("tbody",{className:"divide-y divide-white/5",children:e.jsx(le,{mode:"popLayout",children:m.map((l,o)=>e.jsxs(L.tr,{initial:{opacity:0,y:10},animate:{opacity:1,y:0},exit:{opacity:0,x:-20},transition:{delay:o*.05},className:"group hover:bg-white/5 transition-colors cursor-pointer",children:[e.jsx("td",{className:"px-10 py-6",children:e.jsxs("div",{className:"flex items-center gap-5",children:[e.jsx("div",{className:i("w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-white text-lg transition-all group-hover:scale-110 group-hover:bg-slate-700 shadow-xl",l.role==="admin"?`border border-${c}-500/30`:"border border-white/5"),children:l.username.charAt(0).toUpperCase()}),e.jsxs("div",{children:[e.jsxs("div",{className:"text-sm font-black text-white uppercase tracking-tight flex items-center gap-2",children:[l.username,l.role==="admin"&&e.jsx(be,{size:14,className:i(`text-${c}-400`)})]}),e.jsx("div",{className:"text-[9px] font-bold text-slate-500 uppercase tracking-widest",children:l.role==="admin"?"Root Access":"Operator Access"})]})]})}),e.jsx("td",{className:"px-8 py-6",children:e.jsx("span",{className:i("text-[10px] font-black px-4 py-1.5 rounded-xl border uppercase tracking-widest inline-block",l.role==="admin"?`bg-${c}-500/10 text-${c}-400 border-${c}-500/20`:"bg-white/5 text-slate-400 border-white/5"),children:l.role})}),e.jsx("td",{className:"px-8 py-6",children:e.jsxs("div",{className:"flex items-center gap-2 text-emerald-400 text-[10px] font-black uppercase tracking-widest bg-emerald-500/5 px-4 py-1.5 rounded-xl border border-emerald-500/10 w-fit",children:[e.jsx("div",{className:"h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"}),"Active"]})}),e.jsx("td",{className:"px-6 py-6 text-right",children:e.jsx("div",{className:"flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform lg:translate-x-2 lg:group-hover:translate-x-0",children:e.jsx(We,{variant:"danger",size:"sm",icon:Pe,className:"p-2.5",onClick:n=>{n.stopPropagation(),a(l.username)}})})})]},l.id||o))})})]})}),m.length===0&&!s&&e.jsxs("div",{className:"flex flex-col items-center justify-center py-24",children:[e.jsx("div",{className:"p-6 bg-white/5 rounded-full mb-4",children:e.jsx(Js,{size:48,className:"text-slate-600"})}),e.jsx("p",{className:"text-slate-500 font-black uppercase text-xs tracking-widest",children:"Aucun opérateur trouvé"})]})]})]})},Vr=()=>{const{theme:t,isDark:s}=Q(),{addToast:r}=ke(),[a,c]=h.useState([]),[d,p]=h.useState(!1),[m,l]=h.useState(!1),[o,n]=h.useState(""),[x,u]=h.useState("access"),b=h.useRef(null),y=h.useRef(null),g=async()=>{p(!0);try{let j;x==="access"?j="/system/logs":x==="security"?j="/system/security-logs":x==="system"&&(j="/system/container-logs");const k=((await T.get(j)).data||[]).map((R,U)=>({id:U,time:R.time||R.date||R.timestamp||new Date().toISOString(),message:R.message||R.MESSAGE||(R.username?`${R.username} – ${R.virtualIp||""}`:"Événement système"),ip:R.ip||R.realIp||R.unit||R._SYSTEMD_UNIT||"Système",status:R.status||R.type||"LOGGED"}));c(k)}catch(j){console.error("[LOGS]",j),c([])}finally{p(!1)}},w=async()=>{if(window.confirm("Voulez-vous vraiment effacer tous les journaux système et d'audit ?")){l(!0);try{await T.post("/system/logs/clear"),r("Journaux effacés avec succès","success"),g()}catch{r("Erreur lors de l'effacement","error")}finally{l(!1)}}};h.useEffect(()=>{if(b.current&&(b.current.close(),b.current=null),g(),x==="security"||x==="system"){const z=Rs(x==="security"?"logs-wg":"logs-api");if(!z)return;try{const D=new WebSocket(z);b.current=D,D.onmessage=k=>{try{const R=JSON.parse(k.data),U={id:Date.now()+Math.random(),time:R.ts||R.date||R.time||new Date().toISOString(),message:R.msg||R.message||(typeof R=="string"?R:JSON.stringify(R)),ip:R.svc||R.ip||(x==="security"?"kernel":"api"),status:R.level||"LIVE"};c(G=>[U,...G.slice(0,199)])}catch{const U=typeof k.data=="string"?k.data.trim():"";if(!U)return;const G={id:Date.now()+Math.random(),time:new Date().toISOString(),message:U,ip:x==="security"?"kernel":"system",status:"LIVE"};c(X=>[G,...X.slice(0,199)])}},D.onerror=k=>console.warn(`[WS-LOGS-${x}] error:`,k)}catch(D){console.warn(`[WS-LOGS-${x}] Could not connect:`,D)}}return()=>{b.current&&(b.current.close(),b.current=null)}},[x]);const E=a.filter(j=>JSON.stringify(j).toLowerCase().includes(o.toLowerCase())),N=j=>{const z=(j||"").toUpperCase();return z==="SUCCESS"||z==="CONNECTED"||z==="INFO"?"bg-emerald-500/10 text-emerald-400 border-emerald-500/20":z==="LIVE"||z==="DEBUG"?"bg-indigo-500/10 text-indigo-400 border-indigo-500/20 animate-pulse":z==="FAILED"||z==="ERROR"||z==="AUDIT"?"bg-red-500/10 text-red-400 border-red-500/20":z==="WARN"||z==="WARNING"?"bg-amber-500/10 text-amber-400 border-amber-500/20":s?"bg-white/5 text-slate-400 border-white/5":"bg-slate-100/50 text-slate-500 border-black/5"},f=()=>{const j=E.map(k=>`[${k.time}] [${k.status}] ${k.message} — ${k.ip}`).join(`
-`),z=new Blob([j],{type:"text/plain"}),D=document.createElement("a");D.href=URL.createObjectURL(z),D.download=`wg-fux-logs-${x}-${new Date().toISOString().split("T")[0]}.log`,D.click()},v=[{id:"access",label:"Accès Peers",icon:Ge},{id:"security",label:"Sécurité",icon:be},{id:"system",label:"Journal Système",icon:at}];return e.jsxs("div",{className:"space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700",children:[e.jsxs("div",{className:i("flex flex-col lg:flex-row justify-between items-start lg:items-center backdrop-blur-3xl p-6 md:p-8 rounded-[2rem] border shadow-2xl gap-6 transition-all",s?"bg-slate-900/40 border-white/5":"bg-white/80 border-black/5"),children:[e.jsxs("div",{className:"flex items-center gap-4 md:gap-6",children:[e.jsx("div",{className:i("p-3 md:p-4 rounded-2xl shadow-2xl flex-shrink-0 transition-colors",s?"bg-white/5":"bg-black/5",`text-${t}-400`),children:e.jsx(Zs,{size:28})}),e.jsxs("div",{children:[e.jsx("h2",{className:i("text-2xl md:text-3xl font-black tracking-tighter italic uppercase transition-colors",s?"text-white":"text-slate-900"),children:"Blackbox Protocol"}),e.jsx("p",{className:"text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase opacity-60",children:"System Event History"})]})]}),e.jsxs("div",{className:"flex items-center gap-3 w-full sm:w-auto",children:[e.jsxs("div",{className:"relative group flex-1 sm:flex-none",children:[e.jsx(it,{className:i("absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 transition-colors",s?"group-focus-within:text-white":"group-focus-within:text-slate-900"),size:16}),e.jsx("input",{type:"text",placeholder:"Filtrer...",value:o,onChange:j=>n(j.target.value),className:i("pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:border-indigo-500/50 font-mono transition-all text-sm w-full sm:w-56",s?"bg-white/5 border-white/5 text-white placeholder:text-slate-700":"bg-white border-black/5 text-slate-900 placeholder:text-slate-400")}),o&&e.jsx("button",{onClick:()=>n(""),className:"absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white",children:e.jsx(Fe,{size:14})})]}),e.jsx("button",{onClick:g,className:i("p-3 border rounded-xl transition-all flex-shrink-0",s?"bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10":"bg-white border-black/5 text-slate-500 hover:text-slate-900 hover:bg-black/5"),title:"Rafraîchir",children:e.jsx(J,{size:18,className:d?"animate-spin":""})})]})]}),e.jsx("div",{className:"flex gap-2 flex-wrap",children:v.map(j=>{var z;return e.jsxs("button",{onClick:()=>u(j.id),className:i("flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all",x===j.id?`bg-${t}-600 text-white shadow-lg shadow-${t}-600/20`:i("transition-all border",s?"text-slate-500 hover:text-white hover:bg-white/5 border-white/5":"text-slate-500 hover:text-slate-900 hover:bg-white border-black/5 shadow-sm")),children:[e.jsx(j.icon,{size:14})," ",j.label,x===j.id&&(j.id==="security"||j.id==="system")&&((z=b.current)==null?void 0:z.readyState)===1&&e.jsx("span",{className:"w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"})]},j.id)})}),x==="system"&&e.jsxs("div",{className:"flex items-center gap-3 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl",children:[e.jsx(et,{size:16,className:"text-amber-400 flex-shrink-0"}),e.jsx("p",{className:"text-[10px] font-bold text-amber-400/80 uppercase tracking-widest",children:"Logs des conteneurs Docker — wg-fux-api · wg-fux-dashboard · wg-sentinel-proxy"})]}),e.jsxs("div",{className:i("backdrop-blur-3xl rounded-[2rem] border overflow-hidden shadow-2xl transition-all",s?"bg-slate-900/40 border-white/5":"bg-white border-black/5"),children:[e.jsxs("div",{className:"overflow-x-auto overflow-y-auto max-h-[calc(100vh-420px)] custom-scrollbar",children:[e.jsxs("table",{className:"w-full text-left min-w-[600px]",children:[e.jsx("thead",{className:i("sticky top-0 z-10 backdrop-blur-xl transition-colors",s?"bg-slate-950/80":"bg-slate-50/80"),children:e.jsxs("tr",{className:i("text-[10px] font-black uppercase tracking-widest border-b transition-colors",s?"text-slate-500 border-white/5":"text-slate-400 border-black/5"),children:[e.jsx("th",{className:"px-6 py-5",children:"Timestamp"}),e.jsx("th",{className:"px-6 py-5",children:"Événement"}),e.jsx("th",{className:"px-6 py-5 hidden sm:table-cell",children:"Source"}),e.jsx("th",{className:"px-6 py-5",children:"Statut"})]})}),e.jsx("tbody",{className:i("divide-y font-mono transition-colors",s?"divide-white/5":"divide-black/5"),children:d&&a.length===0?e.jsx("tr",{children:e.jsx("td",{colSpan:"4",className:"text-center py-20 text-slate-500 italic opacity-40",children:"Scanning archives..."})}):E.length===0?e.jsx("tr",{children:e.jsx("td",{colSpan:"4",className:"text-center py-20 text-slate-500 italic opacity-40",children:"Aucun enregistrement détecté"})}):E.map(j=>e.jsxs("tr",{className:i("group transition-colors",s?"hover:bg-white/5":"hover:bg-slate-50"),children:[e.jsx("td",{className:"px-6 py-4 whitespace-nowrap",children:e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx(gt,{size:12,className:"text-slate-600 shrink-0"}),e.jsx("span",{className:i("text-[10px] transition-colors",s?"text-slate-400 group-hover:text-white":"text-slate-500 group-hover:text-slate-900"),children:new Date(j.time).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"})})]})}),e.jsx("td",{className:"px-6 py-4 max-w-xs",children:e.jsx("div",{className:i("text-xs font-bold tracking-tight truncate transition-colors",s?"text-white":"text-slate-900"),children:j.message})}),e.jsx("td",{className:"px-6 py-4 hidden sm:table-cell",children:e.jsx("span",{className:"text-[10px] text-slate-500 font-mono",children:j.ip})}),e.jsx("td",{className:"px-6 py-4",children:e.jsx("div",{className:i("inline-flex items-center px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest",N(j.status)),children:j.status})})]},j.id))})]}),e.jsx("div",{ref:y})]}),e.jsxs("div",{className:i("px-6 py-4 border-t transition-colors flex flex-wrap justify-between items-center gap-3",s?"border-white/5 bg-slate-950/20":"border-black/5 bg-slate-50"),children:[e.jsxs("div",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest",children:[E.length," entrées · Blackbox v2.1"]}),e.jsxs("div",{className:"flex items-center gap-6",children:[e.jsxs("button",{onClick:w,disabled:m,className:i("flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all",s?"text-rose-500/50 hover:text-rose-400":"text-rose-400 hover:text-rose-600"),children:[e.jsx(Pe,{size:13,className:m?"animate-pulse":""})," EFFACER"]}),e.jsxs("button",{onClick:f,className:"flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-widest transition-all",children:[e.jsx(_e,{size:13})," Export .log"]})]})]})]})]})},Je=({label:t,value:s,onChange:r,badge:a,tooltip:c})=>{const{theme:d,isDark:p}=Q();return e.jsxs("div",{className:"group space-y-3",children:[e.jsxs("div",{className:"flex items-center justify-between px-1",children:[e.jsx("label",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none",children:t}),c&&e.jsxs("div",{className:"group/tip relative",children:[e.jsx(ht,{size:12,className:i("cursor-help transition-colors",p?"text-slate-600 hover:text-white":"text-slate-400 hover:text-slate-900")}),e.jsx("div",{className:i("absolute bottom-full right-0 mb-4 w-64 p-4 border rounded-2xl text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover/tip:opacity-100 transition-all pointer-events-none z-50 shadow-2xl",p?"bg-slate-950/95 backdrop-blur-3xl border-white/10 text-slate-400":"bg-white border-black/10 text-slate-500"),children:c})]})]}),e.jsxs("div",{className:"relative group/field",children:[e.jsx("div",{className:i("absolute -inset-0.5 rounded-2xl blur opacity-0 group-focus-within/field:opacity-40 transition-opacity",`bg-${d}-500/20`)}),e.jsx("input",{type:"text",value:s,onChange:r,className:i("relative w-full border rounded-2xl px-6 py-4 font-mono text-sm focus:outline-none transition-all",p?"bg-white/5 border-white/5 text-white focus:border-white/10 focus:bg-white/10":"bg-slate-50 border-black/5 text-slate-900 focus:border-indigo-500/20 focus:bg-white")}),a&&e.jsx("div",{className:i("absolute right-4 top-1/2 -translate-y-1/2 px-3 py-1 border rounded-xl text-[9px] font-black font-mono uppercase tracking-widest transition-colors",p?"bg-slate-900 border-white/5 text-slate-500":"bg-white border-black/5 text-slate-400"),children:a})]})]})},Qr=()=>{const{theme:t,isDark:s}=Q(),{addToast:r}=ke(),[a,c]=h.useState("general"),[d,p]=h.useState(!1),[m,l]=h.useState({port:"51820",mtu:"1420",dns:"1.1.1.1, 8.8.8.8",subnet:"10.0.0.0/24",keepalive:"25"});h.useEffect(()=>{T.get("/system/config").then(u=>l(b=>({...b,...u.data}))).catch(console.error)},[]);const o=async()=>{p(!0);try{await T.post("/system/config",m),r("Configuration appliquée avec succès","success")}catch{r("Erreur lors de l'application","error")}finally{p(!1)}},n=async()=>{try{const u=await T.post("/system/backup",{});r("Sauvegarde créée avec succès","success")}catch{r("Erreur lors du backup","error")}},x=[{id:"general",label:"Noyau",icon:at},{id:"network",label:"Réseau",icon:Ge},{id:"security",label:"Sûreté",icon:be},{id:"maintenance",label:"Terminal",icon:ea}];return e.jsxs("div",{className:"space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700",children:[e.jsxs("div",{className:i("flex flex-col lg:flex-row justify-between items-center p-8 rounded-[3rem] border shadow-2xl gap-8 transition-all",s?"bg-slate-900/40 border-white/5 backdrop-blur-3xl":"bg-white border-black/5"),children:[e.jsxs("div",{className:"flex items-center gap-6",children:[e.jsx("div",{className:i("p-5 rounded-[2rem] bg-white/5 shadow-2xl",`text-${t}-400`),children:e.jsx(bt,{size:36})}),e.jsxs("div",{children:[e.jsx("h2",{className:i("text-4xl font-black tracking-tighter italic uppercase transition-colors",s?"text-white":"text-slate-900"),children:"Paramètres Noyau"}),e.jsx("p",{className:"text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60",children:"Deep Core Control Panel"})]})]}),e.jsx("div",{className:"flex gap-4 w-full lg:w-auto",children:e.jsxs("button",{onClick:o,disabled:d,className:i("flex-1 lg:flex-none flex items-center justify-center gap-3 px-10 py-5 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-95 disabled:opacity-30",`bg-${t}-600 hover:bg-${t}-500 shadow-${t}-600/30`),children:[d?e.jsx(J,{className:"animate-spin",size:20}):e.jsx($t,{size:20})," Appliquer Mission"]})})]}),e.jsxs("div",{className:"grid grid-cols-1 xl:grid-cols-4 gap-8",children:[e.jsx("div",{className:"xl:col-span-1 space-y-3",children:x.map(u=>e.jsxs("button",{onClick:()=>c(u.id),className:i("w-full flex items-center gap-4 px-6 py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest transition-all duration-300",a===u.id?`bg-${t}-600 text-white shadow-2xl shadow-${t}-600/20`:i("text-slate-500",s?"hover:text-white hover:bg-white/5":"hover:text-slate-900 hover:bg-slate-100")),children:[e.jsx(u.icon,{size:18})," ",u.label,a===u.id&&e.jsx(Le,{className:"ml-auto",size:14})]},u.id))}),e.jsxs("div",{className:i("xl:col-span-3 rounded-[3rem] border p-10 shadow-2xl relative overflow-hidden h-fit transition-all",s?"bg-slate-900/40 border-white/10 backdrop-blur-3xl":"bg-white border-black/5 shadow-sm"),children:[e.jsx("div",{className:i("absolute -top-12 -right-12 p-12 opacity-[0.02] rotate-12 pointer-events-none transition-colors",s?"text-white":"text-black"),children:e.jsx(bt,{size:300})}),e.jsxs(le,{mode:"wait",children:[a==="general"&&e.jsxs(L.div,{initial:{opacity:0,x:10},animate:{opacity:1,x:0},exit:{opacity:0,x:-10},className:"grid grid-cols-1 md:grid-cols-2 gap-10",children:[e.jsxs("div",{className:"space-y-8",children:[e.jsxs("h3",{className:i("text-xl font-black flex items-center gap-3 italic uppercase transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(at,{size:20,className:i(`text-${t}-400`)})," Main-Core"]}),e.jsx(Je,{label:"Distant UDP Port",value:m.port,onChange:u=>l({...m,port:u.target.value}),badge:"UDP",tooltip:"Port d'écoute standard WireGuard"}),e.jsx(Je,{label:"Protocol MTU",value:m.mtu,onChange:u=>l({...m,mtu:u.target.value}),badge:"BYTES",tooltip:"Maximum Transmission Unit"})]}),e.jsxs("div",{className:"space-y-8",children:[e.jsxs("h3",{className:i("text-xl font-black flex items-center gap-3 italic uppercase transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(Ae,{size:20,className:"text-emerald-400"})," Pulse-Mode"]}),e.jsx(Je,{label:"Persistent Keepalive",value:m.keepalive,onChange:u=>l({...m,keepalive:u.target.value}),badge:"SECONDS",tooltip:"Maintient les sessions actives à travers les pare-feu NAT rigides via stimulation UDP (0 = désactivé)."}),e.jsx("p",{className:"px-1 text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed opacity-60",children:"Recommandé : 25s (Standard), 5s (Gaming Mobile Ultra-Stable)."})]})]},"gen"),a==="network"&&e.jsxs(L.div,{initial:{opacity:0,x:10},animate:{opacity:1,x:0},exit:{opacity:0,x:-10},className:"space-y-10",children:[e.jsxs("h3",{className:i("text-xl font-black flex items-center gap-3 italic uppercase transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(Ge,{size:20,className:"text-cyan-400"})," Infrastructure"]}),e.jsxs("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-10",children:[e.jsx(Je,{label:"Primary DNS Cluster",value:m.dns,onChange:u=>l({...m,dns:u.target.value}),badge:"IP-LIST",tooltip:"Serveurs DNS transmis aux clients"}),e.jsx(Je,{label:"VPN Base-Subnet",value:m.subnet,onChange:u=>l({...m,subnet:u.target.value}),badge:"CIDR",tooltip:"Plage d'IP interne du tunnel vpn"})]})]},"net"),a==="security"&&e.jsxs(L.div,{initial:{opacity:0,x:10},animate:{opacity:1,x:0},exit:{opacity:0,x:-10},className:"space-y-8",children:[e.jsxs("div",{className:"flex items-center justify-between",children:[e.jsxs("h3",{className:i("text-xl font-black flex items-center gap-3 italic uppercase transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(be,{size:20,className:"text-rose-400"})," Hardening Profile"]}),e.jsx("div",{className:i("px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-[0.2em]",s?"bg-emerald-500/10 border-emerald-500/20 text-emerald-400":"bg-emerald-50 border-emerald-200 text-emerald-600"),children:"SENTINEL ACTIVE"})]}),e.jsxs("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-8",children:[e.jsxs("div",{className:i("p-8 rounded-[2.5rem] border relative group hover:border-white/10 transition-all",s?"bg-white/5 border-white/5":"bg-slate-50 border-black/5 shadow-sm hover:border-indigo-500/20"),children:[e.jsx("div",{className:"absolute top-4 right-4 animate-pulse",children:e.jsx("div",{className:"w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"})}),e.jsxs("h4",{className:i("text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-3 transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(fe,{size:18})," Encryption Module"]}),e.jsx("p",{className:"text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-6",children:"Protocole ChaCha20-Poly1305 actif. Rotation automatique des clés de session Curve25519."}),e.jsxs("button",{className:"text-[9px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 transition-all",children:["Analyser Intégrité ",e.jsx(ut,{size:14})]})]}),e.jsxs("div",{className:i("p-8 rounded-[2.5rem] border relative group transition-all",s?"bg-white/5 border-white/5 hover:border-white/10":"bg-slate-50 border-black/5 shadow-sm hover:border-indigo-500/20"),children:[e.jsxs("h4",{className:i("text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-3 transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(de,{size:18})," Packet Filtering"]}),e.jsx("p",{className:"text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-6",children:"Pare-feu UFW activé. Rejet immédiat des paquets ICMP non autorisés et scans SYN furtifs."}),e.jsxs("button",{className:"text-[9px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 transition-all",children:["Logs Firewall ",e.jsx(ut,{size:14})]})]})]}),e.jsx("div",{className:i("grid grid-cols-1 gap-8 mt-4"),children:e.jsx("div",{className:i("p-8 rounded-[2.5rem] border relative group transition-all",s?"bg-white/5 border-white/5 hover:border-white/10":"bg-slate-50 border-black/5 shadow-sm hover:border-indigo-500/20"),children:e.jsxs("div",{className:"flex flex-col md:flex-row items-center justify-between gap-6",children:[e.jsxs("div",{className:"space-y-4",children:[e.jsxs("h4",{className:i("text-sm font-black uppercase tracking-widest flex items-center gap-3 transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(Ae,{size:18,className:"text-amber-400"})," Telegram Sentinel"]}),e.jsx("p",{className:"text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed max-w-xl",children:"Vérifiez la connectivité avec votre bot Telegram. Le système envoie des alertes critiques lors des tentatives de brèche ou de déconnexion d'interface."})]}),e.jsx("button",{onClick:async()=>{try{await T.post("/system/test-telegram",{}),r("Notification de test envoyée avec succès","success")}catch{r("Échec de la connexion Telegram","error")}},className:i("whitespace-nowrap px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95",s?"bg-white/5 hover:bg-white/10 text-white":"bg-indigo-600 text-white shadow-lg hover:bg-indigo-500 shadow-indigo-600/20"),children:"Tester la Connexion"})]})})})]},"sec"),a==="maintenance"&&e.jsxs(L.div,{initial:{opacity:0,x:10},animate:{opacity:1,x:0},exit:{opacity:0,x:-10},className:"grid grid-cols-1 md:grid-cols-2 gap-10",children:[e.jsxs("div",{className:"space-y-8",children:[e.jsxs("h3",{className:i("text-xl font-black flex items-center gap-3 italic uppercase transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(_e,{size:20,className:"text-emerald-400"})," Archives"]}),e.jsx("p",{className:"text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-loose",children:"Exportation complète du cluster : certificats, configurations d'interfaces et database SQL cryptée."}),e.jsxs("button",{onClick:n,className:"w-full flex items-center justify-center gap-3 px-8 py-4 bg-slate-950 border border-white/5 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900 transition-all group",children:[e.jsx(_e,{size:18,className:"group-hover:-translate-y-1 transition-transform"}),e.jsx("span",{className:"text-[10px] font-black uppercase tracking-widest",children:"Générer Backup .tar.gz"})]})]}),e.jsxs("div",{className:"space-y-8",children:[e.jsxs("h3",{className:i("text-xl font-black flex items-center gap-3 italic uppercase transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(Be,{size:20,className:"text-rose-600"})," Danger Zone"]}),e.jsxs("div",{className:"p-8 bg-rose-950/20 border border-rose-500/20 rounded-[2.5rem] space-y-6",children:[e.jsxs("div",{children:[e.jsx("h4",{className:"text-sm font-black text-rose-400 uppercase tracking-widest mb-2",children:"Nuclear Reset"}),e.jsx("p",{className:"text-[10px] text-rose-500/60 font-bold uppercase tracking-widest leading-relaxed",children:"Réinitialisation complète de l'architecture. Perte irrémédiable de toutes les routes vpn."})]}),e.jsx("button",{className:"w-full py-4 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-600/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",children:"Restaurer Valeurs Usine"})]})]})]},"maint")]})]})]})]})},Kr=({systemStats:t})=>{const{theme:s,isDark:r}=Q(),{addToast:a}=ke(),[c,d]=h.useState(!1),[p,m]=h.useState(""),[l,o]=h.useState([]),[n,x]=h.useState(!1),[u,b]=h.useState({jitter:"...",mtu:"...",bufferbloat:"..."});h.useEffect(()=>{y();const f=setInterval(g,5e3);return g(),()=>clearInterval(f)},[]);const y=async()=>{try{const v=(await T.get("/system/optimize")).data.profile;m(v),x(v!=="default"&&v!=="restore"&&v!=="disable")}catch{}},g=async()=>{try{const f=await T.get("/system/telemetry");b(f.data);const v=new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});o(j=>[...j.slice(-29),{time:v,value:parseFloat(f.data.cpu)||0}])}catch{}},w=async()=>{const f=!n;x(f),d(!0);try{const v=f?p||"gaming":"restore";await T.post("/system/optimize",{profile:v}),f||m("restore"),a(f?`Optimisation réactivée (${v})`:"Optimisations système désactivées (Tunnel préservé)","success")}catch{x(!f),a("Échec du basculement SRE","error")}finally{d(!1)}},E=async f=>{if(n){d(!0);try{await T.post("/system/optimize",{profile:f}),m(f),a(`Profil ${f.toUpperCase()} activé avec succès`,"success")}catch{a("Échec de la synchronisation neurale","error")}finally{d(!1)}}},N=[{id:"gaming",label:"E-Sport / Gaming",desc:"Latency Zero. BBR v2 + CAKE + UDP Buffer Tuning.",icon:sa,color:"indigo"},{id:"streaming",label:"Ultra-HD Stream",desc:"Throughput maximal. Optimisation BBR & MTU 1280.",icon:aa,color:"rose"},{id:"auto",label:"Smart Engine",desc:"Analyse heuristique & ajustement dynamique du MTU.",icon:He,color:"emerald"}];return e.jsxs("div",{className:"space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700",children:[e.jsxs("div",{className:i("flex flex-col lg:flex-row justify-between items-center p-8 rounded-[3rem] border shadow-2xl gap-8 transition-all",r?"bg-slate-900/40 border-white/5 backdrop-blur-3xl":"bg-white border-black/5"),children:[e.jsxs("div",{className:"flex items-center gap-6",children:[e.jsx("div",{className:i("p-5 rounded-[2rem] border shadow-2xl transition-all",r?"bg-indigo-600/20 text-indigo-400 border-indigo-500/20":"bg-indigo-50 text-indigo-600 border-indigo-100"),children:e.jsx(Ae,{size:36,className:i(n&&"animate-pulse")})}),e.jsxs("div",{children:[e.jsx("h2",{className:i("text-4xl font-black tracking-tighter italic uppercase transition-colors",r?"text-white":"text-slate-900"),children:"Neural Optimizer"}),e.jsx("p",{className:"text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60",children:"Advanced Flow Shaping & Latency Control"})]})]}),e.jsx("div",{className:"flex items-center gap-4",children:e.jsxs("label",{className:i("flex items-center gap-4 p-4 rounded-2xl border cursor-pointer group transition-all",r?"bg-slate-950/60 border-white/5 backdrop-blur-3xl":"bg-slate-50 border-black/5 shadow-sm"),children:[e.jsx("span",{className:i("text-[10px] font-black uppercase tracking-widest transition-colors",r?"text-slate-500 group-hover:text-white":"text-slate-400 group-hover:text-slate-900"),children:"Système Optimisé"}),e.jsx("div",{onClick:w,className:i("w-12 h-6 rounded-full transition-all relative border shadow-inner",n?"bg-emerald-600 border-emerald-500/20":r?"bg-slate-900 border-white/10":"bg-slate-100 border-slate-200"),children:e.jsx("div",{className:i("absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-2xl transition-all",n?"left-[calc(100%-1.25rem)]":"left-1")})})]})})]}),e.jsxs("div",{className:"grid grid-cols-1 xl:grid-cols-3 gap-8",children:[e.jsxs("div",{className:"xl:col-span-2 space-y-8",children:[e.jsxs("div",{className:i("rounded-[3rem] border p-8 shadow-2xl h-80 relative overflow-hidden group transition-all",r?"bg-slate-900/40 border-white/10 backdrop-blur-3xl":"bg-white border-black/5",!n&&"opacity-40 grayscale"),children:[e.jsxs("div",{className:"flex justify-between items-center mb-8",children:[e.jsxs("h3",{className:i("text-lg font-black uppercase tracking-tighter flex items-center gap-3 transition-colors",r?"text-white":"text-slate-900"),children:[e.jsx(ta,{className:i("text-indigo-400")})," Kernel Load Variance"]}),e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx("div",{className:i("w-1.5 h-1.5 rounded-full border",n?"bg-emerald-500 animate-pulse border-emerald-400":"bg-slate-500 border-slate-400")}),e.jsx("span",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest uppercase tracking-widest",children:"Real-time Spectrum"})]})]}),e.jsx("div",{className:"h-48 w-full",children:e.jsx(vt,{width:"100%",height:"100%",children:e.jsxs(Dt,{data:l,children:[e.jsx("defs",{children:e.jsxs("linearGradient",{id:"colorCpu",x1:"0",y1:"0",x2:"0",y2:"1",children:[e.jsx("stop",{offset:"5%",stopColor:s==="rose"?"#f43f5e":"#6366f1",stopOpacity:.3}),e.jsx("stop",{offset:"95%",stopColor:s==="rose"?"#f43f5e":"#6366f1",stopOpacity:0})]})}),e.jsx(It,{strokeDasharray:"3 3",stroke:r?"#1e293b":"#e2e8f0",vertical:!1}),e.jsx(Tt,{dataKey:"time",hide:!0}),e.jsx(Lt,{hide:!0,domain:[0,100]}),e.jsx(jt,{contentStyle:r?{backgroundColor:"#020617",border:"1px solid #1e293b",borderRadius:"1rem shadow-2xl"}:{backgroundColor:"#fff",border:"1px solid #e2e8f0",borderRadius:"1rem",boxShadow:"0 10px 15px -3px rgb(0 0 0 / 0.1)"},itemStyle:{color:r?"#fff":"#0f172a",fontSize:"12px",fontFamily:"monospace"}}),e.jsx(st,{type:"monotone",dataKey:"value",stroke:s==="rose"?"#fb7185":"#818cf8",strokeWidth:4,fillOpacity:1,fill:"url(#colorCpu)",isAnimationActive:!1})]})})})]}),e.jsx("div",{className:i("grid grid-cols-1 md:grid-cols-3 gap-6 transition-all",!n&&"opacity-40 pointer-events-none"),children:N.map(f=>e.jsxs("div",{className:i("relative overflow-hidden rounded-[2.5rem] border p-8 group transition-all duration-500",r?"bg-slate-900/40 backdrop-blur-3xl":"bg-white border-black/5 shadow-sm",p===f.id?`border-${f.color}-500/50 shadow-2xl shadow-${f.color}-500/20 bg-${f.color}-500/5`:r?"border-white/5 hover:border-white/10":"border-black/5 hover:border-indigo-500/20"),children:[p===f.id&&e.jsx("div",{className:i("absolute top-6 right-6 px-3 py-1 rounded-full border text-[8px] font-black uppercase tracking-[0.2em] animate-pulse",`bg-${f.color}-500/20 text-${f.color}-400 border-${f.color}-500/30`),children:"Vecteur Actif"}),e.jsx("div",{className:i("absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12 pointer-events-none",`text-${f.color}-500`),children:e.jsx(f.icon,{size:120})}),e.jsx("div",{className:i("p-4 rounded-2xl mb-6 w-fit transition-transform group-hover:scale-110",r?"bg-white/5":"bg-black/5",`text-${f.color}-400`),children:e.jsx(f.icon,{size:24})}),e.jsx("h4",{className:i("text-xl font-black uppercase tracking-tight mb-2 italic transition-colors",r?"text-white":"text-slate-900"),children:f.label}),e.jsx("p",{className:"text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-loose mb-8 h-10",children:f.desc}),e.jsx("button",{onClick:()=>E(f.id),disabled:c,className:i("w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-2xl active:scale-95 disabled:opacity-30",p===f.id?`bg-${f.color}-600 text-white shadow-${f.color}-600/30`:i(r?"bg-white/5 border-white/5 text-slate-400 hover:text-white":"bg-slate-50 border-black/5 text-slate-500 hover:text-slate-900")),children:p===f.id?"Optimisation Active":"Activer Profil"})]},f.id))})]}),e.jsxs("div",{className:i("xl:col-span-1 space-y-8"),children:[e.jsxs("div",{className:i("rounded-[3rem] border p-8 shadow-2xl relative overflow-hidden group transition-all",r?"bg-slate-950/40 border-white/5 backdrop-blur-3xl":"bg-white border-black/5 shadow-sm"),children:[e.jsx("div",{className:"absolute top-0 right-0 p-8 opacity-10",children:e.jsx(ra,{size:64,className:i("text-indigo-600")})}),e.jsxs("h3",{className:i("text-lg font-black uppercase mb-8 flex items-center gap-3 transition-colors",r?"text-white":"text-slate-900"),children:[e.jsx(fe,{size:20,className:"text-emerald-400"})," Metrics Tunnel"]}),e.jsx("div",{className:"space-y-6",children:[{label:"Jitter Buffer",val:`${u.jitter}ms`,status:n?"Optimal":"Standard",icon:de},{label:"Bufferbloat",val:u.bufferbloat||"A+",status:n?"Ultra-Stable":"Unmanaged",icon:Ae},{label:"Tunneling MTU",val:`${u.mtu}B`,status:"Fixed",icon:et}].map((f,v)=>e.jsxs("div",{className:i("flex items-center justify-between p-4 rounded-2xl border transition-colors",r?"bg-white/5 border-white/5 hover:border-white/10":"bg-slate-50 border-black/5 hover:border-indigo-500/20"),children:[e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx(f.icon,{size:16,className:"text-slate-500"}),e.jsx("div",{className:"text-[10px] font-black text-slate-400 uppercase tracking-widest",children:f.label})]}),e.jsxs("div",{className:"text-right",children:[e.jsx("div",{className:i("text-xs font-mono font-black transition-colors",r?"text-white":"text-slate-900"),children:f.val}),e.jsx("div",{className:i("text-[8px] font-black uppercase tracking-widest",f.status==="Optimal"||f.status==="Ultra-Stable"||f.status==="Fixed"?"text-emerald-500":"text-slate-500"),children:f.status})]})]},v))})]}),e.jsxs("div",{className:i("border rounded-[3rem] p-10 shadow-2xl relative group overflow-hidden transition-all",r?"bg-gradient-to-br from-indigo-900/20 to-slate-900/60 border-white/10 backdrop-blur-3xl":"bg-white border-black/5 shadow-sm"),children:[e.jsx("div",{className:"absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.1),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-1000"}),e.jsx("div",{className:"p-4 rounded-[1.5rem] bg-indigo-600 shadow-2xl shadow-indigo-600/30 text-white w-fit mb-6",children:e.jsx(J,{size:24,className:"hover:rotate-180 transition-transform duration-700"})}),e.jsx("h3",{className:i("text-2xl font-black tracking-widest italic uppercase mb-2 transition-colors",r?"text-white":"text-slate-900"),children:"Sync Neural"}),e.jsx("p",{className:"text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-loose mb-8",children:"Maintenance heuristique du noyau système active. Surveillance en temps réel des fuites mémoires."}),e.jsx("div",{className:"h-1.5 w-full bg-white/5 rounded-full overflow-hidden",children:e.jsx("div",{className:"h-full w-full bg-gradient-to-r from-emerald-500 via-indigo-500 to-emerald-500 animate-[loading_4s_linear_infinite]",style:{backgroundSize:"200% 100%"}})})]})]})]})]})},Yr=()=>{const{theme:t,isDark:s}=Q(),{addToast:r}=ke(),[a,c]=h.useState(null),[d,p]=h.useState(!0),m=()=>{p(!0),T.get("/system/audit").then(o=>{c(o.data),p(!1)}).catch(()=>p(!1))};h.useEffect(()=>{m()},[]);const l=a?(a.firewall?33:0)+(a.ipForwarding?33:0)+(a.fail2ban?34:0):0;return e.jsxs("div",{className:"space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700",children:[e.jsxs("div",{className:i("flex flex-col lg:flex-row justify-between items-center p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border shadow-2xl gap-8 transition-all",s?"bg-slate-900/40 border-white/5 backdrop-blur-3xl":"bg-white border-black/5"),children:[e.jsxs("div",{className:"flex items-center gap-6",children:[e.jsx("div",{className:i("p-5 rounded-[2rem] bg-white/5 shadow-2xl",`text-${t}-400`),children:e.jsx(fe,{size:36})}),e.jsxs("div",{children:[e.jsx("h2",{className:i("text-4xl font-black tracking-tighter italic uppercase transition-colors",s?"text-white":"text-slate-900"),children:"Audit de Sécurité"}),e.jsx("p",{className:"text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60",children:"System Security Analysis Protocol"})]})]}),e.jsx("div",{className:"flex gap-3",children:e.jsx("button",{onClick:m,className:i("p-5 border rounded-[2rem] transition-all group",s?"bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10":"bg-slate-50 border-black/5 text-slate-500 hover:text-slate-900 hover:bg-slate-100"),children:e.jsx(J,{size:24,className:d?"animate-spin":"group-hover:rotate-180 transition-transform duration-700"})})})]}),e.jsxs("div",{className:"grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8",children:[e.jsxs("div",{className:i("xl:col-span-1 rounded-[3rem] border p-10 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center transition-all",s?"bg-slate-900/40 border-white/10 backdrop-blur-3xl":"bg-white border-black/5 shadow-sm"),children:[e.jsxs("div",{className:"relative w-48 h-48 mb-8 flex items-center justify-center",children:[e.jsxs("svg",{className:"w-full h-full transform -rotate-90",children:[e.jsx("circle",{cx:"96",cy:"96",r:"80",stroke:"currentColor",strokeWidth:"12",fill:"transparent",className:"text-slate-800/50"}),e.jsx(L.circle,{cx:"96",cy:"96",r:"80",stroke:"currentColor",strokeWidth:"12",fill:"transparent",initial:{strokeDashoffset:502},animate:{strokeDashoffset:502-l/100*502},transition:{duration:2,ease:"easeOut"},className:i("transition-all duration-500 shadow-2xl shadow-emerald-500/20",l>80?"text-emerald-500":"text-amber-500"),strokeDasharray:"502",strokeLinecap:"round"})]}),e.jsxs("div",{className:"absolute inset-0 flex flex-col items-center justify-center",children:[e.jsxs("span",{className:i("text-6xl font-black italic transition-colors",s?"text-white":"text-slate-900"),children:[l,"%"]}),e.jsx("span",{className:"text-[10px] font-black text-slate-500 uppercase tracking-widest mt-2",children:l>80?"Safe":"Watch"})]})]}),e.jsx("h3",{className:i("text-lg font-black uppercase tracking-tighter italic transition-colors",s?"text-white":"text-slate-900"),children:"Indice d'Intégrité"}),e.jsx("p",{className:"text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-4 leading-loose",children:"Calcul basé sur l'état du noyau, du firewall et des protections logicielles."})]}),e.jsxs("div",{className:"xl:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8",children:[e.jsxs("div",{className:i("rounded-[3rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between",s?"bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10":"bg-white border-black/5 shadow-sm hover:border-indigo-500/20"),children:[e.jsxs("div",{children:[e.jsxs("div",{className:"flex items-center justify-between mb-6",children:[e.jsxs("h3",{className:i("text-sm font-black uppercase tracking-widest flex items-center gap-3 italic transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(be,{size:20})," Firewall Status"]}),d?e.jsx(J,{className:"animate-spin text-slate-700",size:16}):a!=null&&a.firewall?e.jsx("div",{className:"px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase rounded-lg",children:"Actif"}):e.jsx("div",{className:"px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black uppercase rounded-lg",children:"Critique"})]}),e.jsx("p",{className:"text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8",children:"Vérification de l'interface UFW et des règles de filtrage pré-configurées."})]}),e.jsxs("div",{className:"flex items-center gap-4",children:[e.jsx("div",{className:i("p-3 rounded-2xl",a!=null&&a.firewall?"bg-emerald-500 text-white":"bg-slate-800 text-slate-600"),children:a!=null&&a.firewall?e.jsx(mt,{size:18}):e.jsx(Be,{size:18})}),e.jsx("span",{className:"text-[9px] font-black text-slate-400 uppercase tracking-widest",children:a!=null&&a.firewall?"Protection Périphérique OK":"Vulnérabilité Réseau Possible"})]})]}),e.jsxs("div",{className:i("rounded-[2.5rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between",s?"bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10":"bg-white border-black/5 shadow-sm hover:border-indigo-500/20"),children:[e.jsxs("div",{children:[e.jsxs("div",{className:"flex items-center justify-between mb-6",children:[e.jsxs("h3",{className:i("text-sm font-black uppercase tracking-widest flex items-center gap-3 italic transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(Ge,{size:20})," IP Forwarding"]}),d?e.jsx(J,{className:"animate-spin text-slate-700",size:16}):a!=null&&a.ipForwarding?e.jsx("div",{className:"px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase rounded-lg",children:"OK"}):e.jsx("div",{className:"px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-black uppercase rounded-lg",children:"FAILED"})]}),e.jsx("p",{className:"text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8",children:"État de l'option sysctl net.ipv4.ip_forward nécessaire au transit vpn."})]}),e.jsxs("div",{className:"flex items-center gap-4",children:[e.jsx("div",{className:i("p-3 rounded-2xl",a!=null&&a.ipForwarding?"bg-emerald-500 text-white":"bg-slate-800 text-slate-600"),children:a!=null&&a.ipForwarding?e.jsx(mt,{size:18}):e.jsx(Fe,{size:18})}),e.jsx("span",{className:"text-[9px] font-black text-slate-400 uppercase tracking-widest",children:a!=null&&a.ipForwarding?"Transit de Données Actif":"Interruption Flux Tunnel"})]})]}),e.jsxs("div",{className:i("rounded-[2.5rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between",s?"bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10":"bg-white border-black/5 shadow-sm hover:border-indigo-500/20"),children:[e.jsxs("div",{children:[e.jsxs("div",{className:"flex items-center justify-between mb-6",children:[e.jsxs("h3",{className:i("text-sm font-black uppercase tracking-widest flex items-center gap-3 italic transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(os,{size:18})," Fail2Ban Monitor"]}),d?e.jsx(J,{className:"animate-spin text-slate-700",size:16}):a!=null&&a.fail2ban?e.jsx("div",{className:"px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase rounded-lg",children:"Online"}):e.jsx("div",{className:"px-3 py-1 bg-slate-800 border border-white/5 text-slate-500 text-[9px] font-black uppercase rounded-lg",children:"N/A"})]}),e.jsx("p",{className:"text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8",children:"Surveillance des tentatives de brute-force SSH et des bannissements IP."})]}),e.jsxs("div",{className:"flex items-center gap-4",children:[e.jsx("div",{className:i("p-3 rounded-2xl",a!=null&&a.fail2ban?"bg-emerald-500 text-white":"bg-slate-800 text-slate-600"),children:a!=null&&a.fail2ban?e.jsx(fe,{size:18}):e.jsx(Be,{size:18})}),e.jsx("span",{className:"text-[9px] font-black text-slate-400 uppercase tracking-widest",children:a!=null&&a.fail2ban?"Defense Brute-Force OK":"Vulnérabilité SSH Détectée"})]})]}),e.jsxs("div",{className:i("rounded-[2.5rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between",s?"bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10":"bg-white border-black/5 shadow-sm hover:border-indigo-500/20"),children:[e.jsxs("div",{children:[e.jsxs("div",{className:"flex items-center justify-between mb-6",children:[e.jsxs("h3",{className:i("text-sm font-black uppercase tracking-widest flex items-center gap-3 italic transition-colors",s?"text-white":"text-slate-900"),children:[e.jsx(cs,{size:18})," Disk Storage"]}),e.jsx("span",{className:i("text-xl font-mono font-black transition-colors",s?"text-white":"text-slate-900"),children:(a==null?void 0:a.disk)||"0%"})]}),e.jsx("p",{className:"text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8",children:"Utilisation de la partition racine (SSD/NVMe) pour le cache système."})]}),e.jsx("div",{className:"h-1.5 w-full bg-white/5 rounded-full overflow-hidden",children:e.jsx(L.div,{initial:{width:0},animate:{width:(a==null?void 0:a.disk)||"0%"},className:i("h-full transition-all duration-1000",parseInt((a==null?void 0:a.disk)||0)>80?"bg-rose-500":`bg-${t}-600`)})})]})]})]})]})},Xr=()=>{var R,U,G,X;const{mode:t}=Q(),s=t==="dark",{addToast:r}=ke(),[a,c]=h.useState(null),[d,p]=h.useState(null),[m,l]=h.useState(null),[o,n]=h.useState(null),[x,u]=h.useState(!0),[b,y]=h.useState(!1),[g,w]=h.useState("upstream"),[E,N]=h.useState(""),[f,v]=h.useState(""),j=async()=>{u(!0);try{const[C,P,B,S]=await Promise.all([T.get("/dns/config"),T.get("/dns/stats"),T.get("/dns/status"),T.get("/dns/filtering")]);c(C.data),p(P.data),l(B.data),n(S.data)}catch{r("Impossible de charger les données AdGuard Home","error")}finally{u(!1)}};h.useEffect(()=>{j();const C=setInterval(async()=>{try{const P=await T.get("/dns/stats");p(P.data)}catch{}},1e4);return()=>clearInterval(C)},[]);const z=async()=>{y(!0);try{await T.post("/dns/config",a),r("Configuration DNS mise à jour avec succès","success")}catch{r("Erreur lors de la sauvegarde de la configuration","error")}finally{y(!1)}},D=async(C,P)=>{try{await T.post("/dns/filtering/add",{name:C,url:P}),r("Blocklist ajoutée","success"),j()}catch{r("Erreur lors de l'ajout","error")}},k=async C=>{try{await T.post("/dns/filtering/remove",{url:C}),r("Blocklist supprimée","success"),j()}catch{r("Erreur lors de la suppression","error")}};return x&&!a?e.jsxs("div",{className:"flex flex-col items-center justify-center min-h-[400px] gap-4",children:[e.jsx(J,{className:"animate-spin text-indigo-500",size:32}),e.jsx("p",{className:"text-sm font-bold text-slate-500 uppercase tracking-widest",children:"Initialisation DNS..."})]}):e.jsxs("div",{className:"space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700",children:[e.jsxs("div",{className:"flex flex-col md:flex-row md:items-center justify-between gap-6",children:[e.jsxs("div",{children:[e.jsx("h2",{className:i("text-3xl font-black italic tracking-tighter transition-colors duration-500",s?"text-white":"text-slate-900"),children:"DNS COMMAND CENTER"}),e.jsxs("div",{className:"flex items-center gap-2 mt-1",children:[e.jsxs("span",{className:"relative flex h-2 w-2",children:[e.jsx("span",{className:"animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"}),e.jsx("span",{className:"relative inline-flex rounded-full h-2 w-2 bg-emerald-500"})]}),e.jsx("p",{className:i("text-[10px] font-extrabold tracking-[0.2em] uppercase opacity-70",s?"text-white":"text-slate-500"),children:"ADGUARD ENGINE ACTIVE"})]})]}),e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx("button",{onClick:j,className:i("p-3 rounded-2xl border transition-all hover:scale-105 active:scale-95",s?"bg-white/5 border-white/10 text-slate-400":"bg-black/5 border-slate-200 text-slate-500"),children:e.jsx(J,{size:18,className:i(x&&"animate-spin")})}),e.jsxs("button",{onClick:z,disabled:b,className:"flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-[10px] sm:text-xs uppercase tracking-widest shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50",children:[b?e.jsx(J,{className:"animate-spin",size:16}):e.jsx($t,{size:16}),e.jsx("span",{className:"hidden xs:inline",children:b?"Déploiement...":"Appliquer"})]})]})]}),e.jsx("div",{className:"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4",children:[{label:"Requêtes",value:(d==null?void 0:d.num_dns_queries)||0,icon:e.jsx(de,{className:"text-indigo-500"}),sub:"Dernières 24h"},{label:"Bloqués",value:(d==null?void 0:d.num_blocked_filtering)||0,icon:e.jsx(be,{className:"text-rose-500"}),sub:`${((d==null?void 0:d.num_blocked_filtering)/(d==null?void 0:d.num_dns_queries)*100||0).toFixed(1)}%`},{label:"Latence",value:`${(d==null?void 0:d.avg_processing_time)||0}ms`,icon:e.jsx(Ae,{className:"text-amber-500"}),sub:"Moyenne"},{label:"Statut",value:((R=m==null?void 0:m.version)==null?void 0:R.split(" ")[0])||"Actif",icon:e.jsx(mt,{className:"text-emerald-500"}),sub:"DNS Engine"}].map((C,P)=>e.jsxs("div",{className:"glass-card p-5 border border-white/5 relative overflow-hidden group",children:[e.jsx("div",{className:"absolute -right-4 -bottom-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-700 pointer-events-none",children:Te.cloneElement(C.icon,{size:80})}),e.jsxs("div",{className:"flex items-center gap-3 mb-4",children:[e.jsx("div",{className:"p-2 rounded-xl bg-white/5 border border-white/5",children:C.icon}),e.jsx("span",{className:"text-[9px] font-black text-slate-500 uppercase tracking-widest",children:C.label})]}),e.jsx("div",{className:"text-xl font-black font-mono tracking-tighter mb-1",children:C.value}),e.jsx("div",{className:"text-[9px] font-bold text-slate-500 uppercase opacity-60",children:C.sub})]},P))}),e.jsxs("div",{className:"glass-card border border-white/5 overflow-hidden p-0",children:[e.jsx("div",{className:"flex border-b border-white/5 bg-black/10 overflow-x-auto custom-scrollbar no-scrollbar",children:[{id:"upstream",label:"Upstream",icon:e.jsx(Ge,{size:14})},{id:"filters",label:"Filters",icon:e.jsx(be,{size:14})},{id:"bootstrap",label:"Bootstrap",icon:e.jsx(Ae,{size:14})},{id:"settings",label:"Harden",icon:e.jsx(ia,{size:14})}].map(C=>e.jsxs("button",{onClick:()=>w(C.id),className:i("flex items-center gap-2 px-5 sm:px-8 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all relative shrink-0",g===C.id?"text-white bg-indigo-600/10":"text-slate-500 hover:text-slate-200 hover:bg-white/5"),children:[C.icon,C.label,g===C.id&&e.jsx(L.div,{layoutId:"dnsTab",className:"absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 shadow-[0_0_10px_#6366f1]"})]},C.id))}),e.jsxs("div",{className:"p-4 sm:p-8",children:[g==="upstream"&&e.jsxs("div",{className:"space-y-6",children:[e.jsxs("div",{className:"flex items-start gap-4",children:[e.jsx("div",{className:"p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500",children:e.jsx(At,{size:24})}),e.jsxs("div",{children:[e.jsx("h4",{className:"text-sm font-black uppercase tracking-tight mb-1",children:"Serveurs DNS Amont"}),e.jsx("p",{className:"text-xs text-slate-500 leading-relaxed max-w-2xl",children:"Entrez un serveur par ligne. Ces serveurs seront utilisés par AdGuard pour résoudre les requêtes de vos clients. Privilégiez les serveurs DoH ou DoT pour une sécurité maximale."})]})]}),e.jsx("textarea",{value:(U=a==null?void 0:a.upstream_dns)==null?void 0:U.join(`
-`),onChange:C=>c({...a,upstream_dns:C.target.value.split(`
-`).filter(P=>P.trim())}),className:"w-full h-64 glass-input font-mono text-sm leading-relaxed p-6 focus:ring-2 focus:ring-indigo-500/20 border-white/10",placeholder:`https://dns.cloudflare.com/dns-query
+ */ var vr = {
+    L: Ze.QrCode.Ecc.LOW,
+    M: Ze.QrCode.Ecc.MEDIUM,
+    Q: Ze.QrCode.Ecc.QUARTILE,
+    H: Ze.QrCode.Ecc.HIGH,
+  },
+  jr = 128,
+  yr = 'L',
+  Nr = '#FFFFFF',
+  kr = '#000000',
+  Cr = !1,
+  Is = 4,
+  Sr = 0.1;
+function zr(t, s = 0) {
+  const r = [];
+  return (
+    t.forEach(function (a, c) {
+      let d = null;
+      a.forEach(function (p, m) {
+        if (!p && d !== null) {
+          (r.push(`M${d + s} ${c + s}h${m - d}v1H${d + s}z`), (d = null));
+          return;
+        }
+        if (m === a.length - 1) {
+          if (!p) return;
+          d === null
+            ? r.push(`M${m + s},${c + s} h1v1H${m + s}z`)
+            : r.push(`M${d + s},${c + s} h${m + 1 - d}v1H${d + s}z`);
+          return;
+        }
+        p && d === null && (d = m);
+      });
+    }),
+    r.join('')
+  );
+}
+function Er(t, s) {
+  return t
+    .slice()
+    .map((r, a) =>
+      a < s.y || a >= s.y + s.h ? r : r.map((c, d) => (d < s.x || d >= s.x + s.w ? c : !1))
+    );
+}
+function Rr(t, s, r, a) {
+  if (a == null) return null;
+  const c = r ? Is : 0,
+    d = t.length + c * 2,
+    p = Math.floor(s * Sr),
+    m = d / s,
+    l = (a.width || p) * m,
+    o = (a.height || p) * m,
+    n = a.x == null ? t.length / 2 - l / 2 : a.x * m,
+    x = a.y == null ? t.length / 2 - o / 2 : a.y * m;
+  let u = null;
+  if (a.excavate) {
+    let b = Math.floor(n),
+      y = Math.floor(x),
+      g = Math.ceil(l + n - b),
+      w = Math.ceil(o + x - y);
+    u = { x: b, y, w: g, h: w };
+  }
+  return { x: n, y: x, h: o, w: l, excavation: u };
+}
+(function () {
+  try {
+    new Path2D().addPath(new Path2D());
+  } catch {
+    return !1;
+  }
+  return !0;
+})();
+function Ar(t) {
+  const s = t,
+    {
+      value: r,
+      size: a = jr,
+      level: c = yr,
+      bgColor: d = Nr,
+      fgColor: p = kr,
+      includeMargin: m = Cr,
+      imageSettings: l,
+    } = s,
+    o = wr(s, ['value', 'size', 'level', 'bgColor', 'fgColor', 'includeMargin', 'imageSettings']);
+  let n = Ze.QrCode.encodeText(r, vr[c]).getModules();
+  const x = m ? Is : 0,
+    u = n.length + x * 2,
+    b = Rr(n, a, m, l);
+  let y = null;
+  l != null &&
+    b != null &&
+    (b.excavation != null && (n = Er(n, b.excavation)),
+    (y = Te.createElement('image', {
+      xlinkHref: l.src,
+      height: b.h,
+      width: b.w,
+      x: b.x + x,
+      y: b.y + x,
+      preserveAspectRatio: 'none',
+    })));
+  const g = zr(n, x);
+  return Te.createElement(
+    'svg',
+    fr({ height: a, width: a, viewBox: `0 0 ${u} ${u}` }, o),
+    Te.createElement('path', { fill: d, d: `M0,0 h${u}v${u}H0z`, shapeRendering: 'crispEdges' }),
+    Te.createElement('path', { fill: p, d: g, shapeRendering: 'crispEdges' }),
+    y
+  );
+}
+const Mr = ({ isOpen: t, onClose: s, client: r, onDownload: a }) => {
+    const { theme: c } = Q(),
+      [d, p] = h.useState(!1);
+    if (!r) return null;
+    const m = () => {
+      (async () => {
+        if (navigator.clipboard && window.isSecureContext)
+          await navigator.clipboard.writeText(r.config);
+        else {
+          const o = document.createElement('textarea');
+          ((o.value = r.config),
+            (o.style.position = 'fixed'),
+            (o.style.left = '-9999px'),
+            (o.style.top = '0'),
+            document.body.appendChild(o),
+            o.focus(),
+            o.select(),
+            document.execCommand('copy'),
+            document.body.removeChild(o));
+        }
+        (p(!0), setTimeout(() => p(!1), 2e3));
+      })().catch(console.error);
+    };
+    return e.jsx(lt, {
+      isOpen: t,
+      onClose: s,
+      title: 'Tactical Configuration',
+      maxWidth: 'max-w-4xl',
+      className: 'p-0 overflow-hidden',
+      children: e.jsxs('div', {
+        className: 'flex flex-col md:flex-row h-full',
+        children: [
+          e.jsxs('div', {
+            className:
+              'bg-white p-12 flex flex-col items-center justify-center md:w-[40%] bg-[radial-gradient(circle_at_center,white_0%,#f1f5f9_100%)]',
+            children: [
+              e.jsx(L.div, {
+                initial: { scale: 0.8, opacity: 0 },
+                animate: { scale: 1, opacity: 1 },
+                className:
+                  'bg-white p-4 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-200 mb-10',
+                children: e.jsx(Ar, { value: r.config, size: 220, level: 'H', includeMargin: !0 }),
+              }),
+              e.jsxs('div', {
+                className: 'text-center space-y-2',
+                children: [
+                  e.jsxs('div', {
+                    className:
+                      'flex items-center justify-center gap-2 text-slate-900 font-black uppercase tracking-widest text-sm',
+                    children: [e.jsx(Rt, { size: 18 }), ' Mobile Scan'],
+                  }),
+                  e.jsx('p', {
+                    className:
+                      'text-slate-500 font-bold text-[10px] uppercase tracking-widest opacity-60',
+                    children: "Utilisez l'app WireGuard officielle",
+                  }),
+                ],
+              }),
+            ],
+          }),
+          e.jsxs('div', {
+            className:
+              'p-8 md:p-12 md:w-[60%] flex flex-col bg-slate-950/40 backdrop-blur-3xl border-l border-white/5',
+            children: [
+              e.jsx('div', {
+                className: 'flex items-center justify-between mb-8',
+                children: e.jsxs('div', {
+                  className: 'flex items-center gap-4',
+                  children: [
+                    e.jsx('div', {
+                      className: i(
+                        'p-3 rounded-2xl',
+                        `bg-${c}-600 text-white shadow-2xl shadow-${c}-600/30`
+                      ),
+                      children: e.jsx(Mt, { size: 24 }),
+                    }),
+                    e.jsxs('div', {
+                      children: [
+                        e.jsx('h3', {
+                          className: 'text-xl font-black text-white tracking-widest uppercase mb-1',
+                          children: r.name,
+                        }),
+                        e.jsxs('span', {
+                          className: i(
+                            'text-[10px] font-mono font-bold tracking-widest',
+                            `text-${c}-400`
+                          ),
+                          children: [r.name.toLowerCase(), '.conf'],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              }),
+              e.jsxs('div', {
+                className:
+                  'relative flex-1 bg-black/40 rounded-[2rem] border border-white/5 p-6 group overflow-hidden shadow-inner',
+                children: [
+                  e.jsx('div', {
+                    className:
+                      'absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none opacity-20',
+                  }),
+                  e.jsx('pre', {
+                    className: i(
+                      'font-mono text-[10px] leading-relaxed md:text-xs overflow-auto h-64 md:h-80 custom-scrollbar whitespace-pre-wrap pr-4',
+                      `text-${c}-300/80`
+                    ),
+                    children: r.config,
+                  }),
+                  e.jsx('button', {
+                    onClick: m,
+                    className: i(
+                      'absolute top-6 right-6 p-4 backdrop-blur-3xl text-white rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl border border-white/10 hover:scale-110 active:scale-95',
+                      `bg-${c}-600/80 hover:bg-${c}-600`
+                    ),
+                    children: e.jsx(le, {
+                      mode: 'wait',
+                      children: d
+                        ? e.jsx(
+                            L.div,
+                            {
+                              initial: { scale: 0.5 },
+                              animate: { scale: 1 },
+                              children: e.jsx(ls, { size: 20 }),
+                            },
+                            'check'
+                          )
+                        : e.jsx(
+                            L.div,
+                            {
+                              initial: { scale: 0.5 },
+                              animate: { scale: 1 },
+                              children: e.jsx(Hs, { size: 20 }),
+                            },
+                            'copy'
+                          ),
+                    }),
+                  }),
+                ],
+              }),
+              e.jsx('div', {
+                className: 'mt-10 flex flex-col sm:flex-row gap-4',
+                children: e.jsxs('button', {
+                  onClick: () => a(r.name, r.config),
+                  className: i(
+                    'flex-1 py-4 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 hover:scale-105',
+                    `bg-${c}-600 hover:bg-${c}-500 shadow-${c}-600/30`
+                  ),
+                  children: [e.jsx(_e, { size: 20 }), ' Télécharger .conf'],
+                }),
+              }),
+            ],
+          }),
+        ],
+      }),
+    });
+  },
+  $r = ({ isOpen: t, onClose: s, onCreate: r }) => {
+    const { theme: a } = Q(),
+      [c, d] = h.useState(''),
+      [p, m] = h.useState(''),
+      [l, o] = h.useState(''),
+      [n, x] = h.useState('viewer'),
+      [u, b] = h.useState(!1),
+      [y, g] = h.useState(!1),
+      [w, E] = h.useState(''),
+      N = async (v) => {
+        var j, z;
+        if ((v.preventDefault(), E(''), !c.trim())) {
+          E("Nom d'utilisateur requis");
+          return;
+        }
+        if (p.length < 8) {
+          E('Mot de passe : 8 caractères minimum');
+          return;
+        }
+        if (p !== l) {
+          E('Les mots de passe ne correspondent pas');
+          return;
+        }
+        g(!0);
+        try {
+          (await r(c.trim(), p, n), d(''), m(''), o(''), x('viewer'), s());
+        } catch (D) {
+          E(
+            ((z = (j = D == null ? void 0 : D.response) == null ? void 0 : j.data) == null
+              ? void 0
+              : z.error) || 'Erreur lors de la création'
+          );
+        } finally {
+          g(!1);
+        }
+      },
+      f = [
+        { id: 'viewer', label: 'Viewer', desc: 'Lecture seule', color: 'slate' },
+        { id: 'admin', label: 'Admin', desc: 'Accès complet', color: a },
+      ];
+    return e.jsx(lt, {
+      isOpen: t,
+      onClose: s,
+      title: 'Créer un Opérateur',
+      maxWidth: 'max-w-md',
+      children: e.jsxs('form', {
+        onSubmit: N,
+        className: 'space-y-6',
+        children: [
+          e.jsxs('div', {
+            children: [
+              e.jsx('label', {
+                className:
+                  'block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest',
+                children: 'Identifiant',
+              }),
+              e.jsxs('div', {
+                className: 'relative group',
+                children: [
+                  e.jsx(Ne, {
+                    className:
+                      'absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors',
+                    size: 18,
+                  }),
+                  e.jsx('input', {
+                    type: 'text',
+                    value: c,
+                    onChange: (v) => d(v.target.value),
+                    className: 'w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono',
+                    placeholder: 'ex: operateur01',
+                    autoFocus: !0,
+                  }),
+                ],
+              }),
+            ],
+          }),
+          e.jsxs('div', {
+            children: [
+              e.jsx('label', {
+                className:
+                  'block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest',
+                children: 'Mot de Passe',
+              }),
+              e.jsxs('div', {
+                className: 'relative group',
+                children: [
+                  e.jsx(Ct, {
+                    className:
+                      'absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors',
+                    size: 18,
+                  }),
+                  e.jsx('input', {
+                    type: u ? 'text' : 'password',
+                    value: p,
+                    onChange: (v) => m(v.target.value),
+                    className: 'w-full pl-12 pr-12 py-4 glass-input rounded-2xl font-mono',
+                    placeholder: '••••••••',
+                  }),
+                  e.jsx('button', {
+                    type: 'button',
+                    onClick: () => b(!u),
+                    className:
+                      'absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors',
+                    children: u ? e.jsx(rs, { size: 18 }) : e.jsx(is, { size: 18 }),
+                  }),
+                ],
+              }),
+            ],
+          }),
+          e.jsxs('div', {
+            children: [
+              e.jsx('label', {
+                className:
+                  'block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest',
+                children: 'Confirmer le Mot de Passe',
+              }),
+              e.jsxs('div', {
+                className: 'relative group',
+                children: [
+                  e.jsx(Ct, {
+                    className:
+                      'absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors',
+                    size: 18,
+                  }),
+                  e.jsx('input', {
+                    type: u ? 'text' : 'password',
+                    value: l,
+                    onChange: (v) => o(v.target.value),
+                    className: 'w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono',
+                    placeholder: '••••••••',
+                  }),
+                ],
+              }),
+            ],
+          }),
+          e.jsxs('div', {
+            children: [
+              e.jsx('label', {
+                className:
+                  'block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest',
+                children: 'Rôle Système',
+              }),
+              e.jsx('div', {
+                className: 'grid grid-cols-2 gap-3',
+                children: f.map((v) =>
+                  e.jsxs(
+                    'button',
+                    {
+                      type: 'button',
+                      onClick: () => x(v.id),
+                      className: i(
+                        'flex flex-col items-center gap-2 py-4 rounded-2xl border transition-all duration-300 text-center',
+                        n === v.id
+                          ? `bg-${v.color}-500/10 border-${v.color}-500/40 text-${v.color}-400 shadow-lg shadow-${v.color}-500/10`
+                          : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10 hover:text-slate-300'
+                      ),
+                      children: [
+                        e.jsx(be, { size: 20 }),
+                        e.jsxs('div', {
+                          children: [
+                            e.jsx('div', {
+                              className: 'text-[11px] font-black uppercase tracking-widest',
+                              children: v.label,
+                            }),
+                            e.jsx('div', {
+                              className: 'text-[9px] opacity-60 mt-0.5',
+                              children: v.desc,
+                            }),
+                          ],
+                        }),
+                      ],
+                    },
+                    v.id
+                  )
+                ),
+              }),
+            ],
+          }),
+          w &&
+            e.jsx('div', {
+              className:
+                'p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-tight',
+              children: w,
+            }),
+          e.jsxs('div', {
+            className: 'flex gap-4 pt-2',
+            children: [
+              e.jsx('button', {
+                type: 'button',
+                onClick: s,
+                className:
+                  'flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-widest rounded-2xl border border-white/5 transition-all',
+                children: 'Annuler',
+              }),
+              e.jsxs('button', {
+                type: 'submit',
+                disabled: y || !c || !p || !l,
+                className: i(
+                  'flex-[2] py-4 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30',
+                  `bg-${a}-600 hover:bg-${a}-500 shadow-${a}-600/30`
+                ),
+                children: [
+                  y
+                    ? e.jsx(J, { className: 'animate-spin', size: 18 })
+                    : e.jsx(qe, { size: 18, strokeWidth: 3 }),
+                  "Créer l'Opérateur",
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+    });
+  },
+  Dr = ({ isOpen: t, onClose: s, client: r, onSave: a }) => {
+    var f;
+    const { theme: c } = Q(),
+      { addToast: d } = ke(),
+      [p, m] = h.useState(0),
+      [l, o] = h.useState(0),
+      [n, x] = h.useState(!0),
+      [u, b] = h.useState(''),
+      [y, g] = h.useState(!1);
+    h.useEffect(() => {
+      if (r && t) {
+        (m(r.quota || 0), o(r.uploadLimit || 0));
+        const v = !!r.expiry;
+        (x(!v), b(v ? r.expiry.split('T')[0] : ''));
+      }
+    }, [r, t]);
+    const w = async (v) => {
+      var j, z;
+      (v.preventDefault(), g(!0));
+      try {
+        (await T.patch(`/clients/${r.container}/${r.name}`, {
+          quota: parseInt(p),
+          uploadLimit: parseInt(l),
+          expiry: n ? null : u,
+        }),
+          d(`Peer ${r.name} mis à jour avec succès`, 'success'),
+          a == null || a(),
+          s());
+      } catch (D) {
+        d(
+          ((z = (j = D == null ? void 0 : D.response) == null ? void 0 : j.data) == null
+            ? void 0
+            : z.error) || 'Erreur de mise à jour',
+          'error'
+        );
+      } finally {
+        g(!1);
+      }
+    };
+    if (!r) return null;
+    const N = ((v) => {
+      const j = ['emerald', 'indigo', 'rose', 'amber', 'cyan', 'purple'];
+      return j[
+        Math.abs(
+          ((D) => D.split('').reduce((k, R) => ((k = (k << 5) - k + R.charCodeAt(0)), k & k), 0))(
+            v || ''
+          )
+        ) % j.length
+      ];
+    })(r.container);
+    return e.jsx(lt, {
+      isOpen: t,
+      onClose: s,
+      title: 'Éditer Peer',
+      maxWidth: 'max-w-lg',
+      children: e.jsxs('form', {
+        onSubmit: w,
+        className: 'space-y-8',
+        children: [
+          e.jsxs('div', {
+            className: i(
+              'flex items-center gap-4 p-5 rounded-2xl border',
+              `bg-${N}-500/5 border-${N}-500/20`
+            ),
+            children: [
+              e.jsx('div', {
+                className: i(
+                  'w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-xl',
+                  `bg-${N}-600`
+                ),
+                children:
+                  (f = r == null ? void 0 : r.name) == null ? void 0 : f.charAt(0).toUpperCase(),
+              }),
+              e.jsxs('div', {
+                className: 'flex-1 min-w-0',
+                children: [
+                  e.jsx('div', {
+                    className: 'text-lg font-black text-white uppercase tracking-tight truncate',
+                    children: r == null ? void 0 : r.name,
+                  }),
+                  e.jsxs('div', {
+                    className: 'flex items-center gap-2 mt-1',
+                    children: [
+                      e.jsx('span', {
+                        className: i(
+                          'text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest',
+                          `bg-${N}-500/10 text-${N}-400 border-${N}-500/20`
+                        ),
+                        children: r == null ? void 0 : r.container,
+                      }),
+                      e.jsx('span', {
+                        className: 'text-[10px] font-mono text-slate-500',
+                        children: r == null ? void 0 : r.ip,
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+              e.jsx(be, { size: 20, className: i('flex-shrink-0', `text-${N}-500/40`) }),
+            ],
+          }),
+          e.jsxs('div', {
+            className: 'space-y-3',
+            children: [
+              e.jsxs('div', {
+                className: 'flex justify-between items-center',
+                children: [
+                  e.jsxs('label', {
+                    className:
+                      'text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2',
+                    children: [e.jsx(tt, { size: 14 }), ' Quota de Données'],
+                  }),
+                  e.jsx('span', {
+                    className: i('text-sm font-black font-mono', `text-${c}-400`),
+                    children: p > 0 ? `${p} GB` : '∞ Illimité',
+                  }),
+                ],
+              }),
+              e.jsx('div', {
+                className: 'flex items-center gap-4',
+                children: e.jsx('input', {
+                  type: 'range',
+                  min: '0',
+                  max: '200',
+                  step: '5',
+                  value: p,
+                  onChange: (v) => m(v.target.value),
+                  className: 'w-full accent-indigo-500',
+                }),
+              }),
+              e.jsxs('div', {
+                className: 'flex justify-between text-[9px] font-mono text-slate-600',
+                children: [
+                  e.jsx('span', { children: '0 (illimité)' }),
+                  e.jsx('span', { children: '50 GB' }),
+                  e.jsx('span', { children: '100 GB' }),
+                  e.jsx('span', { children: '200 GB' }),
+                ],
+              }),
+            ],
+          }),
+          e.jsxs('div', {
+            className: 'space-y-3',
+            children: [
+              e.jsxs('div', {
+                className: 'flex justify-between items-center',
+                children: [
+                  e.jsxs('label', {
+                    className:
+                      'text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2',
+                    children: [e.jsx(He, { size: 14 }), ' Bande Passante Max'],
+                  }),
+                  e.jsx('span', {
+                    className: i('text-sm font-black font-mono', `text-${c}-400`),
+                    children: l > 0 ? `${l} Mbps` : '∞ Illimité',
+                  }),
+                ],
+              }),
+              e.jsx('div', {
+                className: 'flex items-center gap-4',
+                children: e.jsx('input', {
+                  type: 'range',
+                  min: '0',
+                  max: '1000',
+                  step: '10',
+                  value: l,
+                  onChange: (v) => o(v.target.value),
+                  className: 'w-full accent-indigo-500',
+                }),
+              }),
+              e.jsxs('div', {
+                className: 'flex justify-between text-[9px] font-mono text-slate-600',
+                children: [
+                  e.jsx('span', { children: '0 (illimité)' }),
+                  e.jsx('span', { children: '250 Mbps' }),
+                  e.jsx('span', { children: '500 Mbps' }),
+                  e.jsx('span', { children: '1 Gbps' }),
+                ],
+              }),
+            ],
+          }),
+          e.jsxs('div', {
+            className: 'space-y-3',
+            children: [
+              e.jsxs('div', {
+                className: 'flex justify-between items-center',
+                children: [
+                  e.jsxs('label', {
+                    className:
+                      'text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2',
+                    children: [e.jsx(gt, { size: 14 }), ' Expiration'],
+                  }),
+                  e.jsxs('label', {
+                    className: 'flex items-center gap-2 cursor-pointer group',
+                    children: [
+                      e.jsx('div', {
+                        onClick: () => x(!n),
+                        className: i(
+                          'w-10 h-5 rounded-full transition-all relative border border-white/10 cursor-pointer',
+                          n ? 'bg-emerald-600' : 'bg-slate-800'
+                        ),
+                        children: e.jsx('div', {
+                          className: i(
+                            'absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white shadow-md transition-all',
+                            n ? 'left-[calc(100%-1rem)]' : 'left-0.5'
+                          ),
+                        }),
+                      }),
+                      e.jsx('span', {
+                        className:
+                          'text-[10px] font-black uppercase text-slate-400 group-hover:text-white transition-colors',
+                        children: 'Illimité',
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+              !n &&
+                e.jsxs('div', {
+                  className: 'relative group animate-in slide-in-from-top-2 duration-300',
+                  children: [
+                    e.jsx(gt, {
+                      className: 'absolute left-4 top-1/2 -translate-y-1/2 text-slate-500',
+                      size: 16,
+                    }),
+                    e.jsx('input', {
+                      type: 'date',
+                      value: u,
+                      onChange: (v) => b(v.target.value),
+                      min: new Date().toISOString().split('T')[0],
+                      className: 'w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono',
+                    }),
+                  ],
+                }),
+            ],
+          }),
+          e.jsxs('div', {
+            className: 'flex gap-4 pt-2 border-t border-white/5',
+            children: [
+              e.jsx('button', {
+                type: 'button',
+                onClick: s,
+                className:
+                  'flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-widest rounded-2xl border border-white/5 transition-all',
+                children: 'Annuler',
+              }),
+              e.jsxs('button', {
+                type: 'submit',
+                disabled: y,
+                className: i(
+                  'flex-[2] py-4 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30',
+                  `bg-${c}-600 hover:bg-${c}-500 shadow-${c}-600/30`
+                ),
+                children: [
+                  y ? e.jsx(J, { className: 'animate-spin', size: 18 }) : e.jsx($t, { size: 18 }),
+                  'Sauvegarder',
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+    });
+  },
+  Ir = (t, s = {}) => {
+    const [r, a] = h.useState(null),
+      [c, d] = h.useState('CONNECTING'),
+      p = h.useRef(null),
+      m = h.useRef(0),
+      l = 3e4,
+      o = h.useRef(null),
+      n = h.useRef(s.onMessage),
+      x = h.useRef(s.onOpen);
+    (h.useEffect(() => {
+      n.current = s.onMessage;
+    }, [s.onMessage]),
+      h.useEffect(() => {
+        x.current = s.onOpen;
+      }, [s.onOpen]),
+      h.useEffect(() => {
+        let b = !0;
+        const y = () => {
+          if (!(!t || !b)) {
+            (p.current && p.current.close(), o.current && clearTimeout(o.current));
+            try {
+              ((p.current = new WebSocket(t)),
+                d('CONNECTING'),
+                (p.current.onopen = () => {
+                  b && (d('OPEN'), (m.current = 0), x.current && x.current());
+                }),
+                (p.current.onmessage = (g) => {
+                  if (!b) return;
+                  let w;
+                  try {
+                    w = JSON.parse(g.data);
+                  } catch {
+                    w = g.data;
+                  }
+                  (a(w), n.current && n.current(w));
+                }),
+                (p.current.onclose = () => {
+                  if (!b) return;
+                  d('CLOSED');
+                  const g = Math.min(1e3 * Math.pow(2, m.current), l);
+                  ((m.current += 1),
+                    (o.current = setTimeout(() => {
+                      b && y();
+                    }, g)));
+                }),
+                (p.current.onerror = () => {
+                  p.current && p.current.close();
+                }));
+            } catch {
+              b && d('CLOSED');
+            }
+          }
+        };
+        return (
+          y(),
+          () => {
+            ((b = !1),
+              o.current && clearTimeout(o.current),
+              p.current && ((p.current.onclose = null), p.current.close()));
+          }
+        );
+      }, [t]));
+    const u = h.useCallback((b) => {
+      var y;
+      ((y = p.current) == null ? void 0 : y.readyState) === WebSocket.OPEN &&
+        p.current.send(typeof b == 'string' ? b : JSON.stringify(b));
+    }, []);
+    return { data: r, status: c, send: u };
+  },
+  es = 'wg-fux-cache',
+  Tr = 3e4,
+  Lr = 5e3,
+  ts = 15e3,
+  Pr = (t) => {
+    const { addToast: s } = ke(),
+      r = h.useRef({ clients: [], timestamp: null }),
+      [a, c] = h.useState([]),
+      [d, p] = h.useState([]),
+      [m, l] = h.useState([]),
+      [o, n] = h.useState({}),
+      [x, u] = h.useState({ cpu: 0, memory: 0, disk: 0 }),
+      [b, y] = h.useState([]),
+      [g, w] = h.useState({}),
+      [E, N] = h.useState(!0),
+      [f, v] = h.useState({ status: 'unknown' }),
+      [j, z] = h.useState({}),
+      [D, k] = h.useState(''),
+      [R, U] = h.useState({ loading: !1, data: null }),
+      [G, X] = h.useState({ status: 'offline', lastHeartbeat: null, stats: {} }),
+      [C, P] = h.useState({ status: 'unknown' }),
+      [B, S] = h.useState([]),
+      O = h.useCallback(async () => {
+        try {
+          const I = await T.get('/system/adguard-status');
+          P(I.data);
+        } catch {
+          P({ status: 'inactive' });
+        }
+      }, []);
+    Ir(Rs('status'), {
+      onMessage: (I) => {
+        var ae, K;
+        if (!I || typeof I != 'object') return;
+        if (I.type === 'peer_status' && Array.isArray(I.onlinePeers)) {
+          S(I.onlinePeers);
+          return;
+        }
+        if (
+          I.type === 'client_event' ||
+          I.type === 'peer_connected' ||
+          I.type === 'peer_disconnected'
+        ) {
+          const H = I.name || ((ae = I.client) == null ? void 0 : ae.name) || 'Peer',
+            pe = I.container || ((K = I.client) == null ? void 0 : K.container) || '',
+            ge =
+              I.type !== 'peer_disconnected' &&
+              (I.event === 'connected' || I.type === 'peer_connected');
+          (s(
+            `${H}${pe ? ' (' + pe + ')' : ''} ${ge ? 'connecté' : 'déconnecté'}`,
+            ge ? 'success' : 'info'
+          ),
+            $());
+        }
+      },
+    });
+    const q = h.useCallback(async () => {
+        try {
+          const I = await T.get('/sentinel/status');
+          X(I.data);
+        } catch {
+          X((I) => ({ ...I, status: 'error' }));
+        }
+      }, []),
+      Z = t == null ? void 0 : t.role,
+      $ = h.useCallback(async () => {
+        var I, xe;
+        try {
+          const ae = Z === 'admin',
+            [K, H, pe, ge, Y] = await Promise.all([
+              T.get('/clients'),
+              T.get('/system/stats').catch(() => ({ data: {} })),
+              T.get('/system/health').catch(() => ({ data: { status: 'unhealthy' } })),
+              T.get('/clients/containers').catch(() => ({ data: [] })),
+              ae ? T.get('/users').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+            ]),
+            Ce = Date.now(),
+            we = K.data || [],
+            { clients: re, timestamp: Se } = r.current,
+            me = Se ? (Ce - Se) / 1e3 : 0;
+          (p(ge.data || []), l(Y.data || []));
+          const $e = we.map((ne) => {
+            const oe = re.find((ve) => ve.publicKey === ne.publicKey),
+              ze = Number(ne.downloadBytes) || 0,
+              Qe = Number(ne.uploadBytes) || 0,
+              _ = (oe && Number(oe.downloadBytes)) || 0,
+              W = (oe && Number(oe.uploadBytes)) || 0;
+            let V = 0,
+              ie = 0;
+            return (
+              oe && me > 0 && ((V = Math.max(0, (ze - _) / me)), (ie = Math.max(0, (Qe - W) / me))),
+              { ...ne, downloadRate: V, uploadRate: ie }
+            );
+          });
+          (c($e), (r.current = { clients: we, timestamp: Ce }));
+          const ot = ((I = H.data) == null ? void 0 : I.network) || {};
+          (n(ot),
+            u(((xe = H.data) == null ? void 0 : xe.system) || { cpu: 0, memory: 0, disk: 0 }),
+            v(pe.data || { status: 'unknown' }));
+          const nt = $e.reduce((ne, oe) => ne + (oe.downloadRate || 0), 0),
+            yt = $e.reduce((ne, oe) => ne + (oe.uploadRate || 0), 0),
+            Ve = new Date().toLocaleTimeString('fr-FR', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            });
+          (y((ne) => [...ne, { time: Ve, download: nt, upload: yt }].slice(-20)),
+            w((ne) => {
+              const oe = { ...ne };
+              return (
+                $e.forEach((ze) => {
+                  const Qe = oe[ze.id] || [];
+                  oe[ze.id] = [
+                    ...Qe,
+                    { time: Ve, dl: ze.downloadRate || 0, ul: ze.uploadRate || 0 },
+                  ].slice(-20);
+                }),
+                oe
+              );
+            }),
+            N(!1));
+          try {
+            sessionStorage.setItem(es, JSON.stringify({ clients: $e, stats: ot, ts: Ce }));
+          } catch {}
+        } catch (ae) {
+          (console.error('[useDashboardData] Fetch error:', ae), N(!1));
+        }
+      }, [Z]);
+    return (
+      h.useEffect(() => {
+        const I = sessionStorage.getItem(es);
+        if (I)
+          try {
+            const { clients: H, stats: pe, ts: ge } = JSON.parse(I);
+            Date.now() - ge < Tr &&
+              setTimeout(() => {
+                (c(H), n(pe), N(!1));
+              }, 0);
+          } catch {}
+        (T.get('/system/uptime')
+          .then((H) => k(H.data.uptime))
+          .catch(() => {}),
+          T.get('/system/config')
+            .then((H) => z(H.data))
+            .catch(() => {}),
+          $(),
+          q(),
+          O());
+        const xe = setInterval($, Lr),
+          ae = setInterval(q, ts),
+          K = setInterval(O, ts);
+        return () => {
+          (clearInterval(xe), clearInterval(ae), clearInterval(K));
+        };
+      }, [$, q, O]),
+      {
+        clients: a,
+        allContainers: d,
+        users: m,
+        stats: o,
+        systemStats: x,
+        trafficData: b,
+        clientsHistory: g,
+        loading: E,
+        health: f,
+        config: j,
+        uptime: D,
+        speedtest: R,
+        sentinelStatus: G,
+        adguardStatus: C,
+        onlinePeers: B,
+        fetchData: $,
+        fetchSentinel: q,
+        handleRunSpeedtest: async () => {
+          U({ loading: !0, data: null });
+          try {
+            const I = await T.post('/system/speedtest');
+            (U({ loading: !1, data: I.data }), s('Test de flux complété', 'success'));
+          } catch {
+            (U({ loading: !1, data: null }), s('Erreur Speedtest', 'error'));
+          }
+        },
+        setUsers: l,
+      }
+    );
+  },
+  pt = ({ label: t, value: s, sub: r, icon: a, delay: c = 0 }) => {
+    const { theme: d, isDark: p } = Q();
+    return e.jsxs(L.div, {
+      initial: { opacity: 0, y: 30 },
+      animate: { opacity: 1, y: 0 },
+      transition: { delay: c, duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+      className: 'relative overflow-hidden glass-card p-4 md:p-6 group shadow-2xl',
+      children: [
+        e.jsx('div', {
+          className: i(
+            'absolute -inset-1 bg-gradient-to-r from-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-1000',
+            p ? 'via-white/5' : 'via-black/5',
+            `group-hover:via-${d}-500/10`
+          ),
+        }),
+        e.jsx('div', {
+          className: i(
+            'absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12 group-hover:rotate-0',
+            p ? `text-${d}-500` : 'text-slate-900'
+          ),
+          children: a && e.jsx(a, { size: 120 }),
+        }),
+        e.jsxs('div', {
+          className: 'relative z-10',
+          children: [
+            e.jsxs('div', {
+              className: 'flex items-center justify-between mb-4',
+              children: [
+                e.jsx('p', {
+                  className: 'text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]',
+                  children: t,
+                }),
+                a &&
+                  e.jsx('div', {
+                    className: i(
+                      'p-2.5 rounded-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-lg shadow-black/20',
+                      `bg-${d}-500/10 text-${d}-400 border border-${d}-500/10`
+                    ),
+                    children: e.jsx(a, { size: 18 }),
+                  }),
+              ],
+            }),
+            e.jsx('p', {
+              className:
+                'text-3xl sm:text-4xl 2xl:text-5xl font-black text-slate-900 dark:text-white font-mono tracking-tighter mb-2 group-hover:scale-105 transition-transform duration-500 origin-left truncate',
+              children: s,
+            }),
+            r &&
+              e.jsxs('div', {
+                className: i(
+                  'flex items-center gap-2 mt-4 pt-4 border-t transition-colors',
+                  p ? 'border-white/5' : 'border-black/5'
+                ),
+                children: [
+                  e.jsx('span', {
+                    className: i(
+                      'h-1.5 w-1.5 rounded-full animate-pulse',
+                      `bg-${d}-500 shadow-[0_0_8px_currentColor]`
+                    ),
+                  }),
+                  e.jsx('span', {
+                    className: i(
+                      'text-[10px] font-black uppercase tracking-widest opacity-60',
+                      `text-${d}-400`
+                    ),
+                    children: r,
+                  }),
+                ],
+              }),
+          ],
+        }),
+      ],
+    });
+  },
+  kt = ({ value: t, label: s, color: r, icon: a }) => {
+    const { isDark: c } = Q(),
+      d = 36,
+      p = 2 * Math.PI * d,
+      m = p - (t / 100) * p;
+    return e.jsxs('div', {
+      className: 'relative flex flex-col items-center group cursor-help shrink-0',
+      children: [
+        e.jsxs('div', {
+          className:
+            'relative w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 transform transition-transform duration-500 group-hover:scale-110',
+          children: [
+            e.jsxs('svg', {
+              viewBox: '0 0 112 112',
+              className: 'w-full h-full transform -rotate-90 drop-shadow-2xl',
+              children: [
+                e.jsx('circle', {
+                  cx: '56',
+                  cy: '56',
+                  r: d,
+                  stroke: 'currentColor',
+                  strokeWidth: '8',
+                  fill: 'transparent',
+                  className: i('transition-colors', c ? 'text-white/5' : 'text-black/5'),
+                }),
+                e.jsx(L.circle, {
+                  cx: '56',
+                  cy: '56',
+                  r: d,
+                  stroke: 'currentColor',
+                  strokeWidth: '8',
+                  fill: 'transparent',
+                  initial: { strokeDashoffset: p },
+                  animate: { strokeDashoffset: m },
+                  transition: { duration: 1.5, ease: 'easeOut' },
+                  className: i('transition-all duration-500', r),
+                  strokeDasharray: p,
+                  strokeLinecap: 'round',
+                }),
+              ],
+            }),
+            e.jsxs('div', {
+              className: 'absolute inset-0 flex flex-col items-center justify-center',
+              children: [
+                e.jsx(a, {
+                  size: 18,
+                  className:
+                    'text-slate-500 mb-1 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300 md:hidden',
+                }),
+                e.jsx(a, {
+                  size: 24,
+                  className:
+                    'text-slate-500 mb-1 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300 hidden md:block',
+                }),
+                e.jsxs('span', {
+                  className:
+                    'text-sm md:text-xl font-black text-slate-900 dark:text-white font-mono',
+                  children: [t, '%'],
+                }),
+              ],
+            }),
+          ],
+        }),
+        e.jsx('span', {
+          className:
+            'mt-4 text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-slate-300 transition-colors duration-300',
+          children: s,
+        }),
+        e.jsx('div', {
+          className: i(
+            'absolute -bottom-2 w-0 h-0.5 bg-current transition-all duration-500 group-hover:w-12',
+            r == null ? void 0 : r.replace('text-', 'bg-')
+          ),
+        }),
+      ],
+    });
+  },
+  ce = ({
+    children: t,
+    className: s,
+    animate: r = !0,
+    delay: a = 0,
+    hover: c = !0,
+    onClick: d,
+  }) => {
+    const p = e.jsxs('div', {
+      onClick: d,
+      className: i(
+        'relative overflow-hidden glass-card rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500',
+        c && 'hover:shadow-indigo-500/5 hover:-translate-y-1',
+        d && 'cursor-pointer active:scale-95',
+        s
+      ),
+      children: [
+        e.jsx('div', {
+          className:
+            'absolute -inset-1 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 hover:opacity-100 blur-xl transition-opacity duration-1000',
+        }),
+        e.jsx('div', { className: 'relative z-10', children: t }),
+      ],
+    });
+    return r
+      ? e.jsx(L.div, {
+          initial: { opacity: 0, y: 30 },
+          whileInView: { opacity: 1, y: 0 },
+          viewport: { once: !0 },
+          transition: { duration: 0.8, delay: a, ease: [0.16, 1, 0.3, 1] },
+          children: p,
+        })
+      : p;
+  },
+  _r = () => {
+    const { theme: t, isDark: s } = Q(),
+      [r, a] = h.useState([]),
+      [c, d] = h.useState(!0),
+      p = async () => {
+        try {
+          const o = (await T.get('/system/traffic-history')).data.map((n) => {
+            var x;
+            return {
+              name: ((x = n.time.split('T')[1]) == null ? void 0 : x.slice(0, 5)) || n.time,
+              down: n.rx / (1024 * 1024),
+              up: n.tx / (1024 * 1024),
+            };
+          });
+          (a(o), d(!1));
+        } catch (l) {
+          console.error('Failed to fetch telemetry:', l);
+        }
+      };
+    h.useEffect(() => {
+      p();
+      const l = setInterval(p, 1e4);
+      return () => clearInterval(l);
+    }, []);
+    const m = ({ active: l, payload: o, label: n }) => {
+      var x, u;
+      return l && o && o.length
+        ? e.jsxs('div', {
+            className: i(
+              'backdrop-blur-2xl border p-4 rounded-2xl shadow-2xl transition-colors',
+              s ? 'bg-slate-900/90 border-white/10' : 'bg-white border-black/5'
+            ),
+            children: [
+              e.jsxs('p', {
+                className: i(
+                  'text-[10px] font-black uppercase tracking-widest mb-2 border-b pb-2',
+                  s ? 'text-slate-500 border-white/5' : 'text-slate-400 border-black/5'
+                ),
+                children: [n, ' - LIVE TELEMETRY'],
+              }),
+              e.jsxs('div', {
+                className: 'space-y-1',
+                children: [
+                  e.jsxs('div', {
+                    className: 'flex items-center justify-between gap-8',
+                    children: [
+                      e.jsxs('span', {
+                        className: 'text-xs text-indigo-400 font-bold flex items-center gap-1',
+                        children: [e.jsx(_e, { size: 10 }), ' DOWNLOAD'],
+                      }),
+                      e.jsxs('span', {
+                        className: i(
+                          'text-sm font-black font-mono',
+                          s ? 'text-white' : 'text-slate-900'
+                        ),
+                        children: [
+                          (((x = o[0]) == null ? void 0 : x.value) ?? 0).toFixed(2),
+                          ' MB',
+                        ],
+                      }),
+                    ],
+                  }),
+                  e.jsxs('div', {
+                    className: 'flex items-center justify-between gap-8',
+                    children: [
+                      e.jsxs('span', {
+                        className: 'text-xs text-rose-400 font-bold flex items-center gap-1',
+                        children: [e.jsx(Gt, { size: 10 }), ' UPLOAD'],
+                      }),
+                      e.jsxs('span', {
+                        className: i(
+                          'text-sm font-black font-mono',
+                          s ? 'text-white' : 'text-slate-900'
+                        ),
+                        children: [
+                          (((u = o[1]) == null ? void 0 : u.value) ?? 0).toFixed(2),
+                          ' MB',
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          })
+        : null;
+    };
+    return c
+      ? e.jsx('div', {
+          className: i(
+            'h-80 w-full flex items-center justify-center rounded-3xl animate-pulse',
+            s ? 'bg-slate-900/20' : 'bg-black/5'
+          ),
+          children: e.jsx(Ae, {
+            className: i('animate-bounce', s ? 'text-slate-700' : 'text-slate-300'),
+            size: 32,
+          }),
+        })
+      : e.jsxs(L.div, {
+          initial: { opacity: 0, scale: 0.95 },
+          animate: { opacity: 1, scale: 1 },
+          className: i(
+            'backdrop-blur-2xl border rounded-3xl p-8 relative overflow-hidden group transition-all',
+            s ? 'bg-slate-900/40 border-white/5' : 'bg-white/80 border-black/5 shadow-sm'
+          ),
+          children: [
+            e.jsx('div', {
+              className:
+                'absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000',
+            }),
+            e.jsxs('div', {
+              className: 'flex items-center justify-between mb-8',
+              children: [
+                e.jsxs('div', {
+                  children: [
+                    e.jsx('h3', {
+                      className:
+                        'text-xs font-black text-slate-500 uppercase tracking-[0.3em] mb-1',
+                      children: 'Système SENTINEL',
+                    }),
+                    e.jsxs('h2', {
+                      className: i(
+                        'text-2xl font-black tracking-tighter flex items-center gap-2',
+                        s ? 'text-white' : 'text-slate-900'
+                      ),
+                      children: [
+                        'Télémétrie Live ',
+                        e.jsx('span', {
+                          className: 'h-2 w-2 rounded-full bg-indigo-500 animate-ping',
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsxs('div', {
+                  className: 'flex gap-2',
+                  children: [
+                    e.jsxs('div', {
+                      className:
+                        'flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full',
+                      children: [
+                        e.jsx(_e, { size: 12, className: 'text-indigo-400' }),
+                        e.jsx('span', {
+                          className: i(
+                            'text-[10px] font-black',
+                            s ? 'text-indigo-100' : 'text-indigo-900'
+                          ),
+                          children: 'DOWNLOAD',
+                        }),
+                      ],
+                    }),
+                    e.jsxs('div', {
+                      className:
+                        'flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-full',
+                      children: [
+                        e.jsx(Gt, { size: 12, className: 'text-rose-400' }),
+                        e.jsx('span', {
+                          className: i(
+                            'text-[10px] font-black',
+                            s ? 'text-rose-100' : 'text-rose-900'
+                          ),
+                          children: 'UPLOAD',
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            e.jsx('div', {
+              className: 'h-72 w-full relative',
+              children:
+                r.length === 0
+                  ? e.jsxs('div', {
+                      className: i(
+                        'absolute inset-0 flex flex-col items-center justify-center rounded-3xl border border-dashed',
+                        s ? 'bg-white/[0.02] border-white/5' : 'bg-black/[0.02] border-black/5'
+                      ),
+                      children: [
+                        e.jsx(de, {
+                          size: 48,
+                          className: i('mb-4', s ? 'text-slate-800' : 'text-slate-200'),
+                        }),
+                        e.jsx('p', {
+                          className: i(
+                            'text-[10px] font-black uppercase tracking-[0.3em]',
+                            s ? 'text-slate-600' : 'text-slate-400'
+                          ),
+                          children: 'Initialisation des flux Sentinel...',
+                        }),
+                        e.jsx('p', {
+                          className: i(
+                            'text-[8px] font-bold uppercase tracking-widest mt-2',
+                            s ? 'text-slate-700' : 'text-slate-300'
+                          ),
+                          children: "(Données disponibles après le premier cycle d'audit)",
+                        }),
+                      ],
+                    })
+                  : e.jsx(vt, {
+                      width: '100%',
+                      height: '100%',
+                      children: e.jsxs(Dt, {
+                        data: r,
+                        children: [
+                          e.jsxs('defs', {
+                            children: [
+                              e.jsxs('linearGradient', {
+                                id: 'colorDown',
+                                x1: '0',
+                                y1: '0',
+                                x2: '0',
+                                y2: '1',
+                                children: [
+                                  e.jsx('stop', {
+                                    offset: '5%',
+                                    stopColor: '#6366f1',
+                                    stopOpacity: 0.4,
+                                  }),
+                                  e.jsx('stop', {
+                                    offset: '95%',
+                                    stopColor: '#6366f1',
+                                    stopOpacity: 0,
+                                  }),
+                                ],
+                              }),
+                              e.jsxs('linearGradient', {
+                                id: 'colorUp',
+                                x1: '0',
+                                y1: '0',
+                                x2: '0',
+                                y2: '1',
+                                children: [
+                                  e.jsx('stop', {
+                                    offset: '5%',
+                                    stopColor: '#f43f5e',
+                                    stopOpacity: 0.4,
+                                  }),
+                                  e.jsx('stop', {
+                                    offset: '95%',
+                                    stopColor: '#f43f5e',
+                                    stopOpacity: 0,
+                                  }),
+                                ],
+                              }),
+                            ],
+                          }),
+                          e.jsx(It, {
+                            strokeDasharray: '3 3',
+                            vertical: !1,
+                            stroke: s ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+                          }),
+                          e.jsx(Tt, {
+                            dataKey: 'name',
+                            axisLine: !1,
+                            tickLine: !1,
+                            tick: { fill: '#475569', fontSize: 10, fontWeight: 900 },
+                          }),
+                          e.jsx(Lt, {
+                            axisLine: !1,
+                            tickLine: !1,
+                            tick: { fill: '#475569', fontSize: 10, fontWeight: 900 },
+                            tickFormatter: (l) => `${l}MB`,
+                          }),
+                          e.jsx(jt, { content: e.jsx(m, {}) }),
+                          e.jsx(st, {
+                            type: 'monotone',
+                            dataKey: 'down',
+                            stroke: '#6366f1',
+                            strokeWidth: 3,
+                            fillOpacity: 1,
+                            fill: 'url(#colorDown)',
+                            animationDuration: 2e3,
+                            isAnimationActive: !0,
+                          }),
+                          e.jsx(st, {
+                            type: 'monotone',
+                            dataKey: 'up',
+                            stroke: '#f43f5e',
+                            strokeWidth: 3,
+                            fillOpacity: 1,
+                            fill: 'url(#colorUp)',
+                            animationDuration: 2e3,
+                            isAnimationActive: !0,
+                          }),
+                        ],
+                      }),
+                    }),
+            }),
+            e.jsxs('div', {
+              className: i(
+                'mt-6 pt-6 border-t flex items-center justify-between',
+                s ? 'border-white/5' : 'border-black/5'
+              ),
+              children: [
+                e.jsxs('div', {
+                  className: 'flex items-center gap-3',
+                  children: [
+                    e.jsx(de, { size: 18, className: 'text-indigo-500 animate-pulse' }),
+                    e.jsx('span', {
+                      className: 'text-[10px] font-bold text-slate-500 uppercase tracking-widest',
+                      children: 'Mise à jour en temps réel via Drizzle/SQLite',
+                    }),
+                  ],
+                }),
+                e.jsxs('div', {
+                  className: i(
+                    'flex items-center gap-2 px-4 py-2 rounded-xl border',
+                    s ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'
+                  ),
+                  children: [
+                    e.jsx('span', {
+                      className: 'text-[10px] font-black text-slate-400',
+                      children: 'STATUS:',
+                    }),
+                    e.jsx('span', {
+                      className: 'text-[10px] font-black text-emerald-500 tracking-widest',
+                      children: 'OPTIMAL',
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        });
+  },
+  Or = ({
+    stats: t,
+    trafficData: s,
+    systemStats: r,
+    clients: a,
+    health: c,
+    config: d,
+    onRunSpeedtest: p,
+    speedtest: m,
+    onCreateClient: l,
+    sentinel: o,
+    adguardStatus: n,
+    onNavigate: x,
+  }) => {
+    var z, D, k, R, U, G, X;
+    const { theme: u, isDark: b } = Q(),
+      y = (r == null ? void 0 : r.cpu) || 0,
+      g = (r == null ? void 0 : r.memory) || 0,
+      w = (r == null ? void 0 : r.disk) || 0,
+      E = h.useMemo(() => {
+        if (!a || !Array.isArray(a)) return [];
+        const C = a.reduce((P, B) => {
+          const S = B.container || 'Défaut',
+            O = (B.downloadBytes || 0) + (B.uploadBytes || 0);
+          return (O > 0 && (P[S] || (P[S] = 0), (P[S] += O)), P);
+        }, {});
+        return Object.entries(C)
+          .map(([P, B]) => ({ name: P, value: B }))
+          .sort((P, B) => B.value - P.value);
+      }, [a]),
+      N = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+      { topClient: f, topClientRate: v } = h.useMemo(() => {
+        if (!a || !Array.isArray(a) || a.length === 0)
+          return { topClient: { name: 'Aucun', downloadRate: 0, uploadRate: 0 }, topClientRate: 0 };
+        const C = a.reduce(
+            (B, S) => {
+              const O = (B.downloadRate || 0) + (B.uploadRate || 0);
+              return (S.downloadRate || 0) + (S.uploadRate || 0) > O ? S : B;
+            },
+            { name: 'Aucun', downloadRate: 0, uploadRate: 0 }
+          ),
+          P = (C.downloadRate || 0) + (C.uploadRate || 0);
+        return { topClient: C, topClientRate: P };
+      }, [a]),
+      j = h.useMemo(
+        () =>
+          a
+            ? a
+                .filter((C) => C.quota > 0)
+                .map((C) => ({
+                  name: C.name,
+                  container: C.container,
+                  pct: Math.min(100, (C.usageTotal / (C.quota * 1024 * 1024 * 1024)) * 100),
+                }))
+                .filter((C) => C.pct > 80)
+                .sort((C, P) => P.pct - C.pct)
+            : [],
+        [a]
+      );
+    return e.jsxs('div', {
+      className: 'space-y-6 md:space-y-10 animate-in slide-in-from-bottom-10 duration-700',
+      children: [
+        j.length > 0 &&
+          e.jsxs('div', {
+            className:
+              'flex items-start gap-4 p-4 bg-rose-500/5 border border-rose-500/20 rounded-2xl animate-in slide-in-from-top-2 duration-500',
+            children: [
+              e.jsx('div', {
+                className: 'p-2 rounded-xl bg-rose-500/10 text-rose-400 flex-shrink-0',
+                children: e.jsx(Be, { size: 18 }),
+              }),
+              e.jsxs('div', {
+                className: 'flex-1 min-w-0',
+                children: [
+                  e.jsxs('p', {
+                    className:
+                      'text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2',
+                    children: [
+                      '⚠ ',
+                      j.length,
+                      ' Peer',
+                      j.length > 1 ? 's' : '',
+                      ' en Quota Critique',
+                    ],
+                  }),
+                  e.jsx('div', {
+                    className: 'flex flex-wrap gap-2',
+                    children: j.map((C) =>
+                      e.jsxs(
+                        'span',
+                        {
+                          className:
+                            'inline-flex items-center gap-1.5 text-[9px] font-mono text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20',
+                          children: [
+                            e.jsx('span', {
+                              className: i(
+                                'w-1.5 h-1.5 rounded-full',
+                                C.pct >= 100 ? 'bg-red-500' : 'bg-rose-400'
+                              ),
+                            }),
+                            C.name,
+                            ' — ',
+                            C.pct.toFixed(0),
+                            '%',
+                          ],
+                        },
+                        C.name
+                      )
+                    ),
+                  }),
+                ],
+              }),
+              x &&
+                e.jsxs('button', {
+                  onClick: () => x('containers'),
+                  className:
+                    'flex items-center gap-1 text-[10px] font-black text-rose-400 hover:text-rose-300 uppercase tracking-widest flex-shrink-0 transition-colors',
+                  children: ['Gérer ', e.jsx(Le, { size: 12 })],
+                }),
+            ],
+          }),
+        e.jsxs('div', {
+          className:
+            'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-12 gap-6 md:gap-8',
+          children: [
+            e.jsx('div', {
+              className: '2xl:col-span-8',
+              children: e.jsxs(ce, {
+                className: 'p-6 md:p-10 flex flex-col justify-between group min-h-[320px]',
+                children: [
+                  e.jsx('div', {
+                    className: 'absolute -right-10 -bottom-10 pointer-events-none',
+                    children: e.jsx(at, {
+                      className: i(
+                        'w-[200px] h-[200px] md:w-[300px] md:h-[300px] group-hover:scale-110 group-hover:rotate-6 transition-transform duration-1000 ease-in-out',
+                        b ? 'text-white/[0.015]' : 'text-black/[0.015]'
+                      ),
+                    }),
+                  }),
+                  e.jsxs('div', {
+                    className: 'space-y-6 md:space-y-10',
+                    children: [
+                      e.jsxs('div', {
+                        className: 'flex items-start justify-between flex-wrap gap-4',
+                        children: [
+                          e.jsxs('div', {
+                            children: [
+                              e.jsxs('div', {
+                                className: 'flex items-center gap-3 mb-2',
+                                children: [
+                                  e.jsx(be, {
+                                    className: i('fill-current opacity-80', `text-${u}-500`),
+                                    size: 28,
+                                  }),
+                                  e.jsx('h2', {
+                                    className: i(
+                                      'text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-black tracking-widest italic uppercase transition-colors shrink-0',
+                                      b ? 'text-white' : 'text-slate-900'
+                                    ),
+                                    children: 'Protocole Actif',
+                                  }),
+                                ],
+                              }),
+                              e.jsx('p', {
+                                className:
+                                  'text-slate-500 font-mono text-[10px] tracking-[0.3em] uppercase opacity-60',
+                                children: 'System Security Integrated: 100% Integrity',
+                              }),
+                            ],
+                          }),
+                          e.jsx('div', {
+                            className: i(
+                              'px-4 py-2 rounded-full text-[10px] font-black tracking-[0.2em] border whitespace-nowrap',
+                              c.status === 'healthy'
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 animate-pulse'
+                                : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                            ),
+                            children: c.status === 'healthy' ? 'OPERATIONAL' : 'CHECKING',
+                          }),
+                        ],
+                      }),
+                      e.jsxs('div', {
+                        className: 'grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8',
+                        children: [
+                          e.jsx(pt, {
+                            label: 'Peers Actifs',
+                            value: t.connectedClients ?? 0,
+                            sub: 'CONNECTÉS',
+                            icon: Ne,
+                            delay: 0,
+                          }),
+                          e.jsx(pt, {
+                            label: 'MTU Tunnel',
+                            value: (d == null ? void 0 : d.mtu) || '1420',
+                            icon: de,
+                            delay: 0.1,
+                          }),
+                          e.jsx(pt, {
+                            label: 'Port Liaison',
+                            value: (d == null ? void 0 : d.port) || '51820',
+                            icon: qs,
+                            delay: 0.2,
+                          }),
+                          e.jsx(pt, {
+                            label: 'Health Shield',
+                            value: c.status === 'healthy' ? 'Optimal' : 'Checking',
+                            sub: c.status === 'healthy' ? 'STABLE' : 'PENDING',
+                            icon: fe,
+                            delay: 0.3,
+                          }),
+                        ],
+                      }),
+                      e.jsxs('div', {
+                        className: 'grid grid-cols-1 sm:grid-cols-2 gap-4',
+                        children: [
+                          e.jsxs('div', {
+                            className: i(
+                              'backdrop-blur-3xl p-5 md:p-8 rounded-[1.5rem] flex items-center justify-between group/rx transition-all duration-500',
+                              b
+                                ? 'bg-slate-950/40 border-white/5 hover:border-emerald-500/20'
+                                : 'bg-white/80 border-black/5 hover:border-emerald-500/30 shadow-sm'
+                            ),
+                            children: [
+                              e.jsxs('div', {
+                                children: [
+                                  e.jsx('p', {
+                                    className:
+                                      'text-[10px] font-black text-emerald-500/70 uppercase tracking-widest mb-1',
+                                    children: 'Total Download (RX)',
+                                  }),
+                                  e.jsx('p', {
+                                    className: i(
+                                      'text-2xl md:text-4xl font-mono font-black tracking-tighter transition-colors',
+                                      b ? 'text-white' : 'text-slate-900'
+                                    ),
+                                    children: (t == null ? void 0 : t.totalDownload) || '0 B',
+                                  }),
+                                ],
+                              }),
+                              e.jsx('div', {
+                                className:
+                                  'p-3 md:p-4 rounded-2xl bg-emerald-500/10 text-emerald-500 group-hover/rx:scale-110 group-hover/rx:rotate-12 transition-transform shadow-2xl',
+                                children: e.jsx(St, { size: 24 }),
+                              }),
+                            ],
+                          }),
+                          e.jsxs('div', {
+                            className: i(
+                              'backdrop-blur-3xl p-5 md:p-8 rounded-[1.5rem] flex items-center justify-between group/tx transition-all duration-500',
+                              b
+                                ? 'bg-slate-950/40 border-white/5 hover:border-indigo-500/20'
+                                : 'bg-white/80 border-black/5 hover:border-indigo-500/30 shadow-sm'
+                            ),
+                            children: [
+                              e.jsxs('div', {
+                                children: [
+                                  e.jsx('p', {
+                                    className:
+                                      'text-[10px] font-black text-indigo-500/70 uppercase tracking-widest mb-1',
+                                    children: 'Total Upload (TX)',
+                                  }),
+                                  e.jsx('p', {
+                                    className: i(
+                                      'text-2xl md:text-4xl font-mono font-black tracking-tighter transition-colors',
+                                      b ? 'text-white' : 'text-slate-900'
+                                    ),
+                                    children: (t == null ? void 0 : t.totalUpload) || '0 B',
+                                  }),
+                                ],
+                              }),
+                              e.jsx('div', {
+                                className:
+                                  'p-3 md:p-4 rounded-2xl bg-indigo-500/10 text-indigo-500 group-hover/tx:scale-110 group-hover/tx:rotate-12 transition-transform shadow-2xl',
+                                children: e.jsx(zt, { size: 24 }),
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+            }),
+            e.jsxs('div', {
+              className: 'lg:col-span-1 2xl:col-span-4 flex flex-col gap-6',
+              children: [
+                e.jsxs('div', {
+                  className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6',
+                  children: [
+                    e.jsxs(ce, {
+                      className: i(
+                        'p-6 flex items-center justify-between group transition-all',
+                        b
+                          ? 'bg-gradient-to-br from-emerald-500/10 to-teal-950/20 border-emerald-500/20'
+                          : 'bg-white/80 border-emerald-500/10 shadow-sm'
+                      ),
+                      children: [
+                        e.jsxs('div', {
+                          className: 'min-w-0',
+                          children: [
+                            e.jsxs('div', {
+                              className: 'flex items-center gap-2 mb-2',
+                              children: [
+                                e.jsx('div', {
+                                  className: i(
+                                    'h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0',
+                                    (o == null ? void 0 : o.status) === 'healthy'
+                                      ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]'
+                                      : 'bg-red-500'
+                                  ),
+                                }),
+                                e.jsx('p', {
+                                  className:
+                                    'text-[10px] font-black text-emerald-500/80 uppercase tracking-widest truncate',
+                                  children: 'Sentinel Watchdog V2',
+                                }),
+                              ],
+                            }),
+                            e.jsx('h4', {
+                              className: i(
+                                'text-lg md:text-xl font-black italic tracking-tight uppercase transition-colors',
+                                b ? 'text-white' : 'text-slate-900'
+                              ),
+                              children:
+                                (o == null ? void 0 : o.status) === 'healthy'
+                                  ? 'Secured'
+                                  : (o == null ? void 0 : o.status) === 'error'
+                                    ? 'Offline'
+                                    : 'Searching',
+                            }),
+                            e.jsxs('p', {
+                              className:
+                                'text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight truncate',
+                              children: [
+                                'Pulse: ',
+                                o != null && o.lastHeartbeat
+                                  ? new Date(o.lastHeartbeat).toLocaleTimeString()
+                                  : 'Await Heartbeat',
+                              ],
+                            }),
+                          ],
+                        }),
+                        e.jsx('div', {
+                          className:
+                            'p-3 md:p-4 rounded-2xl bg-emerald-500/10 text-emerald-500 shadow-2xl group-hover:scale-110 transition-transform flex-shrink-0 ml-4',
+                          children: e.jsx(fe, { size: 24 }),
+                        }),
+                      ],
+                    }),
+                    e.jsxs(ce, {
+                      className: i(
+                        'p-6 flex items-center justify-between group transition-all',
+                        b
+                          ? 'bg-gradient-to-br from-blue-500/10 to-indigo-950/20 border-blue-500/20'
+                          : 'bg-white/80 border-blue-500/10 shadow-sm'
+                      ),
+                      children: [
+                        e.jsxs('div', {
+                          className: 'min-w-0',
+                          children: [
+                            e.jsxs('div', {
+                              className: 'flex items-center gap-2 mb-2',
+                              children: [
+                                e.jsx('div', {
+                                  className: i(
+                                    'h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0',
+                                    (n == null ? void 0 : n.status) === 'active'
+                                      ? 'bg-blue-500 shadow-[0_0_10px_#3b82f6]'
+                                      : 'bg-red-500'
+                                  ),
+                                }),
+                                e.jsx('p', {
+                                  className:
+                                    'text-[10px] font-black text-blue-500/80 uppercase tracking-widest truncate',
+                                  children: 'DNS Safe Filter',
+                                }),
+                              ],
+                            }),
+                            e.jsx('h4', {
+                              className: i(
+                                'text-lg md:text-xl font-black italic tracking-tight uppercase transition-colors',
+                                b ? 'text-white' : 'text-slate-900'
+                              ),
+                              children:
+                                (n == null ? void 0 : n.status) === 'active'
+                                  ? 'Filtered'
+                                  : 'Disabled',
+                            }),
+                            e.jsx('p', {
+                              className:
+                                'text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight truncate',
+                              children: 'Engine: AdGuard Home',
+                            }),
+                          ],
+                        }),
+                        e.jsx('div', {
+                          className:
+                            'p-3 md:p-4 rounded-2xl bg-blue-500/10 text-blue-500 shadow-2xl group-hover:scale-110 transition-transform flex-shrink-0 ml-4',
+                          children: e.jsx(be, { size: 24 }),
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsxs(ce, {
+                  className: 'flex-1 p-6 md:p-8 flex flex-col justify-center gap-6 group',
+                  hover: !0,
+                  children: [
+                    e.jsx('div', {
+                      className: i(
+                        'absolute top-0 left-0 p-8 opacity-[0.02] pointer-events-none',
+                        b ? 'text-white' : 'text-black'
+                      ),
+                      children: e.jsx(de, { size: 100 }),
+                    }),
+                    e.jsxs('h3', {
+                      className: i(
+                        'text-lg font-black flex items-center gap-3 italic uppercase tracking-tighter transition-colors',
+                        b ? 'text-white' : 'text-slate-900'
+                      ),
+                      children: [
+                        e.jsx(et, { className: i(`text-${u}-400`), size: 18 }),
+                        ' Core Resources',
+                      ],
+                    }),
+                    e.jsxs('div', {
+                      className: 'flex justify-around items-center py-2',
+                      children: [
+                        e.jsx(kt, { label: 'CPU', value: y, color: 'text-indigo-500', icon: et }),
+                        e.jsx(kt, { label: 'RAM', value: g, color: 'text-purple-500', icon: Ae }),
+                        e.jsx(kt, { label: 'DISK', value: w, color: 'text-emerald-500', icon: cs }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsxs(ce, {
+                  className: i(
+                    'p-5 md:p-6 flex items-center gap-4 group transition-all',
+                    b
+                      ? 'bg-gradient-to-br from-slate-900/60 to-indigo-900/20'
+                      : 'bg-white/80 border-indigo-500/5 shadow-sm'
+                  ),
+                  children: [
+                    e.jsx('div', {
+                      className: i(
+                        'p-3 rounded-2xl bg-white/5 shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 flex-shrink-0',
+                        v > 0 ? `text-${u}-400` : 'text-slate-600'
+                      ),
+                      children: e.jsx(de, {
+                        size: 22,
+                        className: v > 0 ? 'animate-[pulse_1s_infinite]' : '',
+                      }),
+                    }),
+                    e.jsxs('div', {
+                      className: 'flex-1 min-w-0',
+                      children: [
+                        e.jsx('p', {
+                          className:
+                            'text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1',
+                          children: 'Top Active Client',
+                        }),
+                        e.jsx('h4', {
+                          className: i(
+                            'text-base md:text-lg font-black truncate italic tracking-tight transition-colors',
+                            b ? 'text-white' : 'text-slate-900'
+                          ),
+                          children: f.name || 'Station Inactive',
+                        }),
+                        e.jsxs('p', {
+                          className: i('text-xs font-mono font-bold mt-0.5', `text-${u}-400`),
+                          children: [ee(v), '/s Burst'],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+        e.jsxs('div', {
+          className:
+            'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-12 gap-6 lg:gap-8',
+          children: [
+            e.jsx('div', {
+              className: 'md:col-span-2 lg:col-span-2 2xl:col-span-8',
+              children: e.jsx(_r, {}),
+            }),
+            e.jsxs('div', {
+              className: 'lg:col-span-1 2xl:col-span-4 flex flex-col gap-6',
+              children: [
+                e.jsxs(ce, {
+                  className: 'p-6 group flex-1',
+                  hover: !0,
+                  children: [
+                    e.jsxs('h3', {
+                      className:
+                        'text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 flex items-center gap-3',
+                      children: [
+                        e.jsx(Wt, { size: 13, className: i(`text-${u}-400`) }),
+                        ' Répartition Tactique',
+                      ],
+                    }),
+                    e.jsx('div', {
+                      className: 'h-44 w-full',
+                      children:
+                        E.length > 0
+                          ? e.jsx(vt, {
+                              width: '100%',
+                              height: '100%',
+                              children: e.jsxs(Vs, {
+                                children: [
+                                  e.jsx(Qs, {
+                                    data: E,
+                                    cx: '50%',
+                                    cy: '50%',
+                                    innerRadius: 50,
+                                    outerRadius: 70,
+                                    paddingAngle: 6,
+                                    dataKey: 'value',
+                                    stroke: 'none',
+                                    children: E.map((C, P) =>
+                                      e.jsx(Ks, { fill: N[P % N.length] }, P)
+                                    ),
+                                  }),
+                                  e.jsx(jt, {
+                                    formatter: (C) => ee(C),
+                                    contentStyle: {
+                                      backgroundColor: '#020617',
+                                      border: 'none',
+                                      borderRadius: '1rem',
+                                      color: '#fff',
+                                      fontSize: '11px',
+                                    },
+                                  }),
+                                ],
+                              }),
+                            })
+                          : e.jsxs('div', {
+                              className:
+                                'h-full flex flex-col items-center justify-center text-slate-600 opacity-40 italic gap-3',
+                              children: [
+                                e.jsx(Wt, { size: 28 }),
+                                e.jsx('span', {
+                                  className: 'text-[10px] font-black uppercase tracking-widest',
+                                  children: 'Aucun flux détecté',
+                                }),
+                              ],
+                            }),
+                    }),
+                  ],
+                }),
+                e.jsxs(ce, {
+                  className: 'p-6 group flex-1',
+                  hover: !0,
+                  children: [
+                    e.jsx('div', {
+                      className: i(
+                        'absolute top-0 right-0 p-6 opacity-[0.02] pointer-events-none',
+                        b ? 'text-white' : 'text-black'
+                      ),
+                      children: e.jsx(He, { size: 80 }),
+                    }),
+                    e.jsx('h3', {
+                      className:
+                        'text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-5',
+                      children: 'System Speedtest',
+                    }),
+                    m != null && m.loading
+                      ? e.jsxs('div', {
+                          className: 'flex flex-col items-center justify-center py-4 gap-3',
+                          children: [
+                            e.jsx(J, { size: 36, className: i('animate-spin', `text-${u}-600`) }),
+                            e.jsx('p', {
+                              className: i(
+                                'text-[10px] font-black animate-pulse uppercase tracking-[0.3em] transition-colors',
+                                b ? 'text-white' : 'text-slate-900'
+                              ),
+                              children: 'Test en cours...',
+                            }),
+                          ],
+                        })
+                      : m != null && m.data
+                        ? e.jsxs('div', {
+                            className: 'grid grid-cols-2 gap-4',
+                            children: [
+                              e.jsxs('div', {
+                                className: 'space-y-1',
+                                children: [
+                                  e.jsxs('div', {
+                                    className: 'flex items-center gap-2 text-emerald-400',
+                                    children: [
+                                      e.jsx(St, { size: 13 }),
+                                      ' ',
+                                      e.jsx('span', {
+                                        className: 'text-[9px] font-black uppercase',
+                                        children: 'Down',
+                                      }),
+                                    ],
+                                  }),
+                                  e.jsx('div', {
+                                    className: i(
+                                      'text-2xl md:text-3xl font-mono font-black transition-colors',
+                                      b ? 'text-white' : 'text-slate-900'
+                                    ),
+                                    children:
+                                      (((z = m.data) == null ? void 0 : z.download) || 0) > 1e3
+                                        ? (
+                                            (((D = m.data) == null ? void 0 : D.download) || 0) /
+                                            1e6
+                                          ).toFixed(1)
+                                        : (
+                                            ((k = m.data) == null ? void 0 : k.download) || 0
+                                          ).toFixed(1),
+                                  }),
+                                  e.jsx('div', {
+                                    className: 'text-[9px] text-slate-500 font-bold uppercase',
+                                    children: 'Mbps',
+                                  }),
+                                ],
+                              }),
+                              e.jsxs('div', {
+                                className: 'space-y-1',
+                                children: [
+                                  e.jsxs('div', {
+                                    className: 'flex items-center gap-2 text-indigo-400',
+                                    children: [
+                                      e.jsx(zt, { size: 13 }),
+                                      ' ',
+                                      e.jsx('span', {
+                                        className: 'text-[9px] font-black uppercase',
+                                        children: 'Up',
+                                      }),
+                                    ],
+                                  }),
+                                  e.jsx('div', {
+                                    className: i(
+                                      'text-2xl md:text-3xl font-mono font-black transition-colors',
+                                      b ? 'text-white' : 'text-slate-900'
+                                    ),
+                                    children:
+                                      (((R = m.data) == null ? void 0 : R.upload) || 0) > 1e3
+                                        ? (
+                                            (((U = m.data) == null ? void 0 : U.upload) || 0) / 1e6
+                                          ).toFixed(1)
+                                        : (((G = m.data) == null ? void 0 : G.upload) || 0).toFixed(
+                                            1
+                                          ),
+                                  }),
+                                  e.jsx('div', {
+                                    className: 'text-[9px] text-slate-500 font-bold uppercase',
+                                    children: 'Mbps',
+                                  }),
+                                ],
+                              }),
+                              e.jsxs('div', {
+                                className:
+                                  'col-span-2 pt-3 border-t border-white/5 flex justify-between items-center',
+                                children: [
+                                  e.jsxs('span', {
+                                    className: 'text-[10px] font-mono text-slate-500 uppercase',
+                                    children: [
+                                      'Ping: ',
+                                      (X = m.data) != null && X.ping
+                                        ? `${m.data.ping.toFixed(0)}ms`
+                                        : 'N/A',
+                                    ],
+                                  }),
+                                  e.jsx(We, {
+                                    variant: 'ghost',
+                                    size: 'sm',
+                                    onClick: p,
+                                    className: 'text-indigo-400 text-[10px]',
+                                    children: 'Relancer',
+                                  }),
+                                ],
+                              }),
+                            ],
+                          })
+                        : e.jsxs('div', {
+                            className: 'flex flex-col items-center justify-center py-4 gap-4',
+                            children: [
+                              e.jsx('div', {
+                                className: i(
+                                  'text-3xl font-black italic transition-colors',
+                                  b ? 'text-white/10' : 'text-black/5'
+                                ),
+                                children: '--Mbps',
+                              }),
+                              e.jsx(We, {
+                                variant: 'primary',
+                                onClick: p,
+                                className: 'w-full',
+                                children: 'Lancer Test de Flux',
+                              }),
+                            ],
+                          }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+  },
+  Fr = ({ clients: t, onSelectClient: s, onlinePeers: r = [] }) => {
+    const a = h.useRef(null),
+      [c, d] = h.useState({ width: 0, height: 0 }),
+      [p, m] = h.useState({ x: 0, y: 0, zoom: 1 }),
+      [l, o] = h.useState(!1),
+      [n, x] = h.useState({ x: 0, y: 0 }),
+      [u, b] = h.useState(null),
+      y = h.useRef(null),
+      { theme: g, isDark: w } = Q(),
+      E = h.useMemo(() => {
+        const S = new Set(r);
+        return [...t].map((O) => ({ ...O, isOnline: O.isOnline || S.has(O.publicKey) }));
+      }, [t, r]),
+      N = h.useMemo(
+        () =>
+          [...E].sort(
+            (S, O) =>
+              (S.container || '').localeCompare(O.container || '') ||
+              (S.name || '').localeCompare(O.name || '')
+          ),
+        [E]
+      ),
+      f = h.useMemo(() => [...new Set(E.map((S) => S.container))].sort(), [E]);
+    h.useEffect(() => {
+      const S = () => {
+        a.current && d({ width: a.current.offsetWidth, height: a.current.offsetHeight });
+      };
+      return (
+        S(),
+        window.addEventListener('resize', S),
+        () => window.removeEventListener('resize', S)
+      );
+    }, []);
+    const v = (S) => {
+        S.target.closest('button') || (o(!0), x({ x: S.clientX, y: S.clientY }));
+      },
+      j = (S) => {
+        if (!l) return;
+        const O = S.clientX - n.x,
+          q = S.clientY - n.y;
+        (m((Z) => ({ ...Z, x: Z.x + O, y: Z.y + q })), x({ x: S.clientX, y: S.clientY }));
+      },
+      z = () => o(!1),
+      D = c.width / 2,
+      k = c.height / 2,
+      R = c.width < 768 || (typeof window < 'u' && window.innerWidth < 768),
+      C = Math.max((R ? 32 : 64) + (R ? 20 : 32) + 60, Math.min(D, k) * (R ? 0.45 : 0.7)),
+      P = (S) => {
+        (u === S.id ? b(null) : b(S.id),
+          y.current
+            ? (clearTimeout(y.current), (y.current = null))
+            : (y.current = setTimeout(() => {
+                (s && s(S), (y.current = null));
+              }, 250)));
+      },
+      B = (S) => {
+        const O = {
+            emerald: '#10b981',
+            indigo: '#6366f1',
+            rose: '#f43f5e',
+            amber: '#f59e0b',
+            cyan: '#06b6d4',
+            purple: '#a855f7',
+            sky: '#0ea5e9',
+          },
+          q = ['emerald', 'indigo', 'rose', 'amber', 'cyan', 'purple', 'sky'],
+          Z = q[f.indexOf(S) % q.length];
+        return { name: Z, hex: O[Z] };
+      };
+    return c.width === 0
+      ? e.jsx('div', { ref: a, className: 'col-span-12 w-full h-[calc(100vh-100px)]' })
+      : e.jsxs('div', {
+          ref: a,
+          className: i(
+            'col-span-12 w-full relative h-[calc(100vh-100px)] backdrop-blur-3xl rounded-3xl border overflow-hidden group select-none shadow-2xl cursor-grab active:cursor-grabbing transition-all',
+            w ? 'bg-slate-900/40 border-white/5' : 'bg-white/80 border-black/5'
+          ),
+          onMouseDown: v,
+          onMouseMove: j,
+          onMouseUp: z,
+          onMouseLeave: z,
+          children: [
+            e.jsxs(L.div, {
+              animate: { x: p.x, y: p.y, scale: p.zoom },
+              transition: l ? { type: 'just' } : { type: 'spring', stiffness: 300, damping: 30 },
+              style: { width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 },
+              children: [
+                e.jsx('div', {
+                  className: i(
+                    'absolute inset-0 bg-[size:60px_60px] pointer-events-none transition-colors',
+                    w
+                      ? 'bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)]'
+                      : 'bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)]'
+                  ),
+                }),
+                e.jsx('div', {
+                  className:
+                    'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200vmax] h-[200vmax] pointer-events-none flex items-center justify-center',
+                  children: e.jsx('div', {
+                    className: i(
+                      'w-full h-full rounded-full bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,transparent_320deg,currentColor_360deg)] opacity-[0.07] animate-[spin_8s_linear_infinite]',
+                      `text-${g}-500`
+                    ),
+                  }),
+                }),
+                e.jsxs('div', {
+                  className:
+                    'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center',
+                  children: [
+                    e.jsx('div', {
+                      className: i(
+                        'absolute rounded-full border transition-colors',
+                        w ? 'border-white/5' : 'border-black/5'
+                      ),
+                      style: { width: C * 0.8, height: C * 0.8 },
+                    }),
+                    e.jsx('div', {
+                      className: i(
+                        'absolute rounded-full border-2 transition-colors',
+                        w ? 'border-white/10' : 'border-black/10'
+                      ),
+                      style: { width: C * 2, height: C * 2 },
+                    }),
+                    e.jsx('div', {
+                      className: i(
+                        'absolute rounded-full border animate-pulse transition-colors',
+                        w
+                          ? 'border-white/10 shadow-[inset_0_0_100px_rgba(255,255,255,0.03)]'
+                          : 'border-black/10 shadow-[inset_0_0_100px_rgba(0,0,0,0.03)]'
+                      ),
+                      style: { width: C * 3, height: C * 3 },
+                    }),
+                  ],
+                }),
+                e.jsx('svg', {
+                  className: 'absolute inset-0 w-full h-full pointer-events-none drop-shadow-2xl',
+                  children: N.map((S, O) => {
+                    const q = (O * (2 * Math.PI)) / N.length - Math.PI / 2,
+                      Z = D + C * Math.cos(q),
+                      $ = k + C * Math.sin(q),
+                      se = S.isOnline,
+                      I = S.downloadRate + S.uploadRate > 1024,
+                      xe = B(S.container);
+                    return !D || !k
+                      ? null
+                      : e.jsxs(
+                          'g',
+                          {
+                            children: [
+                              e.jsx(L.line, {
+                                x1: D,
+                                y1: k,
+                                x2: Z,
+                                y2: $,
+                                initial: { pathLength: 0, opacity: 0 },
+                                animate: { pathLength: 1, opacity: se ? 0.6 : 0.1 },
+                                stroke: se
+                                  ? I
+                                    ? xe.hex
+                                    : w
+                                      ? 'rgba(255, 255, 255, 0.2)'
+                                      : 'rgba(0, 0, 0, 0.2)'
+                                  : w
+                                    ? 'rgba(255, 255, 255, 0.05)'
+                                    : 'rgba(0, 0, 0, 0.05)',
+                                strokeWidth: se ? (I ? '2' : '1.5') : '1',
+                                strokeDasharray: se ? '0' : '5,5',
+                              }),
+                              se &&
+                                e.jsx('circle', {
+                                  r: I ? '3' : '2',
+                                  fill: I ? xe.hex : '#818cf8',
+                                  children: e.jsx('animateMotion', {
+                                    dur: I
+                                      ? `${Math.max(0.4, 4 - Math.log10(S.downloadRate + S.uploadRate + 1))}s`
+                                      : '4s',
+                                    repeatCount: 'indefinite',
+                                    path: `M${D},${k} L${Z},${$}`,
+                                  }),
+                                }),
+                            ],
+                          },
+                          `link-${S.id}`
+                        );
+                  }),
+                }),
+                e.jsxs('div', {
+                  className:
+                    'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center group/hub',
+                  children: [
+                    e.jsxs('div', {
+                      className: i(
+                        'rounded-[3.5rem] shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] flex items-center justify-center relative z-10 transition-all duration-700 group-hover/hub:scale-110 border-4',
+                        R ? 'w-16 h-16 rounded-[2rem]' : 'w-32 h-32',
+                        `bg-${g}-600 shadow-${g}-600/40 border-${g}-400/20`
+                      ),
+                      children: [
+                        e.jsx(at, { size: R ? 28 : 48, className: 'text-white drop-shadow-2xl' }),
+                        e.jsx('div', {
+                          className: i(
+                            'absolute inset-0 border border-white/20 animate-pulse',
+                            R ? 'rounded-[2rem]' : 'rounded-[3.5rem]'
+                          ),
+                        }),
+                      ],
+                    }),
+                    e.jsx('div', {
+                      className: i(
+                        'mt-8 px-6 py-2 backdrop-blur-3xl border rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] opacity-0 group-hover/hub:opacity-100 transition-all duration-500 transform translate-y-4 group-hover/hub:translate-y-0 shadow-2xl',
+                        w ? 'bg-slate-950/90 border-white/10' : 'bg-white border-black/10',
+                        `text-${g}-400 shadow-${g}-500/10`
+                      ),
+                      children: 'HUB-CORE-ALPHA',
+                    }),
+                  ],
+                }),
+                N.map((S, O) => {
+                  const q = (O * (2 * Math.PI)) / N.length - Math.PI / 2,
+                    Z = D + C * Math.cos(q),
+                    $ = k + C * Math.sin(q),
+                    se = S.isOnline,
+                    I = B(S.container);
+                  return e.jsxs(
+                    L.div,
+                    {
+                      initial: { scale: 0, opacity: 0 },
+                      animate: { scale: 1, opacity: 1 },
+                      transition: { delay: O * 0.05, type: 'spring' },
+                      className: 'absolute z-20 group/node cursor-pointer',
+                      style: { left: Z, top: $, transform: 'translate(-50%, -50%)' },
+                      onClick: () => P(S),
+                      children: [
+                        e.jsxs('div', {
+                          className: i(
+                            'backdrop-blur-md border-[3px] rounded-2xl flex items-center justify-center transition-all duration-500 group-hover/node:scale-125 shadow-2xl',
+                            R ? 'w-10 h-10' : 'w-16 h-16',
+                            se
+                              ? i(
+                                  w ? 'bg-slate-900/80' : 'bg-white/80',
+                                  `border-${I.name}-500/50 group-hover/node:bg-${I.name}-900/90 group-hover/node:border-${I.name}-400 group-hover/node:shadow-${I.name}-600/20`
+                                )
+                              : i(
+                                  w
+                                    ? 'bg-slate-950/80 border-white/5 group-hover/node:bg-slate-900'
+                                    : 'bg-white border-black/5 group-hover/node:bg-slate-50',
+                                  'group-hover/node:border-white/20'
+                                )
+                          ),
+                          children: [
+                            e.jsx(Ne, {
+                              size: R ? 18 : 28,
+                              className: i(
+                                'transition-all duration-300',
+                                se
+                                  ? `text-${I.name}-400 group-hover/node:text-white group-hover/node:rotate-6`
+                                  : 'text-slate-700 group-hover/node:text-slate-400'
+                              ),
+                            }),
+                            se &&
+                              e.jsx('span', {
+                                className: i(
+                                  'absolute -top-1.5 -right-1.5 rounded-full border-4',
+                                  R ? 'w-3.5 h-3.5 border-[3px]' : 'w-4 h-4',
+                                  w ? 'border-slate-950' : 'border-white',
+                                  'bg-emerald-500 shadow-[0_0_15px_#10b981]'
+                                ),
+                              }),
+                          ],
+                        }),
+                        e.jsx(le, {
+                          children: e.jsxs('div', {
+                            className: i(
+                              'absolute top-full left-1/2 -translate-x-1/2 mt-8 w-64 backdrop-blur-3xl border rounded-2xl p-6 transition-all duration-500 pointer-events-none scale-90 z-50 shadow-2xl origin-top',
+                              w ? 'bg-slate-950/90 border-white/10' : 'bg-white border-black/10',
+                              u === S.id
+                                ? 'opacity-100 scale-100'
+                                : 'opacity-0 group-hover/node:opacity-100 group-hover/node:scale-100'
+                            ),
+                            children: [
+                              e.jsx('div', {
+                                className: i(
+                                  'absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rotate-45 border-t border-l',
+                                  w ? 'bg-slate-950 border-white/10' : 'bg-white border-black/10'
+                                ),
+                              }),
+                              e.jsxs('div', {
+                                className: i(
+                                  'flex items-center justify-between mb-6 pb-4 border-b',
+                                  w ? 'border-white/5' : 'border-black/5'
+                                ),
+                                children: [
+                                  e.jsxs('div', {
+                                    children: [
+                                      e.jsx('span', {
+                                        className: i(
+                                          'text-md font-black tracking-tight block truncate max-w-[140px] transition-colors',
+                                          w ? 'text-white' : 'text-slate-900'
+                                        ),
+                                        children: S.name,
+                                      }),
+                                      e.jsx('span', {
+                                        className: i(
+                                          'text-[9px] font-black uppercase tracking-widest',
+                                          `text-${I.name}-400`
+                                        ),
+                                        children: S.container,
+                                      }),
+                                    ],
+                                  }),
+                                  e.jsx('div', {
+                                    className: i(
+                                      'px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase',
+                                      se
+                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                        : w
+                                          ? 'bg-slate-900 text-slate-500 border-white/5'
+                                          : 'bg-slate-100 text-slate-400 border-black/5'
+                                    ),
+                                    children: se ? 'Active' : 'Offline',
+                                  }),
+                                ],
+                              }),
+                              e.jsxs('div', {
+                                className: 'space-y-3 font-mono text-[10px] text-slate-500',
+                                children: [
+                                  e.jsxs('div', {
+                                    className: 'flex justify-between',
+                                    children: [
+                                      e.jsx('span', { children: 'Tact IP' }),
+                                      ' ',
+                                      e.jsx('span', {
+                                        className: w ? 'text-slate-100' : 'text-slate-900',
+                                        children: S.ip,
+                                      }),
+                                    ],
+                                  }),
+                                  e.jsxs('div', {
+                                    className: 'flex justify-between',
+                                    children: [
+                                      e.jsx('span', { children: 'Endpoint' }),
+                                      ' ',
+                                      e.jsx('span', {
+                                        className: w ? 'text-slate-300' : 'text-slate-600',
+                                        children: S.endpoint || '—',
+                                      }),
+                                    ],
+                                  }),
+                                  e.jsxs('div', {
+                                    className: 'flex justify-between',
+                                    children: [
+                                      e.jsx('span', { children: 'Burst DL' }),
+                                      ' ',
+                                      e.jsxs('span', {
+                                        className: 'text-emerald-400',
+                                        children: [ee(S.downloadRate || S.rx || 0), '/s'],
+                                      }),
+                                    ],
+                                  }),
+                                  e.jsxs('div', {
+                                    className: 'flex justify-between',
+                                    children: [
+                                      e.jsx('span', { children: 'Burst UL' }),
+                                      ' ',
+                                      e.jsxs('span', {
+                                        className: 'text-indigo-400',
+                                        children: [ee(S.uploadRate || S.tx || 0), '/s'],
+                                      }),
+                                    ],
+                                  }),
+                                  S.usageTotal > 0 &&
+                                    e.jsxs('div', {
+                                      className: i(
+                                        'flex justify-between border-t pt-2 mt-2',
+                                        w ? 'border-white/5' : 'border-black/5'
+                                      ),
+                                      children: [
+                                        e.jsx('span', { children: 'Total usage' }),
+                                        e.jsx('span', {
+                                          className: 'text-amber-400 font-bold',
+                                          children: ee(S.usageTotal),
+                                        }),
+                                      ],
+                                    }),
+                                  S.lastHandshake > 0 &&
+                                    e.jsxs('div', {
+                                      className: 'flex justify-between',
+                                      children: [
+                                        e.jsx('span', { children: 'Last seen' }),
+                                        e.jsxs('span', {
+                                          className: 'text-slate-400',
+                                          children: [
+                                            Math.floor((Date.now() / 1e3 - S.lastHandshake) / 60),
+                                            'm ago',
+                                          ],
+                                        }),
+                                      ],
+                                    }),
+                                ],
+                              }),
+                            ],
+                          }),
+                        }),
+                      ],
+                    },
+                    S.id
+                  );
+                }),
+              ],
+            }),
+            e.jsx('div', {
+              className: 'absolute top-8 left-8 z-30 pointer-events-none transition-all',
+              children: e.jsxs('div', {
+                className: i(
+                  'flex items-center gap-4 p-4 backdrop-blur-2xl border rounded-3xl',
+                  w ? 'bg-slate-950/40 border-white/5' : 'bg-white/80 border-black/5 shadow-sm'
+                ),
+                children: [
+                  e.jsx('div', {
+                    className: i(
+                      'p-3 rounded-2xl shadow-2xl animate-pulse',
+                      `bg-${g}-600 text-white`
+                    ),
+                    children: e.jsx(de, { size: 24 }),
+                  }),
+                  e.jsxs('div', {
+                    children: [
+                      e.jsx('h3', {
+                        className: i(
+                          'text-xl font-black tracking-tight uppercase transition-colors',
+                          w ? 'text-white' : 'text-slate-900'
+                        ),
+                        children: 'Tactical Radar',
+                      }),
+                      e.jsx('p', {
+                        className: i(
+                          'text-[10px] font-black tracking-widest uppercase opacity-60',
+                          `text-${g}-400`
+                        ),
+                        children: 'Deep Space Network Monitoring',
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+            }),
+            e.jsxs('div', {
+              className: 'absolute bottom-8 right-8 flex flex-col gap-3 z-30',
+              children: [
+                e.jsx('button', {
+                  onClick: () => m((S) => ({ ...S, zoom: Math.min(S.zoom + 0.2, 4) })),
+                  className: i(
+                    'p-3 rounded-2xl border shadow-2xl transition-all',
+                    w
+                      ? 'bg-slate-900/90 hover:bg-slate-800 text-white border-white/10'
+                      : 'bg-white hover:bg-slate-50 text-slate-900 border-black/10'
+                  ),
+                  children: e.jsx(qe, { size: 20 }),
+                }),
+                e.jsx('button', {
+                  onClick: () => m((S) => ({ ...S, zoom: Math.max(S.zoom - 0.2, 0.5) })),
+                  className: i(
+                    'p-3 rounded-2xl border shadow-2xl transition-all',
+                    w
+                      ? 'bg-slate-900/90 hover:bg-slate-800 text-white border-white/10'
+                      : 'bg-white hover:bg-slate-50 text-slate-900 border-black/10'
+                  ),
+                  children: e.jsx(Ys, { size: 20 }),
+                }),
+                e.jsx('button', {
+                  onClick: () => m({ x: 0, y: 0, zoom: 1 }),
+                  className: i(
+                    'p-3 rounded-2xl border shadow-2xl transition-all',
+                    w
+                      ? 'bg-slate-900/90 hover:bg-slate-800 text-white border-white/10'
+                      : 'bg-white hover:bg-slate-50 text-slate-900 border-black/10'
+                  ),
+                  children: e.jsx(J, { size: 20 }),
+                }),
+              ],
+            }),
+            e.jsxs('div', {
+              className: i(
+                'absolute bottom-8 left-8 hidden md:flex flex-col gap-3 p-6 backdrop-blur-2xl border rounded-[2rem] z-20 transition-all',
+                w ? 'bg-slate-950/40 border-white/5' : 'bg-white/80 border-black/5 shadow-sm'
+              ),
+              children: [
+                e.jsx('span', {
+                  className: i(
+                    'text-[10px] font-black uppercase tracking-widest mb-2 opacity-60 transition-colors',
+                    w ? 'text-white' : 'text-slate-900'
+                  ),
+                  children: 'Goupes Tactiques',
+                }),
+                e.jsx('div', {
+                  className: 'grid grid-cols-2 gap-x-6 gap-y-3',
+                  children: f.map((S) => {
+                    const O = B(S);
+                    return e.jsxs(
+                      'div',
+                      {
+                        className: 'flex items-center gap-3',
+                        children: [
+                          e.jsx('span', {
+                            className: i(
+                              'w-2 h-2 rounded-full',
+                              `bg-${O.name}-500 shadow-[0_0_8px_currentColor]`
+                            ),
+                          }),
+                          e.jsx('span', {
+                            className:
+                              'text-[9px] font-bold text-slate-400 font-mono uppercase truncate max-w-[80px]',
+                            children: S,
+                          }),
+                        ],
+                      },
+                      S
+                    );
+                  }),
+                }),
+              ],
+            }),
+          ],
+        });
+  },
+  ss = ['indigo', 'emerald', 'rose', 'amber', 'cyan', 'purple'],
+  as = (t) =>
+    ss[
+      Math.abs(
+        ((r) => r.split('').reduce((a, c) => ((a = (a << 5) - a + c.charCodeAt(0)), a & a), 0))(
+          t || ''
+        )
+      ) % ss.length
+    ],
+  rt = (t) => t.isOnline === !0,
+  Ts = (t) => t && new Date(t) < new Date(),
+  Ur = (t) => (!t || Ts(t) ? !1 : (new Date(t) - new Date()) / (1e3 * 60 * 60 * 24) <= 7),
+  Br = ({ name: t, clients: s, color: r, onClick: a, onDeleteContainer: c, idx: d }) => {
+    const p = s.filter(rt).length,
+      m = s.reduce((x, u) => x + (u.downloadRate || 0), 0),
+      l = s.reduce((x, u) => x + (u.uploadRate || 0), 0),
+      o = s.reduce((x, u) => x + (u.downloadBytes || 0), 0),
+      n = s.reduce((x, u) => x + (u.uploadBytes || 0), 0);
+    return (
+      s.filter((x) =>
+        !x.quota || x.quota <= 0 ? !1 : (x.usageTotal / (x.quota * 1024 * 1024 * 1024)) * 100 > 80
+      ).length,
+      e.jsx(L.div, {
+        initial: { opacity: 0, scale: 0.9 },
+        animate: { opacity: 1, scale: 1 },
+        whileHover: { y: -5 },
+        transition: { delay: d * 0.05, duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+        children: e.jsxs(ce, {
+          onClick: a,
+          className:
+            'p-0 overflow-hidden cursor-pointer group relative border-white/5 hover:border-white/10',
+          children: [
+            e.jsx('div', {
+              className: i(
+                'absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-700 bg-gradient-to-br',
+                `from-${r}-500 to-transparent`
+              ),
+            }),
+            e.jsx('div', {
+              className: i(
+                'h-1.5 w-full transition-all duration-700 group-hover:h-2 opacity-80',
+                `bg-${r}-500 shadow-md shadow-${r}-500/50`
+              ),
+            }),
+            e.jsxs('div', {
+              className: 'p-6 space-y-6 relative z-10',
+              children: [
+                e.jsxs('div', {
+                  className: 'flex items-center justify-between',
+                  children: [
+                    e.jsxs('div', {
+                      className: 'flex items-center gap-4',
+                      children: [
+                        e.jsx('div', {
+                          className: i(
+                            'p-3 rounded-2xl border transition-all duration-500 group-hover:scale-110 group-hover:rotate-6',
+                            `bg-${r}-500/10 text-${r}-400 border-${r}-500/20`
+                          ),
+                          children: e.jsx(ye, { size: 24 }),
+                        }),
+                        e.jsxs('div', {
+                          className: 'min-w-0',
+                          children: [
+                            e.jsx('h3', {
+                              className:
+                                'text-xl font-black text-white uppercase tracking-tight truncate',
+                              children: t,
+                            }),
+                            e.jsx('div', {
+                              className: 'flex items-center gap-1.5 mt-0.5',
+                              children: e.jsxs('span', {
+                                className: i(
+                                  'text-[8px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest',
+                                  p > 0
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    : 'bg-slate-800 text-slate-500'
+                                ),
+                                children: [p, '/', s.length, ' EN LIGNE'],
+                              }),
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                    e.jsxs('div', {
+                      className: 'flex gap-2 items-center',
+                      children: [
+                        s.length === 0 &&
+                          c &&
+                          e.jsx('button', {
+                            onClick: (x) => {
+                              (x.stopPropagation(), c(t));
+                            },
+                            className: i(
+                              'w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 text-slate-500 border-white/5'
+                            ),
+                            children: e.jsx(Pe, { size: 14 }),
+                          }),
+                        e.jsx('div', {
+                          className: i(
+                            'w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 group-hover:bg-white/10',
+                            `text-${r}-400 border-${r}-500/10`
+                          ),
+                          children: e.jsx(Le, {
+                            size: 16,
+                            className: 'group-hover:translate-x-0.5 transition-transform',
+                          }),
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsxs('div', {
+                  className: 'grid grid-cols-2 gap-4',
+                  children: [
+                    e.jsxs('div', {
+                      className: 'space-y-1',
+                      children: [
+                        e.jsx('span', {
+                          className:
+                            'text-[10px] font-black text-slate-500 uppercase tracking-widest block',
+                          children: 'Flux Sortant',
+                        }),
+                        e.jsxs('div', {
+                          className: 'flex items-end gap-1.5',
+                          children: [
+                            e.jsx('span', {
+                              className: 'text-lg font-mono font-black text-white italic',
+                              children: ee(m),
+                            }),
+                            e.jsx('span', {
+                              className: 'text-[9px] text-slate-600 mb-1',
+                              children: '/S',
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                    e.jsxs('div', {
+                      className: 'space-y-1',
+                      children: [
+                        e.jsx('span', {
+                          className:
+                            'text-[10px] font-black text-slate-500 uppercase tracking-widest block',
+                          children: 'Flux Entrant',
+                        }),
+                        e.jsxs('div', {
+                          className: 'flex items-end gap-1.5',
+                          children: [
+                            e.jsx('span', {
+                              className: 'text-lg font-mono font-black text-white italic',
+                              children: ee(l),
+                            }),
+                            e.jsx('span', {
+                              className: 'text-[9px] text-slate-600 mb-1',
+                              children: '/S',
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsxs('div', {
+                  className: 'pt-4 border-t border-white/5 flex items-center justify-between',
+                  children: [
+                    e.jsxs('div', {
+                      className: 'flex items-center gap-2',
+                      children: [
+                        e.jsx('div', {
+                          className: 'flex -space-x-2',
+                          children: s
+                            .slice(0, 3)
+                            .map((x, u) =>
+                              e.jsx(
+                                'div',
+                                {
+                                  className: i(
+                                    'w-6 h-6 rounded-lg border-2 border-slate-950 flex items-center justify-center text-[8px] font-black text-white',
+                                    rt(x)
+                                      ? `bg-${r}-500 shadow-lg shadow-${r}-500/20`
+                                      : 'bg-slate-800'
+                                  ),
+                                  children: x.name.charAt(0),
+                                },
+                                u
+                              )
+                            ),
+                        }),
+                        s.length > 3 &&
+                          e.jsxs('span', {
+                            className: 'text-[9px] font-black text-slate-600',
+                            children: ['+', s.length - 3],
+                          }),
+                      ],
+                    }),
+                    e.jsxs('div', {
+                      className: 'flex flex-col items-end',
+                      children: [
+                        e.jsx('span', {
+                          className: 'text-[9px] font-mono text-slate-500 uppercase',
+                          children: 'Volume Total',
+                        }),
+                        e.jsx('span', {
+                          className: 'text-[10px] font-mono font-black text-white',
+                          children: ee(o + n),
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      })
+    );
+  },
+  Gr = ({ client: t, color: s, onSelect: r, onToggle: a, onEdit: c, onQRCode: d, onDelete: p }) => {
+    const m = rt(t),
+      l = Ts(t.expiry),
+      o = Ur(t.expiry),
+      n = t.quota > 0 ? Math.min(100, (t.usageTotal / (t.quota * 1024 * 1024 * 1024)) * 100) : 0;
+    return e.jsxs(ce, {
+      onClick: () => r(t),
+      className:
+        'p-5 group cursor-pointer border-white/5 hover:border-white/20 transition-all duration-300',
+      children: [
+        e.jsxs('div', {
+          className: 'flex items-center justify-between mb-5',
+          children: [
+            e.jsxs('div', {
+              className: 'flex items-center gap-4',
+              children: [
+                e.jsx('div', {
+                  className: i(
+                    'w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black text-white shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6',
+                    m ? `bg-${s}-500 shadow-${s}-500/30` : 'bg-slate-800 text-slate-500'
+                  ),
+                  children: t.name.charAt(0).toUpperCase(),
+                }),
+                e.jsxs('div', {
+                  children: [
+                    e.jsx('h4', {
+                      className: 'text-sm font-black text-white uppercase tracking-tight truncate',
+                      children: t.name,
+                    }),
+                    e.jsxs('div', {
+                      className: 'flex items-center gap-2 mt-0.5',
+                      children: [
+                        e.jsx('span', {
+                          className: i(
+                            'w-1.5 h-1.5 rounded-full',
+                            m ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'
+                          ),
+                        }),
+                        e.jsx('span', {
+                          className:
+                            'text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest',
+                          children: m ? 'Actif' : 'Offline',
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            e.jsxs('div', {
+              className: 'text-right',
+              children: [
+                e.jsx('span', {
+                  className: 'block text-[10px] font-mono font-bold text-white/40 mb-0.5',
+                  children: t.ip,
+                }),
+                (l || o) &&
+                  e.jsx('span', {
+                    className: i(
+                      'text-[8px] font-extrabold px-2 py-0.5 rounded-lg border uppercase tracking-tighter',
+                      l
+                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    ),
+                    children: l ? 'Expiré' : 'Bientôt',
+                  }),
+              ],
+            }),
+          ],
+        }),
+        e.jsxs('div', {
+          className: 'space-y-4 mb-5',
+          children: [
+            e.jsxs('div', {
+              className:
+                'flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5',
+              children: [
+                e.jsxs('div', {
+                  className: 'space-y-0.5',
+                  children: [
+                    e.jsx('span', {
+                      className:
+                        'text-[8px] font-black text-slate-500 uppercase tracking-widest block',
+                      children: 'Download',
+                    }),
+                    e.jsxs('span', {
+                      className: 'text-xs font-mono font-black text-emerald-400',
+                      children: [ee(t.downloadRate), '/s'],
+                    }),
+                  ],
+                }),
+                e.jsx('div', { className: 'h-6 w-px bg-white/10' }),
+                e.jsxs('div', {
+                  className: 'space-y-0.5 text-right',
+                  children: [
+                    e.jsx('span', {
+                      className:
+                        'text-[8px] font-black text-slate-500 uppercase tracking-widest block',
+                      children: 'Upload',
+                    }),
+                    e.jsxs('span', {
+                      className: 'text-xs font-mono font-black text-indigo-400',
+                      children: [ee(t.uploadRate), '/s'],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            t.quota > 0 &&
+              e.jsxs('div', {
+                className: 'space-y-2',
+                children: [
+                  e.jsxs('div', {
+                    className:
+                      'flex justify-between text-[9px] font-black uppercase text-slate-500',
+                    children: [
+                      e.jsx('span', { children: 'Quota Usage' }),
+                      e.jsxs('span', {
+                        className: n > 80 ? 'text-rose-400' : 'text-white',
+                        children: [n.toFixed(1), '%'],
+                      }),
+                    ],
+                  }),
+                  e.jsx('div', {
+                    className: 'h-1 w-full bg-white/5 rounded-full overflow-hidden',
+                    children: e.jsx('div', {
+                      className: i('h-full rounded-full', n > 80 ? 'bg-rose-500' : `bg-${s}-500`),
+                      style: { width: `${n}%` },
+                    }),
+                  }),
+                ],
+              }),
+          ],
+        }),
+        e.jsxs('div', {
+          className: 'flex items-center justify-between pt-4 border-t border-white/5',
+          children: [
+            e.jsxs('div', {
+              className: 'flex gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity',
+              children: [
+                e.jsx('button', {
+                  onClick: (x) => {
+                    (x.stopPropagation(), c(t));
+                  },
+                  className:
+                    'p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all',
+                  title: 'Modifier',
+                  children: e.jsx(ds, { size: 14 }),
+                }),
+                e.jsx('button', {
+                  onClick: (x) => {
+                    (x.stopPropagation(), a(t.container, t.name, !t.enabled));
+                  },
+                  className:
+                    'p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-all',
+                  title: t.enabled ? 'Désactiver' : 'Activer',
+                  children: t.enabled ? e.jsx(xs, { size: 14 }) : e.jsx(ps, { size: 14 }),
+                }),
+                e.jsx('button', {
+                  onClick: (x) => {
+                    (x.stopPropagation(), d(t));
+                  },
+                  className:
+                    'p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400 transition-all',
+                  title: 'Configuration / QR Code',
+                  children: e.jsx(us, { size: 14 }),
+                }),
+                e.jsx('button', {
+                  onClick: (x) => {
+                    (x.stopPropagation(), p(t));
+                  },
+                  className:
+                    'p-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all',
+                  title: 'Supprimer',
+                  children: e.jsx(Pe, { size: 14 }),
+                }),
+              ],
+            }),
+            e.jsx('div', {
+              className: i(
+                'p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300',
+                `bg-${s}-500/10 text-${s}-400`
+              ),
+              children: e.jsx(Le, {
+                size: 14,
+                className: 'group-hover:translate-x-0.5 transition-transform',
+              }),
+            }),
+          ],
+        }),
+      ],
+    });
+  },
+  Wr = ({
+    clients: t = [],
+    allContainers: s = [],
+    activeContainer: r = null,
+    setActiveContainer: a,
+    onSelect: c,
+    onToggle: d,
+    onEdit: p,
+    onQRCode: m,
+    onDelete: l,
+    onDeleteContainer: o,
+    onCreateClient: n,
+    onCreateContainer: x,
+  }) => {
+    const { theme: u } = Q(),
+      [b, y] = h.useState(''),
+      g = t.reduce((v, j) => {
+        const z = j.container || 'default';
+        return (v[z] || (v[z] = []), v[z].push(j), v);
+      }, {});
+    Array.isArray(s) &&
+      s.forEach((v) => {
+        g[v] || (g[v] = []);
+      });
+    const w = Object.entries(g),
+      E = r
+        ? (g[r] || []).filter(
+            (v) => !b || v.name.toLowerCase().includes(b.toLowerCase()) || (v.ip || '').includes(b)
+          )
+        : [],
+      N = r ? as(r) : u,
+      f = () => {
+        const v = r ? E : t,
+          j = ['Nom', 'Container', 'IP', 'Statut', 'DL', 'UL', 'Quota (GB)', 'Expiration'],
+          z = v.map((G) => [
+            G.name,
+            G.container,
+            G.ip,
+            rt(G) ? 'En ligne' : 'Hors ligne',
+            ee(G.downloadBytes || 0),
+            ee(G.uploadBytes || 0),
+            G.quota > 0 ? `${G.quota}` : 'Illimité',
+            G.expiry ? new Date(G.expiry).toLocaleDateString('fr-FR') : 'Illimité',
+          ]),
+          D = [j, ...z].map((G) => G.map((X) => `"${X}"`).join(',')).join(`
+`),
+          k = new Blob(['\uFEFF' + D], { type: 'text/csv;charset=utf-8;' }),
+          R = URL.createObjectURL(k);
+        (Object.assign(document.createElement('a'), {
+          href: R,
+          download: `wg-fux-peers-${new Date().toISOString().split('T')[0]}.csv`,
+        }).click(),
+          URL.revokeObjectURL(R));
+      };
+    return e.jsxs('div', {
+      className: 'space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700',
+      children: [
+        e.jsxs(ce, {
+          className: 'flex flex-col sm:flex-row gap-4 items-center justify-between p-5',
+          children: [
+            e.jsxs('div', {
+              className: 'flex items-center gap-3 w-full sm:w-auto',
+              children: [
+                e.jsx(le, {
+                  children:
+                    r &&
+                    e.jsxs(L.button, {
+                      initial: { opacity: 0, x: -12 },
+                      animate: { opacity: 1, x: 0 },
+                      exit: { opacity: 0, x: -12 },
+                      onClick: () => {
+                        (a(null), y(''));
+                      },
+                      className: i(
+                        'flex items-center gap-2 px-3 py-2.5 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all flex-shrink-0',
+                        `bg-${N}-500/10 text-${N}-400 border-${N}-500/20 hover:bg-${N}-500/20`
+                      ),
+                      children: [
+                        e.jsx(ns, { size: 15 }),
+                        e.jsx('span', { className: 'hidden sm:inline', children: 'Conteneurs' }),
+                      ],
+                    }),
+                }),
+                e.jsx('div', {
+                  className: 'min-w-0',
+                  children: r
+                    ? e.jsxs('div', {
+                        className: 'flex items-center gap-2',
+                        children: [
+                          e.jsx(ye, { size: 16, className: i(`text-${N}-400`) }),
+                          e.jsx('span', {
+                            className:
+                              'text-white font-black text-sm uppercase tracking-tight truncate',
+                            children: r,
+                          }),
+                          e.jsxs('span', {
+                            className: i(
+                              'text-[9px] px-2 py-0.5 rounded-full border font-black uppercase',
+                              `bg-${N}-500/10 text-${N}-400 border-${N}-500/20`
+                            ),
+                            children: [(g[r] || []).length, ' peers'],
+                          }),
+                        ],
+                      })
+                    : e.jsxs('div', {
+                        className: 'flex items-center gap-2 text-slate-400',
+                        children: [
+                          e.jsx(ye, { size: 16 }),
+                          e.jsxs('span', {
+                            className: 'font-black text-sm uppercase tracking-tight',
+                            children: [w.length, ' Conteneur', w.length > 1 ? 's' : ''],
+                          }),
+                        ],
+                      }),
+                }),
+              ],
+            }),
+            e.jsxs('div', {
+              className: 'flex items-center gap-3 w-full sm:w-auto',
+              children: [
+                e.jsx(le, {
+                  children:
+                    r &&
+                    e.jsxs(L.div, {
+                      initial: { opacity: 0, width: 0 },
+                      animate: { opacity: 1, width: 'auto' },
+                      exit: { opacity: 0, width: 0 },
+                      className: 'relative group overflow-hidden',
+                      children: [
+                        e.jsx(it, {
+                          className:
+                            'absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors',
+                          size: 15,
+                        }),
+                        e.jsx('input', {
+                          type: 'text',
+                          placeholder: 'Rechercher...',
+                          value: b,
+                          onChange: (v) => y(v.target.value),
+                          className:
+                            'pl-9 pr-4 py-2.5 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/20 text-sm text-white w-48 font-mono',
+                        }),
+                      ],
+                    }),
+                }),
+                e.jsxs('div', {
+                  className: 'flex items-center gap-3',
+                  children: [
+                    e.jsx('button', {
+                      onClick: f,
+                      className:
+                        'hidden sm:flex items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 text-slate-400 hover:text-white transition-all group',
+                      title: 'Exporter CSV',
+                      children: e.jsx(_e, {
+                        size: 16,
+                        className: 'group-hover:-translate-y-0.5 transition-transform',
+                      }),
+                    }),
+                    e.jsxs(We, {
+                      variant: 'primary',
+                      icon: qe,
+                      onClick: () => {
+                        r ? n(r) : x();
+                      },
+                      className: 'flex-shrink-0',
+                      children: [
+                        e.jsx('span', {
+                          className: 'hidden sm:inline',
+                          children: r ? 'Nouveau Peer' : 'Nouveau Conteneur',
+                        }),
+                        e.jsx('span', { className: 'sm:hidden', children: 'Créer' }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+        e.jsx(le, {
+          mode: 'wait',
+          children: r
+            ? e.jsxs(
+                L.div,
+                {
+                  initial: { opacity: 0, y: 20 },
+                  animate: { opacity: 1, y: 0 },
+                  exit: { opacity: 0, y: -20 },
+                  transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] },
+                  className: 'space-y-4',
+                  children: [
+                    (() => {
+                      const v = g[r] || [],
+                        j = v.filter(rt).length;
+                      return e.jsxs(L.div, {
+                        initial: { opacity: 0, x: 20 },
+                        animate: { opacity: 1, x: 0 },
+                        className: i(
+                          'flex flex-col md:flex-row items-start md:items-center gap-6 p-6 rounded-[2rem] border relative overflow-hidden group',
+                          `bg-${N}-500/5 border-${N}-500/15`
+                        ),
+                        children: [
+                          e.jsx('div', {
+                            className: i(
+                              'absolute inset-0 bg-gradient-to-r from-transparent to-white/[0.02] pointer-events-none'
+                            ),
+                          }),
+                          e.jsx('div', {
+                            className: i(
+                              'p-4 rounded-2xl shadow-2xl',
+                              `bg-${N}-500/10 text-${N}-400`
+                            ),
+                            children: e.jsx(ye, { size: 24 }),
+                          }),
+                          e.jsxs('div', {
+                            className: 'flex-1 min-w-0',
+                            children: [
+                              e.jsx('h2', {
+                                className:
+                                  'text-xl font-black text-white italic uppercase tracking-tighter mb-1',
+                                children: r,
+                              }),
+                              e.jsxs('div', {
+                                className: 'flex items-center gap-4',
+                                children: [
+                                  e.jsxs('span', {
+                                    className:
+                                      'flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest',
+                                    children: [
+                                      e.jsx(Ne, { size: 12 }),
+                                      ' ',
+                                      v.length,
+                                      ' Peers Total',
+                                    ],
+                                  }),
+                                  e.jsx('div', { className: 'h-1 w-1 rounded-full bg-slate-700' }),
+                                  e.jsxs('span', {
+                                    className:
+                                      'flex items-center gap-1.5 text-[10px] font-black text-emerald-400 uppercase tracking-widest',
+                                    children: [e.jsx(de, { size: 12 }), ' ', j, ' Actifs'],
+                                  }),
+                                ],
+                              }),
+                            ],
+                          }),
+                          e.jsxs('div', {
+                            className:
+                              'hidden md:flex gap-8 px-8 border-l border-white/10 font-mono',
+                            children: [
+                              e.jsxs('div', {
+                                className: 'text-right',
+                                children: [
+                                  e.jsx('span', {
+                                    className:
+                                      'block text-[10px] font-black text-slate-500 uppercase mb-1',
+                                    children: 'Download',
+                                  }),
+                                  e.jsxs('span', {
+                                    className: 'text-xl font-black text-white',
+                                    children: [
+                                      ee(v.reduce((z, D) => z + (D.downloadRate || 0), 0)),
+                                      '/s',
+                                    ],
+                                  }),
+                                ],
+                              }),
+                              e.jsxs('div', {
+                                className: 'text-right',
+                                children: [
+                                  e.jsx('span', {
+                                    className:
+                                      'block text-[10px] font-black text-slate-500 uppercase mb-1',
+                                    children: 'Upload',
+                                  }),
+                                  e.jsxs('span', {
+                                    className: 'text-xl font-black text-white',
+                                    children: [
+                                      ee(v.reduce((z, D) => z + (D.uploadRate || 0), 0)),
+                                      '/s',
+                                    ],
+                                  }),
+                                ],
+                              }),
+                            ],
+                          }),
+                        ],
+                      });
+                    })(),
+                    E.length === 0
+                      ? e.jsxs(ce, {
+                          className:
+                            'flex flex-col items-center justify-center py-20 border-dashed',
+                          hover: !1,
+                          children: [
+                            e.jsx('div', {
+                              className: 'p-6 bg-white/5 rounded-full mb-4',
+                              children: e.jsx(Ne, { size: 40, className: 'text-slate-600' }),
+                            }),
+                            e.jsx('h3', {
+                              className: 'text-lg font-black text-white uppercase mb-1',
+                              children: b ? 'Aucun résultat' : 'Conteneur Vide',
+                            }),
+                            e.jsx('p', {
+                              className:
+                                'text-slate-500 text-[10px] font-black uppercase tracking-widest',
+                              children: b
+                                ? `Aucun peer ne correspond à "${b}"`
+                                : 'Aucun peer dans ce conteneur',
+                            }),
+                          ],
+                        })
+                      : e.jsx('div', {
+                          className:
+                            'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5',
+                          children: e.jsx(le, {
+                            mode: 'popLayout',
+                            children: E.map((v, j) =>
+                              e.jsx(
+                                L.div,
+                                {
+                                  initial: { opacity: 0, scale: 0.95 },
+                                  animate: { opacity: 1, scale: 1 },
+                                  exit: { opacity: 0, scale: 0.95 },
+                                  transition: { delay: j * 0.04, duration: 0.3 },
+                                  children: e.jsx(Gr, {
+                                    client: v,
+                                    color: N,
+                                    onSelect: c,
+                                    onToggle: d,
+                                    onEdit: p,
+                                    onQRCode: m,
+                                    onDelete: l,
+                                  }),
+                                },
+                                v.id
+                              )
+                            ),
+                          }),
+                        }),
+                  ],
+                },
+                `container-${r}`
+              )
+            : e.jsx(
+                L.div,
+                {
+                  initial: { opacity: 0, y: 20 },
+                  animate: { opacity: 1, y: 0 },
+                  exit: { opacity: 0, y: -20 },
+                  transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] },
+                  children:
+                    w.length === 0
+                      ? e.jsxs(ce, {
+                          className:
+                            'flex flex-col items-center justify-center py-32 border-dashed',
+                          hover: !1,
+                          children: [
+                            e.jsx('div', {
+                              className: 'p-8 bg-white/5 rounded-full mb-6',
+                              children: e.jsx(ye, { size: 64, className: 'text-slate-600' }),
+                            }),
+                            e.jsx('h3', {
+                              className:
+                                'text-2xl font-black text-white tracking-widest uppercase mb-2',
+                              children: 'Initialisation Requise',
+                            }),
+                            e.jsx('p', {
+                              className:
+                                'text-slate-500 font-bold uppercase text-[10px] tracking-widest',
+                              children:
+                                'Créez votre premier conteneur depuis le bouton "+" ci-dessus',
+                            }),
+                          ],
+                        })
+                      : e.jsx('div', {
+                          className:
+                            'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5',
+                          children: w.map(([v, j], z) =>
+                            e.jsx(
+                              Br,
+                              {
+                                name: v,
+                                clients: j,
+                                color: as(v),
+                                onDeleteContainer: o,
+                                idx: z,
+                                onClick: () => a(v),
+                              },
+                              v
+                            )
+                          ),
+                        }),
+                },
+                'container-grid'
+              ),
+        }),
+      ],
+    });
+  },
+  Hr = ({ client: t, onBack: s, onToggle: r, onDelete: a, onQRCode: c, onEdit: d }) => {
+    const { theme: p } = Q(),
+      [m, l] = h.useState([]),
+      [o, n] = h.useState(!1),
+      [x, u] = h.useState([]),
+      [b, y] = h.useState([]),
+      [g, w] = h.useState('realtime');
+    (h.useEffect(() => {
+      if (x.length === 0) {
+        const f = Array.from({ length: 60 }, (v, j) => ({
+          time: new Date(Date.now() - (60 - j) * 5e3).toLocaleTimeString('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
+          download: 0,
+          upload: 0,
+        }));
+        u(f);
+      }
+      const N = new Date().toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+      u((f) => [
+        ...f.slice(1),
+        { time: N, download: t.downloadRate || 0, upload: t.uploadRate || 0 },
+      ]);
+    }, [t]),
+      h.useEffect(() => {
+        (n(!0),
+          T.get(`/clients/${t.container}/${t.name}/history`)
+            .then((N) => l(N.data))
+            .catch(console.error)
+            .finally(() => n(!1)));
+      }, [t.id]),
+      h.useEffect(() => {
+        g === 'history' &&
+          T.get(`/clients/${t.container}/${t.name}/history-hours`)
+            .then((N) => {
+              const f = N.data.map((v, j) => {
+                const z = N.data[j - 1] || v,
+                  D = j === 0 ? 0 : Math.max(0, v.rx - z.rx),
+                  k = j === 0 ? 0 : Math.max(0, v.tx - z.tx);
+                return {
+                  time: new Date(v.time).toLocaleString('fr-FR', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                  }),
+                  download: D,
+                  upload: k,
+                };
+              });
+              y(f);
+            })
+            .catch(() => {});
+      }, [g, t.id]));
+    const E = t.lastHandshake
+      ? new Date(t.lastHandshake * 1e3).toLocaleString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : 'Jamais';
+    return e.jsxs(L.div, {
+      initial: { opacity: 0, x: 20 },
+      animate: { opacity: 1, x: 0 },
+      exit: { opacity: 0, x: -20 },
+      className: 'space-y-8',
+      children: [
+        e.jsxs('button', {
+          onClick: s,
+          className:
+            'group flex items-center gap-3 text-slate-500 hover:text-white transition-all bg-white/5 px-6 py-2 rounded-2xl border border-white/5 hover:border-white/20',
+          children: [
+            e.jsx(Le, {
+              className: 'rotate-180 transform transition-transform group-hover:-translate-x-1',
+              size: 20,
+            }),
+            e.jsx('span', {
+              className:
+                'font-black text-xs uppercase tracking-widest text-slate-400 group-hover:text-white',
+              children: 'Retour Tactique',
+            }),
+          ],
+        }),
+        e.jsx('div', {
+          className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4',
+          children: [
+            { label: 'Daily quota', value: ee(t.usageDaily || 0), icon: de, color: 'emerald' },
+            { label: 'Data Total', value: ee(t.usageTotal || 0), icon: tt, color: 'indigo' },
+            { label: 'Burst DL', value: ee(t.downloadBytes), icon: St, color: 'cyan' },
+            { label: 'Burst UL', value: ee(t.uploadBytes), icon: zt, color: 'rose' },
+          ].map((N, f) =>
+            e.jsxs(
+              'div',
+              {
+                className:
+                  'bg-slate-950/40 backdrop-blur-3xl p-6 rounded-3xl border border-white/5 flex items-center gap-5 group hover:border-white/10 transition-all',
+                children: [
+                  e.jsx('div', {
+                    className: i(
+                      'p-4 rounded-2xl shadow-2xl',
+                      `bg-${N.color}-500/10 text-${N.color}-400`
+                    ),
+                    children: e.jsx(N.icon, { size: 24 }),
+                  }),
+                  e.jsxs('div', {
+                    children: [
+                      e.jsx('div', {
+                        className:
+                          'text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1',
+                        children: N.label,
+                      }),
+                      e.jsx('div', {
+                        className: 'text-xl font-mono font-black text-white tracking-tighter',
+                        children: N.value,
+                      }),
+                    ],
+                  }),
+                ],
+              },
+              f
+            )
+          ),
+        }),
+        e.jsxs('div', {
+          className:
+            'relative overflow-hidden bg-slate-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 p-8 group shadow-2xl',
+          children: [
+            e.jsx('div', {
+              className:
+                'absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-1000 rotate-12 scale-150',
+              children: e.jsx(tt, { size: 200 }),
+            }),
+            e.jsxs('div', {
+              className:
+                'relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10',
+              children: [
+                e.jsxs('div', {
+                  className: 'space-y-4',
+                  children: [
+                    e.jsxs('div', {
+                      className: 'flex items-center gap-4',
+                      children: [
+                        e.jsx('div', {
+                          className: i(
+                            'p-4 rounded-[1.5rem] shadow-2xl',
+                            `bg-${p}-600 text-white shadow-${p}-600/30`
+                          ),
+                          children: e.jsx(ht, { size: 32 }),
+                        }),
+                        e.jsxs('div', {
+                          children: [
+                            e.jsx('h2', {
+                              className:
+                                'text-4xl font-black text-white tracking-widest uppercase mb-1',
+                              children: t.name,
+                            }),
+                            e.jsxs('div', {
+                              className: 'flex items-center gap-3',
+                              children: [
+                                e.jsx('span', {
+                                  className: i('text-sm font-mono font-bold', `text-${p}-400`),
+                                  children: t.ip,
+                                }),
+                                e.jsx('span', { className: 'w-1 h-1 bg-slate-700 rounded-full' }),
+                                e.jsx('span', {
+                                  className:
+                                    'text-[10px] font-black text-slate-500 uppercase tracking-widest',
+                                  children: t.container,
+                                }),
+                              ],
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                    e.jsxs('div', {
+                      className:
+                        'flex items-center gap-2 bg-white/5 py-1.5 px-4 rounded-xl border border-white/5 w-fit',
+                      children: [
+                        e.jsx('div', {
+                          className: i(
+                            'h-1.5 w-1.5 rounded-full animate-pulse',
+                            t.enabled ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-slate-600'
+                          ),
+                        }),
+                        e.jsxs('span', {
+                          className:
+                            'text-[10px] font-black text-slate-400 uppercase tracking-widest',
+                          children: ['Dernière activité: ', E],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsx('div', {
+                  className: 'flex flex-wrap gap-4',
+                  children: [
+                    { icon: ds, label: 'Modifier', color: 'indigo', onClick: () => d(t) },
+                    {
+                      icon: t.enabled ? xs : ps,
+                      label: t.enabled ? 'Désactiver' : 'Activer',
+                      color: 'amber',
+                      onClick: () => r(t.container, t.name, !t.enabled),
+                    },
+                    { icon: us, label: 'QR Code', color: p, onClick: () => c(t) },
+                    { icon: Pe, label: 'Supprimer', color: 'rose', onClick: () => a(t) },
+                  ].map((N, f) =>
+                    e.jsx(
+                      'button',
+                      {
+                        onClick: N.onClick,
+                        className: i(
+                          'p-5 rounded-2xl transition-all duration-300 hover:scale-110 active:scale-95 shadow-xl border border-white/5',
+                          `bg-${N.color}-500/10 text-${N.color}-400 hover:bg-${N.color}-500/20 hover:border-${N.color}-500/20 shadow-${N.color}-500/5`
+                        ),
+                        title: N.label,
+                        children: e.jsx(N.icon, { size: 24 }),
+                      },
+                      f
+                    )
+                  ),
+                }),
+              ],
+            }),
+          ],
+        }),
+        e.jsxs('div', {
+          className: 'grid grid-cols-1 xl:grid-cols-3 gap-8',
+          children: [
+            e.jsxs('div', {
+              className:
+                'xl:col-span-2 bg-slate-950/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 shadow-2xl',
+              children: [
+                e.jsxs('div', {
+                  className: 'flex flex-col sm:flex-row items-center justify-between gap-6 mb-10',
+                  children: [
+                    e.jsxs('h3', {
+                      className:
+                        'text-xl font-black text-white flex items-center gap-4 uppercase tracking-tighter',
+                      children: [
+                        e.jsx(de, { size: 24, className: i(`text-${p}-400`) }),
+                        ' Spectre Réseau',
+                      ],
+                    }),
+                    e.jsx('div', {
+                      className:
+                        'flex bg-slate-900/60 p-2 rounded-2xl border border-white/5 shadow-inner',
+                      children: [
+                        { id: 'realtime', label: 'Temps réel' },
+                        { id: 'history', label: '72 Heures' },
+                      ].map((N) =>
+                        e.jsx(
+                          'button',
+                          {
+                            onClick: () => w(N.id),
+                            className: i(
+                              'px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500',
+                              g === N.id
+                                ? `bg-${p}-600 text-white shadow-2xl`
+                                : 'text-slate-500 hover:text-white'
+                            ),
+                            children: N.label,
+                          },
+                          N.id
+                        )
+                      ),
+                    }),
+                  ],
+                }),
+                e.jsx('div', {
+                  className: 'h-80 w-full',
+                  children: e.jsx(vt, {
+                    width: '100%',
+                    height: '100%',
+                    children: e.jsxs(Dt, {
+                      data: g === 'realtime' ? x : b,
+                      children: [
+                        e.jsxs('defs', {
+                          children: [
+                            e.jsxs('linearGradient', {
+                              id: 'colorRxDet',
+                              x1: '0',
+                              y1: '0',
+                              x2: '0',
+                              y2: '1',
+                              children: [
+                                e.jsx('stop', {
+                                  offset: '5%',
+                                  stopColor: '#10b981',
+                                  stopOpacity: 0.3,
+                                }),
+                                e.jsx('stop', {
+                                  offset: '95%',
+                                  stopColor: '#10b981',
+                                  stopOpacity: 0,
+                                }),
+                              ],
+                            }),
+                            e.jsxs('linearGradient', {
+                              id: 'colorTxDet',
+                              x1: '0',
+                              y1: '0',
+                              x2: '0',
+                              y2: '1',
+                              children: [
+                                e.jsx('stop', {
+                                  offset: '5%',
+                                  stopColor: '#6366f1',
+                                  stopOpacity: 0.3,
+                                }),
+                                e.jsx('stop', {
+                                  offset: '95%',
+                                  stopColor: '#6366f1',
+                                  stopOpacity: 0,
+                                }),
+                              ],
+                            }),
+                          ],
+                        }),
+                        e.jsx(It, { strokeDasharray: '3 3', stroke: '#1e293b', vertical: !1 }),
+                        e.jsx(Tt, {
+                          dataKey: 'time',
+                          stroke: '#475569',
+                          fontSize: 10,
+                          tickLine: !1,
+                          axisLine: !1,
+                          fontFamily: 'monospace',
+                          minTickGap: 40,
+                        }),
+                        e.jsx(Lt, {
+                          stroke: '#475569',
+                          fontSize: 10,
+                          tickLine: !1,
+                          axisLine: !1,
+                          fontFamily: 'monospace',
+                          tickFormatter: (N) => ee(N),
+                        }),
+                        e.jsx(jt, {
+                          contentStyle: {
+                            backgroundColor: '#020617',
+                            border: '1px solid #1e293b',
+                            borderRadius: '1.5rem',
+                            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                          },
+                          itemStyle: {
+                            fontFamily: 'monospace',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                          },
+                          labelStyle: { marginBottom: '8px', opacity: 0.5 },
+                          formatter: (N) => [ee(N) + (g === 'realtime' ? '/s' : ''), ''],
+                        }),
+                        e.jsx(st, {
+                          type: 'monotone',
+                          dataKey: 'download',
+                          name: 'Download',
+                          stroke: '#10b981',
+                          strokeWidth: 4,
+                          fillOpacity: 1,
+                          fill: 'url(#colorRxDet)',
+                          isAnimationActive: !1,
+                        }),
+                        e.jsx(st, {
+                          type: 'monotone',
+                          dataKey: 'upload',
+                          name: 'Upload',
+                          stroke: '#6366f1',
+                          strokeWidth: 4,
+                          fillOpacity: 1,
+                          fill: 'url(#colorTxDet)',
+                          isAnimationActive: !1,
+                        }),
+                      ],
+                    }),
+                  }),
+                }),
+              ],
+            }),
+            e.jsxs('div', {
+              className:
+                'bg-slate-950/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 shadow-2xl flex flex-col',
+              children: [
+                e.jsxs('h3', {
+                  className:
+                    'text-xl font-black text-white mb-8 flex items-center gap-4 uppercase tracking-tighter',
+                  children: [
+                    e.jsx(Xs, { size: 24, className: i(`text-${p}-400`) }),
+                    ' Blackbox Log',
+                  ],
+                }),
+                e.jsx('div', {
+                  className: 'flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4',
+                  children: o
+                    ? e.jsxs('div', {
+                        className:
+                          'flex flex-col items-center justify-center py-20 gap-4 opacity-40',
+                        children: [
+                          e.jsx(J, { className: 'animate-spin text-slate-500', size: 32 }),
+                          e.jsx('span', {
+                            className: 'text-[10px] font-black uppercase tracking-widest',
+                            children: 'Scanning logs...',
+                          }),
+                        ],
+                      })
+                    : m.length === 0
+                      ? e.jsxs('div', {
+                          className:
+                            'flex flex-col items-center justify-center py-20 gap-4 opacity-40',
+                          children: [
+                            e.jsx(ht, { className: 'text-slate-500', size: 32 }),
+                            e.jsx('span', {
+                              className: 'text-[10px] font-black uppercase tracking-widest',
+                              children: 'No logs found',
+                            }),
+                          ],
+                        })
+                      : m.map((N, f) =>
+                          e.jsxs(
+                            'div',
+                            {
+                              className:
+                                'bg-white/5 p-4 rounded-2xl border border-white/5 hover:border-white/10 hover:bg-white/10 transition-all group',
+                              children: [
+                                e.jsxs('div', {
+                                  className: 'flex justify-between items-start mb-2',
+                                  children: [
+                                    e.jsx('span', {
+                                      className:
+                                        'text-[10px] font-mono font-bold text-slate-400 group-hover:text-white transition-colors',
+                                      children: new Date(N.time).toLocaleString(),
+                                    }),
+                                    e.jsx('span', {
+                                      className: i(
+                                        'px-2 py-0.5 rounded-lg text-[8px] font-black tracking-widest uppercase border',
+                                        N.realIp
+                                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                          : 'bg-slate-800 text-slate-500 border-white/10'
+                                      ),
+                                      children: N.realIp ? 'DETECTÉ / ACTIF' : 'INACTIF',
+                                    }),
+                                  ],
+                                }),
+                                e.jsxs('div', {
+                                  className: 'grid grid-cols-2 gap-4 mt-4',
+                                  children: [
+                                    e.jsxs('div', {
+                                      className: 'space-y-1',
+                                      children: [
+                                        e.jsx('div', {
+                                          className:
+                                            'text-[8px] font-black text-slate-500 uppercase',
+                                          children: 'IP Réelle (Endpoint)',
+                                        }),
+                                        e.jsx('div', {
+                                          className: 'text-xs font-mono font-bold text-indigo-400',
+                                          children: N.realIp || 'Masquée / N/A',
+                                        }),
+                                      ],
+                                    }),
+                                    e.jsxs('div', {
+                                      className: 'space-y-1 text-right',
+                                      children: [
+                                        e.jsx('div', {
+                                          className:
+                                            'text-[8px] font-black text-slate-500 uppercase',
+                                          children: 'Handshake Scan',
+                                        }),
+                                        e.jsx('div', {
+                                          className:
+                                            'text-[10px] font-mono font-bold text-emerald-500',
+                                          children: new Date(N.timestamp).toLocaleTimeString(),
+                                        }),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            },
+                            f
+                          )
+                        ),
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+  },
+  qr = ({ users: t = [], loading: s = !1, onCreateUser: r, onDelete: a }) => {
+    const { theme: c } = Q(),
+      [d, p] = h.useState(''),
+      m = t.filter(
+        (l) =>
+          l.username.toLowerCase().includes(d.toLowerCase()) ||
+          l.role.toLowerCase().includes(d.toLowerCase())
+      );
+    return e.jsxs('div', {
+      className: 'space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700',
+      children: [
+        e.jsxs(ce, {
+          className: 'flex flex-col lg:flex-row justify-between items-center gap-8',
+          children: [
+            e.jsxs('div', {
+              className: 'flex items-center gap-6',
+              children: [
+                e.jsx('div', {
+                  className: i(
+                    'w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl',
+                    `bg-${c}-600/20 text-${c}-400 border border-${c}-500/20`
+                  ),
+                  children: e.jsx(Ne, { size: 32 }),
+                }),
+                e.jsxs('div', {
+                  children: [
+                    e.jsx('h2', {
+                      className: 'text-3xl font-black text-white tracking-tighter italic uppercase',
+                      children: 'Gestion des Opérateurs',
+                    }),
+                    e.jsx('p', {
+                      className:
+                        'text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase opacity-60',
+                      children: 'System Access Control',
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            e.jsxs('div', {
+              className: 'flex flex-col md:flex-row gap-4 w-full lg:w-auto items-center',
+              children: [
+                e.jsxs('div', {
+                  className: 'relative group w-full md:w-auto',
+                  children: [
+                    e.jsx(it, {
+                      className:
+                        'absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors',
+                      size: 20,
+                    }),
+                    e.jsx('input', {
+                      type: 'text',
+                      placeholder: 'Rechercher un opérateur...',
+                      value: d,
+                      onChange: (l) => p(l.target.value),
+                      className:
+                        'pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/20 focus:bg-white/10 text-sm text-white w-full md:w-80 transition-all font-mono',
+                    }),
+                  ],
+                }),
+                e.jsx(We, {
+                  variant: 'primary',
+                  icon: qe,
+                  className: 'w-full md:w-auto',
+                  onClick: r,
+                  children: 'Créer un Accès',
+                }),
+              ],
+            }),
+          ],
+        }),
+        e.jsxs(ce, {
+          className: 'p-0 overflow-hidden',
+          hover: !1,
+          children: [
+            e.jsx('div', {
+              className: 'overflow-x-auto',
+              children: e.jsxs('table', {
+                className: 'w-full text-left border-collapse',
+                children: [
+                  e.jsx('thead', {
+                    children: e.jsxs('tr', {
+                      className:
+                        'text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5',
+                      children: [
+                        e.jsx('th', { className: 'px-10 py-8', children: 'Identité Opérateur' }),
+                        e.jsx('th', { className: 'px-8 py-8', children: 'Rôle Système' }),
+                        e.jsx('th', { className: 'px-8 py-8', children: 'Statut' }),
+                        e.jsx('th', {
+                          className: 'px-10 py-8 text-right',
+                          children: 'Intervention',
+                        }),
+                      ],
+                    }),
+                  }),
+                  e.jsx('tbody', {
+                    className: 'divide-y divide-white/5',
+                    children: e.jsx(le, {
+                      mode: 'popLayout',
+                      children: m.map((l, o) =>
+                        e.jsxs(
+                          L.tr,
+                          {
+                            initial: { opacity: 0, y: 10 },
+                            animate: { opacity: 1, y: 0 },
+                            exit: { opacity: 0, x: -20 },
+                            transition: { delay: o * 0.05 },
+                            className: 'group hover:bg-white/5 transition-colors cursor-pointer',
+                            children: [
+                              e.jsx('td', {
+                                className: 'px-10 py-6',
+                                children: e.jsxs('div', {
+                                  className: 'flex items-center gap-5',
+                                  children: [
+                                    e.jsx('div', {
+                                      className: i(
+                                        'w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-white text-lg transition-all group-hover:scale-110 group-hover:bg-slate-700 shadow-xl',
+                                        l.role === 'admin'
+                                          ? `border border-${c}-500/30`
+                                          : 'border border-white/5'
+                                      ),
+                                      children: l.username.charAt(0).toUpperCase(),
+                                    }),
+                                    e.jsxs('div', {
+                                      children: [
+                                        e.jsxs('div', {
+                                          className:
+                                            'text-sm font-black text-white uppercase tracking-tight flex items-center gap-2',
+                                          children: [
+                                            l.username,
+                                            l.role === 'admin' &&
+                                              e.jsx(be, {
+                                                size: 14,
+                                                className: i(`text-${c}-400`),
+                                              }),
+                                          ],
+                                        }),
+                                        e.jsx('div', {
+                                          className:
+                                            'text-[9px] font-bold text-slate-500 uppercase tracking-widest',
+                                          children:
+                                            l.role === 'admin' ? 'Root Access' : 'Operator Access',
+                                        }),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                              }),
+                              e.jsx('td', {
+                                className: 'px-8 py-6',
+                                children: e.jsx('span', {
+                                  className: i(
+                                    'text-[10px] font-black px-4 py-1.5 rounded-xl border uppercase tracking-widest inline-block',
+                                    l.role === 'admin'
+                                      ? `bg-${c}-500/10 text-${c}-400 border-${c}-500/20`
+                                      : 'bg-white/5 text-slate-400 border-white/5'
+                                  ),
+                                  children: l.role,
+                                }),
+                              }),
+                              e.jsx('td', {
+                                className: 'px-8 py-6',
+                                children: e.jsxs('div', {
+                                  className:
+                                    'flex items-center gap-2 text-emerald-400 text-[10px] font-black uppercase tracking-widest bg-emerald-500/5 px-4 py-1.5 rounded-xl border border-emerald-500/10 w-fit',
+                                  children: [
+                                    e.jsx('div', {
+                                      className:
+                                        'h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]',
+                                    }),
+                                    'Active',
+                                  ],
+                                }),
+                              }),
+                              e.jsx('td', {
+                                className: 'px-6 py-6 text-right',
+                                children: e.jsx('div', {
+                                  className:
+                                    'flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform lg:translate-x-2 lg:group-hover:translate-x-0',
+                                  children: e.jsx(We, {
+                                    variant: 'danger',
+                                    size: 'sm',
+                                    icon: Pe,
+                                    className: 'p-2.5',
+                                    onClick: (n) => {
+                                      (n.stopPropagation(), a(l.username));
+                                    },
+                                  }),
+                                }),
+                              }),
+                            ],
+                          },
+                          l.id || o
+                        )
+                      ),
+                    }),
+                  }),
+                ],
+              }),
+            }),
+            m.length === 0 &&
+              !s &&
+              e.jsxs('div', {
+                className: 'flex flex-col items-center justify-center py-24',
+                children: [
+                  e.jsx('div', {
+                    className: 'p-6 bg-white/5 rounded-full mb-4',
+                    children: e.jsx(Js, { size: 48, className: 'text-slate-600' }),
+                  }),
+                  e.jsx('p', {
+                    className: 'text-slate-500 font-black uppercase text-xs tracking-widest',
+                    children: 'Aucun opérateur trouvé',
+                  }),
+                ],
+              }),
+          ],
+        }),
+      ],
+    });
+  },
+  Vr = () => {
+    const { theme: t, isDark: s } = Q(),
+      { addToast: r } = ke(),
+      [a, c] = h.useState([]),
+      [d, p] = h.useState(!1),
+      [m, l] = h.useState(!1),
+      [o, n] = h.useState(''),
+      [x, u] = h.useState('access'),
+      b = h.useRef(null),
+      y = h.useRef(null),
+      g = async () => {
+        p(!0);
+        try {
+          let j;
+          x === 'access'
+            ? (j = '/system/logs')
+            : x === 'security'
+              ? (j = '/system/security-logs')
+              : x === 'system' && (j = '/system/container-logs');
+          const k = ((await T.get(j)).data || []).map((R, U) => ({
+            id: U,
+            time: R.time || R.date || R.timestamp || new Date().toISOString(),
+            message:
+              R.message ||
+              R.MESSAGE ||
+              (R.username ? `${R.username} – ${R.virtualIp || ''}` : 'Événement système'),
+            ip: R.ip || R.realIp || R.unit || R._SYSTEMD_UNIT || 'Système',
+            status: R.status || R.type || 'LOGGED',
+          }));
+          c(k);
+        } catch (j) {
+          (console.error('[LOGS]', j), c([]));
+        } finally {
+          p(!1);
+        }
+      },
+      w = async () => {
+        if (window.confirm("Voulez-vous vraiment effacer tous les journaux système et d'audit ?")) {
+          l(!0);
+          try {
+            (await T.post('/system/logs/clear'), r('Journaux effacés avec succès', 'success'), g());
+          } catch {
+            r("Erreur lors de l'effacement", 'error');
+          } finally {
+            l(!1);
+          }
+        }
+      };
+    h.useEffect(() => {
+      if (
+        (b.current && (b.current.close(), (b.current = null)),
+        g(),
+        x === 'security' || x === 'system')
+      ) {
+        const z = Rs(x === 'security' ? 'logs-wg' : 'logs-api');
+        if (!z) return;
+        try {
+          const D = new WebSocket(z);
+          ((b.current = D),
+            (D.onmessage = (k) => {
+              try {
+                const R = JSON.parse(k.data),
+                  U = {
+                    id: Date.now() + Math.random(),
+                    time: R.ts || R.date || R.time || new Date().toISOString(),
+                    message: R.msg || R.message || (typeof R == 'string' ? R : JSON.stringify(R)),
+                    ip: R.svc || R.ip || (x === 'security' ? 'kernel' : 'api'),
+                    status: R.level || 'LIVE',
+                  };
+                c((G) => [U, ...G.slice(0, 199)]);
+              } catch {
+                const U = typeof k.data == 'string' ? k.data.trim() : '';
+                if (!U) return;
+                const G = {
+                  id: Date.now() + Math.random(),
+                  time: new Date().toISOString(),
+                  message: U,
+                  ip: x === 'security' ? 'kernel' : 'system',
+                  status: 'LIVE',
+                };
+                c((X) => [G, ...X.slice(0, 199)]);
+              }
+            }),
+            (D.onerror = (k) => console.warn(`[WS-LOGS-${x}] error:`, k)));
+        } catch (D) {
+          console.warn(`[WS-LOGS-${x}] Could not connect:`, D);
+        }
+      }
+      return () => {
+        b.current && (b.current.close(), (b.current = null));
+      };
+    }, [x]);
+    const E = a.filter((j) => JSON.stringify(j).toLowerCase().includes(o.toLowerCase())),
+      N = (j) => {
+        const z = (j || '').toUpperCase();
+        return z === 'SUCCESS' || z === 'CONNECTED' || z === 'INFO'
+          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+          : z === 'LIVE' || z === 'DEBUG'
+            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 animate-pulse'
+            : z === 'FAILED' || z === 'ERROR' || z === 'AUDIT'
+              ? 'bg-red-500/10 text-red-400 border-red-500/20'
+              : z === 'WARN' || z === 'WARNING'
+                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                : s
+                  ? 'bg-white/5 text-slate-400 border-white/5'
+                  : 'bg-slate-100/50 text-slate-500 border-black/5';
+      },
+      f = () => {
+        const j = E.map((k) => `[${k.time}] [${k.status}] ${k.message} — ${k.ip}`).join(`
+`),
+          z = new Blob([j], { type: 'text/plain' }),
+          D = document.createElement('a');
+        ((D.href = URL.createObjectURL(z)),
+          (D.download = `wg-fux-logs-${x}-${new Date().toISOString().split('T')[0]}.log`),
+          D.click());
+      },
+      v = [
+        { id: 'access', label: 'Accès Peers', icon: Ge },
+        { id: 'security', label: 'Sécurité', icon: be },
+        { id: 'system', label: 'Journal Système', icon: at },
+      ];
+    return e.jsxs('div', {
+      className: 'space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700',
+      children: [
+        e.jsxs('div', {
+          className: i(
+            'flex flex-col lg:flex-row justify-between items-start lg:items-center backdrop-blur-3xl p-6 md:p-8 rounded-[2rem] border shadow-2xl gap-6 transition-all',
+            s ? 'bg-slate-900/40 border-white/5' : 'bg-white/80 border-black/5'
+          ),
+          children: [
+            e.jsxs('div', {
+              className: 'flex items-center gap-4 md:gap-6',
+              children: [
+                e.jsx('div', {
+                  className: i(
+                    'p-3 md:p-4 rounded-2xl shadow-2xl flex-shrink-0 transition-colors',
+                    s ? 'bg-white/5' : 'bg-black/5',
+                    `text-${t}-400`
+                  ),
+                  children: e.jsx(Zs, { size: 28 }),
+                }),
+                e.jsxs('div', {
+                  children: [
+                    e.jsx('h2', {
+                      className: i(
+                        'text-2xl md:text-3xl font-black tracking-tighter italic uppercase transition-colors',
+                        s ? 'text-white' : 'text-slate-900'
+                      ),
+                      children: 'Blackbox Protocol',
+                    }),
+                    e.jsx('p', {
+                      className:
+                        'text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase opacity-60',
+                      children: 'System Event History',
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            e.jsxs('div', {
+              className: 'flex items-center gap-3 w-full sm:w-auto',
+              children: [
+                e.jsxs('div', {
+                  className: 'relative group flex-1 sm:flex-none',
+                  children: [
+                    e.jsx(it, {
+                      className: i(
+                        'absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 transition-colors',
+                        s ? 'group-focus-within:text-white' : 'group-focus-within:text-slate-900'
+                      ),
+                      size: 16,
+                    }),
+                    e.jsx('input', {
+                      type: 'text',
+                      placeholder: 'Filtrer...',
+                      value: o,
+                      onChange: (j) => n(j.target.value),
+                      className: i(
+                        'pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:border-indigo-500/50 font-mono transition-all text-sm w-full sm:w-56',
+                        s
+                          ? 'bg-white/5 border-white/5 text-white placeholder:text-slate-700'
+                          : 'bg-white border-black/5 text-slate-900 placeholder:text-slate-400'
+                      ),
+                    }),
+                    o &&
+                      e.jsx('button', {
+                        onClick: () => n(''),
+                        className:
+                          'absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white',
+                        children: e.jsx(Fe, { size: 14 }),
+                      }),
+                  ],
+                }),
+                e.jsx('button', {
+                  onClick: g,
+                  className: i(
+                    'p-3 border rounded-xl transition-all flex-shrink-0',
+                    s
+                      ? 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                      : 'bg-white border-black/5 text-slate-500 hover:text-slate-900 hover:bg-black/5'
+                  ),
+                  title: 'Rafraîchir',
+                  children: e.jsx(J, { size: 18, className: d ? 'animate-spin' : '' }),
+                }),
+              ],
+            }),
+          ],
+        }),
+        e.jsx('div', {
+          className: 'flex gap-2 flex-wrap',
+          children: v.map((j) => {
+            var z;
+            return e.jsxs(
+              'button',
+              {
+                onClick: () => u(j.id),
+                className: i(
+                  'flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all',
+                  x === j.id
+                    ? `bg-${t}-600 text-white shadow-lg shadow-${t}-600/20`
+                    : i(
+                        'transition-all border',
+                        s
+                          ? 'text-slate-500 hover:text-white hover:bg-white/5 border-white/5'
+                          : 'text-slate-500 hover:text-slate-900 hover:bg-white border-black/5 shadow-sm'
+                      )
+                ),
+                children: [
+                  e.jsx(j.icon, { size: 14 }),
+                  ' ',
+                  j.label,
+                  x === j.id &&
+                    (j.id === 'security' || j.id === 'system') &&
+                    ((z = b.current) == null ? void 0 : z.readyState) === 1 &&
+                    e.jsx('span', {
+                      className: 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse',
+                    }),
+                ],
+              },
+              j.id
+            );
+          }),
+        }),
+        x === 'system' &&
+          e.jsxs('div', {
+            className:
+              'flex items-center gap-3 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl',
+            children: [
+              e.jsx(et, { size: 16, className: 'text-amber-400 flex-shrink-0' }),
+              e.jsx('p', {
+                className: 'text-[10px] font-bold text-amber-400/80 uppercase tracking-widest',
+                children:
+                  'Logs des conteneurs Docker — wg-fux-api · wg-fux-dashboard · wg-sentinel-proxy',
+              }),
+            ],
+          }),
+        e.jsxs('div', {
+          className: i(
+            'backdrop-blur-3xl rounded-[2rem] border overflow-hidden shadow-2xl transition-all',
+            s ? 'bg-slate-900/40 border-white/5' : 'bg-white border-black/5'
+          ),
+          children: [
+            e.jsxs('div', {
+              className:
+                'overflow-x-auto overflow-y-auto max-h-[calc(100vh-420px)] custom-scrollbar',
+              children: [
+                e.jsxs('table', {
+                  className: 'w-full text-left min-w-[600px]',
+                  children: [
+                    e.jsx('thead', {
+                      className: i(
+                        'sticky top-0 z-10 backdrop-blur-xl transition-colors',
+                        s ? 'bg-slate-950/80' : 'bg-slate-50/80'
+                      ),
+                      children: e.jsxs('tr', {
+                        className: i(
+                          'text-[10px] font-black uppercase tracking-widest border-b transition-colors',
+                          s ? 'text-slate-500 border-white/5' : 'text-slate-400 border-black/5'
+                        ),
+                        children: [
+                          e.jsx('th', { className: 'px-6 py-5', children: 'Timestamp' }),
+                          e.jsx('th', { className: 'px-6 py-5', children: 'Événement' }),
+                          e.jsx('th', {
+                            className: 'px-6 py-5 hidden sm:table-cell',
+                            children: 'Source',
+                          }),
+                          e.jsx('th', { className: 'px-6 py-5', children: 'Statut' }),
+                        ],
+                      }),
+                    }),
+                    e.jsx('tbody', {
+                      className: i(
+                        'divide-y font-mono transition-colors',
+                        s ? 'divide-white/5' : 'divide-black/5'
+                      ),
+                      children:
+                        d && a.length === 0
+                          ? e.jsx('tr', {
+                              children: e.jsx('td', {
+                                colSpan: '4',
+                                className: 'text-center py-20 text-slate-500 italic opacity-40',
+                                children: 'Scanning archives...',
+                              }),
+                            })
+                          : E.length === 0
+                            ? e.jsx('tr', {
+                                children: e.jsx('td', {
+                                  colSpan: '4',
+                                  className: 'text-center py-20 text-slate-500 italic opacity-40',
+                                  children: 'Aucun enregistrement détecté',
+                                }),
+                              })
+                            : E.map((j) =>
+                                e.jsxs(
+                                  'tr',
+                                  {
+                                    className: i(
+                                      'group transition-colors',
+                                      s ? 'hover:bg-white/5' : 'hover:bg-slate-50'
+                                    ),
+                                    children: [
+                                      e.jsx('td', {
+                                        className: 'px-6 py-4 whitespace-nowrap',
+                                        children: e.jsxs('div', {
+                                          className: 'flex items-center gap-2',
+                                          children: [
+                                            e.jsx(gt, {
+                                              size: 12,
+                                              className: 'text-slate-600 shrink-0',
+                                            }),
+                                            e.jsx('span', {
+                                              className: i(
+                                                'text-[10px] transition-colors',
+                                                s
+                                                  ? 'text-slate-400 group-hover:text-white'
+                                                  : 'text-slate-500 group-hover:text-slate-900'
+                                              ),
+                                              children: new Date(j.time).toLocaleString('fr-FR', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                second: '2-digit',
+                                              }),
+                                            }),
+                                          ],
+                                        }),
+                                      }),
+                                      e.jsx('td', {
+                                        className: 'px-6 py-4 max-w-xs',
+                                        children: e.jsx('div', {
+                                          className: i(
+                                            'text-xs font-bold tracking-tight truncate transition-colors',
+                                            s ? 'text-white' : 'text-slate-900'
+                                          ),
+                                          children: j.message,
+                                        }),
+                                      }),
+                                      e.jsx('td', {
+                                        className: 'px-6 py-4 hidden sm:table-cell',
+                                        children: e.jsx('span', {
+                                          className: 'text-[10px] text-slate-500 font-mono',
+                                          children: j.ip,
+                                        }),
+                                      }),
+                                      e.jsx('td', {
+                                        className: 'px-6 py-4',
+                                        children: e.jsx('div', {
+                                          className: i(
+                                            'inline-flex items-center px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest',
+                                            N(j.status)
+                                          ),
+                                          children: j.status,
+                                        }),
+                                      }),
+                                    ],
+                                  },
+                                  j.id
+                                )
+                              ),
+                    }),
+                  ],
+                }),
+                e.jsx('div', { ref: y }),
+              ],
+            }),
+            e.jsxs('div', {
+              className: i(
+                'px-6 py-4 border-t transition-colors flex flex-wrap justify-between items-center gap-3',
+                s ? 'border-white/5 bg-slate-950/20' : 'border-black/5 bg-slate-50'
+              ),
+              children: [
+                e.jsxs('div', {
+                  className: 'text-[10px] font-black text-slate-500 uppercase tracking-widest',
+                  children: [E.length, ' entrées · Blackbox v2.1'],
+                }),
+                e.jsxs('div', {
+                  className: 'flex items-center gap-6',
+                  children: [
+                    e.jsxs('button', {
+                      onClick: w,
+                      disabled: m,
+                      className: i(
+                        'flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all',
+                        s
+                          ? 'text-rose-500/50 hover:text-rose-400'
+                          : 'text-rose-400 hover:text-rose-600'
+                      ),
+                      children: [
+                        e.jsx(Pe, { size: 13, className: m ? 'animate-pulse' : '' }),
+                        ' EFFACER',
+                      ],
+                    }),
+                    e.jsxs('button', {
+                      onClick: f,
+                      className:
+                        'flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-widest transition-all',
+                      children: [e.jsx(_e, { size: 13 }), ' Export .log'],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+  },
+  Je = ({ label: t, value: s, onChange: r, badge: a, tooltip: c }) => {
+    const { theme: d, isDark: p } = Q();
+    return e.jsxs('div', {
+      className: 'group space-y-3',
+      children: [
+        e.jsxs('div', {
+          className: 'flex items-center justify-between px-1',
+          children: [
+            e.jsx('label', {
+              className:
+                'text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none',
+              children: t,
+            }),
+            c &&
+              e.jsxs('div', {
+                className: 'group/tip relative',
+                children: [
+                  e.jsx(ht, {
+                    size: 12,
+                    className: i(
+                      'cursor-help transition-colors',
+                      p ? 'text-slate-600 hover:text-white' : 'text-slate-400 hover:text-slate-900'
+                    ),
+                  }),
+                  e.jsx('div', {
+                    className: i(
+                      'absolute bottom-full right-0 mb-4 w-64 p-4 border rounded-2xl text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover/tip:opacity-100 transition-all pointer-events-none z-50 shadow-2xl',
+                      p
+                        ? 'bg-slate-950/95 backdrop-blur-3xl border-white/10 text-slate-400'
+                        : 'bg-white border-black/10 text-slate-500'
+                    ),
+                    children: c,
+                  }),
+                ],
+              }),
+          ],
+        }),
+        e.jsxs('div', {
+          className: 'relative group/field',
+          children: [
+            e.jsx('div', {
+              className: i(
+                'absolute -inset-0.5 rounded-2xl blur opacity-0 group-focus-within/field:opacity-40 transition-opacity',
+                `bg-${d}-500/20`
+              ),
+            }),
+            e.jsx('input', {
+              type: 'text',
+              value: s,
+              onChange: r,
+              className: i(
+                'relative w-full border rounded-2xl px-6 py-4 font-mono text-sm focus:outline-none transition-all',
+                p
+                  ? 'bg-white/5 border-white/5 text-white focus:border-white/10 focus:bg-white/10'
+                  : 'bg-slate-50 border-black/5 text-slate-900 focus:border-indigo-500/20 focus:bg-white'
+              ),
+            }),
+            a &&
+              e.jsx('div', {
+                className: i(
+                  'absolute right-4 top-1/2 -translate-y-1/2 px-3 py-1 border rounded-xl text-[9px] font-black font-mono uppercase tracking-widest transition-colors',
+                  p
+                    ? 'bg-slate-900 border-white/5 text-slate-500'
+                    : 'bg-white border-black/5 text-slate-400'
+                ),
+                children: a,
+              }),
+          ],
+        }),
+      ],
+    });
+  },
+  Qr = () => {
+    const { theme: t, isDark: s } = Q(),
+      { addToast: r } = ke(),
+      [a, c] = h.useState('general'),
+      [d, p] = h.useState(!1),
+      [m, l] = h.useState({
+        port: '51820',
+        mtu: '1420',
+        dns: '1.1.1.1, 8.8.8.8',
+        subnet: '10.0.0.0/24',
+        keepalive: '25',
+      });
+    h.useEffect(() => {
+      T.get('/system/config')
+        .then((u) => l((b) => ({ ...b, ...u.data })))
+        .catch(console.error);
+    }, []);
+    const o = async () => {
+        p(!0);
+        try {
+          (await T.post('/system/config', m), r('Configuration appliquée avec succès', 'success'));
+        } catch {
+          r("Erreur lors de l'application", 'error');
+        } finally {
+          p(!1);
+        }
+      },
+      n = async () => {
+        try {
+          const u = await T.post('/system/backup', {});
+          r('Sauvegarde créée avec succès', 'success');
+        } catch {
+          r('Erreur lors du backup', 'error');
+        }
+      },
+      x = [
+        { id: 'general', label: 'Noyau', icon: at },
+        { id: 'network', label: 'Réseau', icon: Ge },
+        { id: 'security', label: 'Sûreté', icon: be },
+        { id: 'maintenance', label: 'Terminal', icon: ea },
+      ];
+    return e.jsxs('div', {
+      className: 'space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700',
+      children: [
+        e.jsxs('div', {
+          className: i(
+            'flex flex-col lg:flex-row justify-between items-center p-8 rounded-[3rem] border shadow-2xl gap-8 transition-all',
+            s ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl' : 'bg-white border-black/5'
+          ),
+          children: [
+            e.jsxs('div', {
+              className: 'flex items-center gap-6',
+              children: [
+                e.jsx('div', {
+                  className: i('p-5 rounded-[2rem] bg-white/5 shadow-2xl', `text-${t}-400`),
+                  children: e.jsx(bt, { size: 36 }),
+                }),
+                e.jsxs('div', {
+                  children: [
+                    e.jsx('h2', {
+                      className: i(
+                        'text-4xl font-black tracking-tighter italic uppercase transition-colors',
+                        s ? 'text-white' : 'text-slate-900'
+                      ),
+                      children: 'Paramètres Noyau',
+                    }),
+                    e.jsx('p', {
+                      className:
+                        'text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60',
+                      children: 'Deep Core Control Panel',
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            e.jsx('div', {
+              className: 'flex gap-4 w-full lg:w-auto',
+              children: e.jsxs('button', {
+                onClick: o,
+                disabled: d,
+                className: i(
+                  'flex-1 lg:flex-none flex items-center justify-center gap-3 px-10 py-5 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-95 disabled:opacity-30',
+                  `bg-${t}-600 hover:bg-${t}-500 shadow-${t}-600/30`
+                ),
+                children: [
+                  d ? e.jsx(J, { className: 'animate-spin', size: 20 }) : e.jsx($t, { size: 20 }),
+                  ' Appliquer Mission',
+                ],
+              }),
+            }),
+          ],
+        }),
+        e.jsxs('div', {
+          className: 'grid grid-cols-1 xl:grid-cols-4 gap-8',
+          children: [
+            e.jsx('div', {
+              className: 'xl:col-span-1 space-y-3',
+              children: x.map((u) =>
+                e.jsxs(
+                  'button',
+                  {
+                    onClick: () => c(u.id),
+                    className: i(
+                      'w-full flex items-center gap-4 px-6 py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest transition-all duration-300',
+                      a === u.id
+                        ? `bg-${t}-600 text-white shadow-2xl shadow-${t}-600/20`
+                        : i(
+                            'text-slate-500',
+                            s
+                              ? 'hover:text-white hover:bg-white/5'
+                              : 'hover:text-slate-900 hover:bg-slate-100'
+                          )
+                    ),
+                    children: [
+                      e.jsx(u.icon, { size: 18 }),
+                      ' ',
+                      u.label,
+                      a === u.id && e.jsx(Le, { className: 'ml-auto', size: 14 }),
+                    ],
+                  },
+                  u.id
+                )
+              ),
+            }),
+            e.jsxs('div', {
+              className: i(
+                'xl:col-span-3 rounded-[3rem] border p-10 shadow-2xl relative overflow-hidden h-fit transition-all',
+                s
+                  ? 'bg-slate-900/40 border-white/10 backdrop-blur-3xl'
+                  : 'bg-white border-black/5 shadow-sm'
+              ),
+              children: [
+                e.jsx('div', {
+                  className: i(
+                    'absolute -top-12 -right-12 p-12 opacity-[0.02] rotate-12 pointer-events-none transition-colors',
+                    s ? 'text-white' : 'text-black'
+                  ),
+                  children: e.jsx(bt, { size: 300 }),
+                }),
+                e.jsxs(le, {
+                  mode: 'wait',
+                  children: [
+                    a === 'general' &&
+                      e.jsxs(
+                        L.div,
+                        {
+                          initial: { opacity: 0, x: 10 },
+                          animate: { opacity: 1, x: 0 },
+                          exit: { opacity: 0, x: -10 },
+                          className: 'grid grid-cols-1 md:grid-cols-2 gap-10',
+                          children: [
+                            e.jsxs('div', {
+                              className: 'space-y-8',
+                              children: [
+                                e.jsxs('h3', {
+                                  className: i(
+                                    'text-xl font-black flex items-center gap-3 italic uppercase transition-colors',
+                                    s ? 'text-white' : 'text-slate-900'
+                                  ),
+                                  children: [
+                                    e.jsx(at, { size: 20, className: i(`text-${t}-400`) }),
+                                    ' Main-Core',
+                                  ],
+                                }),
+                                e.jsx(Je, {
+                                  label: 'Distant UDP Port',
+                                  value: m.port,
+                                  onChange: (u) => l({ ...m, port: u.target.value }),
+                                  badge: 'UDP',
+                                  tooltip: "Port d'écoute standard WireGuard",
+                                }),
+                                e.jsx(Je, {
+                                  label: 'Protocol MTU',
+                                  value: m.mtu,
+                                  onChange: (u) => l({ ...m, mtu: u.target.value }),
+                                  badge: 'BYTES',
+                                  tooltip: 'Maximum Transmission Unit',
+                                }),
+                              ],
+                            }),
+                            e.jsxs('div', {
+                              className: 'space-y-8',
+                              children: [
+                                e.jsxs('h3', {
+                                  className: i(
+                                    'text-xl font-black flex items-center gap-3 italic uppercase transition-colors',
+                                    s ? 'text-white' : 'text-slate-900'
+                                  ),
+                                  children: [
+                                    e.jsx(Ae, { size: 20, className: 'text-emerald-400' }),
+                                    ' Pulse-Mode',
+                                  ],
+                                }),
+                                e.jsx(Je, {
+                                  label: 'Persistent Keepalive',
+                                  value: m.keepalive,
+                                  onChange: (u) => l({ ...m, keepalive: u.target.value }),
+                                  badge: 'SECONDS',
+                                  tooltip:
+                                    'Maintient les sessions actives à travers les pare-feu NAT rigides via stimulation UDP (0 = désactivé).',
+                                }),
+                                e.jsx('p', {
+                                  className:
+                                    'px-1 text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed opacity-60',
+                                  children:
+                                    'Recommandé : 25s (Standard), 5s (Gaming Mobile Ultra-Stable).',
+                                }),
+                              ],
+                            }),
+                          ],
+                        },
+                        'gen'
+                      ),
+                    a === 'network' &&
+                      e.jsxs(
+                        L.div,
+                        {
+                          initial: { opacity: 0, x: 10 },
+                          animate: { opacity: 1, x: 0 },
+                          exit: { opacity: 0, x: -10 },
+                          className: 'space-y-10',
+                          children: [
+                            e.jsxs('h3', {
+                              className: i(
+                                'text-xl font-black flex items-center gap-3 italic uppercase transition-colors',
+                                s ? 'text-white' : 'text-slate-900'
+                              ),
+                              children: [
+                                e.jsx(Ge, { size: 20, className: 'text-cyan-400' }),
+                                ' Infrastructure',
+                              ],
+                            }),
+                            e.jsxs('div', {
+                              className: 'grid grid-cols-1 md:grid-cols-2 gap-10',
+                              children: [
+                                e.jsx(Je, {
+                                  label: 'Primary DNS Cluster',
+                                  value: m.dns,
+                                  onChange: (u) => l({ ...m, dns: u.target.value }),
+                                  badge: 'IP-LIST',
+                                  tooltip: 'Serveurs DNS transmis aux clients',
+                                }),
+                                e.jsx(Je, {
+                                  label: 'VPN Base-Subnet',
+                                  value: m.subnet,
+                                  onChange: (u) => l({ ...m, subnet: u.target.value }),
+                                  badge: 'CIDR',
+                                  tooltip: "Plage d'IP interne du tunnel vpn",
+                                }),
+                              ],
+                            }),
+                          ],
+                        },
+                        'net'
+                      ),
+                    a === 'security' &&
+                      e.jsxs(
+                        L.div,
+                        {
+                          initial: { opacity: 0, x: 10 },
+                          animate: { opacity: 1, x: 0 },
+                          exit: { opacity: 0, x: -10 },
+                          className: 'space-y-8',
+                          children: [
+                            e.jsxs('div', {
+                              className: 'flex items-center justify-between',
+                              children: [
+                                e.jsxs('h3', {
+                                  className: i(
+                                    'text-xl font-black flex items-center gap-3 italic uppercase transition-colors',
+                                    s ? 'text-white' : 'text-slate-900'
+                                  ),
+                                  children: [
+                                    e.jsx(be, { size: 20, className: 'text-rose-400' }),
+                                    ' Hardening Profile',
+                                  ],
+                                }),
+                                e.jsx('div', {
+                                  className: i(
+                                    'px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-[0.2em]',
+                                    s
+                                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                      : 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                  ),
+                                  children: 'SENTINEL ACTIVE',
+                                }),
+                              ],
+                            }),
+                            e.jsxs('div', {
+                              className: 'grid grid-cols-1 md:grid-cols-2 gap-8',
+                              children: [
+                                e.jsxs('div', {
+                                  className: i(
+                                    'p-8 rounded-[2.5rem] border relative group hover:border-white/10 transition-all',
+                                    s
+                                      ? 'bg-white/5 border-white/5'
+                                      : 'bg-slate-50 border-black/5 shadow-sm hover:border-indigo-500/20'
+                                  ),
+                                  children: [
+                                    e.jsx('div', {
+                                      className: 'absolute top-4 right-4 animate-pulse',
+                                      children: e.jsx('div', {
+                                        className:
+                                          'w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]',
+                                      }),
+                                    }),
+                                    e.jsxs('h4', {
+                                      className: i(
+                                        'text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-3 transition-colors',
+                                        s ? 'text-white' : 'text-slate-900'
+                                      ),
+                                      children: [e.jsx(fe, { size: 18 }), ' Encryption Module'],
+                                    }),
+                                    e.jsx('p', {
+                                      className:
+                                        'text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-6',
+                                      children:
+                                        'Protocole ChaCha20-Poly1305 actif. Rotation automatique des clés de session Curve25519.',
+                                    }),
+                                    e.jsxs('button', {
+                                      className:
+                                        'text-[9px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 transition-all',
+                                      children: ['Analyser Intégrité ', e.jsx(ut, { size: 14 })],
+                                    }),
+                                  ],
+                                }),
+                                e.jsxs('div', {
+                                  className: i(
+                                    'p-8 rounded-[2.5rem] border relative group transition-all',
+                                    s
+                                      ? 'bg-white/5 border-white/5 hover:border-white/10'
+                                      : 'bg-slate-50 border-black/5 shadow-sm hover:border-indigo-500/20'
+                                  ),
+                                  children: [
+                                    e.jsxs('h4', {
+                                      className: i(
+                                        'text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-3 transition-colors',
+                                        s ? 'text-white' : 'text-slate-900'
+                                      ),
+                                      children: [e.jsx(de, { size: 18 }), ' Packet Filtering'],
+                                    }),
+                                    e.jsx('p', {
+                                      className:
+                                        'text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-6',
+                                      children:
+                                        'Pare-feu UFW activé. Rejet immédiat des paquets ICMP non autorisés et scans SYN furtifs.',
+                                    }),
+                                    e.jsxs('button', {
+                                      className:
+                                        'text-[9px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 transition-all',
+                                      children: ['Logs Firewall ', e.jsx(ut, { size: 14 })],
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }),
+                            e.jsx('div', {
+                              className: i('grid grid-cols-1 gap-8 mt-4'),
+                              children: e.jsx('div', {
+                                className: i(
+                                  'p-8 rounded-[2.5rem] border relative group transition-all',
+                                  s
+                                    ? 'bg-white/5 border-white/5 hover:border-white/10'
+                                    : 'bg-slate-50 border-black/5 shadow-sm hover:border-indigo-500/20'
+                                ),
+                                children: e.jsxs('div', {
+                                  className:
+                                    'flex flex-col md:flex-row items-center justify-between gap-6',
+                                  children: [
+                                    e.jsxs('div', {
+                                      className: 'space-y-4',
+                                      children: [
+                                        e.jsxs('h4', {
+                                          className: i(
+                                            'text-sm font-black uppercase tracking-widest flex items-center gap-3 transition-colors',
+                                            s ? 'text-white' : 'text-slate-900'
+                                          ),
+                                          children: [
+                                            e.jsx(Ae, { size: 18, className: 'text-amber-400' }),
+                                            ' Telegram Sentinel',
+                                          ],
+                                        }),
+                                        e.jsx('p', {
+                                          className:
+                                            'text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed max-w-xl',
+                                          children:
+                                            "Vérifiez la connectivité avec votre bot Telegram. Le système envoie des alertes critiques lors des tentatives de brèche ou de déconnexion d'interface.",
+                                        }),
+                                      ],
+                                    }),
+                                    e.jsx('button', {
+                                      onClick: async () => {
+                                        try {
+                                          (await T.post('/system/test-telegram', {}),
+                                            r(
+                                              'Notification de test envoyée avec succès',
+                                              'success'
+                                            ));
+                                        } catch {
+                                          r('Échec de la connexion Telegram', 'error');
+                                        }
+                                      },
+                                      className: i(
+                                        'whitespace-nowrap px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95',
+                                        s
+                                          ? 'bg-white/5 hover:bg-white/10 text-white'
+                                          : 'bg-indigo-600 text-white shadow-lg hover:bg-indigo-500 shadow-indigo-600/20'
+                                      ),
+                                      children: 'Tester la Connexion',
+                                    }),
+                                  ],
+                                }),
+                              }),
+                            }),
+                          ],
+                        },
+                        'sec'
+                      ),
+                    a === 'maintenance' &&
+                      e.jsxs(
+                        L.div,
+                        {
+                          initial: { opacity: 0, x: 10 },
+                          animate: { opacity: 1, x: 0 },
+                          exit: { opacity: 0, x: -10 },
+                          className: 'grid grid-cols-1 md:grid-cols-2 gap-10',
+                          children: [
+                            e.jsxs('div', {
+                              className: 'space-y-8',
+                              children: [
+                                e.jsxs('h3', {
+                                  className: i(
+                                    'text-xl font-black flex items-center gap-3 italic uppercase transition-colors',
+                                    s ? 'text-white' : 'text-slate-900'
+                                  ),
+                                  children: [
+                                    e.jsx(_e, { size: 20, className: 'text-emerald-400' }),
+                                    ' Archives',
+                                  ],
+                                }),
+                                e.jsx('p', {
+                                  className:
+                                    'text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-loose',
+                                  children:
+                                    "Exportation complète du cluster : certificats, configurations d'interfaces et database SQL cryptée.",
+                                }),
+                                e.jsxs('button', {
+                                  onClick: n,
+                                  className:
+                                    'w-full flex items-center justify-center gap-3 px-8 py-4 bg-slate-950 border border-white/5 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900 transition-all group',
+                                  children: [
+                                    e.jsx(_e, {
+                                      size: 18,
+                                      className: 'group-hover:-translate-y-1 transition-transform',
+                                    }),
+                                    e.jsx('span', {
+                                      className: 'text-[10px] font-black uppercase tracking-widest',
+                                      children: 'Générer Backup .tar.gz',
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }),
+                            e.jsxs('div', {
+                              className: 'space-y-8',
+                              children: [
+                                e.jsxs('h3', {
+                                  className: i(
+                                    'text-xl font-black flex items-center gap-3 italic uppercase transition-colors',
+                                    s ? 'text-white' : 'text-slate-900'
+                                  ),
+                                  children: [
+                                    e.jsx(Be, { size: 20, className: 'text-rose-600' }),
+                                    ' Danger Zone',
+                                  ],
+                                }),
+                                e.jsxs('div', {
+                                  className:
+                                    'p-8 bg-rose-950/20 border border-rose-500/20 rounded-[2.5rem] space-y-6',
+                                  children: [
+                                    e.jsxs('div', {
+                                      children: [
+                                        e.jsx('h4', {
+                                          className:
+                                            'text-sm font-black text-rose-400 uppercase tracking-widest mb-2',
+                                          children: 'Nuclear Reset',
+                                        }),
+                                        e.jsx('p', {
+                                          className:
+                                            'text-[10px] text-rose-500/60 font-bold uppercase tracking-widest leading-relaxed',
+                                          children:
+                                            "Réinitialisation complète de l'architecture. Perte irrémédiable de toutes les routes vpn.",
+                                        }),
+                                      ],
+                                    }),
+                                    e.jsx('button', {
+                                      className:
+                                        'w-full py-4 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-600/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all',
+                                      children: 'Restaurer Valeurs Usine',
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }),
+                          ],
+                        },
+                        'maint'
+                      ),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+  },
+  Kr = ({ systemStats: t }) => {
+    const { theme: s, isDark: r } = Q(),
+      { addToast: a } = ke(),
+      [c, d] = h.useState(!1),
+      [p, m] = h.useState(''),
+      [l, o] = h.useState([]),
+      [n, x] = h.useState(!1),
+      [u, b] = h.useState({ jitter: '...', mtu: '...', bufferbloat: '...' });
+    h.useEffect(() => {
+      y();
+      const f = setInterval(g, 5e3);
+      return (g(), () => clearInterval(f));
+    }, []);
+    const y = async () => {
+        try {
+          const v = (await T.get('/system/optimize')).data.profile;
+          (m(v), x(v !== 'default' && v !== 'restore' && v !== 'disable'));
+        } catch {}
+      },
+      g = async () => {
+        try {
+          const f = await T.get('/system/telemetry');
+          b(f.data);
+          const v = new Date().toLocaleTimeString('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          });
+          o((j) => [...j.slice(-29), { time: v, value: parseFloat(f.data.cpu) || 0 }]);
+        } catch {}
+      },
+      w = async () => {
+        const f = !n;
+        (x(f), d(!0));
+        try {
+          const v = f ? p || 'gaming' : 'restore';
+          (await T.post('/system/optimize', { profile: v }),
+            f || m('restore'),
+            a(
+              f
+                ? `Optimisation réactivée (${v})`
+                : 'Optimisations système désactivées (Tunnel préservé)',
+              'success'
+            ));
+        } catch {
+          (x(!f), a('Échec du basculement SRE', 'error'));
+        } finally {
+          d(!1);
+        }
+      },
+      E = async (f) => {
+        if (n) {
+          d(!0);
+          try {
+            (await T.post('/system/optimize', { profile: f }),
+              m(f),
+              a(`Profil ${f.toUpperCase()} activé avec succès`, 'success'));
+          } catch {
+            a('Échec de la synchronisation neurale', 'error');
+          } finally {
+            d(!1);
+          }
+        }
+      },
+      N = [
+        {
+          id: 'gaming',
+          label: 'E-Sport / Gaming',
+          desc: 'Latency Zero. BBR v2 + CAKE + UDP Buffer Tuning.',
+          icon: sa,
+          color: 'indigo',
+        },
+        {
+          id: 'streaming',
+          label: 'Ultra-HD Stream',
+          desc: 'Throughput maximal. Optimisation BBR & MTU 1280.',
+          icon: aa,
+          color: 'rose',
+        },
+        {
+          id: 'auto',
+          label: 'Smart Engine',
+          desc: 'Analyse heuristique & ajustement dynamique du MTU.',
+          icon: He,
+          color: 'emerald',
+        },
+      ];
+    return e.jsxs('div', {
+      className: 'space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700',
+      children: [
+        e.jsxs('div', {
+          className: i(
+            'flex flex-col lg:flex-row justify-between items-center p-8 rounded-[3rem] border shadow-2xl gap-8 transition-all',
+            r ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl' : 'bg-white border-black/5'
+          ),
+          children: [
+            e.jsxs('div', {
+              className: 'flex items-center gap-6',
+              children: [
+                e.jsx('div', {
+                  className: i(
+                    'p-5 rounded-[2rem] border shadow-2xl transition-all',
+                    r
+                      ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/20'
+                      : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                  ),
+                  children: e.jsx(Ae, { size: 36, className: i(n && 'animate-pulse') }),
+                }),
+                e.jsxs('div', {
+                  children: [
+                    e.jsx('h2', {
+                      className: i(
+                        'text-4xl font-black tracking-tighter italic uppercase transition-colors',
+                        r ? 'text-white' : 'text-slate-900'
+                      ),
+                      children: 'Neural Optimizer',
+                    }),
+                    e.jsx('p', {
+                      className:
+                        'text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60',
+                      children: 'Advanced Flow Shaping & Latency Control',
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            e.jsx('div', {
+              className: 'flex items-center gap-4',
+              children: e.jsxs('label', {
+                className: i(
+                  'flex items-center gap-4 p-4 rounded-2xl border cursor-pointer group transition-all',
+                  r
+                    ? 'bg-slate-950/60 border-white/5 backdrop-blur-3xl'
+                    : 'bg-slate-50 border-black/5 shadow-sm'
+                ),
+                children: [
+                  e.jsx('span', {
+                    className: i(
+                      'text-[10px] font-black uppercase tracking-widest transition-colors',
+                      r
+                        ? 'text-slate-500 group-hover:text-white'
+                        : 'text-slate-400 group-hover:text-slate-900'
+                    ),
+                    children: 'Système Optimisé',
+                  }),
+                  e.jsx('div', {
+                    onClick: w,
+                    className: i(
+                      'w-12 h-6 rounded-full transition-all relative border shadow-inner',
+                      n
+                        ? 'bg-emerald-600 border-emerald-500/20'
+                        : r
+                          ? 'bg-slate-900 border-white/10'
+                          : 'bg-slate-100 border-slate-200'
+                    ),
+                    children: e.jsx('div', {
+                      className: i(
+                        'absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-2xl transition-all',
+                        n ? 'left-[calc(100%-1.25rem)]' : 'left-1'
+                      ),
+                    }),
+                  }),
+                ],
+              }),
+            }),
+          ],
+        }),
+        e.jsxs('div', {
+          className: 'grid grid-cols-1 xl:grid-cols-3 gap-8',
+          children: [
+            e.jsxs('div', {
+              className: 'xl:col-span-2 space-y-8',
+              children: [
+                e.jsxs('div', {
+                  className: i(
+                    'rounded-[3rem] border p-8 shadow-2xl h-80 relative overflow-hidden group transition-all',
+                    r
+                      ? 'bg-slate-900/40 border-white/10 backdrop-blur-3xl'
+                      : 'bg-white border-black/5',
+                    !n && 'opacity-40 grayscale'
+                  ),
+                  children: [
+                    e.jsxs('div', {
+                      className: 'flex justify-between items-center mb-8',
+                      children: [
+                        e.jsxs('h3', {
+                          className: i(
+                            'text-lg font-black uppercase tracking-tighter flex items-center gap-3 transition-colors',
+                            r ? 'text-white' : 'text-slate-900'
+                          ),
+                          children: [
+                            e.jsx(ta, { className: i('text-indigo-400') }),
+                            ' Kernel Load Variance',
+                          ],
+                        }),
+                        e.jsxs('div', {
+                          className: 'flex items-center gap-2',
+                          children: [
+                            e.jsx('div', {
+                              className: i(
+                                'w-1.5 h-1.5 rounded-full border',
+                                n
+                                  ? 'bg-emerald-500 animate-pulse border-emerald-400'
+                                  : 'bg-slate-500 border-slate-400'
+                              ),
+                            }),
+                            e.jsx('span', {
+                              className:
+                                'text-[10px] font-black text-slate-500 uppercase tracking-widest uppercase tracking-widest',
+                              children: 'Real-time Spectrum',
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                    e.jsx('div', {
+                      className: 'h-48 w-full',
+                      children: e.jsx(vt, {
+                        width: '100%',
+                        height: '100%',
+                        children: e.jsxs(Dt, {
+                          data: l,
+                          children: [
+                            e.jsx('defs', {
+                              children: e.jsxs('linearGradient', {
+                                id: 'colorCpu',
+                                x1: '0',
+                                y1: '0',
+                                x2: '0',
+                                y2: '1',
+                                children: [
+                                  e.jsx('stop', {
+                                    offset: '5%',
+                                    stopColor: s === 'rose' ? '#f43f5e' : '#6366f1',
+                                    stopOpacity: 0.3,
+                                  }),
+                                  e.jsx('stop', {
+                                    offset: '95%',
+                                    stopColor: s === 'rose' ? '#f43f5e' : '#6366f1',
+                                    stopOpacity: 0,
+                                  }),
+                                ],
+                              }),
+                            }),
+                            e.jsx(It, {
+                              strokeDasharray: '3 3',
+                              stroke: r ? '#1e293b' : '#e2e8f0',
+                              vertical: !1,
+                            }),
+                            e.jsx(Tt, { dataKey: 'time', hide: !0 }),
+                            e.jsx(Lt, { hide: !0, domain: [0, 100] }),
+                            e.jsx(jt, {
+                              contentStyle: r
+                                ? {
+                                    backgroundColor: '#020617',
+                                    border: '1px solid #1e293b',
+                                    borderRadius: '1rem shadow-2xl',
+                                  }
+                                : {
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '1rem',
+                                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                                  },
+                              itemStyle: {
+                                color: r ? '#fff' : '#0f172a',
+                                fontSize: '12px',
+                                fontFamily: 'monospace',
+                              },
+                            }),
+                            e.jsx(st, {
+                              type: 'monotone',
+                              dataKey: 'value',
+                              stroke: s === 'rose' ? '#fb7185' : '#818cf8',
+                              strokeWidth: 4,
+                              fillOpacity: 1,
+                              fill: 'url(#colorCpu)',
+                              isAnimationActive: !1,
+                            }),
+                          ],
+                        }),
+                      }),
+                    }),
+                  ],
+                }),
+                e.jsx('div', {
+                  className: i(
+                    'grid grid-cols-1 md:grid-cols-3 gap-6 transition-all',
+                    !n && 'opacity-40 pointer-events-none'
+                  ),
+                  children: N.map((f) =>
+                    e.jsxs(
+                      'div',
+                      {
+                        className: i(
+                          'relative overflow-hidden rounded-[2.5rem] border p-8 group transition-all duration-500',
+                          r
+                            ? 'bg-slate-900/40 backdrop-blur-3xl'
+                            : 'bg-white border-black/5 shadow-sm',
+                          p === f.id
+                            ? `border-${f.color}-500/50 shadow-2xl shadow-${f.color}-500/20 bg-${f.color}-500/5`
+                            : r
+                              ? 'border-white/5 hover:border-white/10'
+                              : 'border-black/5 hover:border-indigo-500/20'
+                        ),
+                        children: [
+                          p === f.id &&
+                            e.jsx('div', {
+                              className: i(
+                                'absolute top-6 right-6 px-3 py-1 rounded-full border text-[8px] font-black uppercase tracking-[0.2em] animate-pulse',
+                                `bg-${f.color}-500/20 text-${f.color}-400 border-${f.color}-500/30`
+                              ),
+                              children: 'Vecteur Actif',
+                            }),
+                          e.jsx('div', {
+                            className: i(
+                              'absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12 pointer-events-none',
+                              `text-${f.color}-500`
+                            ),
+                            children: e.jsx(f.icon, { size: 120 }),
+                          }),
+                          e.jsx('div', {
+                            className: i(
+                              'p-4 rounded-2xl mb-6 w-fit transition-transform group-hover:scale-110',
+                              r ? 'bg-white/5' : 'bg-black/5',
+                              `text-${f.color}-400`
+                            ),
+                            children: e.jsx(f.icon, { size: 24 }),
+                          }),
+                          e.jsx('h4', {
+                            className: i(
+                              'text-xl font-black uppercase tracking-tight mb-2 italic transition-colors',
+                              r ? 'text-white' : 'text-slate-900'
+                            ),
+                            children: f.label,
+                          }),
+                          e.jsx('p', {
+                            className:
+                              'text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-loose mb-8 h-10',
+                            children: f.desc,
+                          }),
+                          e.jsx('button', {
+                            onClick: () => E(f.id),
+                            disabled: c,
+                            className: i(
+                              'w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-2xl active:scale-95 disabled:opacity-30',
+                              p === f.id
+                                ? `bg-${f.color}-600 text-white shadow-${f.color}-600/30`
+                                : i(
+                                    r
+                                      ? 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
+                                      : 'bg-slate-50 border-black/5 text-slate-500 hover:text-slate-900'
+                                  )
+                            ),
+                            children: p === f.id ? 'Optimisation Active' : 'Activer Profil',
+                          }),
+                        ],
+                      },
+                      f.id
+                    )
+                  ),
+                }),
+              ],
+            }),
+            e.jsxs('div', {
+              className: i('xl:col-span-1 space-y-8'),
+              children: [
+                e.jsxs('div', {
+                  className: i(
+                    'rounded-[3rem] border p-8 shadow-2xl relative overflow-hidden group transition-all',
+                    r
+                      ? 'bg-slate-950/40 border-white/5 backdrop-blur-3xl'
+                      : 'bg-white border-black/5 shadow-sm'
+                  ),
+                  children: [
+                    e.jsx('div', {
+                      className: 'absolute top-0 right-0 p-8 opacity-10',
+                      children: e.jsx(ra, { size: 64, className: i('text-indigo-600') }),
+                    }),
+                    e.jsxs('h3', {
+                      className: i(
+                        'text-lg font-black uppercase mb-8 flex items-center gap-3 transition-colors',
+                        r ? 'text-white' : 'text-slate-900'
+                      ),
+                      children: [
+                        e.jsx(fe, { size: 20, className: 'text-emerald-400' }),
+                        ' Metrics Tunnel',
+                      ],
+                    }),
+                    e.jsx('div', {
+                      className: 'space-y-6',
+                      children: [
+                        {
+                          label: 'Jitter Buffer',
+                          val: `${u.jitter}ms`,
+                          status: n ? 'Optimal' : 'Standard',
+                          icon: de,
+                        },
+                        {
+                          label: 'Bufferbloat',
+                          val: u.bufferbloat || 'A+',
+                          status: n ? 'Ultra-Stable' : 'Unmanaged',
+                          icon: Ae,
+                        },
+                        { label: 'Tunneling MTU', val: `${u.mtu}B`, status: 'Fixed', icon: et },
+                      ].map((f, v) =>
+                        e.jsxs(
+                          'div',
+                          {
+                            className: i(
+                              'flex items-center justify-between p-4 rounded-2xl border transition-colors',
+                              r
+                                ? 'bg-white/5 border-white/5 hover:border-white/10'
+                                : 'bg-slate-50 border-black/5 hover:border-indigo-500/20'
+                            ),
+                            children: [
+                              e.jsxs('div', {
+                                className: 'flex items-center gap-3',
+                                children: [
+                                  e.jsx(f.icon, { size: 16, className: 'text-slate-500' }),
+                                  e.jsx('div', {
+                                    className:
+                                      'text-[10px] font-black text-slate-400 uppercase tracking-widest',
+                                    children: f.label,
+                                  }),
+                                ],
+                              }),
+                              e.jsxs('div', {
+                                className: 'text-right',
+                                children: [
+                                  e.jsx('div', {
+                                    className: i(
+                                      'text-xs font-mono font-black transition-colors',
+                                      r ? 'text-white' : 'text-slate-900'
+                                    ),
+                                    children: f.val,
+                                  }),
+                                  e.jsx('div', {
+                                    className: i(
+                                      'text-[8px] font-black uppercase tracking-widest',
+                                      f.status === 'Optimal' ||
+                                        f.status === 'Ultra-Stable' ||
+                                        f.status === 'Fixed'
+                                        ? 'text-emerald-500'
+                                        : 'text-slate-500'
+                                    ),
+                                    children: f.status,
+                                  }),
+                                ],
+                              }),
+                            ],
+                          },
+                          v
+                        )
+                      ),
+                    }),
+                  ],
+                }),
+                e.jsxs('div', {
+                  className: i(
+                    'border rounded-[3rem] p-10 shadow-2xl relative group overflow-hidden transition-all',
+                    r
+                      ? 'bg-gradient-to-br from-indigo-900/20 to-slate-900/60 border-white/10 backdrop-blur-3xl'
+                      : 'bg-white border-black/5 shadow-sm'
+                  ),
+                  children: [
+                    e.jsx('div', {
+                      className:
+                        'absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.1),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-1000',
+                    }),
+                    e.jsx('div', {
+                      className:
+                        'p-4 rounded-[1.5rem] bg-indigo-600 shadow-2xl shadow-indigo-600/30 text-white w-fit mb-6',
+                      children: e.jsx(J, {
+                        size: 24,
+                        className: 'hover:rotate-180 transition-transform duration-700',
+                      }),
+                    }),
+                    e.jsx('h3', {
+                      className: i(
+                        'text-2xl font-black tracking-widest italic uppercase mb-2 transition-colors',
+                        r ? 'text-white' : 'text-slate-900'
+                      ),
+                      children: 'Sync Neural',
+                    }),
+                    e.jsx('p', {
+                      className:
+                        'text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-loose mb-8',
+                      children:
+                        'Maintenance heuristique du noyau système active. Surveillance en temps réel des fuites mémoires.',
+                    }),
+                    e.jsx('div', {
+                      className: 'h-1.5 w-full bg-white/5 rounded-full overflow-hidden',
+                      children: e.jsx('div', {
+                        className:
+                          'h-full w-full bg-gradient-to-r from-emerald-500 via-indigo-500 to-emerald-500 animate-[loading_4s_linear_infinite]',
+                        style: { backgroundSize: '200% 100%' },
+                      }),
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+  },
+  Yr = () => {
+    const { theme: t, isDark: s } = Q(),
+      { addToast: r } = ke(),
+      [a, c] = h.useState(null),
+      [d, p] = h.useState(!0),
+      m = () => {
+        (p(!0),
+          T.get('/system/audit')
+            .then((o) => {
+              (c(o.data), p(!1));
+            })
+            .catch(() => p(!1)));
+      };
+    h.useEffect(() => {
+      m();
+    }, []);
+    const l = a ? (a.firewall ? 33 : 0) + (a.ipForwarding ? 33 : 0) + (a.fail2ban ? 34 : 0) : 0;
+    return e.jsxs('div', {
+      className: 'space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700',
+      children: [
+        e.jsxs('div', {
+          className: i(
+            'flex flex-col lg:flex-row justify-between items-center p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border shadow-2xl gap-8 transition-all',
+            s ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl' : 'bg-white border-black/5'
+          ),
+          children: [
+            e.jsxs('div', {
+              className: 'flex items-center gap-6',
+              children: [
+                e.jsx('div', {
+                  className: i('p-5 rounded-[2rem] bg-white/5 shadow-2xl', `text-${t}-400`),
+                  children: e.jsx(fe, { size: 36 }),
+                }),
+                e.jsxs('div', {
+                  children: [
+                    e.jsx('h2', {
+                      className: i(
+                        'text-4xl font-black tracking-tighter italic uppercase transition-colors',
+                        s ? 'text-white' : 'text-slate-900'
+                      ),
+                      children: 'Audit de Sécurité',
+                    }),
+                    e.jsx('p', {
+                      className:
+                        'text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60',
+                      children: 'System Security Analysis Protocol',
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            e.jsx('div', {
+              className: 'flex gap-3',
+              children: e.jsx('button', {
+                onClick: m,
+                className: i(
+                  'p-5 border rounded-[2rem] transition-all group',
+                  s
+                    ? 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                    : 'bg-slate-50 border-black/5 text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                ),
+                children: e.jsx(J, {
+                  size: 24,
+                  className: d
+                    ? 'animate-spin'
+                    : 'group-hover:rotate-180 transition-transform duration-700',
+                }),
+              }),
+            }),
+          ],
+        }),
+        e.jsxs('div', {
+          className: 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8',
+          children: [
+            e.jsxs('div', {
+              className: i(
+                'xl:col-span-1 rounded-[3rem] border p-10 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center transition-all',
+                s
+                  ? 'bg-slate-900/40 border-white/10 backdrop-blur-3xl'
+                  : 'bg-white border-black/5 shadow-sm'
+              ),
+              children: [
+                e.jsxs('div', {
+                  className: 'relative w-48 h-48 mb-8 flex items-center justify-center',
+                  children: [
+                    e.jsxs('svg', {
+                      className: 'w-full h-full transform -rotate-90',
+                      children: [
+                        e.jsx('circle', {
+                          cx: '96',
+                          cy: '96',
+                          r: '80',
+                          stroke: 'currentColor',
+                          strokeWidth: '12',
+                          fill: 'transparent',
+                          className: 'text-slate-800/50',
+                        }),
+                        e.jsx(L.circle, {
+                          cx: '96',
+                          cy: '96',
+                          r: '80',
+                          stroke: 'currentColor',
+                          strokeWidth: '12',
+                          fill: 'transparent',
+                          initial: { strokeDashoffset: 502 },
+                          animate: { strokeDashoffset: 502 - (l / 100) * 502 },
+                          transition: { duration: 2, ease: 'easeOut' },
+                          className: i(
+                            'transition-all duration-500 shadow-2xl shadow-emerald-500/20',
+                            l > 80 ? 'text-emerald-500' : 'text-amber-500'
+                          ),
+                          strokeDasharray: '502',
+                          strokeLinecap: 'round',
+                        }),
+                      ],
+                    }),
+                    e.jsxs('div', {
+                      className: 'absolute inset-0 flex flex-col items-center justify-center',
+                      children: [
+                        e.jsxs('span', {
+                          className: i(
+                            'text-6xl font-black italic transition-colors',
+                            s ? 'text-white' : 'text-slate-900'
+                          ),
+                          children: [l, '%'],
+                        }),
+                        e.jsx('span', {
+                          className:
+                            'text-[10px] font-black text-slate-500 uppercase tracking-widest mt-2',
+                          children: l > 80 ? 'Safe' : 'Watch',
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsx('h3', {
+                  className: i(
+                    'text-lg font-black uppercase tracking-tighter italic transition-colors',
+                    s ? 'text-white' : 'text-slate-900'
+                  ),
+                  children: "Indice d'Intégrité",
+                }),
+                e.jsx('p', {
+                  className:
+                    'text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-4 leading-loose',
+                  children:
+                    "Calcul basé sur l'état du noyau, du firewall et des protections logicielles.",
+                }),
+              ],
+            }),
+            e.jsxs('div', {
+              className: 'xl:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8',
+              children: [
+                e.jsxs('div', {
+                  className: i(
+                    'rounded-[3rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
+                    s
+                      ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10'
+                      : 'bg-white border-black/5 shadow-sm hover:border-indigo-500/20'
+                  ),
+                  children: [
+                    e.jsxs('div', {
+                      children: [
+                        e.jsxs('div', {
+                          className: 'flex items-center justify-between mb-6',
+                          children: [
+                            e.jsxs('h3', {
+                              className: i(
+                                'text-sm font-black uppercase tracking-widest flex items-center gap-3 italic transition-colors',
+                                s ? 'text-white' : 'text-slate-900'
+                              ),
+                              children: [e.jsx(be, { size: 20 }), ' Firewall Status'],
+                            }),
+                            d
+                              ? e.jsx(J, { className: 'animate-spin text-slate-700', size: 16 })
+                              : a != null && a.firewall
+                                ? e.jsx('div', {
+                                    className:
+                                      'px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase rounded-lg',
+                                    children: 'Actif',
+                                  })
+                                : e.jsx('div', {
+                                    className:
+                                      'px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black uppercase rounded-lg',
+                                    children: 'Critique',
+                                  }),
+                          ],
+                        }),
+                        e.jsx('p', {
+                          className:
+                            'text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8',
+                          children:
+                            "Vérification de l'interface UFW et des règles de filtrage pré-configurées.",
+                        }),
+                      ],
+                    }),
+                    e.jsxs('div', {
+                      className: 'flex items-center gap-4',
+                      children: [
+                        e.jsx('div', {
+                          className: i(
+                            'p-3 rounded-2xl',
+                            a != null && a.firewall
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-slate-800 text-slate-600'
+                          ),
+                          children:
+                            a != null && a.firewall
+                              ? e.jsx(mt, { size: 18 })
+                              : e.jsx(Be, { size: 18 }),
+                        }),
+                        e.jsx('span', {
+                          className:
+                            'text-[9px] font-black text-slate-400 uppercase tracking-widest',
+                          children:
+                            a != null && a.firewall
+                              ? 'Protection Périphérique OK'
+                              : 'Vulnérabilité Réseau Possible',
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsxs('div', {
+                  className: i(
+                    'rounded-[2.5rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
+                    s
+                      ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10'
+                      : 'bg-white border-black/5 shadow-sm hover:border-indigo-500/20'
+                  ),
+                  children: [
+                    e.jsxs('div', {
+                      children: [
+                        e.jsxs('div', {
+                          className: 'flex items-center justify-between mb-6',
+                          children: [
+                            e.jsxs('h3', {
+                              className: i(
+                                'text-sm font-black uppercase tracking-widest flex items-center gap-3 italic transition-colors',
+                                s ? 'text-white' : 'text-slate-900'
+                              ),
+                              children: [e.jsx(Ge, { size: 20 }), ' IP Forwarding'],
+                            }),
+                            d
+                              ? e.jsx(J, { className: 'animate-spin text-slate-700', size: 16 })
+                              : a != null && a.ipForwarding
+                                ? e.jsx('div', {
+                                    className:
+                                      'px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase rounded-lg',
+                                    children: 'OK',
+                                  })
+                                : e.jsx('div', {
+                                    className:
+                                      'px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-black uppercase rounded-lg',
+                                    children: 'FAILED',
+                                  }),
+                          ],
+                        }),
+                        e.jsx('p', {
+                          className:
+                            'text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8',
+                          children:
+                            "État de l'option sysctl net.ipv4.ip_forward nécessaire au transit vpn.",
+                        }),
+                      ],
+                    }),
+                    e.jsxs('div', {
+                      className: 'flex items-center gap-4',
+                      children: [
+                        e.jsx('div', {
+                          className: i(
+                            'p-3 rounded-2xl',
+                            a != null && a.ipForwarding
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-slate-800 text-slate-600'
+                          ),
+                          children:
+                            a != null && a.ipForwarding
+                              ? e.jsx(mt, { size: 18 })
+                              : e.jsx(Fe, { size: 18 }),
+                        }),
+                        e.jsx('span', {
+                          className:
+                            'text-[9px] font-black text-slate-400 uppercase tracking-widest',
+                          children:
+                            a != null && a.ipForwarding
+                              ? 'Transit de Données Actif'
+                              : 'Interruption Flux Tunnel',
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsxs('div', {
+                  className: i(
+                    'rounded-[2.5rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
+                    s
+                      ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10'
+                      : 'bg-white border-black/5 shadow-sm hover:border-indigo-500/20'
+                  ),
+                  children: [
+                    e.jsxs('div', {
+                      children: [
+                        e.jsxs('div', {
+                          className: 'flex items-center justify-between mb-6',
+                          children: [
+                            e.jsxs('h3', {
+                              className: i(
+                                'text-sm font-black uppercase tracking-widest flex items-center gap-3 italic transition-colors',
+                                s ? 'text-white' : 'text-slate-900'
+                              ),
+                              children: [e.jsx(os, { size: 18 }), ' Fail2Ban Monitor'],
+                            }),
+                            d
+                              ? e.jsx(J, { className: 'animate-spin text-slate-700', size: 16 })
+                              : a != null && a.fail2ban
+                                ? e.jsx('div', {
+                                    className:
+                                      'px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase rounded-lg',
+                                    children: 'Online',
+                                  })
+                                : e.jsx('div', {
+                                    className:
+                                      'px-3 py-1 bg-slate-800 border border-white/5 text-slate-500 text-[9px] font-black uppercase rounded-lg',
+                                    children: 'N/A',
+                                  }),
+                          ],
+                        }),
+                        e.jsx('p', {
+                          className:
+                            'text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8',
+                          children:
+                            'Surveillance des tentatives de brute-force SSH et des bannissements IP.',
+                        }),
+                      ],
+                    }),
+                    e.jsxs('div', {
+                      className: 'flex items-center gap-4',
+                      children: [
+                        e.jsx('div', {
+                          className: i(
+                            'p-3 rounded-2xl',
+                            a != null && a.fail2ban
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-slate-800 text-slate-600'
+                          ),
+                          children:
+                            a != null && a.fail2ban
+                              ? e.jsx(fe, { size: 18 })
+                              : e.jsx(Be, { size: 18 }),
+                        }),
+                        e.jsx('span', {
+                          className:
+                            'text-[9px] font-black text-slate-400 uppercase tracking-widest',
+                          children:
+                            a != null && a.fail2ban
+                              ? 'Defense Brute-Force OK'
+                              : 'Vulnérabilité SSH Détectée',
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsxs('div', {
+                  className: i(
+                    'rounded-[2.5rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
+                    s
+                      ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10'
+                      : 'bg-white border-black/5 shadow-sm hover:border-indigo-500/20'
+                  ),
+                  children: [
+                    e.jsxs('div', {
+                      children: [
+                        e.jsxs('div', {
+                          className: 'flex items-center justify-between mb-6',
+                          children: [
+                            e.jsxs('h3', {
+                              className: i(
+                                'text-sm font-black uppercase tracking-widest flex items-center gap-3 italic transition-colors',
+                                s ? 'text-white' : 'text-slate-900'
+                              ),
+                              children: [e.jsx(cs, { size: 18 }), ' Disk Storage'],
+                            }),
+                            e.jsx('span', {
+                              className: i(
+                                'text-xl font-mono font-black transition-colors',
+                                s ? 'text-white' : 'text-slate-900'
+                              ),
+                              children: (a == null ? void 0 : a.disk) || '0%',
+                            }),
+                          ],
+                        }),
+                        e.jsx('p', {
+                          className:
+                            'text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8',
+                          children:
+                            'Utilisation de la partition racine (SSD/NVMe) pour le cache système.',
+                        }),
+                      ],
+                    }),
+                    e.jsx('div', {
+                      className: 'h-1.5 w-full bg-white/5 rounded-full overflow-hidden',
+                      children: e.jsx(L.div, {
+                        initial: { width: 0 },
+                        animate: { width: (a == null ? void 0 : a.disk) || '0%' },
+                        className: i(
+                          'h-full transition-all duration-1000',
+                          parseInt((a == null ? void 0 : a.disk) || 0) > 80
+                            ? 'bg-rose-500'
+                            : `bg-${t}-600`
+                        ),
+                      }),
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+  },
+  Xr = () => {
+    var R, U, G, X;
+    const { mode: t } = Q(),
+      s = t === 'dark',
+      { addToast: r } = ke(),
+      [a, c] = h.useState(null),
+      [d, p] = h.useState(null),
+      [m, l] = h.useState(null),
+      [o, n] = h.useState(null),
+      [x, u] = h.useState(!0),
+      [b, y] = h.useState(!1),
+      [g, w] = h.useState('upstream'),
+      [E, N] = h.useState(''),
+      [f, v] = h.useState(''),
+      j = async () => {
+        u(!0);
+        try {
+          const [C, P, B, S] = await Promise.all([
+            T.get('/dns/config'),
+            T.get('/dns/stats'),
+            T.get('/dns/status'),
+            T.get('/dns/filtering'),
+          ]);
+          (c(C.data), p(P.data), l(B.data), n(S.data));
+        } catch {
+          r('Impossible de charger les données AdGuard Home', 'error');
+        } finally {
+          u(!1);
+        }
+      };
+    h.useEffect(() => {
+      j();
+      const C = setInterval(async () => {
+        try {
+          const P = await T.get('/dns/stats');
+          p(P.data);
+        } catch {}
+      }, 1e4);
+      return () => clearInterval(C);
+    }, []);
+    const z = async () => {
+        y(!0);
+        try {
+          (await T.post('/dns/config', a),
+            r('Configuration DNS mise à jour avec succès', 'success'));
+        } catch {
+          r('Erreur lors de la sauvegarde de la configuration', 'error');
+        } finally {
+          y(!1);
+        }
+      },
+      D = async (C, P) => {
+        try {
+          (await T.post('/dns/filtering/add', { name: C, url: P }),
+            r('Blocklist ajoutée', 'success'),
+            j());
+        } catch {
+          r("Erreur lors de l'ajout", 'error');
+        }
+      },
+      k = async (C) => {
+        try {
+          (await T.post('/dns/filtering/remove', { url: C }),
+            r('Blocklist supprimée', 'success'),
+            j());
+        } catch {
+          r('Erreur lors de la suppression', 'error');
+        }
+      };
+    return x && !a
+      ? e.jsxs('div', {
+          className: 'flex flex-col items-center justify-center min-h-[400px] gap-4',
+          children: [
+            e.jsx(J, { className: 'animate-spin text-indigo-500', size: 32 }),
+            e.jsx('p', {
+              className: 'text-sm font-bold text-slate-500 uppercase tracking-widest',
+              children: 'Initialisation DNS...',
+            }),
+          ],
+        })
+      : e.jsxs('div', {
+          className: 'space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700',
+          children: [
+            e.jsxs('div', {
+              className: 'flex flex-col md:flex-row md:items-center justify-between gap-6',
+              children: [
+                e.jsxs('div', {
+                  children: [
+                    e.jsx('h2', {
+                      className: i(
+                        'text-3xl font-black italic tracking-tighter transition-colors duration-500',
+                        s ? 'text-white' : 'text-slate-900'
+                      ),
+                      children: 'DNS COMMAND CENTER',
+                    }),
+                    e.jsxs('div', {
+                      className: 'flex items-center gap-2 mt-1',
+                      children: [
+                        e.jsxs('span', {
+                          className: 'relative flex h-2 w-2',
+                          children: [
+                            e.jsx('span', {
+                              className:
+                                'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75',
+                            }),
+                            e.jsx('span', {
+                              className: 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500',
+                            }),
+                          ],
+                        }),
+                        e.jsx('p', {
+                          className: i(
+                            'text-[10px] font-extrabold tracking-[0.2em] uppercase opacity-70',
+                            s ? 'text-white' : 'text-slate-500'
+                          ),
+                          children: 'ADGUARD ENGINE ACTIVE',
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                e.jsxs('div', {
+                  className: 'flex items-center gap-3',
+                  children: [
+                    e.jsx('button', {
+                      onClick: j,
+                      className: i(
+                        'p-3 rounded-2xl border transition-all hover:scale-105 active:scale-95',
+                        s
+                          ? 'bg-white/5 border-white/10 text-slate-400'
+                          : 'bg-black/5 border-slate-200 text-slate-500'
+                      ),
+                      children: e.jsx(J, { size: 18, className: i(x && 'animate-spin') }),
+                    }),
+                    e.jsxs('button', {
+                      onClick: z,
+                      disabled: b,
+                      className:
+                        'flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-[10px] sm:text-xs uppercase tracking-widest shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50',
+                      children: [
+                        b
+                          ? e.jsx(J, { className: 'animate-spin', size: 16 })
+                          : e.jsx($t, { size: 16 }),
+                        e.jsx('span', {
+                          className: 'hidden xs:inline',
+                          children: b ? 'Déploiement...' : 'Appliquer',
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            e.jsx('div', {
+              className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4',
+              children: [
+                {
+                  label: 'Requêtes',
+                  value: (d == null ? void 0 : d.num_dns_queries) || 0,
+                  icon: e.jsx(de, { className: 'text-indigo-500' }),
+                  sub: 'Dernières 24h',
+                },
+                {
+                  label: 'Bloqués',
+                  value: (d == null ? void 0 : d.num_blocked_filtering) || 0,
+                  icon: e.jsx(be, { className: 'text-rose-500' }),
+                  sub: `${(((d == null ? void 0 : d.num_blocked_filtering) / (d == null ? void 0 : d.num_dns_queries)) * 100 || 0).toFixed(1)}%`,
+                },
+                {
+                  label: 'Latence',
+                  value: `${(d == null ? void 0 : d.avg_processing_time) || 0}ms`,
+                  icon: e.jsx(Ae, { className: 'text-amber-500' }),
+                  sub: 'Moyenne',
+                },
+                {
+                  label: 'Statut',
+                  value:
+                    ((R = m == null ? void 0 : m.version) == null ? void 0 : R.split(' ')[0]) ||
+                    'Actif',
+                  icon: e.jsx(mt, { className: 'text-emerald-500' }),
+                  sub: 'DNS Engine',
+                },
+              ].map((C, P) =>
+                e.jsxs(
+                  'div',
+                  {
+                    className:
+                      'glass-card p-5 border border-white/5 relative overflow-hidden group',
+                    children: [
+                      e.jsx('div', {
+                        className:
+                          'absolute -right-4 -bottom-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-700 pointer-events-none',
+                        children: Te.cloneElement(C.icon, { size: 80 }),
+                      }),
+                      e.jsxs('div', {
+                        className: 'flex items-center gap-3 mb-4',
+                        children: [
+                          e.jsx('div', {
+                            className: 'p-2 rounded-xl bg-white/5 border border-white/5',
+                            children: C.icon,
+                          }),
+                          e.jsx('span', {
+                            className:
+                              'text-[9px] font-black text-slate-500 uppercase tracking-widest',
+                            children: C.label,
+                          }),
+                        ],
+                      }),
+                      e.jsx('div', {
+                        className: 'text-xl font-black font-mono tracking-tighter mb-1',
+                        children: C.value,
+                      }),
+                      e.jsx('div', {
+                        className: 'text-[9px] font-bold text-slate-500 uppercase opacity-60',
+                        children: C.sub,
+                      }),
+                    ],
+                  },
+                  P
+                )
+              ),
+            }),
+            e.jsxs('div', {
+              className: 'glass-card border border-white/5 overflow-hidden p-0',
+              children: [
+                e.jsx('div', {
+                  className:
+                    'flex border-b border-white/5 bg-black/10 overflow-x-auto custom-scrollbar no-scrollbar',
+                  children: [
+                    { id: 'upstream', label: 'Upstream', icon: e.jsx(Ge, { size: 14 }) },
+                    { id: 'filters', label: 'Filters', icon: e.jsx(be, { size: 14 }) },
+                    { id: 'bootstrap', label: 'Bootstrap', icon: e.jsx(Ae, { size: 14 }) },
+                    { id: 'settings', label: 'Harden', icon: e.jsx(ia, { size: 14 }) },
+                  ].map((C) =>
+                    e.jsxs(
+                      'button',
+                      {
+                        onClick: () => w(C.id),
+                        className: i(
+                          'flex items-center gap-2 px-5 sm:px-8 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all relative shrink-0',
+                          g === C.id
+                            ? 'text-white bg-indigo-600/10'
+                            : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'
+                        ),
+                        children: [
+                          C.icon,
+                          C.label,
+                          g === C.id &&
+                            e.jsx(L.div, {
+                              layoutId: 'dnsTab',
+                              className:
+                                'absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 shadow-[0_0_10px_#6366f1]',
+                            }),
+                        ],
+                      },
+                      C.id
+                    )
+                  ),
+                }),
+                e.jsxs('div', {
+                  className: 'p-4 sm:p-8',
+                  children: [
+                    g === 'upstream' &&
+                      e.jsxs('div', {
+                        className: 'space-y-6',
+                        children: [
+                          e.jsxs('div', {
+                            className: 'flex items-start gap-4',
+                            children: [
+                              e.jsx('div', {
+                                className:
+                                  'p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500',
+                                children: e.jsx(At, { size: 24 }),
+                              }),
+                              e.jsxs('div', {
+                                children: [
+                                  e.jsx('h4', {
+                                    className: 'text-sm font-black uppercase tracking-tight mb-1',
+                                    children: 'Serveurs DNS Amont',
+                                  }),
+                                  e.jsx('p', {
+                                    className: 'text-xs text-slate-500 leading-relaxed max-w-2xl',
+                                    children:
+                                      'Entrez un serveur par ligne. Ces serveurs seront utilisés par AdGuard pour résoudre les requêtes de vos clients. Privilégiez les serveurs DoH ou DoT pour une sécurité maximale.',
+                                  }),
+                                ],
+                              }),
+                            ],
+                          }),
+                          e.jsx('textarea', {
+                            value:
+                              (U = a == null ? void 0 : a.upstream_dns) == null
+                                ? void 0
+                                : U.join(`
+`),
+                            onChange: (C) =>
+                              c({
+                                ...a,
+                                upstream_dns: C.target.value
+                                  .split(
+                                    `
+`
+                                  )
+                                  .filter((P) => P.trim()),
+                              }),
+                            className:
+                              'w-full h-64 glass-input font-mono text-sm leading-relaxed p-6 focus:ring-2 focus:ring-indigo-500/20 border-white/10',
+                            placeholder: `https://dns.cloudflare.com/dns-query
 8.8.8.8
-8.8.4.4`}),e.jsx("div",{className:"flex flex-wrap gap-2 pt-2",children:["Cloudflare (DoH)","Google (DoH)","Quad9 (DoH)"].map(C=>e.jsxs("button",{onClick:()=>{const B={"Cloudflare (DoH)":"https://dns.cloudflare.com/dns-query","Google (DoH)":"https://dns.google/dns-query","Quad9 (DoH)":"https://dns.quad9.net/dns-query"}[C];a.upstream_dns.includes(B)||c({...a,upstream_dns:[...a.upstream_dns,B]})},className:"px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400 hover:bg-indigo-500/20 transition-all",children:["+ ",C]},C))})]}),g==="filters"&&e.jsxs("div",{className:"space-y-6",children:[e.jsx("div",{className:"grid grid-cols-1 gap-4",children:(G=o==null?void 0:o.filters)==null?void 0:G.map(C=>e.jsxs("div",{className:"flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 group hover:border-white/10 transition-all",children:[e.jsxs("div",{className:"flex items-center gap-4",children:[e.jsx("div",{className:"p-2 rounded-xl bg-indigo-500/10 text-indigo-400",children:e.jsx(be,{size:16})}),e.jsxs("div",{children:[e.jsx("div",{className:"text-xs font-bold text-white",children:C.name}),e.jsx("div",{className:"text-[10px] text-slate-500 font-mono truncate max-w-[300px]",children:C.url})]})]}),e.jsxs("div",{className:"flex items-center gap-4",children:[e.jsxs("div",{className:"text-right mr-4",children:[e.jsxs("div",{className:"text-[10px] font-black text-indigo-500 uppercase tracking-widest",children:[C.rules_count," RÈGLES"]}),e.jsx("div",{className:i("text-[10px] font-bold uppercase",C.enabled?"text-emerald-500":"text-amber-500"),children:C.enabled?"ACTIF":"INACTIF"})]}),e.jsx("button",{onClick:()=>k(C.url),className:"p-2 rounded-lg bg-rose-500/10 text-rose-500 opacity-0 group-hover:opacity-100 transition-all",children:e.jsx(J,{size:14,className:"rotate-45"})})]})]},C.url))}),e.jsxs("div",{className:"pt-6 border-t border-white/5",children:[e.jsx("h4",{className:"text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4",children:"Ajouter une Blocklist"}),e.jsxs("div",{className:"flex flex-col sm:flex-row gap-4",children:[e.jsx("input",{type:"text",placeholder:"Nom (ex: Steven Black)",value:E,onChange:C=>N(C.target.value),className:"flex-1 glass-input text-xs p-3"}),e.jsx("input",{type:"text",placeholder:"URL (ex: https://...)",value:f,onChange:C=>v(C.target.value),className:"flex-[2] glass-input text-xs p-3"}),e.jsx("button",{onClick:()=>{E&&f&&(D(E,f),N(""),v(""))},className:"px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all whitespace-nowrap",children:"Ajouter"})]})]})]}),g==="bootstrap"&&e.jsxs("div",{className:"space-y-4",children:[e.jsx("h4",{className:"text-sm font-black uppercase tracking-tight",children:"Bootstrap DNS"}),e.jsx("p",{className:"text-xs text-slate-500 max-w-xl",children:"Ces serveurs sont utilisés pour résoudre les noms d'hôtes des DNS amont (ex: dns.cloudflare.com)."}),e.jsx("textarea",{value:(X=a==null?void 0:a.bootstrap_dns)==null?void 0:X.join(`
-`),onChange:C=>c({...a,bootstrap_dns:C.target.value.split(`
-`).filter(P=>P.trim())}),className:"w-full h-48 glass-input font-mono text-sm p-6 focus:ring-2 focus:ring-indigo-500/20 border-white/10"})]}),g==="settings"&&e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-6",children:[{key:"filtering_enabled",label:"Filtrage AdGuard",desc:"Active le blocage des publicités et du tracking."},{key:"safebrowsing_enabled",label:"Navigation Sécurisée",desc:"Bloque les sites malveillants et de phishing."},{key:"parental_enabled",label:"Contrôle Parental",desc:"Bloque le contenu réservé aux adultes."},{key:"safesearch_enabled",label:"SafeSearch",desc:"Force le mode sécurisé sur Google, YouTube, etc."}].map(C=>e.jsxs("button",{onClick:()=>c({...a,[C.key]:!a[C.key]}),className:i("flex items-center justify-between p-6 rounded-2xl border transition-all text-left group",a!=null&&a[C.key]?"bg-indigo-500/10 border-indigo-500/30 text-white":"bg-white/5 border-white/5 text-slate-500 hover:border-white/10"),children:[e.jsxs("div",{children:[e.jsx("div",{className:"font-extrabold text-xs uppercase tracking-wider mb-1",children:C.label}),e.jsx("div",{className:"text-[10px] opacity-60 leading-relaxed",children:C.desc})]}),e.jsx("div",{className:i("w-10 h-6 rounded-full relative transition-all duration-300",a!=null&&a[C.key]?"bg-indigo-500":"bg-slate-700"),children:e.jsx("div",{className:i("absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300",a!=null&&a[C.key]?"left-5":"left-1")})})]},C.key))})]})]})]})},Jr=({session:t,onLogout:s})=>{const{theme:r,mode:a}=Q(),{addToast:c}=ke(),[d,p]=h.useState(localStorage.getItem("active-tab")||"dashboard"),[m,l]=h.useState(!1),[o,n]=h.useState(!1),[x,u]=h.useState(null),[b,y]=h.useState(null),g=a==="dark",[w,E]=h.useState(!1),[N,f]=h.useState(!1),[v,j]=h.useState(!1),[z,D]=h.useState(null),[k,R]=h.useState(!1),[U,G]=h.useState(!1),[X,C]=h.useState(null),[P,B]=h.useState(null),[S,O]=h.useState({open:!1,client:null}),{clients:q,allContainers:Z,users:$,stats:se,systemStats:I,trafficData:xe,loading:ae,health:K,config:H,uptime:pe,speedtest:ge,sentinelStatus:Y,adguardStatus:Ce,onlinePeers:we,fetchData:re,handleRunSpeedtest:Se}=Pr(t);h.useEffect(()=>{localStorage.setItem("active-tab",d)},[d]),h.useEffect(()=>{const _=W=>{(W.ctrlKey||W.metaKey)&&W.key==="k"&&(W.preventDefault(),n(V=>!V))};return document.addEventListener("keydown",_),()=>document.removeEventListener("keydown",_)},[]);const me=_=>{p(_),u(null),l(!1)},$e=async(_,W,V,ie,ve)=>{var De,Ke;try{await T.post("/clients",{name:_,container:W,expiry:V,quota:ie,uploadLimit:ve}),re(),c(`Peer ${_} créé avec succès`,"success")}catch(Ye){c(((Ke=(De=Ye.response)==null?void 0:De.data)==null?void 0:Ke.error)||"Erreur lors de la création du client","error")}},ot=async _=>{var W,V;try{await T.post("/clients/containers",{name:_}),c(`Conteneur ${_} créé.`,"success"),re()}catch(ie){c(((V=(W=ie.response)==null?void 0:W.data)==null?void 0:V.error)||`Erreur lors de la création du conteneur ${_}`,"error")}},nt=async(_,W,V)=>{try{await T.post(`/clients/${_}/${W}/toggle`,{enabled:V}),re()}catch{c("Erreur toggle client","error")}},yt=(_,W)=>{const V=document.createElement("a"),ie=new Blob([W],{type:"text/plain"});V.href=URL.createObjectURL(ie),V.download=`${_}.conf`,document.body.appendChild(V),V.click(),document.body.removeChild(V)},Ve=_=>O({open:!0,type:"delete-client",client:_}),ne=_=>O({open:!0,type:"delete-container",container:_}),oe=async _=>{var W,V;try{await T.delete(`/users/${_}`),c(`Opérateur ${_} supprimé`,"success"),re()}catch(ie){c(((V=(W=ie.response)==null?void 0:W.data)==null?void 0:V.error)||"Erreur suppression","error")}},ze=async()=>{var ie,ve,De,Ke;const{type:_,client:W,container:V}=S;if(O({open:!1,client:null,container:null}),_==="delete-container"&&V){try{await T.delete(`/clients/containers/${V}`),c("Conteneur supprimé avec succès","success"),re()}catch(Ye){c(((ve=(ie=Ye.response)==null?void 0:ie.data)==null?void 0:ve.error)||"Erreur lors de la suppression","error")}return}if(W)try{await T.delete(`/clients/${W.container}/${W.name}`),c("Client supprimé","success"),re(),(x==null?void 0:x.id)===W.id&&u(null)}catch(Ye){c(((Ke=(De=Ye.response)==null?void 0:De.data)==null?void 0:Ke.error)||"Erreur lors de la suppression","error")}},Qe=()=>{if(x)return e.jsx(Hr,{client:x,onBack:()=>u(null),onToggle:nt,onDelete:()=>Ve(x),onQRCode:async _=>{try{const W=await T.get(`/clients/${_.container}/${_.name}/config`);B({name:_.name,config:W.data.config||""}),E(!0)}catch{c("Erreur chargement configuration","error")}},onEdit:()=>{C(x),G(!0)}});switch(d){case"dashboard":return e.jsx(Or,{stats:se,trafficData:xe,systemStats:I,clients:q,health:K,config:H,speedtest:ge,onRunSpeedtest:Se,sentinel:Y,adguardStatus:Ce,onCreateClient:()=>f(!0),onNavigate:me});case"containers":return e.jsx(Wr,{clients:q,allContainers:Z,loading:ae,activeContainer:b,setActiveContainer:y,onSelect:u,onQRCode:async _=>{try{const W=await T.get(`/clients/${_.container}/${_.name}/config`);B({name:_.name,config:W.data.config||""}),E(!0)}catch{c("Erreur de configuration","error")}},onToggle:nt,onDelete:Ve,onDeleteContainer:ne,onEdit:_=>{C(_),G(!0)},onCreateClient:_=>{D(_),f(!0)},onCreateContainer:()=>j(!0)});case"topology":return e.jsx("div",{className:"space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700",children:e.jsx(Fr,{clients:q,onSelectClient:u,onlinePeers:we})});case"users":return e.jsx(qr,{users:$,loading:ae,onRefresh:re,onDelete:oe,onCreateUser:()=>R(!0)});case"logs":return e.jsx(Vr,{});case"settings":return e.jsx(Qr,{});case"optimization":return e.jsx(Kr,{systemStats:I});case"audit":return e.jsx(Yr,{});case"dns":return e.jsx(Xr,{});default:return null}};return ae&&q.length===0?e.jsxs("div",{className:"min-h-screen flex font-sans antialiased bg-[var(--bg-canvas)] transition-colors duration-300",children:[e.jsx("div",{className:"hidden md:block w-64 lg:w-72 shrink-0 border-r h-screen glass-panel"}),e.jsx("main",{className:"flex-1 min-w-0 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto",children:e.jsx(pr,{})})]}):e.jsxs("div",{className:"min-h-screen flex font-sans antialiased overflow-x-hidden transition-colors duration-700 selection:bg-indigo-500/30 bg-[var(--bg-canvas)]",children:[e.jsx("button",{onClick:()=>l(!0),className:"fixed top-4 left-4 z-40 p-2.5 glass-panel border rounded-xl md:hidden shadow-lg active:scale-95 transition-all",children:e.jsx(la,{size:20})}),e.jsxs("button",{onClick:()=>n(!0),className:"fixed top-4 right-4 z-40 hidden md:flex items-center gap-2 px-4 py-2.5 glass-panel border rounded-xl transition-all text-[11px] font-black uppercase tracking-widest shadow-lg hover:scale-105",children:[e.jsx(it,{size:14}),e.jsx("span",{children:"Rechercher"}),e.jsx("kbd",{className:i("ml-2 px-1.5 py-0.5 rounded text-[9px] border transition-colors",g?"bg-white/5 border-white/10 text-white/40":"bg-black/5 border-slate-200 text-slate-400"),children:"Ctrl K"})]}),e.jsx(xr,{activeSection:x?"containers":d,setActiveSection:me,isOpen:m,onClose:()=>l(!1),onLogout:s,uptime:pe}),e.jsxs("main",{className:"flex-1 min-w-0 pt-20 md:pt-0 pb-10 overflow-x-hidden relative transition-all duration-300",children:[e.jsxs("div",{className:"fixed inset-0 pointer-events-none -z-10 bg-transparent",children:[e.jsx("div",{className:i("absolute top-0 right-0 w-[600px] h-[600px] blur-[150px] opacity-40 animate-pulse transition-all duration-1000",g?"bg-indigo-600/10":"bg-indigo-500/15")}),e.jsx("div",{className:i("absolute bottom-0 left-0 w-[400px] h-[400px] blur-[120px] opacity-30 transition-all duration-1000",g?"bg-emerald-600/5":"bg-emerald-500/10")})]}),e.jsx("div",{className:"max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 space-y-12",children:e.jsx(le,{mode:"wait",children:e.jsx(L.div,{initial:{opacity:0,y:16},animate:{opacity:1,y:0},exit:{opacity:0,y:-12},transition:{duration:.25,ease:[.16,1,.3,1]},children:e.jsx(or,{sectionName:d,children:Qe()})},x?"client-detail":d)})})]}),e.jsx(ur,{isOpen:o,onClose:()=>n(!1),clients:q,onNavigate:me}),w&&e.jsx(Mr,{isOpen:w,onClose:()=>E(!1),client:P,onDownload:yt}),v&&e.jsx(br,{isOpen:v,onClose:()=>j(!1),onCreate:ot}),N&&e.jsx(hr,{isOpen:N,onClose:()=>{f(!1),D(null)},onCreate:$e,targetContainer:z}),k&&e.jsx($r,{isOpen:k,onClose:()=>R(!1),onCreate:async(_,W,V)=>{var ie,ve;try{await T.post("/users",{username:_,password:W,role:V}),c(`Opérateur ${_} créé avec succès`,"success"),re()}catch(De){c(((ve=(ie=De.response)==null?void 0:ie.data)==null?void 0:ve.error)||"Erreur lors de la création","error")}}}),U&&X&&e.jsx(Dr,{isOpen:U,onClose:()=>{G(!1),C(null)},client:X,onSave:re}),e.jsx(mr,{isOpen:S.open,title:S.type==="delete-container"?"Supprimer le conteneur":"Supprimer le client",message:S.type==="delete-container"?e.jsxs("span",{children:["Supprimer le conteneur vide ",e.jsx("strong",{className:i("font-mono",g?"text-white":"text-slate-900"),children:S.container})," ?"]}):S.client?e.jsxs("span",{children:["Supprimer ",e.jsx("strong",{className:i("font-mono",g?"text-white":"text-slate-900"),children:S.client.name})," du conteneur ",e.jsx("strong",{className:i("font-mono",g?"text-white":"text-slate-900"),children:S.client.container})," ?"]}):"Cette action est irréversible.",confirmLabel:"Supprimer définitivement",intent:"danger",onConfirm:ze,onCancel:()=>O({open:!1,client:null,container:null})})]})},Zr=()=>{const{session:t,login:s,logout:r}=ir();return t.token?e.jsx(Jr,{session:t,onLogout:r}):e.jsx(ar,{onLogin:s})},ei=ca.createRoot(document.getElementById("root"));ei.render(e.jsx(Te.StrictMode,{children:e.jsx(da,{children:e.jsx(cr,{children:e.jsx(lr,{children:e.jsx(Zr,{})})})})}));
+8.8.4.4`,
+                          }),
+                          e.jsx('div', {
+                            className: 'flex flex-wrap gap-2 pt-2',
+                            children: ['Cloudflare (DoH)', 'Google (DoH)', 'Quad9 (DoH)'].map((C) =>
+                              e.jsxs(
+                                'button',
+                                {
+                                  onClick: () => {
+                                    const B = {
+                                      'Cloudflare (DoH)': 'https://dns.cloudflare.com/dns-query',
+                                      'Google (DoH)': 'https://dns.google/dns-query',
+                                      'Quad9 (DoH)': 'https://dns.quad9.net/dns-query',
+                                    }[C];
+                                    a.upstream_dns.includes(B) ||
+                                      c({ ...a, upstream_dns: [...a.upstream_dns, B] });
+                                  },
+                                  className:
+                                    'px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400 hover:bg-indigo-500/20 transition-all',
+                                  children: ['+ ', C],
+                                },
+                                C
+                              )
+                            ),
+                          }),
+                        ],
+                      }),
+                    g === 'filters' &&
+                      e.jsxs('div', {
+                        className: 'space-y-6',
+                        children: [
+                          e.jsx('div', {
+                            className: 'grid grid-cols-1 gap-4',
+                            children:
+                              (G = o == null ? void 0 : o.filters) == null
+                                ? void 0
+                                : G.map((C) =>
+                                    e.jsxs(
+                                      'div',
+                                      {
+                                        className:
+                                          'flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 group hover:border-white/10 transition-all',
+                                        children: [
+                                          e.jsxs('div', {
+                                            className: 'flex items-center gap-4',
+                                            children: [
+                                              e.jsx('div', {
+                                                className:
+                                                  'p-2 rounded-xl bg-indigo-500/10 text-indigo-400',
+                                                children: e.jsx(be, { size: 16 }),
+                                              }),
+                                              e.jsxs('div', {
+                                                children: [
+                                                  e.jsx('div', {
+                                                    className: 'text-xs font-bold text-white',
+                                                    children: C.name,
+                                                  }),
+                                                  e.jsx('div', {
+                                                    className:
+                                                      'text-[10px] text-slate-500 font-mono truncate max-w-[300px]',
+                                                    children: C.url,
+                                                  }),
+                                                ],
+                                              }),
+                                            ],
+                                          }),
+                                          e.jsxs('div', {
+                                            className: 'flex items-center gap-4',
+                                            children: [
+                                              e.jsxs('div', {
+                                                className: 'text-right mr-4',
+                                                children: [
+                                                  e.jsxs('div', {
+                                                    className:
+                                                      'text-[10px] font-black text-indigo-500 uppercase tracking-widest',
+                                                    children: [C.rules_count, ' RÈGLES'],
+                                                  }),
+                                                  e.jsx('div', {
+                                                    className: i(
+                                                      'text-[10px] font-bold uppercase',
+                                                      C.enabled
+                                                        ? 'text-emerald-500'
+                                                        : 'text-amber-500'
+                                                    ),
+                                                    children: C.enabled ? 'ACTIF' : 'INACTIF',
+                                                  }),
+                                                ],
+                                              }),
+                                              e.jsx('button', {
+                                                onClick: () => k(C.url),
+                                                className:
+                                                  'p-2 rounded-lg bg-rose-500/10 text-rose-500 opacity-0 group-hover:opacity-100 transition-all',
+                                                children: e.jsx(J, {
+                                                  size: 14,
+                                                  className: 'rotate-45',
+                                                }),
+                                              }),
+                                            ],
+                                          }),
+                                        ],
+                                      },
+                                      C.url
+                                    )
+                                  ),
+                          }),
+                          e.jsxs('div', {
+                            className: 'pt-6 border-t border-white/5',
+                            children: [
+                              e.jsx('h4', {
+                                className:
+                                  'text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4',
+                                children: 'Ajouter une Blocklist',
+                              }),
+                              e.jsxs('div', {
+                                className: 'flex flex-col sm:flex-row gap-4',
+                                children: [
+                                  e.jsx('input', {
+                                    type: 'text',
+                                    placeholder: 'Nom (ex: Steven Black)',
+                                    value: E,
+                                    onChange: (C) => N(C.target.value),
+                                    className: 'flex-1 glass-input text-xs p-3',
+                                  }),
+                                  e.jsx('input', {
+                                    type: 'text',
+                                    placeholder: 'URL (ex: https://...)',
+                                    value: f,
+                                    onChange: (C) => v(C.target.value),
+                                    className: 'flex-[2] glass-input text-xs p-3',
+                                  }),
+                                  e.jsx('button', {
+                                    onClick: () => {
+                                      E && f && (D(E, f), N(''), v(''));
+                                    },
+                                    className:
+                                      'px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all whitespace-nowrap',
+                                    children: 'Ajouter',
+                                  }),
+                                ],
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
+                    g === 'bootstrap' &&
+                      e.jsxs('div', {
+                        className: 'space-y-4',
+                        children: [
+                          e.jsx('h4', {
+                            className: 'text-sm font-black uppercase tracking-tight',
+                            children: 'Bootstrap DNS',
+                          }),
+                          e.jsx('p', {
+                            className: 'text-xs text-slate-500 max-w-xl',
+                            children:
+                              "Ces serveurs sont utilisés pour résoudre les noms d'hôtes des DNS amont (ex: dns.cloudflare.com).",
+                          }),
+                          e.jsx('textarea', {
+                            value:
+                              (X = a == null ? void 0 : a.bootstrap_dns) == null
+                                ? void 0
+                                : X.join(`
+`),
+                            onChange: (C) =>
+                              c({
+                                ...a,
+                                bootstrap_dns: C.target.value
+                                  .split(
+                                    `
+`
+                                  )
+                                  .filter((P) => P.trim()),
+                              }),
+                            className:
+                              'w-full h-48 glass-input font-mono text-sm p-6 focus:ring-2 focus:ring-indigo-500/20 border-white/10',
+                          }),
+                        ],
+                      }),
+                    g === 'settings' &&
+                      e.jsx('div', {
+                        className: 'grid grid-cols-1 md:grid-cols-2 gap-6',
+                        children: [
+                          {
+                            key: 'filtering_enabled',
+                            label: 'Filtrage AdGuard',
+                            desc: 'Active le blocage des publicités et du tracking.',
+                          },
+                          {
+                            key: 'safebrowsing_enabled',
+                            label: 'Navigation Sécurisée',
+                            desc: 'Bloque les sites malveillants et de phishing.',
+                          },
+                          {
+                            key: 'parental_enabled',
+                            label: 'Contrôle Parental',
+                            desc: 'Bloque le contenu réservé aux adultes.',
+                          },
+                          {
+                            key: 'safesearch_enabled',
+                            label: 'SafeSearch',
+                            desc: 'Force le mode sécurisé sur Google, YouTube, etc.',
+                          },
+                        ].map((C) =>
+                          e.jsxs(
+                            'button',
+                            {
+                              onClick: () => c({ ...a, [C.key]: !a[C.key] }),
+                              className: i(
+                                'flex items-center justify-between p-6 rounded-2xl border transition-all text-left group',
+                                a != null && a[C.key]
+                                  ? 'bg-indigo-500/10 border-indigo-500/30 text-white'
+                                  : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10'
+                              ),
+                              children: [
+                                e.jsxs('div', {
+                                  children: [
+                                    e.jsx('div', {
+                                      className:
+                                        'font-extrabold text-xs uppercase tracking-wider mb-1',
+                                      children: C.label,
+                                    }),
+                                    e.jsx('div', {
+                                      className: 'text-[10px] opacity-60 leading-relaxed',
+                                      children: C.desc,
+                                    }),
+                                  ],
+                                }),
+                                e.jsx('div', {
+                                  className: i(
+                                    'w-10 h-6 rounded-full relative transition-all duration-300',
+                                    a != null && a[C.key] ? 'bg-indigo-500' : 'bg-slate-700'
+                                  ),
+                                  children: e.jsx('div', {
+                                    className: i(
+                                      'absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300',
+                                      a != null && a[C.key] ? 'left-5' : 'left-1'
+                                    ),
+                                  }),
+                                }),
+                              ],
+                            },
+                            C.key
+                          )
+                        ),
+                      }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        });
+  },
+  Jr = ({ session: t, onLogout: s }) => {
+    const { theme: r, mode: a } = Q(),
+      { addToast: c } = ke(),
+      [d, p] = h.useState(localStorage.getItem('active-tab') || 'dashboard'),
+      [m, l] = h.useState(!1),
+      [o, n] = h.useState(!1),
+      [x, u] = h.useState(null),
+      [b, y] = h.useState(null),
+      g = a === 'dark',
+      [w, E] = h.useState(!1),
+      [N, f] = h.useState(!1),
+      [v, j] = h.useState(!1),
+      [z, D] = h.useState(null),
+      [k, R] = h.useState(!1),
+      [U, G] = h.useState(!1),
+      [X, C] = h.useState(null),
+      [P, B] = h.useState(null),
+      [S, O] = h.useState({ open: !1, client: null }),
+      {
+        clients: q,
+        allContainers: Z,
+        users: $,
+        stats: se,
+        systemStats: I,
+        trafficData: xe,
+        loading: ae,
+        health: K,
+        config: H,
+        uptime: pe,
+        speedtest: ge,
+        sentinelStatus: Y,
+        adguardStatus: Ce,
+        onlinePeers: we,
+        fetchData: re,
+        handleRunSpeedtest: Se,
+      } = Pr(t);
+    (h.useEffect(() => {
+      localStorage.setItem('active-tab', d);
+    }, [d]),
+      h.useEffect(() => {
+        const _ = (W) => {
+          (W.ctrlKey || W.metaKey) && W.key === 'k' && (W.preventDefault(), n((V) => !V));
+        };
+        return (
+          document.addEventListener('keydown', _),
+          () => document.removeEventListener('keydown', _)
+        );
+      }, []));
+    const me = (_) => {
+        (p(_), u(null), l(!1));
+      },
+      $e = async (_, W, V, ie, ve) => {
+        var De, Ke;
+        try {
+          (await T.post('/clients', {
+            name: _,
+            container: W,
+            expiry: V,
+            quota: ie,
+            uploadLimit: ve,
+          }),
+            re(),
+            c(`Peer ${_} créé avec succès`, 'success'));
+        } catch (Ye) {
+          c(
+            ((Ke = (De = Ye.response) == null ? void 0 : De.data) == null ? void 0 : Ke.error) ||
+              'Erreur lors de la création du client',
+            'error'
+          );
+        }
+      },
+      ot = async (_) => {
+        var W, V;
+        try {
+          (await T.post('/clients/containers', { name: _ }),
+            c(`Conteneur ${_} créé.`, 'success'),
+            re());
+        } catch (ie) {
+          c(
+            ((V = (W = ie.response) == null ? void 0 : W.data) == null ? void 0 : V.error) ||
+              `Erreur lors de la création du conteneur ${_}`,
+            'error'
+          );
+        }
+      },
+      nt = async (_, W, V) => {
+        try {
+          (await T.post(`/clients/${_}/${W}/toggle`, { enabled: V }), re());
+        } catch {
+          c('Erreur toggle client', 'error');
+        }
+      },
+      yt = (_, W) => {
+        const V = document.createElement('a'),
+          ie = new Blob([W], { type: 'text/plain' });
+        ((V.href = URL.createObjectURL(ie)),
+          (V.download = `${_}.conf`),
+          document.body.appendChild(V),
+          V.click(),
+          document.body.removeChild(V));
+      },
+      Ve = (_) => O({ open: !0, type: 'delete-client', client: _ }),
+      ne = (_) => O({ open: !0, type: 'delete-container', container: _ }),
+      oe = async (_) => {
+        var W, V;
+        try {
+          (await T.delete(`/users/${_}`), c(`Opérateur ${_} supprimé`, 'success'), re());
+        } catch (ie) {
+          c(
+            ((V = (W = ie.response) == null ? void 0 : W.data) == null ? void 0 : V.error) ||
+              'Erreur suppression',
+            'error'
+          );
+        }
+      },
+      ze = async () => {
+        var ie, ve, De, Ke;
+        const { type: _, client: W, container: V } = S;
+        if ((O({ open: !1, client: null, container: null }), _ === 'delete-container' && V)) {
+          try {
+            (await T.delete(`/clients/containers/${V}`),
+              c('Conteneur supprimé avec succès', 'success'),
+              re());
+          } catch (Ye) {
+            c(
+              ((ve = (ie = Ye.response) == null ? void 0 : ie.data) == null ? void 0 : ve.error) ||
+                'Erreur lors de la suppression',
+              'error'
+            );
+          }
+          return;
+        }
+        if (W)
+          try {
+            (await T.delete(`/clients/${W.container}/${W.name}`),
+              c('Client supprimé', 'success'),
+              re(),
+              (x == null ? void 0 : x.id) === W.id && u(null));
+          } catch (Ye) {
+            c(
+              ((Ke = (De = Ye.response) == null ? void 0 : De.data) == null ? void 0 : Ke.error) ||
+                'Erreur lors de la suppression',
+              'error'
+            );
+          }
+      },
+      Qe = () => {
+        if (x)
+          return e.jsx(Hr, {
+            client: x,
+            onBack: () => u(null),
+            onToggle: nt,
+            onDelete: () => Ve(x),
+            onQRCode: async (_) => {
+              try {
+                const W = await T.get(`/clients/${_.container}/${_.name}/config`);
+                (B({ name: _.name, config: W.data.config || '' }), E(!0));
+              } catch {
+                c('Erreur chargement configuration', 'error');
+              }
+            },
+            onEdit: () => {
+              (C(x), G(!0));
+            },
+          });
+        switch (d) {
+          case 'dashboard':
+            return e.jsx(Or, {
+              stats: se,
+              trafficData: xe,
+              systemStats: I,
+              clients: q,
+              health: K,
+              config: H,
+              speedtest: ge,
+              onRunSpeedtest: Se,
+              sentinel: Y,
+              adguardStatus: Ce,
+              onCreateClient: () => f(!0),
+              onNavigate: me,
+            });
+          case 'containers':
+            return e.jsx(Wr, {
+              clients: q,
+              allContainers: Z,
+              loading: ae,
+              activeContainer: b,
+              setActiveContainer: y,
+              onSelect: u,
+              onQRCode: async (_) => {
+                try {
+                  const W = await T.get(`/clients/${_.container}/${_.name}/config`);
+                  (B({ name: _.name, config: W.data.config || '' }), E(!0));
+                } catch {
+                  c('Erreur de configuration', 'error');
+                }
+              },
+              onToggle: nt,
+              onDelete: Ve,
+              onDeleteContainer: ne,
+              onEdit: (_) => {
+                (C(_), G(!0));
+              },
+              onCreateClient: (_) => {
+                (D(_), f(!0));
+              },
+              onCreateContainer: () => j(!0),
+            });
+          case 'topology':
+            return e.jsx('div', {
+              className: 'space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700',
+              children: e.jsx(Fr, { clients: q, onSelectClient: u, onlinePeers: we }),
+            });
+          case 'users':
+            return e.jsx(qr, {
+              users: $,
+              loading: ae,
+              onRefresh: re,
+              onDelete: oe,
+              onCreateUser: () => R(!0),
+            });
+          case 'logs':
+            return e.jsx(Vr, {});
+          case 'settings':
+            return e.jsx(Qr, {});
+          case 'optimization':
+            return e.jsx(Kr, { systemStats: I });
+          case 'audit':
+            return e.jsx(Yr, {});
+          case 'dns':
+            return e.jsx(Xr, {});
+          default:
+            return null;
+        }
+      };
+    return ae && q.length === 0
+      ? e.jsxs('div', {
+          className:
+            'min-h-screen flex font-sans antialiased bg-[var(--bg-canvas)] transition-colors duration-300',
+          children: [
+            e.jsx('div', {
+              className: 'hidden md:block w-64 lg:w-72 shrink-0 border-r h-screen glass-panel',
+            }),
+            e.jsx('main', {
+              className: 'flex-1 min-w-0 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto',
+              children: e.jsx(pr, {}),
+            }),
+          ],
+        })
+      : e.jsxs('div', {
+          className:
+            'min-h-screen flex font-sans antialiased overflow-x-hidden transition-colors duration-700 selection:bg-indigo-500/30 bg-[var(--bg-canvas)]',
+          children: [
+            e.jsx('button', {
+              onClick: () => l(!0),
+              className:
+                'fixed top-4 left-4 z-40 p-2.5 glass-panel border rounded-xl md:hidden shadow-lg active:scale-95 transition-all',
+              children: e.jsx(la, { size: 20 }),
+            }),
+            e.jsxs('button', {
+              onClick: () => n(!0),
+              className:
+                'fixed top-4 right-4 z-40 hidden md:flex items-center gap-2 px-4 py-2.5 glass-panel border rounded-xl transition-all text-[11px] font-black uppercase tracking-widest shadow-lg hover:scale-105',
+              children: [
+                e.jsx(it, { size: 14 }),
+                e.jsx('span', { children: 'Rechercher' }),
+                e.jsx('kbd', {
+                  className: i(
+                    'ml-2 px-1.5 py-0.5 rounded text-[9px] border transition-colors',
+                    g
+                      ? 'bg-white/5 border-white/10 text-white/40'
+                      : 'bg-black/5 border-slate-200 text-slate-400'
+                  ),
+                  children: 'Ctrl K',
+                }),
+              ],
+            }),
+            e.jsx(xr, {
+              activeSection: x ? 'containers' : d,
+              setActiveSection: me,
+              isOpen: m,
+              onClose: () => l(!1),
+              onLogout: s,
+              uptime: pe,
+            }),
+            e.jsxs('main', {
+              className:
+                'flex-1 min-w-0 pt-20 md:pt-0 pb-10 overflow-x-hidden relative transition-all duration-300',
+              children: [
+                e.jsxs('div', {
+                  className: 'fixed inset-0 pointer-events-none -z-10 bg-transparent',
+                  children: [
+                    e.jsx('div', {
+                      className: i(
+                        'absolute top-0 right-0 w-[600px] h-[600px] blur-[150px] opacity-40 animate-pulse transition-all duration-1000',
+                        g ? 'bg-indigo-600/10' : 'bg-indigo-500/15'
+                      ),
+                    }),
+                    e.jsx('div', {
+                      className: i(
+                        'absolute bottom-0 left-0 w-[400px] h-[400px] blur-[120px] opacity-30 transition-all duration-1000',
+                        g ? 'bg-emerald-600/5' : 'bg-emerald-500/10'
+                      ),
+                    }),
+                  ],
+                }),
+                e.jsx('div', {
+                  className:
+                    'max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 space-y-12',
+                  children: e.jsx(le, {
+                    mode: 'wait',
+                    children: e.jsx(
+                      L.div,
+                      {
+                        initial: { opacity: 0, y: 16 },
+                        animate: { opacity: 1, y: 0 },
+                        exit: { opacity: 0, y: -12 },
+                        transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] },
+                        children: e.jsx(or, { sectionName: d, children: Qe() }),
+                      },
+                      x ? 'client-detail' : d
+                    ),
+                  }),
+                }),
+              ],
+            }),
+            e.jsx(ur, { isOpen: o, onClose: () => n(!1), clients: q, onNavigate: me }),
+            w && e.jsx(Mr, { isOpen: w, onClose: () => E(!1), client: P, onDownload: yt }),
+            v && e.jsx(br, { isOpen: v, onClose: () => j(!1), onCreate: ot }),
+            N &&
+              e.jsx(hr, {
+                isOpen: N,
+                onClose: () => {
+                  (f(!1), D(null));
+                },
+                onCreate: $e,
+                targetContainer: z,
+              }),
+            k &&
+              e.jsx($r, {
+                isOpen: k,
+                onClose: () => R(!1),
+                onCreate: async (_, W, V) => {
+                  var ie, ve;
+                  try {
+                    (await T.post('/users', { username: _, password: W, role: V }),
+                      c(`Opérateur ${_} créé avec succès`, 'success'),
+                      re());
+                  } catch (De) {
+                    c(
+                      ((ve = (ie = De.response) == null ? void 0 : ie.data) == null
+                        ? void 0
+                        : ve.error) || 'Erreur lors de la création',
+                      'error'
+                    );
+                  }
+                },
+              }),
+            U &&
+              X &&
+              e.jsx(Dr, {
+                isOpen: U,
+                onClose: () => {
+                  (G(!1), C(null));
+                },
+                client: X,
+                onSave: re,
+              }),
+            e.jsx(mr, {
+              isOpen: S.open,
+              title:
+                S.type === 'delete-container' ? 'Supprimer le conteneur' : 'Supprimer le client',
+              message:
+                S.type === 'delete-container'
+                  ? e.jsxs('span', {
+                      children: [
+                        'Supprimer le conteneur vide ',
+                        e.jsx('strong', {
+                          className: i('font-mono', g ? 'text-white' : 'text-slate-900'),
+                          children: S.container,
+                        }),
+                        ' ?',
+                      ],
+                    })
+                  : S.client
+                    ? e.jsxs('span', {
+                        children: [
+                          'Supprimer ',
+                          e.jsx('strong', {
+                            className: i('font-mono', g ? 'text-white' : 'text-slate-900'),
+                            children: S.client.name,
+                          }),
+                          ' du conteneur ',
+                          e.jsx('strong', {
+                            className: i('font-mono', g ? 'text-white' : 'text-slate-900'),
+                            children: S.client.container,
+                          }),
+                          ' ?',
+                        ],
+                      })
+                    : 'Cette action est irréversible.',
+              confirmLabel: 'Supprimer définitivement',
+              intent: 'danger',
+              onConfirm: ze,
+              onCancel: () => O({ open: !1, client: null, container: null }),
+            }),
+          ],
+        });
+  },
+  Zr = () => {
+    const { session: t, login: s, logout: r } = ir();
+    return t.token ? e.jsx(Jr, { session: t, onLogout: r }) : e.jsx(ar, { onLogin: s });
+  },
+  ei = ca.createRoot(document.getElementById('root'));
+ei.render(
+  e.jsx(Te.StrictMode, {
+    children: e.jsx(da, {
+      children: e.jsx(cr, { children: e.jsx(lr, { children: e.jsx(Zr, {}) }) }),
+    }),
+  })
+);

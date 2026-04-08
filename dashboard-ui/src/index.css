@@ -10,7 +10,7 @@
 :root {
   /* Canvas Background */
   --bg-canvas: #f8fafc;
-  
+
   /* Fluid Spacing & Typography (v6.5 Premium) */
   --fluid-padding: clamp(1rem, 5vw, 3rem);
   --fluid-gap: clamp(0.5rem, 2vw, 1.5rem);
@@ -39,12 +39,17 @@
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-text: #ffffff;
   --glass-text-muted: rgba(255, 255, 255, 0.5);
-  --glass-shadow: 10px 0 30px -15px rgba(0,0,0,0.4);
+  --glass-shadow: 10px 0 30px -15px rgba(0, 0, 0, 0.4);
 }
 
-html, body {
+html,
+body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   background-color: var(--bg-canvas);
   color: var(--glass-text);
   @apply transition-colors duration-500;

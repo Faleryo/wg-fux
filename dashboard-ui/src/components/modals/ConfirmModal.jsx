@@ -7,7 +7,7 @@ import { cn } from '../../lib/utils';
 /**
  * 💠 ConfirmModal — Modal de confirmation destructive premium
  * Remplace les window.confirm() basiques par un dialog Liquid Glass.
- * 
+ *
  * Props:
  *   isOpen: boolean
  *   onConfirm: () => void
@@ -40,7 +40,9 @@ const ConfirmModal = ({
   // Fermer sur Escape
   useEffect(() => {
     if (!isOpen) return;
-    const handler = (e) => { if (e.key === 'Escape') onCancel(); };
+    const handler = (e) => {
+      if (e.key === 'Escape') onCancel();
+    };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, onCancel]);
@@ -62,7 +64,12 @@ const ConfirmModal = ({
           aria-labelledby="confirm-modal-title"
         >
           {/* Backdrop */}
-          <div className={cn("absolute inset-0 backdrop-blur-sm transition-colors duration-700", isDark ? "bg-slate-950/60" : "bg-slate-200/40")} />
+          <div
+            className={cn(
+              'absolute inset-0 backdrop-blur-sm transition-colors duration-700',
+              isDark ? 'bg-slate-950/60' : 'bg-slate-200/40'
+            )}
+          />
 
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -73,37 +80,61 @@ const ConfirmModal = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Inner glow (pointer-events-none to let clicks through) */}
-            <div className={cn(
-              'absolute inset-0 rounded-[2.5rem] opacity-[0.06] pointer-events-none',
-              isDanger ? 'bg-gradient-to-br from-red-500 to-transparent' : 'bg-gradient-to-br from-amber-500 to-transparent'
-            )} />
+            <div
+              className={cn(
+                'absolute inset-0 rounded-[2.5rem] opacity-[0.06] pointer-events-none',
+                isDanger
+                  ? 'bg-gradient-to-br from-red-500 to-transparent'
+                  : 'bg-gradient-to-br from-amber-500 to-transparent'
+              )}
+            />
 
             {/* Close */}
             <button
               onClick={onCancel}
-              className={cn("absolute top-6 right-6 p-2 rounded-xl transition-all", isDark ? "text-slate-600 hover:text-white hover:bg-white/5" : "text-slate-400 hover:text-slate-900 hover:bg-black/5")}
+              className={cn(
+                'absolute top-6 right-6 p-2 rounded-xl transition-all',
+                isDark
+                  ? 'text-slate-600 hover:text-white hover:bg-white/5'
+                  : 'text-slate-400 hover:text-slate-900 hover:bg-black/5'
+              )}
             >
               <X size={18} />
             </button>
 
             {/* Icon */}
-            <div className={cn(
-              'w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-2xl',
-              isDanger ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'
-            )}>
-              {isDanger ? <Trash2 size={28} strokeWidth={1.5} /> : <ShieldAlert size={28} strokeWidth={1.5} />}
+            <div
+              className={cn(
+                'w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-2xl',
+                isDanger ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'
+              )}
+            >
+              {isDanger ? (
+                <Trash2 size={28} strokeWidth={1.5} />
+              ) : (
+                <ShieldAlert size={28} strokeWidth={1.5} />
+              )}
             </div>
 
             {/* Title */}
-            <h2 id="confirm-modal-title" className={cn("text-xl font-black text-center uppercase tracking-tight mb-3 transition-colors", isDark ? "text-white" : "text-slate-900")}>
+            <h2
+              id="confirm-modal-title"
+              className={cn(
+                'text-xl font-black text-center uppercase tracking-tight mb-3 transition-colors',
+                isDark ? 'text-white' : 'text-slate-900'
+              )}
+            >
               {title}
             </h2>
 
             {/* Message */}
-            <div className={cn("text-sm text-center leading-relaxed mb-8 transition-colors", isDark ? "text-slate-400" : "text-slate-500")}>
-              {typeof message === 'string' ? (
-                <p>{message}</p>
-              ) : message}
+            <div
+              className={cn(
+                'text-sm text-center leading-relaxed mb-8 transition-colors',
+                isDark ? 'text-slate-400' : 'text-slate-500'
+              )}
+            >
+              {typeof message === 'string' ? <p>{message}</p> : message}
             </div>
 
             {/* Warning box */}
@@ -121,10 +152,10 @@ const ConfirmModal = ({
               <button
                 onClick={onCancel}
                 className={cn(
-                  "flex-1 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border",
+                  'flex-1 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border',
                   isDark
-                    ? "bg-slate-800 hover:bg-slate-700 text-slate-300 border-white/5 hover:border-white/10"
-                    : "bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200"
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-white/5 hover:border-white/10'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
                 )}
               >
                 Annuler

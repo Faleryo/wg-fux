@@ -11,10 +11,9 @@ const AGH_PASS = process.env.AGH_PASSWORD || 'password';
 const AGH_AUTH = {
   auth: {
     username: AGH_USER,
-    password: AGH_PASS.length < 8 ? AGH_PASS.padEnd(8, '0') : AGH_PASS
-  }
+    password: AGH_PASS.length < 8 ? AGH_PASS.padEnd(8, '0') : AGH_PASS,
+  },
 };
-
 
 /**
  * GET /api/dns/config
@@ -27,7 +26,7 @@ router.get('/config', auth, requireManager, async (req, res) => {
       axios.get(`${AGH_BASE_URL}/control/filtering/status`, AGH_AUTH),
       axios.get(`${AGH_BASE_URL}/control/safesearch/status`, AGH_AUTH),
       axios.get(`${AGH_BASE_URL}/control/safebrowsing/status`, AGH_AUTH),
-      axios.get(`${AGH_BASE_URL}/control/parental/status`, AGH_AUTH)
+      axios.get(`${AGH_BASE_URL}/control/parental/status`, AGH_AUTH),
     ]);
 
     const aggregateConfig = {
@@ -35,13 +34,16 @@ router.get('/config', auth, requireManager, async (req, res) => {
       filtering_enabled: filtering.data.enabled,
       safesearch_enabled: safeSearch.data.enabled,
       safebrowsing_enabled: safeBrowsing.data.enabled,
-      parental_enabled: parental.data.enabled
+      parental_enabled: parental.data.enabled,
     };
 
     res.json(aggregateConfig);
   } catch (error) {
     log.error('dns', 'Failed to fetch aggregate DNS config from AGH', { error: error.message });
-    res.status(500).json({ error: 'Internal DNS Error', message: 'Could not aggregate AdGuard Home configuration' });
+    res.status(500).json({
+      error: 'Internal DNS Error',
+      message: 'Could not aggregate AdGuard Home configuration',
+    });
   }
 });
 
@@ -51,40 +53,59 @@ router.get('/config', auth, requireManager, async (req, res) => {
  */
 router.post('/config', auth, requireAdmin, async (req, res) => {
   try {
-    const { 
-      upstream_dns, bootstrap_dns, 
-      filtering_enabled, safesearch_enabled, 
-      safebrowsing_enabled, parental_enabled 
+    const {
+      upstream_dns,
+      bootstrap_dns,
+      filtering_enabled,
+      safesearch_enabled,
+      safebrowsing_enabled,
+      parental_enabled,
     } = req.body;
 
     // 1. Update Core DNS Config (Upstreams)
     const dnsConfig = {};
     if (upstream_dns) dnsConfig.upstream_dns = upstream_dns;
     if (bootstrap_dns) dnsConfig.bootstrap_dns = bootstrap_dns;
-    
-    const requests = [
-      axios.post(`${AGH_BASE_URL}/control/dns_config`, dnsConfig, AGH_AUTH)
-    ];
+
+    const requests = [axios.post(`${AGH_BASE_URL}/control/dns_config`, dnsConfig, AGH_AUTH)];
 
     // 2. Dispatch Toggles to specialized AGH endpoints
     if (filtering_enabled !== undefined) {
-      requests.push(axios.post(`${AGH_BASE_URL}/control/filtering/config`, { enabled: !!filtering_enabled }, AGH_AUTH));
+      requests.push(
+        axios.post(
+          `${AGH_BASE_URL}/control/filtering/config`,
+          { enabled: !!filtering_enabled },
+          AGH_AUTH
+        )
+      );
     }
-    
+
     if (safesearch_enabled !== undefined) {
-      requests.push(axios.post(`${AGH_BASE_URL}/control/safesearch/status`, { enabled: !!safesearch_enabled }, AGH_AUTH));
+      requests.push(
+        axios.post(
+          `${AGH_BASE_URL}/control/safesearch/status`,
+          { enabled: !!safesearch_enabled },
+          AGH_AUTH
+        )
+      );
     }
 
     if (safebrowsing_enabled !== undefined) {
-      requests.push(axios.post(`${AGH_BASE_URL}/control/safebrowsing/enable`, {}, AGH_AUTH).catch(async () => {
-         if (!safebrowsing_enabled) return axios.post(`${AGH_BASE_URL}/control/safebrowsing/disable`, {}, AGH_AUTH);
-      }));
+      requests.push(
+        axios.post(`${AGH_BASE_URL}/control/safebrowsing/enable`, {}, AGH_AUTH).catch(async () => {
+          if (!safebrowsing_enabled)
+            return axios.post(`${AGH_BASE_URL}/control/safebrowsing/disable`, {}, AGH_AUTH);
+        })
+      );
     }
 
     if (parental_enabled !== undefined) {
-      requests.push(axios.post(`${AGH_BASE_URL}/control/parental/enable`, {}, AGH_AUTH).catch(async () => {
-         if (!parental_enabled) return axios.post(`${AGH_BASE_URL}/control/parental/disable`, {}, AGH_AUTH);
-      }));
+      requests.push(
+        axios.post(`${AGH_BASE_URL}/control/parental/enable`, {}, AGH_AUTH).catch(async () => {
+          if (!parental_enabled)
+            return axios.post(`${AGH_BASE_URL}/control/parental/disable`, {}, AGH_AUTH);
+        })
+      );
     }
 
     await Promise.all(requests);
@@ -92,7 +113,9 @@ router.post('/config', auth, requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     log.error('dns', 'Failed to update multi-tier DNS config in AGH', { error: error.message });
-    res.status(500).json({ error: 'Internal DNS Error', message: 'Could not update all AdGuard Home settings' });
+    res
+      .status(500)
+      .json({ error: 'Internal DNS Error', message: 'Could not update all AdGuard Home settings' });
   }
 });
 
@@ -102,12 +125,17 @@ router.post('/config', auth, requireAdmin, async (req, res) => {
  */
 router.get('/stats', auth, requireManager, async (req, res) => {
   try {
-    const response = await axios.get(`${AGH_BASE_URL}/control/stats`, { ...AGH_AUTH, maxRedirects: 0 });
+    const response = await axios.get(`${AGH_BASE_URL}/control/stats`, {
+      ...AGH_AUTH,
+      maxRedirects: 0,
+    });
 
     res.json(response.data);
   } catch (error) {
     log.error('dns', 'Failed to fetch DNS stats from AGH', { error: error.message });
-    res.status(500).json({ error: 'Internal DNS Error', message: 'Could not fetch AdGuard Home statistics' });
+    res
+      .status(500)
+      .json({ error: 'Internal DNS Error', message: 'Could not fetch AdGuard Home statistics' });
   }
 });
 
@@ -117,7 +145,10 @@ router.get('/stats', auth, requireManager, async (req, res) => {
  */
 router.get('/status', auth, requireManager, async (req, res) => {
   try {
-    const response = await axios.get(`${AGH_BASE_URL}/control/status`, { ...AGH_AUTH, maxRedirects: 0 });
+    const response = await axios.get(`${AGH_BASE_URL}/control/status`, {
+      ...AGH_AUTH,
+      maxRedirects: 0,
+    });
 
     res.json(response.data);
   } catch (error) {
@@ -131,12 +162,17 @@ router.get('/status', auth, requireManager, async (req, res) => {
  */
 router.get('/filtering', auth, requireManager, async (req, res) => {
   try {
-    const response = await axios.get(`${AGH_BASE_URL}/control/filtering/status`, { ...AGH_AUTH, maxRedirects: 0 });
+    const response = await axios.get(`${AGH_BASE_URL}/control/filtering/status`, {
+      ...AGH_AUTH,
+      maxRedirects: 0,
+    });
 
     res.json(response.data);
   } catch (error) {
     log.error('dns', 'Failed to fetch filtering status', { error: error.message });
-    res.status(500).json({ error: 'Internal DNS Error', message: 'Could not fetch filtering status' });
+    res
+      .status(500)
+      .json({ error: 'Internal DNS Error', message: 'Could not fetch filtering status' });
   }
 });
 
@@ -147,7 +183,11 @@ router.get('/filtering', auth, requireManager, async (req, res) => {
 router.post('/filtering/add', auth, requireAdmin, async (req, res) => {
   try {
     const { name, url } = req.body;
-    const response = await axios.post(`${AGH_BASE_URL}/control/filtering/add_url`, { name, url, whitelist: false }, { ...AGH_AUTH, maxRedirects: 0 });
+    const response = await axios.post(
+      `${AGH_BASE_URL}/control/filtering/add_url`,
+      { name, url, whitelist: false },
+      { ...AGH_AUTH, maxRedirects: 0 }
+    );
 
     res.json({ success: true, data: response.data });
   } catch (error) {
@@ -163,7 +203,11 @@ router.post('/filtering/add', auth, requireAdmin, async (req, res) => {
 router.post('/filtering/remove', auth, requireAdmin, async (req, res) => {
   try {
     const { url } = req.body;
-    const response = await axios.post(`${AGH_BASE_URL}/control/filtering/remove_url`, { url }, { ...AGH_AUTH, maxRedirects: 0 });
+    const response = await axios.post(
+      `${AGH_BASE_URL}/control/filtering/remove_url`,
+      { url },
+      { ...AGH_AUTH, maxRedirects: 0 }
+    );
 
     res.json({ success: true, data: response.data });
   } catch (error) {
@@ -173,4 +217,3 @@ router.post('/filtering/remove', auth, requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
-

@@ -19,7 +19,7 @@ const logLoginAttempt = async (username, clientIp, userAgent, success) => {
       // FIX: ne plus stocker userAgent dans virtualIp (champ sémantiquement incorrect)
       // On stocke l'IP réelle dans realIp et l'agent dans container pour le log
       virtualIp: '',
-      container: userAgent ? userAgent.substring(0, 100) : 'unknown'
+      container: userAgent ? userAgent.substring(0, 100) : 'unknown',
     });
   } catch (e) {
     log.error('auth', 'Error logging login attempt', { err: e.message });
@@ -47,7 +47,6 @@ const verifyPassword = async (password, hash, salt) => {
     }
 
     return crypto.timingSafeEqual(bHash, bGen);
-
   } catch (e) {
     log.error('auth', 'Password verification failed', { err: e.message });
     return false;
@@ -62,12 +61,12 @@ const hashPassword = async (password) => {
   const hashBuffer = await pbkdf2Async(password, salt, 600000, 64, 'sha512');
   return {
     hash: hashBuffer.toString('hex'),
-    salt
+    salt,
   };
 };
 
 module.exports = {
   logLoginAttempt,
   verifyPassword,
-  hashPassword
+  hashPassword,
 };

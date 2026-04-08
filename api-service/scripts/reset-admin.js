@@ -12,12 +12,13 @@ async function resetAdmin() {
   try {
     const { hash, salt } = await hashPassword(newPassword);
 
-    await db.update(schema.users)
-      .set({ 
-        hash, 
-        salt, 
-        role: 'admin', 
-        expiry: null // Ensure no expiry blocks the login
+    await db
+      .update(schema.users)
+      .set({
+        hash,
+        salt,
+        role: 'admin',
+        expiry: null, // Ensure no expiry blocks the login
       })
       .where(eq(schema.users.username, username));
 
@@ -30,7 +31,7 @@ async function resetAdmin() {
   }
 }
 
-resetAdmin().catch(err => {
+resetAdmin().catch((err) => {
   console.error(err);
   process.exit(1);
 });

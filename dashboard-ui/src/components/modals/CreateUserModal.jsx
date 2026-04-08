@@ -18,9 +18,18 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
     e.preventDefault();
     setError('');
 
-    if (!username.trim()) { setError("Nom d'utilisateur requis"); return; }
-    if (password.length < 8) { setError('Mot de passe : 8 caractères minimum'); return; }
-    if (password !== confirmPassword) { setError('Les mots de passe ne correspondent pas'); return; }
+    if (!username.trim()) {
+      setError("Nom d'utilisateur requis");
+      return;
+    }
+    if (password.length < 8) {
+      setError('Mot de passe : 8 caractères minimum');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Les mots de passe ne correspondent pas');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -45,12 +54,16 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Créer un Opérateur" maxWidth="max-w-md">
       <form onSubmit={handleSubmit} className="space-y-6">
-
         {/* Username */}
         <div>
-          <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Identifiant</label>
+          <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+            Identifiant
+          </label>
           <div className="relative group">
-            <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors" size={18} />
+            <Users
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors"
+              size={18}
+            />
             <input
               type="text"
               value={username}
@@ -64,9 +77,14 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
 
         {/* Password */}
         <div>
-          <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Mot de Passe</label>
+          <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+            Mot de Passe
+          </label>
           <div className="relative group">
-            <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors" size={18} />
+            <Key
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors"
+              size={18}
+            />
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
@@ -74,7 +92,11 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
               className="w-full pl-12 pr-12 py-4 glass-input rounded-2xl font-mono"
               placeholder="••••••••"
             />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+            >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
@@ -82,9 +104,14 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
 
         {/* Confirm Password */}
         <div>
-          <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Confirmer le Mot de Passe</label>
+          <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+            Confirmer le Mot de Passe
+          </label>
           <div className="relative group">
-            <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors" size={18} />
+            <Key
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors"
+              size={18}
+            />
             <input
               type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
@@ -97,7 +124,9 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
 
         {/* Role Selector */}
         <div>
-          <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest">Rôle Système</label>
+          <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest">
+            Rôle Système
+          </label>
           <div className="grid grid-cols-2 gap-3">
             {roles.map((r) => (
               <button
@@ -145,7 +174,11 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
               `bg-${theme}-600 hover:bg-${theme}-500 shadow-${theme}-600/30`
             )}
           >
-            {loading ? <RefreshCw className="animate-spin" size={18} /> : <Plus size={18} strokeWidth={3} />}
+            {loading ? (
+              <RefreshCw className="animate-spin" size={18} />
+            ) : (
+              <Plus size={18} strokeWidth={3} />
+            )}
             Créer l'Opérateur
           </button>
         </div>

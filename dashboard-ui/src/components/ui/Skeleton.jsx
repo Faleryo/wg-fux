@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 // ─── Base Skeleton ────────────────────────────────────────────────────────────
 export const Skeleton = ({ className, style, ...props }) => (
   <div
-    className={cn("animate-shimmer rounded-2xl bg-white/[0.06]", className)}
+    className={cn('animate-shimmer rounded-2xl bg-white/[0.06]', className)}
     style={style}
     {...props}
   />
@@ -25,7 +25,9 @@ export const SkeletonDashboard = () => (
             <Skeleton className="h-8 w-28 rounded-full" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24 rounded-2xl" />
+            ))}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Skeleton className="h-24 rounded-2xl" />
@@ -96,7 +98,11 @@ export const SkeletonTable = ({ rows = 8 }) => (
     </div>
     <div className="divide-y divide-white/5">
       {[...Array(rows)].map((_, i) => (
-        <div key={i} className="flex items-center gap-6 px-8 py-5" style={{ opacity: 1 - i * 0.08 }}>
+        <div
+          key={i}
+          className="flex items-center gap-6 px-8 py-5"
+          style={{ opacity: 1 - i * 0.08 }}
+        >
           <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-4 w-24 ml-4" />

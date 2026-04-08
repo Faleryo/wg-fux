@@ -17,7 +17,7 @@ const translations = {
     reboot_system: 'Redémarrer Système',
     secure_portal: 'Espace Utilisateur Sécurisé',
     no_config: 'Aucune configuration disponible',
-    contact_admin: 'Contactez l\'administrateur.',
+    contact_admin: "Contactez l'administrateur.",
   },
   en: {
     dashboard: 'Dashboard',
@@ -36,7 +36,7 @@ const translations = {
     secure_portal: 'Secure User Portal',
     no_config: 'No configuration available',
     contact_admin: 'Contact administrator.',
-  }
+  },
 };
 
 const LanguageContext = createContext();
@@ -53,9 +53,7 @@ export const LanguageProvider = ({ children }) => {
   };
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
-      {children}
-    </LanguageContext.Provider>
+    <LanguageContext.Provider value={{ lang, setLang, t }}>{children}</LanguageContext.Provider>
   );
 };
 

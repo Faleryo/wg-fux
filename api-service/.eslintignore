@@ -1,4 +1,8 @@
-node_modules/
-dist/
-data/
-.env*
+node_modules
+dist
+build
+.drizzle
+data
+logs
+*.sqlite
+*.sqlite-journal

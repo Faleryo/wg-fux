@@ -13,7 +13,11 @@ const getCachedUser = async (username) => {
   if (cached && cached.expiresAt > now) {
     return cached.user;
   }
-  const [user] = await db.select().from(schema.users).where(eq(schema.users.username, username)).limit(1);
+  const [user] = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.username, username))
+    .limit(1);
   if (user) {
     userCache.set(username, { user, expiresAt: now + CACHE_TTL_MS });
   } else {
@@ -34,22 +38,22 @@ const auth = async (req, res, next) => {
   }
 
   const clientIp = req.socket?.remoteAddress || '';
-  const isInternalNetwork = (
-    clientIp === '127.0.0.1' ||
-    clientIp === '::1' ||
-    clientIp === '::ffff:127.0.0.1'
-  );
+  const isInternalNetwork =
+    clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1';
 
   // 💠 SRE Sentinel Bypass: prioritisation absolue
   const sentinelToken = (process.env.SENTINEL_TOKEN || '').trim();
   const cleanToken = token.trim();
-  
+
   if (sentinelToken && cleanToken === sentinelToken) {
     if (isInternalNetwork) {
       req.user = { username: 'sentinel', role: 'admin' };
       return next();
     } else {
-      log.warn('auth', 'SENTINEL_TOKEN used from external IP — rejected', { ip: clientIp, path: req.originalUrl });
+      log.warn('auth', 'SENTINEL_TOKEN used from external IP — rejected', {
+        ip: clientIp,
+        path: req.originalUrl,
+      });
       return res.status(401).json({ error: 'Invalid token' });
     }
   }
@@ -58,7 +62,10 @@ const auth = async (req, res, next) => {
     const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET);
     const user = await getCachedUser(decoded.username);
     if (!user) {
-      log.warn('auth', 'JWT token for unknown/deleted user', { username: decoded.username, path: req.originalUrl });
+      log.warn('auth', 'JWT token for unknown/deleted user', {
+        username: decoded.username,
+        path: req.originalUrl,
+      });
       return res.status(401).json({ error: 'Revoked' });
     }
 
@@ -89,5 +96,5 @@ module.exports = {
   auth,
   requireAdmin,
   requireManager,
-  invalidateUserCache
+  invalidateUserCache,
 };

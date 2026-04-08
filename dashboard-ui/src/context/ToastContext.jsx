@@ -9,18 +9,18 @@ export const ToastProvider = ({ children }) => {
 
   const addToast = (message, type = 'info') => {
     const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 5000);
   };
 
-  const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
+  const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
       <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none">
         <AnimatePresence>
-          {toasts.map(toast => (
+          {toasts.map((toast) => (
             <motion.div
               key={toast.id}
               initial={{ opacity: 0, x: 20, scale: 0.9 }}
@@ -32,8 +32,8 @@ export const ToastProvider = ({ children }) => {
               {toast.type === 'error' && <AlertCircle className="text-red-400" size={20} />}
               {toast.type === 'info' && <Info className="text-indigo-400" size={20} />}
               <span className="text-sm font-bold text-white">{toast.message}</span>
-              <button 
-                onClick={() => removeToast(toast.id)} 
+              <button
+                onClick={() => removeToast(toast.id)}
                 className="ml-2 text-slate-500 hover:text-white transition-colors"
               >
                 <X size={16} />
