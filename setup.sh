@@ -45,14 +45,11 @@ for arg in "$@"; do
 done
 
 if [ "$UNINSTALL" = true ]; then
-    log_warn "DÉMARRAGE DE LA DÉSINSTALLATION..."
-    docker compose down -v 2>/dev/null || true
     if [ "$PURGE" = true ]; then
-        log_warn "PURGE COMPLÈTE EN COURS..."
-        sudo rm -rf "$WG_DIR" "$API_DATA" .env api-service/.env 2>/dev/null
-        docker volume rm wg_fux_data wg_fux_adguard_data wg_fux_adguard_conf certbot_certs certbot_www 2>/dev/null || true
+        uninstall "--purge"
+    else
+        uninstall
     fi
-    log_success "Désinstallation terminée."
     exit 0
 fi
 
@@ -297,6 +294,7 @@ uninstall() {
     log_info "Suppression des configurations et fichiers de données..."
     rm -f "$API_ENV" .env core-vpn/scripts/sentinel.env 2>/dev/null || true
     rm -rf "$API_DATA" 2>/dev/null || true
+    sudo rm -rf infra/ssl infra/nginx/ssl 2>/dev/null || true # CRITICAL-Cleanup: Certificates must be removed
     sudo rm -f /usr/local/bin/wg-*.sh 2>/dev/null || true
     rm -f /tmp/wg-hash-*.js 2>/dev/null || true
 
@@ -334,7 +332,7 @@ health_audit() {
     log_info "Lancement de l'Audit de Santé (The Multilingual Guardian v6.5)..."
     if [ -f "./.vibe/tools/vibe-audit-v6.5.sh" ]; then
         chmod +x ./.vibe/tools/vibe-audit-v6.5.sh
-        ./.vibe/tools/vibe-audit-v6.5.sh
+        bash ./.vibe/tools/vibe-audit-v6.5.sh
     else
         log_error "Script d'audit introuvable."
     fi
@@ -460,6 +458,10 @@ git_upgrade() {
     git fetch --all 2>/dev/null
     local current_branch
     current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+    
+    # 💠 SRE: On stash les modifs locales avant le reset pour éviter de perdre les patches de sécurité
+    log_info "Sauvegarde (Stash) des modifications locales..."
+    git stash save "WG-FUX Local Hardening Backup $(date +%Y%m%d)" 2>/dev/null || true
     
     # 💠 SRE: On force le reset pour éviter les blocages de pull dus aux modifs locales
     if git reset --hard "origin/$current_branch"; then
@@ -847,7 +849,7 @@ fi
 
 # SRE: Inclusion des secrets AdGuard pour communication interne API -> AGH
 # WAVE 4: Robust .env generation
-cat <<ENDEFF > "$API_ENV"
+cat <<'ENDEFF' > "$API_ENV"
 PORT=3000
 NODE_ENV="production"
 SENTINEL_TOKEN="$SENTINEL_TOKEN"

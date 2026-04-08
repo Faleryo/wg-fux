@@ -18,9 +18,9 @@ log_info "Detecting speedtest-cli..."
 SPEEDTEST_BIN=$(command -v speedtest-cli || command -v speedtest || echo "")
 
 if [ -n "$SPEEDTEST_BIN" ]; then
-    log_info "Running full speedtest via $SPEEDTEST_BIN (timeout 25s)..."
-    # On limite le temps d'exécution pour ne pas bloquer l'API
-    RESULT=$(timeout 25s "$SPEEDTEST_BIN" --json 2>/dev/null || echo "")
+    log_info "Running full speedtest via $SPEEDTEST_BIN (timeout 60s)..."
+    # Capture both stdout and stderr, return 0 to bypass runSystemCommand error check
+    RESULT=$(timeout 60s "$SPEEDTEST_BIN" --json 2>/dev/null || echo "")
     
     if [ -n "$RESULT" ]; then
         log_info "Full speedtest successful."
@@ -31,10 +31,10 @@ if [ -n "$SPEEDTEST_BIN" ]; then
 fi
 
 # 3. Fallback : Mesure via curl (Cloudflare) si speedtest-cli échoue
-log_info "Running fallback bandwidth test via curl (timeout 10s)..."
+log_info "Running fallback bandwidth test via curl (timeout 15s)..."
 START=$(date +%s%3N)
 # Téléchargement d'un petit fichier (1MB) pour une estimation rapide
-BYTES=$(timeout 10s curl -s -o /dev/null -w "%{size_download}" "https://speed.cloudflare.com/__down?bytes=1000000" 2>/dev/null || echo "0")
+BYTES=$(timeout 15s curl -s -o /dev/null -w "%{size_download}" "https://speed.cloudflare.com/__down?bytes=1000000" 2>/dev/null || echo "0")
 END=$(date +%s%3N)
 DIFF=$(( END - START ))
 
@@ -44,10 +44,11 @@ if [ "$DIFF" -gt 0 ] && [ "$BYTES" -gt 0 ]; then
     # Normalize to Bits for UI consistency
     BITS=$(safe_math "$MBPS * 1000000")
     log_info "Fallback estimate: ${MBPS} Mbps (${BITS} bits/s)"
-    printf '{"available": true, "source": "fallback", "download": %s, "upload": 0.0, "ping": %s, "bytes": %s}\n' "$BITS" "$LATENCY" "$BYTES"
+    printf '{"available": true, "source": "fallback", "download": %s, "upload": 0, "ping": %s, "bytes": %s}\n' "$BITS" "$LATENCY" "$BYTES"
 else
     log_warn "All bandwidth tests failed. Returning latency only."
-    printf '{"available": false, "source": "none", "download": 0.0, "upload": 0.0, "ping": %s, "error": "test_failed"}\n' "$LATENCY"
+    printf '{"available": false, "source": "none", "download": 0, "upload": 0, "ping": %s, "error": "test_failed"}\n' "$LATENCY"
 fi
 
 exit 0
+

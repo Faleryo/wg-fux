@@ -195,36 +195,38 @@ const MainLayout = ({ session, onLogout }) => {
   // ── Loading Skeleton ──────────────────────────────────────────────────────
   if (loading && clients.length === 0) {
     return (
-      <div className="min-h-screen flex font-sans antialiased overflow-x-hidden transition-colors duration-500 bg-[var(--bg-canvas)]">
-        <div className="hidden md:block w-72 shrink-0 border-r h-screen transition-all duration-500 glass-panel" />
-        <main className="flex-1 min-w-0 p-6 md:p-12 overflow-y-auto"><SkeletonDashboard /></main>
+      <div className="min-h-screen flex font-sans antialiased bg-[var(--bg-canvas)] transition-colors duration-300">
+        <div className="hidden md:block w-64 lg:w-72 shrink-0 border-r h-screen glass-panel" />
+        <main className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto"><SkeletonDashboard /></main>
       </div>
+
     );
   }
 
   return (
     <div className="min-h-screen flex font-sans antialiased overflow-x-hidden transition-colors duration-700 selection:bg-indigo-500/30 bg-[var(--bg-canvas)]">
       
-      <button onClick={() => setSidebarOpen(true)} className="fixed top-4 left-4 z-40 p-2.5 glass-panel border rounded-xl md:hidden shadow-2xl active:scale-95 transition-all duration-700">
-        <Menu size={22} />
+      <button onClick={() => setSidebarOpen(true)} className="fixed top-4 left-4 z-40 p-2.5 glass-panel border rounded-xl md:hidden shadow-lg active:scale-95 transition-all">
+        <Menu size={20} />
       </button>
 
-      <button onClick={() => setShowSearch(true)} className="fixed top-4 right-4 z-40 hidden md:flex items-center gap-2 px-4 py-2.5 glass-panel border rounded-xl transition-all duration-700 text-[11px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105">
+      <button onClick={() => setShowSearch(true)} className="fixed top-4 right-4 z-40 hidden md:flex items-center gap-2 px-4 py-2.5 glass-panel border rounded-xl transition-all text-[11px] font-black uppercase tracking-widest shadow-lg hover:scale-105">
         <Search size={14} />
         <span>Rechercher</span>
         <kbd className={cn("ml-2 px-1.5 py-0.5 rounded text-[9px] border transition-colors", isDark ? "bg-white/5 border-white/10 text-white/40" : "bg-black/5 border-slate-200 text-slate-400")}>Ctrl K</kbd>
       </button>
 
+
       <Sidebar activeSection={topologySelectedClient ? 'containers' : activeSection} setActiveSection={handleNavigate} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onLogout={onLogout} uptime={uptime} />
 
-      <main className="flex-1 min-w-0 pt-20 md:pt-0 px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 pb-8 overflow-y-auto overflow-x-hidden custom-scrollbar relative z-10 transition-all duration-700">
-        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-          <div className={cn("absolute top-0 right-0 w-[800px] h-[800px] blur-[200px] animate-pulse transition-all duration-1000", isDark ? "bg-indigo-600/10 opacity-100" : "bg-indigo-500/15 opacity-60")} />
-          <div className={cn("absolute bottom-0 left-0 w-[600px] h-[600px] blur-[180px] transition-all duration-1000", isDark ? "bg-emerald-600/5 opacity-100" : "bg-emerald-500/10 opacity-40")} />
-          <div className={cn("absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] blur-[220px] transition-all duration-1000", isDark ? "bg-sky-600/5 opacity-100" : "bg-sky-500/10 opacity-40")} />
+      <main className="flex-1 min-w-0 pt-20 md:pt-0 pb-10 overflow-x-hidden relative transition-all duration-300">
+        <div className="fixed inset-0 pointer-events-none -z-10 bg-transparent">
+          <div className={cn("absolute top-0 right-0 w-[600px] h-[600px] blur-[150px] opacity-40 animate-pulse transition-all duration-1000", isDark ? "bg-indigo-600/10" : "bg-indigo-500/15")} />
+          <div className={cn("absolute bottom-0 left-0 w-[400px] h-[400px] blur-[120px] opacity-30 transition-all duration-1000", isDark ? "bg-emerald-600/5" : "bg-emerald-500/10")} />
         </div>
 
-        <div className="max-w-7xl mx-auto space-y-12">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 space-y-12">
+
           <AnimatePresence mode="wait">
             <motion.div key={topologySelectedClient ? 'client-detail' : activeSection} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}>
               <ErrorBoundary sectionName={activeSection}>{renderSection()}</ErrorBoundary>

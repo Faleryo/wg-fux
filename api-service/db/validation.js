@@ -16,7 +16,7 @@ const clientSchema = z.object({
   expiry: z.string().regex(dateRegex, 'Format de date invalide (YYYY-MM-DD)').or(z.literal('')).optional(),
   quota: z.union([z.number(), z.string()]).transform(v => parseInt(v) || 0).optional(),
   uploadLimit: z.union([z.number(), z.string()]).transform(v => parseInt(v) || 0).optional(),
-});
+}).strict();
 
 // Schéma pour patch client (expiry/quota/uploadLimit partiels)
 const clientPatchSchema = z.object({
@@ -67,7 +67,7 @@ const userSchema = z.object({
   password: z.string().min(6).optional(),
   role: z.enum(['admin', 'manager', 'viewer', 'user']).default('viewer'),
   expiry: z.string().regex(dateRegex).or(z.null()).optional(),
-});
+}).strict();
 
 const ticketSchema = z.object({
   title: z.string().min(1).max(200),

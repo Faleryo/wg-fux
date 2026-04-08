@@ -21,16 +21,18 @@ if [ ! -f "$BACKUP_FILE" ]; then
 fi
 
 echo "⚠️ RESTAURATION EN COURS (Services temporairement coupés)..."
-systemctl stop wireguard-api wg-quick@${WG_INTERFACE:-wg0} 2>/dev/null
+# SRE-FIX: Utilisation de || true pour éviter de bloquer si les services ne sont pas installés
+systemctl stop wireguard-api wg-quick@${WG_INTERFACE:-wg0} 2>/dev/null || true
 
-tar -xzf "$BACKUP_FILE" -C / 2>/dev/null
-
-if [ $? -eq 0 ]; then
-    echo "✅ Restauration effectuée avec succès."
-    systemctl daemon-reload
-    systemctl start wireguard-api wg-quick@${WG_INTERFACE:-wg0}
-    /usr/local/bin/wg-enforcer.sh 2>/dev/null
+# 🛡️ OBSIDIAN-HARDENING: On restreint l'extraction au répertoire de configuration uniquement
+# On utilise --strip-components si nécessaire ou on s'attend à ce que l'archive contienne etc/wireguard
+# La meilleure approche est de refuser toute extraction hors de /etc/wireguard.
+if tar -xzf "$BACKUP_FILE" -C /etc/wireguard --strip-components=2 2>/dev/null; then
+    echo "✅ Restauration effectuée avec succès dans /etc/wireguard."
+    systemctl daemon-reload || true
+    systemctl start wireguard-api wg-quick@${WG_INTERFACE:-wg0} 2>/dev/null || true
+    /usr/local/bin/wg-enforcer.sh 2>/dev/null || true
 else
-    echo "❌ Erreur critique lors de l'extraction."
+    echo "❌ Erreur critique lors de l'extraction (Archive malformée ou droits insuffisants)."
     exit 1
 fi

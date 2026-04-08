@@ -139,8 +139,8 @@ _apply_le_cert() {
     sed -i "s|ssl_certificate_key /etc/nginx/ssl/server.key;|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;|g" "$NGINX_CONF" 2>/dev/null || true
 
     # Mettre à jour server_name si encore le placeholder
-    # FIX: On cible le format template ${DOMAIN} utilisé dans docker-compose
-    sed -i "s|server_name \${DOMAIN};|server_name $DOMAIN;|g" "$NGINX_CONF" 2>/dev/null || true
+    # FIX: On utilise une regex plus souple pour supporter "server_name ${DOMAIN} _;" (Support hybride)
+    sed -i "s|server_name \${DOMAIN}\(.*\);|server_name $DOMAIN\1;|g" "$NGINX_CONF" 2>/dev/null || true
 
     log_info "Validation de la nouvelle config Nginx..."
     if docker compose exec -T nginx nginx -t 2>/dev/null; then

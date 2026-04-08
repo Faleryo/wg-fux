@@ -22,6 +22,11 @@ const DnsEditor = () => {
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('upstream');
 
+    // New filter states (replacing getElementById)
+    const [newFilterName, setNewFilterName] = useState('');
+    const [newFilterUrl, setNewFilterUrl] = useState('');
+
+
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -123,50 +128,52 @@ const DnsEditor = () => {
                     <button 
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                        className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-[10px] sm:text-xs uppercase tracking-widest shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                     >
                         {saving ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
-                        {saving ? 'Déploiement...' : 'Appliquer'}
+                        <span className="hidden xs:inline">{saving ? 'Déploiement...' : 'Appliquer'}</span>
                     </button>
+
                 </div>
             </div>
 
             {/* ── Stats Row ─────────────────────────────────────────────── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'Requêtes Totales', value: stats?.num_dns_queries || 0, icon: <Activity className="text-indigo-500" />, sub: 'Dernières 24h' },
-                    { label: 'Menaces Bloquées', value: stats?.num_blocked_filtering || 0, icon: <Shield className="text-rose-500" />, sub: `${((stats?.num_blocked_filtering/stats?.num_dns_queries)*100 || 0).toFixed(1)}% du trafic` },
-                    { label: 'Moyenne Latence', value: `${stats?.avg_processing_time || 0}ms`, icon: <Zap className="text-amber-500" />, sub: 'Temps de réponse' },
-                    { label: 'Statut DNS', value: status?.version || 'Online', icon: <CheckCircle2 className="text-emerald-500" />, sub: 'Stable' },
+                    { label: 'Requêtes', value: stats?.num_dns_queries || 0, icon: <Activity className="text-indigo-500" />, sub: 'Dernières 24h' },
+                    { label: 'Bloqués', value: stats?.num_blocked_filtering || 0, icon: <Shield className="text-rose-500" />, sub: `${((stats?.num_blocked_filtering/stats?.num_dns_queries)*100 || 0).toFixed(1)}%` },
+                    { label: 'Latence', value: `${stats?.avg_processing_time || 0}ms`, icon: <Zap className="text-amber-500" />, sub: 'Moyenne' },
+                    { label: 'Statut', value: status?.version?.split(' ')[0] || 'Actif', icon: <CheckCircle2 className="text-emerald-500" />, sub: 'DNS Engine' },
                 ].map((stat, i) => (
-                    <div key={i} className="glass-card p-6 border border-white/5 relative overflow-hidden group">
-                        <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
-                             {React.cloneElement(stat.icon, { size: 100 })}
+                    <div key={i} className="glass-card p-5 border border-white/5 relative overflow-hidden group">
+                        <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-700 pointer-events-none">
+                             {React.cloneElement(stat.icon, { size: 80 })}
                         </div>
                         <div className="flex items-center gap-3 mb-4">
                             <div className="p-2 rounded-xl bg-white/5 border border-white/5">{stat.icon}</div>
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
                         </div>
-                        <div className="text-2xl font-black font-mono tracking-tighter mb-1">{stat.value}</div>
-                        <div className="text-[10px] font-bold text-slate-500 uppercase opacity-60">{stat.sub}</div>
+                        <div className="text-xl font-black font-mono tracking-tighter mb-1">{stat.value}</div>
+                        <div className="text-[9px] font-bold text-slate-500 uppercase opacity-60">{stat.sub}</div>
                     </div>
                 ))}
             </div>
 
+
             {/* ── Editor Tabs ───────────────────────────────────────────── */}
-            <div className="glass-card border border-white/5 overflow-hidden">
-                <div className="flex border-b border-white/5 bg-black/10">
+            <div className="glass-card border border-white/5 overflow-hidden p-0">
+                <div className="flex border-b border-white/5 bg-black/10 overflow-x-auto custom-scrollbar no-scrollbar">
                     {[
-                        { id: 'upstream', label: 'Upstream DNS', icon: <Globe size={14} /> },
-                        { id: 'filters', label: 'Blocklists', icon: <Shield size={14} /> },
-                        { id: 'bootstrap', label: 'Bootstrap DNS', icon: <Zap size={14} /> },
-                        { id: 'settings', label: 'Protection', icon: <Settings2 size={14} /> }
+                        { id: 'upstream', label: 'Upstream', icon: <Globe size={14} /> },
+                        { id: 'filters', label: 'Filters', icon: <Shield size={14} /> },
+                        { id: 'bootstrap', label: 'Bootstrap', icon: <Zap size={14} /> },
+                        { id: 'settings', label: 'Harden', icon: <Settings2 size={14} /> }
                     ].map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={cn(
-                                "flex items-center gap-2 px-8 py-5 text-[10px] font-black uppercase tracking-widest transition-all relative",
+                                "flex items-center gap-2 px-5 sm:px-8 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all relative shrink-0",
                                 activeTab === tab.id 
                                     ? "text-white bg-indigo-600/10" 
                                     : "text-slate-500 hover:text-slate-200 hover:bg-white/5"
@@ -181,7 +188,8 @@ const DnsEditor = () => {
                     ))}
                 </div>
 
-                <div className="p-8">
+                <div className="p-4 sm:p-8">
+
                     {activeTab === 'upstream' && (
                         <div className="space-y-6">
                             <div className="flex items-start gap-4">
@@ -262,31 +270,36 @@ const DnsEditor = () => {
 
                              <div className="pt-6 border-t border-white/5">
                                 <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Ajouter une Blocklist</h4>
-                                <div className="flex gap-4">
+                                <div className="flex flex-col sm:flex-row gap-4">
                                     <input 
                                         type="text" 
                                         placeholder="Nom (ex: Steven Black)" 
-                                        id="new-filter-name"
+                                        value={newFilterName}
+                                        onChange={(e) => setNewFilterName(e.target.value)}
                                         className="flex-1 glass-input text-xs p-3"
                                     />
                                     <input 
                                         type="text" 
                                         placeholder="URL (ex: https://...)" 
-                                        id="new-filter-url"
+                                        value={newFilterUrl}
+                                        onChange={(e) => setNewFilterUrl(e.target.value)}
                                         className="flex-[2] glass-input text-xs p-3"
                                     />
                                     <button 
                                         onClick={() => {
-                                            const name = document.getElementById('new-filter-name').value;
-                                            const url = document.getElementById('new-filter-url').value;
-                                            if (name && url) handleAddFilter(name, url);
+                                            if (newFilterName && newFilterUrl) {
+                                                handleAddFilter(newFilterName, newFilterUrl);
+                                                setNewFilterName('');
+                                                setNewFilterUrl('');
+                                            }
                                         }}
-                                        className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all"
+                                        className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all whitespace-nowrap"
                                     >
                                         Ajouter
                                     </button>
                                 </div>
                              </div>
+
                         </div>
                     )}
 

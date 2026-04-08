@@ -65,7 +65,6 @@ services:
     # privileged donne TOUS les caps — utiliser les caps ciblés est plus sécurisé
     cap_add:
       - NET_ADMIN
-      - SYS_MODULE
       - NET_RAW
     sysctls:
       - net.ipv4.ip_forward=1

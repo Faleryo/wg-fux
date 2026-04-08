@@ -110,9 +110,9 @@ router.get('/services', auth, async (req, res) => {
         // L'API tourne si on répond à cette requête
         active = true;
       } else if (svc.id === 'nginx') {
-        // Vérification du socket unix nginx ou du processus
+        // SRE-FIX: On ne peut pas pgrep un container distant. On check le port 80 du service 'nginx'.
         const { runCommand: rc } = require('../services/shell');
-        const { success } = await rc('pgrep', ['-x', 'nginx']).catch(() => ({ success: false }));
+        const { success } = await rc('curl', ['-sf', '--max-time', '2', 'http://nginx:80/']).catch(() => ({ success: false }));
         active = success;
       } else if (svc.id === 'dashboard') {
         // Vérifier si le container nginx de l'UI répond

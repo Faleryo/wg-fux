@@ -62,12 +62,18 @@ router.post('/login', loginLimiter, async (req, res, next) => {
       if (user.role === 'admin') {
         const notifyAdmin = async () => {
           let location = 'Localisation inconnue';
-          try {
-            const geo = await axios.get(`http://ip-api.com/json/${clientIp}?fields=city,country`);
-            if (geo.data && geo.data.city) {
-              location = `${geo.data.city}, ${geo.data.country}`;
-            }
-          } catch (e) { /* ignore geo error */ }
+          // SRE-PRIVACY: skip external Geo-IP for local/private IPs
+          const isPrivate = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(clientIp);
+          
+          if (!isPrivate && clientIp !== '::1') {
+            try {
+              // SECURITY: Use HTTPS for Geo-IP lookup
+              const geo = await axios.get(`https://ip-api.com/json/${clientIp}?fields=city,country`);
+              if (geo.data && geo.data.city) {
+                location = `${geo.data.city}, ${geo.data.country}`;
+              }
+            } catch (e) { /* ignore geo error */ }
+          }
 
           const message = `🔐 CONNEXION RÉUSSIE: Administrateur '${username}' connecté depuis ${location} (${clientIp})`;
           const { runSystemCommand } = require('../services/shell');

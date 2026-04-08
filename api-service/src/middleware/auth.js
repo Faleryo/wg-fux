@@ -45,8 +45,10 @@ const auth = async (req, res, next) => {
   );
 
   // 💠 SRE Sentinel Bypass: prioritisation absolue
-  const sentinelToken = process.env.SENTINEL_TOKEN || 'vibe-sentinel-trust-99';
-  if (token === sentinelToken) {
+  const sentinelToken = (process.env.SENTINEL_TOKEN || '').trim();
+  const cleanToken = token.trim();
+  
+  if (sentinelToken && cleanToken === sentinelToken) {
     if (isInternalNetwork) {
       req.user = { username: 'sentinel', role: 'admin' };
       return next();
@@ -57,7 +59,7 @@ const auth = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET);
     const user = await getCachedUser(decoded.username);
     if (!user) {
       log.warn('auth', 'JWT token for unknown/deleted user', { username: decoded.username, path: req.originalUrl });

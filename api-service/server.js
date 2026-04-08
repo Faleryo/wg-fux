@@ -14,9 +14,13 @@ const { startJobs } = require('./src/services/jobs');
 const { getWireGuardStats, checkScripts } = require('./src/services/system');
 const log = require('./src/services/logger');
 
-// Vibe-OS v6.3: Global Headers
+// Vibe-OS v6.3: Global Security Headers (Hardened)
 const vibeHeaders = (req, res, next) => {
   res.set('X-Powered-By', 'Vibe-OS v6.3 (Watcher)');
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('X-Frame-Options', 'DENY');
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
 };
 
@@ -29,7 +33,8 @@ const userRoutes = require('./src/routes/users');
 
 const sentinelRoutes = require('./src/routes/sentinel');
 const dnsRoutes = require('./src/routes/dns');
-const { initializeDatabase } = require('./src/services/init');
+const { initializeDatabase, initializeDNS } = require('./src/services/init');
+
 
 const app = express();
 app.set('trust proxy', 1); // Trust first-hop proxy (Nginx) for rate-limiting
@@ -214,6 +219,8 @@ server.listen(PORT, '0.0.0.0', async () => {
     
   try {
     await initializeDatabase();
+    await initializeDNS();
+
     startJobs(); // Start background tasks
   } catch (err) {
     console.error('❌ FATAL: API failed to initialize database:', err);

@@ -450,7 +450,7 @@ router.post('/move', auth, requireManager, async (req, res) => {
 });
 
 
-router.get('/:container/:name/history', auth, async (req, res) => {
+router.get('/:container/:name/history', auth, requireManager, async (req, res) => {
   const { container, name } = req.params;
   const limit = parseInt(req.query.limit) || 50;
   const offset = parseInt(req.query.offset) || 0;
@@ -466,7 +466,7 @@ router.get('/:container/:name/history', auth, async (req, res) => {
   }
 });
 
-router.get('/:container/:name/history-hours', auth, async (req, res) => {
+router.get('/:container/:name/history-hours', auth, requireManager, async (req, res) => {
   const { container, name } = req.params;
   try {
     const [client] = await db.select().from(schema.clients).where(and(eq(schema.clients.container, container), eq(schema.clients.name, name))).limit(1);
@@ -480,7 +480,7 @@ router.get('/:container/:name/history-hours', auth, async (req, res) => {
   }
 });
 
-router.get('/:container/:name/config', auth, async (req, res) => {
+router.get('/:container/:name/config', auth, requireManager, async (req, res) => {
   try {
     const { container, name } = req.params;
     const [client] = await db.select().from(schema.clients).where(and(eq(schema.clients.container, container), eq(schema.clients.name, name))).limit(1);

@@ -69,12 +69,14 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
       </AnimatePresence>
 
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 shrink-0 glass-panel flex flex-col h-screen transition-all duration-700 ease-[0.16,1,0.3,1] md:translate-x-0 md:relative md:z-auto",
-        collapsed ? "md:w-20" : "md:w-72 lg:w-80",
-        "w-72",
-        isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
-        "border-r border-white/5"
+        "fixed inset-y-0 left-0 z-50 flex flex-col h-screen glass-panel border-r border-white/5 transition-all duration-300 ease-in-out",
+        // Desktop: Toggle between collapsed and expanded
+        collapsed ? "md:w-20" : "md:w-64 lg:w-72",
+        // Mobile: Hidden by default, translate when open
+        "w-64 -translate-x-full md:translate-x-0 md:relative md:z-auto",
+        isOpen && "translate-x-0 shadow-2xl"
       )}>
+
         {/* ── Branding ──────────────────────────────────────────────────── */}
         <div className={cn("flex justify-between items-center transition-all duration-500", collapsed ? "p-4 py-6" : "p-8 pb-10")}>
           <div className={cn("flex items-center gap-4 overflow-hidden", collapsed && "md:hidden")}>
