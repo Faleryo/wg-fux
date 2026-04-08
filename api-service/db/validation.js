@@ -22,10 +22,12 @@ const clientSchema = z
     quota: z
       .union([z.number(), z.string()])
       .transform((v) => parseInt(v) || 0)
+      .refine((n) => n >= 0, 'Quota doit être positif')
       .optional(),
     uploadLimit: z
       .union([z.number(), z.string()])
       .transform((v) => parseInt(v) || 0)
+      .refine((n) => n >= 0, 'Limite doit être positive')
       .optional(),
   })
   .strict();
@@ -37,10 +39,12 @@ const clientPatchSchema = z
     quota: z
       .union([z.number(), z.string()])
       .transform((v) => parseInt(v) || 0)
+      .refine((n) => n >= 0, 'Quota doit être positif')
       .optional(),
     uploadLimit: z
       .union([z.number(), z.string()])
       .transform((v) => parseInt(v) || 0)
+      .refine((n) => n >= 0, 'Limite doit être positive')
       .optional(),
   })
   .strict();
@@ -110,6 +114,15 @@ const ticketSchema = z.object({
   message: z.string().min(1).max(5000),
 });
 
+const ticketReplySchema = z
+  .object({
+    message: z.string().min(1).max(5000).optional(),
+    status: z.enum(['open', 'closed', 'pending']).optional(),
+  })
+  .refine((data) => data.message || data.status, {
+    message: 'Au moins un message ou un status est requis',
+  });
+
 // Schéma pour config système
 const systemConfigSchema = z.object({
   port: z
@@ -142,6 +155,76 @@ const systemConfigSchema = z.object({
     .optional(),
 });
 
+const dnsConfigSchema = z
+  .object({
+    upstream_dns: z.array(z.string()).optional(),
+    bootstrap_dns: z.array(z.string()).optional(),
+    filtering_enabled: z.boolean().optional(),
+    safesearch_enabled: z.boolean().optional(),
+    safebrowsing_enabled: z.boolean().optional(),
+    parental_enabled: z.boolean().optional(),
+  })
+  .strict();
+
+const userUpdateSchema = z
+  .object({
+    password: z.string().min(6).optional(),
+    role: z.enum(['admin', 'manager', 'viewer', 'user']).optional(),
+    expiry: z.string().regex(dateRegex).or(z.null()).optional(),
+  })
+  .strict();
+
+const paginationSchema = z.object({
+  limit: z
+    .union([z.number(), z.string()])
+    .transform((v) => Math.min(Math.max(parseInt(v) || 50, 1), 500))
+    .optional(),
+  offset: z
+    .union([z.number(), z.string()])
+    .transform((v) => Math.max(parseInt(v) || 0, 0))
+    .optional(),
+});
+
+const dnsFilterSchema = z
+  .object({
+    name: z.string().min(1, 'Nom requis').regex(identifierRegex, 'Format de nom invalide'),
+    url: z.string().url('URL invalide'),
+  })
+  .strict();
+
+const dnsRemoveSchema = z
+  .object({
+    url: z.string().url('URL invalide'),
+  })
+  .strict();
+
+const sentinelHeartbeatSchema = z.object({
+  status: z.string().optional(),
+  logs: z.array(z.string()).optional(),
+  stats: z.any().optional(),
+});
+
+const optimizeSchema = z
+  .object({
+    profile: z.enum(['gaming', 'streaming', 'auto', 'restore', 'default', 'disable'], {
+      errorMap: () => ({ message: "Profil d'optimisation invalide" }),
+    }),
+  })
+  .strict();
+const restartSchema = z.object({
+  id: z.enum(['wireguard', 'api', 'nginx', 'dashboard'], {
+    errorMap: () => ({ message: 'Service ID invalide pour le redémarrage' }),
+  }),
+});
+
+const logsQuerySchema = paginationSchema.extend({
+  level: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR', 'AUDIT']).or(z.null()).optional(),
+  limit: z
+    .union([z.number(), z.string()])
+    .transform((v) => Math.min(Math.max(parseInt(v) || 100, 1), 500))
+    .optional(),
+});
+
 module.exports = {
   loginSchema,
   clientSchema,
@@ -152,6 +235,16 @@ module.exports = {
   moveClientSchema,
   containerSchema,
   userSchema,
+  userUpdateSchema,
+  paginationSchema,
   ticketSchema,
+  ticketReplySchema,
   systemConfigSchema,
+  dnsConfigSchema,
+  dnsFilterSchema,
+  dnsRemoveSchema,
+  sentinelHeartbeatSchema,
+  optimizeSchema,
+  restartSchema,
+  logsQuerySchema,
 };

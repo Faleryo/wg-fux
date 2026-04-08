@@ -205,6 +205,7 @@ const interfaceWatchdog = async () => {
 };
 
 const startJobs = () => {
+  if (process.env.VITEST === 'true') return;
   loadSchedules();
   setInterval(updateUsage, 60000);
   setInterval(logTrafficHistory, 60000);

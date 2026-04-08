@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
+const { asyncWrap, createError } = require('../utils/errors');
+const { sentinelHeartbeatSchema } = require('../../db/validation');
 
 // In-memory store for Sentinel status
 let sentinelStatus = {
@@ -11,27 +13,36 @@ let sentinelStatus = {
 };
 
 // Heartbeat endpoint for Sentinel V2
-// WAVE 5: Strictly rely on 'auth' middleware for SENTINEL_TOKEN verification + IP check
-router.post('/heartbeat', auth, async (req, res) => {
-  // If we reach here, 'auth' middleware has already verified the token AND the IP
-  // or it verified a valid admin/manager JWT.
+router.post(
+  '/heartbeat',
+  auth,
+  asyncWrap(async (req, res) => {
+    const parsed = sentinelHeartbeatSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(createError(parsed.error, 'Validation failed'));
+    }
 
-  const { status, logs, stats } = req.body;
+    const { status, logs, stats } = parsed.data;
 
-  sentinelStatus = {
-    lastHeartbeat: new Date(),
-    status: status || 'active',
-    logs: Array.isArray(logs) ? logs.slice(-20) : [],
-    stats: stats || {},
-  };
+    sentinelStatus = {
+      lastHeartbeat: new Date(),
+      status: status || 'active',
+      logs: Array.isArray(logs) ? logs.slice(-20) : [],
+      stats: stats || {},
+    };
 
-  res.json({ success: true });
-});
+    res.json({ success: true });
+  })
+);
 
 // Getter for the UI
-router.get('/status', auth, (req, res) => {
-  res.json(sentinelStatus);
-});
+router.get(
+  '/status',
+  auth,
+  asyncWrap(async (req, res) => {
+    res.json(sentinelStatus);
+  })
+);
 
 module.exports = router;
 module.exports.getStatus = () => sentinelStatus;

@@ -24,6 +24,7 @@ async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS containers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
+        interface TEXT DEFAULT 'wg0',
         createdAt INTEGER DEFAULT (strftime('%s', 'now'))
       );
 
@@ -80,7 +81,17 @@ async function initializeDatabase() {
       );
     `);
 
-    // 2. Create Indexes if they don't exist
+    // 2. Migration Phase 4 : Add interface column to containers if missing
+    try {
+      sqlite.exec("ALTER TABLE containers ADD COLUMN interface TEXT DEFAULT 'wg0'");
+      logger.info('db', '➕ Added "interface" column to containers table.');
+    } catch (e) {
+      if (!e.message.includes('duplicate column name')) {
+        logger.warn('db', `Migration notice: ${e.message}`);
+      }
+    }
+
+    // 3. Create Indexes if they don't exist
     sqlite.exec(`
       CREATE UNIQUE INDEX IF NOT EXISTS username_idx ON users(username);
       CREATE UNIQUE INDEX IF NOT EXISTS container_name_idx ON containers(name);
@@ -123,7 +134,10 @@ async function initializeDatabase() {
         logger.info('db', 'ℹ️ Admin credentials already in sync.');
       }
     } else {
-      logger.warn('db', '⚠️ Missing ADMIN_PASSWORD_HASH/SALT in env. Admin user not seeded/synced.');
+      logger.warn(
+        'db',
+        '⚠️ Missing ADMIN_PASSWORD_HASH/SALT in env. Admin user not seeded/synced.'
+      );
     }
   } catch (error) {
     logger.error('db', '❌ Database initialization failed', { err: error.message });
@@ -141,6 +155,7 @@ async function initializeDNS() {
   const password = process.env.AGH_PASSWORD || 'password';
 
   logger.info('dns', '🛡️ Check AdGuard Home status...');
+  if (process.env.VITEST === 'true') return logger.info('dns', '🧪 VITEST: Skipping DNS init');
 
   try {
     // 1. Check if AGH is already initialized (maxRedirects: 0 to catch the setup wizard)

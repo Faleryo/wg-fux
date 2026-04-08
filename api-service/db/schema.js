@@ -21,6 +21,7 @@ const containers = sqliteTable(
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name').notNull().unique(),
+    interface: text('interface').default('wg0'), // Mapping to WireGuard interface (wg0, wg1, etc.)
     createdAt: integer('createdAt', { mode: 'timestamp' }).default(new Date()),
   },
   (table) => ({

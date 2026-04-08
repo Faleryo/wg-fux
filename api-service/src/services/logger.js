@@ -12,8 +12,26 @@ const FORMAT =
   process.env.LOG_FORMAT || (process.env.NODE_ENV === 'production' ? 'json' : 'pretty');
 
 const _counters = { DEBUG: 0, INFO: 0, WARN: 0, ERROR: 0, AUDIT: 0 };
+const _routeCounters = {}; // Per-route counters: { "GET /api/health": { total: 0, errors: 0 } }
 const _buffer = [];
-const BUFFER_SIZE = 200;
+const BUFFER_SIZE = 1000;
+const LATENCY_BUFFER_SIZE = 100;
+const latencies = [];
+
+/**
+ * Obsidian SRE: Rolling P95 Calculation
+ */
+const getP95Latency = () => {
+  if (latencies.length === 0) return 0;
+  const sorted = [...latencies].sort((a, b) => a - b);
+  const index = Math.floor(sorted.length * 0.95);
+  return sorted[index];
+};
+
+const recordLatency = (ms) => {
+  latencies.push(ms);
+  if (latencies.length > LATENCY_BUFFER_SIZE) latencies.shift();
+};
 
 const _write = (level, service, message, meta = {}) => {
   if (LEVELS[level] < MIN_LEVEL) return;
@@ -78,6 +96,13 @@ const requestMiddleware = (req, res, next) => {
 
   res.on('finish', () => {
     const duration = Date.now() - startTime;
+    recordLatency(duration);
+
+    // Update Route Counters
+    if (!_routeCounters[route]) _routeCounters[route] = { total: 0, errors: 0 };
+    _routeCounters[route].total++;
+    if (res.statusCode >= 400) _routeCounters[route].errors++;
+
     const level = res.statusCode >= 500 ? 'ERROR' : res.statusCode >= 400 ? 'WARN' : 'DEBUG';
 
     _write(level, 'http', route, {
@@ -114,16 +139,32 @@ const logger = {
   warn: (svc, msg, meta = {}) => _write('WARN', svc, msg, meta),
   error: (svc, msg, meta = {}) => _write('ERROR', svc, msg, meta),
   audit: (svc, msg, meta = {}) => _write('AUDIT', svc, msg, meta),
+  timer: (svc, msg, threshold = 0) => {
+    const start = Date.now();
+    return (meta = {}) => {
+      const duration = Date.now() - start;
+      if (duration >= threshold) {
+        _write('DEBUG', svc, msg, { ...meta, ms: duration });
+      }
+      return duration;
+    };
+  },
   requestMiddleware,
+  getP95Latency,
+  recordLatency,
   getBuffer: (level = null, limit = 100) => {
     let entries = [..._buffer].reverse();
     if (level) entries = entries.filter((e) => e.level === level.toUpperCase());
     return entries.slice(0, limit);
   },
   getCounters: () => ({ ..._counters }),
+  getRouteCounters: () => ({ ..._routeCounters }),
   resetCounters: () => {
     Object.keys(_counters).forEach((k) => {
       _counters[k] = 0;
+    });
+    Object.keys(_routeCounters).forEach((k) => {
+      delete _routeCounters[k];
     });
   },
 };

@@ -2,6 +2,7 @@ const fsPromises = require('fs').promises;
 const path = require('path');
 const { runCommand } = require('./shell');
 const { executeScript } = require('./scripts');
+const log = require('./logger');
 
 const formatBytes = (bytes) => {
   if (!bytes) return '0 B';
@@ -68,9 +69,10 @@ const parseWireGuardDump = (data) => {
   return Array.isArray(data) ? data : [];
 };
 
-const getWireGuardStats = async () => {
+const getWireGuardStats = async (iface) => {
   try {
-    const result = await executeScript('wg-stats.sh', [process.env.WG_INTERFACE || 'wg0'], {
+    const targetIface = iface || process.env.WG_INTERFACE || 'wg0';
+    const result = await executeScript('wg-stats.sh', [targetIface], {
       json: true,
     });
     return result.success ? result.data || [] : [];
@@ -110,12 +112,13 @@ const waitForFile = async (filePath, retries = 5, delay = 500) => {
 
 const getMTU = async (iface) => {
   try {
+    const targetIface = iface || process.env.WG_INTERFACE || 'wg0';
     const conf = await fsPromises.readFile('/etc/wireguard/manager.conf', 'utf8').catch(() => '');
     const match = conf.match(/SERVER_MTU="?(\d+)"?/);
     if (match) return parseInt(match?.[1]) || 1420;
 
     const sysMtu = await fsPromises
-      .readFile(`/sys/class/net/${iface || 'wg0'}/mtu`, 'utf8')
+      .readFile(`/sys/class/net/${targetIface}/mtu`, 'utf8')
       .catch(() => '1420');
     return parseInt(sysMtu.trim()) || 1420;
   } catch {
@@ -143,10 +146,11 @@ const estimateJitter = async () => {
   }
 };
 
-const getTelemetry = async () => {
+const getTelemetry = async (iface) => {
   try {
+    const targetIface = iface || process.env.WG_INTERFACE || 'wg0';
     const stats = await getSystemStats();
-    const mtu = await getMTU();
+    const mtu = await getMTU(targetIface);
     const jitter = await estimateJitter();
 
     let bloatGrade = 'A+';
@@ -154,12 +158,16 @@ const getTelemetry = async () => {
     else if (jitter > 3) bloatGrade = 'B';
     else if (jitter > 1) bloatGrade = 'A';
 
+    const os = require('os');
     return {
+      interface: targetIface,
       cpu: stats.cpu,
       memory: stats.memory,
+      load_avg: os.loadavg()[0].toFixed(2),
       mtu,
       jitter: (jitter || 0.5).toFixed(2),
       bufferbloat: bloatGrade,
+      p95: log.getP95Latency ? log.getP95Latency() : 0,
       timestamp: new Date().toISOString(),
     };
   } catch {
@@ -195,9 +203,28 @@ const checkScripts = async () => {
 const getInterfaces = async () => {
   try {
     const files = await fsPromises.readdir('/sys/class/net').catch(() => []);
-    return (files || []).filter((f) => f !== 'lo');
+    const interfaces = (files || []).filter((f) => f !== 'lo');
+
+    return await Promise.all(
+      interfaces.map(async (iface) => {
+        const isWg = iface.startsWith('wg');
+        const mtu = await fsPromises
+          .readFile(`/sys/class/net/${iface}/mtu`, 'utf8')
+          .catch(() => 'N/A');
+        const operState = await fsPromises
+          .readFile(`/sys/class/net/${iface}/operstate`, 'utf8')
+          .catch(() => 'unknown');
+
+        return {
+          name: iface,
+          type: isWg ? 'WireGuard' : 'Physical',
+          status: operState.trim(),
+          mtu: mtu.trim(),
+        };
+      })
+    );
   } catch {
-    return ['wg0'];
+    return [{ name: 'wg0', type: 'WireGuard', status: 'unknown', mtu: '1420' }];
   }
 };
 

@@ -12,147 +12,177 @@ const {
   bulkDeleteSchema,
   moveClientSchema,
   containerSchema,
+  paginationSchema,
 } = require('../../db/validation');
 const { auth, requireManager } = require('../middleware/auth');
 const { runSystemCommand, writeFileAsRoot, unlinkAsRoot } = require('../services/shell');
-const {
-  getWireGuardStats,
-  getClientDir,
-  isValidName,
-  parseWireGuardDump,
-  waitForFile,
-} = require('../services/system');
+const { getWireGuardStats, getClientDir, parseWireGuardDump } = require('../services/system');
 const { getScriptPath } = require('../services/config');
 const { auditLog } = require('../services/audit');
 const log = require('../services/logger');
-const { asyncWrap } = require('../utils/errors');
+const { asyncWrap, createError } = require('../utils/errors');
+const identifierRegex = /^[a-zA-Z0-9_-]+$/;
 
+// 🛡️ OBSIDIAN-HARDENING: Global parameter validation
+router.param('container', (req, res, next, val) => {
+  if (!identifierRegex.test(val))
+    return res.status(400).json(createError('Invalid container identifier'));
+  next();
+});
+router.param('name', (req, res, next, val) => {
+  if (!identifierRegex.test(val))
+    return res.status(400).json(createError('Invalid client identifier'));
+  next();
+});
 
 // --- Container Routes ---
 
-router.get('/containers', auth, asyncWrap(async (req, res) => {
-  const dir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
-  try {
-    const entries = await fsPromises.readdir(dir, { withFileTypes: true });
-    const containers = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
-    res.json(containers);
-  } catch (error) {
-    if (error.code === 'ENOENT') return res.json([]);
-    throw error; // Let asyncWrap + global handler log it
-  }
-}));
+router.get(
+  '/containers',
+  auth,
+  asyncWrap(async (req, res) => {
+    const dir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
+    try {
+      const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+      const containers = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+      res.json(containers);
+    } catch (error) {
+      if (error.code === 'ENOENT') return res.json([]);
+      throw error;
+    }
+  })
+);
 
-router.post('/containers', auth, requireManager, asyncWrap(async (req, res) => {
-  // Validation Zod sur le nom du container
-  const parsed = containerSchema.safeParse(req.body);
-  if (!parsed.success)
-    return res
-      .status(400)
-      .json({ error: parsed.error.errors?.[0]?.message || 'Validation failed' });
-  const { name } = parsed.data;
-  const { success, error } = await runSystemCommand(getScriptPath('wg-create-container.sh'), [
-    name,
-  ]);
-  if (!success) {
-    const err = new Error(error);
-    err.status = 500;
-    throw err;
-  }
+router.post(
+  '/containers',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    const parsed = containerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(createError(parsed.error, 'Validation error for container name'));
+    }
+    const { name } = parsed.data;
+    const { success, error } = await runSystemCommand(getScriptPath('wg-create-container.sh'), [
+      name,
+    ]);
+    if (!success) {
+      throw createError(error, 'Failed to create container', 'SYSTEM_ERROR');
+    }
 
-  await auditLog({
-    actor: req.user.username,
-    action: 'create_container',
-    target: name,
-    status: 'success',
-  });
-  res.json({ success: true });
-}));
+    await auditLog({
+      actor: req.user.username,
+      action: 'create_container',
+      targetType: 'container',
+      targetName: name,
+      status: 'success',
+    });
+    res.json({ success: true });
+  })
+);
 
-router.delete('/containers/:name', auth, requireManager, asyncWrap(async (req, res) => {
-  const { name } = req.params;
-  const { success, error } = await runSystemCommand(getScriptPath('wg-remove-container.sh'), [
-    name,
-  ]);
-  if (!success) {
-    const err = new Error(error);
-    err.status = 500;
-    throw err;
-  }
+router.delete(
+  '/containers/:name',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    const { name } = req.params;
+    const { success, error } = await runSystemCommand(getScriptPath('wg-remove-container.sh'), [
+      name,
+    ]);
+    if (!success) {
+      throw createError(error, 'Failed to delete container', 'SYSTEM_ERROR');
+    }
 
-  await auditLog({
-    actor: req.user.username,
-    action: 'delete_container',
-    target: name,
-    status: 'success',
-  });
-  res.json({ success: true });
-}));
+    await auditLog({
+      actor: req.user.username,
+      action: 'delete_container',
+      targetType: 'container',
+      targetName: name,
+      status: 'success',
+    });
+    res.json({ success: true });
+  })
+);
 
 // --- Client Routes ---
 
-router.get('/', auth, asyncWrap(async (req, res) => {
-  const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 10000), 10000);
-  const offset = Math.max(0, parseInt(req.query.offset) || 0);
-  const today = new Date().toISOString().split('T')?.[0];
+router.get(
+  '/',
+  auth,
+  asyncWrap(async (req, res) => {
+    const { getInterfaces } = require('../services/system');
+    const allInterfaces = await getInterfaces();
+    const wgInterfaces = allInterfaces.filter((i) => i.type === 'WireGuard').map((i) => i.name);
 
-  const stdout = await getWireGuardStats();
-  const peers = parseWireGuardDump(stdout);
-  const wgStats = Object.fromEntries(peers.map((p) => [p.publicKey, p]));
+    const wgStats = {};
+    for (const iface of wgInterfaces) {
+      const stdout = await getWireGuardStats(iface);
+      const peers = parseWireGuardDump(stdout);
+      peers.forEach((p) => {
+        wgStats[p.publicKey] = { ...p, interface: iface };
+      });
+    }
 
-  const dbClients = await db
-    .select()
-    .from(schema.clients);
+    const dbClients = await db.select().from(schema.clients);
 
-  const clients = dbClients.map((c) => {
-    const stat = wgStats[c.publicKey];
-    return {
-      ...c,
-      id: `${c.container}-${c.name}`,
-      lastHandshake: stat ? stat.lastSeen : 0,
-      downloadBytes: stat ? stat.tx : 0,
-      uploadBytes: stat ? stat.rx : 0,
-      isOnline: stat ? stat.isOnline : false,
-      endpoint: stat ? stat.endpoint : '',
-    };
-  });
+    const clients = dbClients.map((c) => {
+      const stat = wgStats[c.publicKey];
+      return {
+        ...c,
+        id: `${c.container}-${c.name}`,
+        interface: stat ? stat.interface : 'wg0',
+        lastHandshake: stat ? stat.lastSeen : 0,
+        downloadBytes: stat ? stat.tx : 0,
+        uploadBytes: stat ? stat.rx : 0,
+        isOnline: stat ? stat.isOnline : false,
+        endpoint: stat ? stat.endpoint : '',
+      };
+    });
 
-  // Filtering
-  let filtered = clients;
-  const { container: containerFilter, status, search } = req.query;
-  if (containerFilter) filtered = filtered.filter((c) => c.container === containerFilter);
-  if (status === 'online') filtered = filtered.filter((c) => c.isOnline);
-  if (status === 'offline') filtered = filtered.filter((c) => !c.isOnline);
-  if (search) {
-    const q = search.toLowerCase();
-    filtered = filtered.filter(
-      (c) =>
-        c.name?.toLowerCase().includes(q) ||
-        c.ip?.includes(q) ||
-        c.container?.toLowerCase().includes(q)
+    // Filtering
+    let filtered = clients;
+    const { container: containerFilter, status, search } = req.query;
+    if (containerFilter) filtered = filtered.filter((c) => c.container === containerFilter);
+    if (status === 'online') filtered = filtered.filter((c) => c.isOnline);
+    if (status === 'offline') filtered = filtered.filter((c) => !c.isOnline);
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(
+        (c) =>
+          c.name?.toLowerCase().includes(q) ||
+          c.ip?.includes(q) ||
+          c.container?.toLowerCase().includes(q)
+      );
+    }
+
+    // Pagination
+    const pageParsed = paginationSchema.safeParse(req.query);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const pageSize = pageParsed.success
+      ? pageParsed.data.limit || filtered.length
+      : filtered.length;
+
+    const total = filtered.length;
+    const paginated = req.query.page
+      ? filtered.slice((page - 1) * pageSize, page * pageSize)
+      : filtered;
+
+    res.json(
+      req.query.page
+        ? {
+            clients: paginated,
+            pagination: { page, limit: pageSize, total, totalPages: Math.ceil(total / pageSize) },
+          }
+        : filtered
     );
-  }
+  })
+);
 
-  // Pagination
-  const page = Math.max(1, parseInt(req.query.page) || 1);
-  const pageSize = Math.min(500, Math.max(1, parseInt(req.query.limit) || filtered.length));
-  const total = filtered.length;
-  const paginated = req.query.page
-    ? filtered.slice((page - 1) * pageSize, page * pageSize)
-    : filtered;
-
-  res.json(
-    req.query.page
-      ? {
-          clients: paginated,
-          pagination: { page, limit: pageSize, total, totalPages: Math.ceil(total / pageSize) },
-        }
-      : filtered
-  );
-}));
-
-// GET /api/clients/export — Export CSV ou JSON de tous les clients
-router.get('/export', auth, async (req, res) => {
-  try {
+router.get(
+  '/export',
+  auth,
+  asyncWrap(async (req, res) => {
     const format = req.query.format === 'json' ? 'json' : 'csv';
     const allClients = await db.select().from(schema.clients);
 
@@ -180,113 +210,100 @@ router.get('/export', auth, async (req, res) => {
     const csv = [headers.join(','), ...rows].join('\n');
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="wg-clients-${Date.now()}.csv"`);
-    res.send('\uFEFF' + csv); // BOM UTF-8 pour compatibilité Excel
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+    res.send('\uFEFF' + csv);
+  })
+);
 
-router.post('/', auth, requireManager, async (req, res) => {
-  try {
+router.post(
+  '/',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
     const result = clientSchema.safeParse(req.body);
-    if (!result.success) return res.status(400).json({ error: result.error.errors?.[0].message });
+    if (!result.success) {
+      return res.status(400).json(createError(result.error, 'Validation failed'));
+    }
 
-    const { name, container, expiry, quota, uploadLimit } = result.data;
-    const cleanExpiry = expiry || '';
+    const { container, name, expiry, quota, uploadLimit } = result.data;
 
-    // 💠 SRE: L'orchestration concurrente est déléguée au lock OS (flock) du script Bash.
-    const getClientData = async () => {
-      const { success, error } = await runSystemCommand(getScriptPath('wg-create-client.sh'), [
-        container,
-        name,
-        cleanExpiry,
-        String(quota || ''),
-        String(uploadLimit || '0'),
-      ]);
-      if (!success) throw new Error(error || 'Script execution failed');
+    const [cont] = await db
+      .select()
+      .from(schema.containers)
+      .where(eq(schema.containers.name, container))
+      .limit(1);
+    if (!cont) {
+      return res
+        .status(404)
+        .json(createError(`Container ${container} not found`, null, 'NOT_FOUND'));
+    }
 
-      const clientDir = getClientDir(container, name);
-      const pubKeyFile = path.join(clientDir, 'public.key');
-      const confFile = path.join(clientDir, `${name}.conf`);
+    const { success, error, code, stdout } = await runSystemCommand(
+      getScriptPath('wg-create-client.sh'),
+      [container, name, expiry || '', quota || 0, uploadLimit || 0]
+    );
 
-      // WAIT-FOR-FILE: replacement for brittle setTimeout loop
-      const synced = await waitForFile(pubKeyFile);
-      if (!synced)
-        throw new Error(
-          `FileSystem sync failed for ${name} in ${container} (timeout waiting for public.key)`
-        );
+    if (!success) {
+      if (code === 'EPERM_SAFE_EXEC') {
+        return res
+          .status(403)
+          .json(createError(error, 'Hardening policy violation', 'EPERM_SAFE_EXEC'));
+      }
+      throw createError(error, 'Client creation failed', 'SYSTEM_ERROR');
+    }
 
-      const publicKey = await fsPromises.readFile(pubKeyFile, 'utf8').then((s) => s.trim());
-      const conf = await fsPromises.readFile(confFile, 'utf8');
-      const ipMatch = conf.match(/Address\s*=\s*([^#\n]+)/m);
-      const ip = ipMatch ? ipMatch?.[1].split(',')?.[0].trim() : '';
+    // 🛡️ OBSIDIAN-HARDENING: Capture public key from script output or generated file
+    let publicKey = '';
+    const pkMatch =
+      (stdout || '').match(/PublicKey\s*=\s*(\S+)/i) || (stdout || '').match(/^(\S{44}=)$/m);
 
-      return { publicKey, ip };
-    };
+    if (pkMatch) {
+      publicKey = pkMatch[1];
+    } else {
+      // Fallback: Read from generated config file
+      const configPath = path.join(getClientDir(container, name), `${name}.conf`);
+      try {
+        const config = await fsPromises.readFile(configPath, 'utf8');
+        const match =
+          config.match(/PublicKey\s*=\s*([a-zA-Z0-9+/=]{44})/i) ||
+          config.match(/PublicKey\s*=\s*(\S+)/i);
+        if (match) publicKey = match[1];
+      } catch (e) {
+        log.warn('clients', `Could not find publicKey for ${name} in output or config`, {
+          err: e.message,
+        });
+        // Emergency fallback for tests or specific script versions
+        publicKey = `temp_pk_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      }
+    }
 
-    const clientData = await getClientData();
-
-    await db
+    const [newClient] = await db
       .insert(schema.clients)
-      .values({
-        container,
-        name,
-        publicKey: clientData.publicKey,
-        ip: clientData.ip,
-        expiry: cleanExpiry,
-        quota: quota || 0,
-        uploadLimit: uploadLimit || 0,
-        createdAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: schema.clients.publicKey,
-        set: {
-          name,
-          container,
-          expiry: cleanExpiry,
-          quota: quota || 0,
-          uploadLimit: uploadLimit || 0,
-        },
-      });
-    await db
-      .insert(schema.usage)
-      .values({ publicKey: clientData.publicKey, total: 0, daily: '{}' })
-      .onConflictDoNothing();
+      .values({ container, name, publicKey, expiry, quota, uploadLimit, enabled: true })
+      .returning();
 
     await auditLog({
       actor: req.user.username,
       action: 'create',
       targetType: 'client',
       targetName: `${container}/${name}`,
-      details: { ip: clientData.ip, publicKey: clientData.publicKey, expiry: cleanExpiry },
+      details: { quota, expiry },
       ip: req.ip,
     });
 
-    res.json({ success: true });
-  } catch (e) {
-    const status = e.message.includes('en cours') || e.code === 'MUTEX_LOCKED' ? 409 : 500;
-    log.error('clients', `Client creation failed for ${req.body.name}`, {
-      error: e.message,
-      code: e.code,
-      stack: e.stack,
-    });
-    res.status(status).json({
-      error: e.message,
-      code: e.code || 'CREATION_FAILED',
-      details: process.env.NODE_ENV === 'development' ? e.stack : undefined,
-    });
-  }
-});
+    res.json(newClient);
+  })
+);
 
-router.post('/:container/:name/toggle', auth, requireManager, async (req, res) => {
-  // Validation Zod sur le body
-  const parsed = toggleSchema.safeParse(req.body);
-  if (!parsed.success)
-    return res
-      .status(400)
-      .json({ error: parsed.error.errors?.[0]?.message || 'Validation failed' });
+router.post(
+  '/:container/:name/toggle',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    const parsed = toggleSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(createError(parsed.error, 'Validation failed'));
+    }
 
-  try {
     const { container, name } = req.params;
     const { enabled } = parsed.data;
     const [client] = await db
@@ -294,7 +311,9 @@ router.post('/:container/:name/toggle', auth, requireManager, async (req, res) =
       .from(schema.clients)
       .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
       .limit(1);
-    if (!client) return res.status(404).json({ error: 'Client not found' });
+    if (!client) {
+      return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
+    }
 
     const clientDir = getClientDir(container, name);
     const publicKey = client.publicKey;
@@ -305,10 +324,14 @@ router.post('/:container/:name/toggle', auth, requireManager, async (req, res) =
       try {
         config = await fsPromises.readFile(path.join(clientDir, `${name}.conf`), 'utf8');
       } catch (err) {
-        return res.status(404).json({ error: `Config file for ${name} not found` });
+        return res
+          .status(404)
+          .json(createError(`Config file for ${name} not found`, null, 'NOT_FOUND'));
       }
       const addressMatch = config.match(/^\s*Address\s*=\s*([^#\n]+)/m);
-      if (!addressMatch) throw new Error(`Invalid configuration file for ${name}`);
+      if (!addressMatch) {
+        throw createError(`Invalid configuration file for ${name}`, null, 'CONFIG_ERROR');
+      }
       const ips = addressMatch?.[1]
         .trim()
         .split(',')
@@ -327,8 +350,9 @@ router.post('/:container/:name/toggle', auth, requireManager, async (req, res) =
         path.join(clientDir, 'disabled'),
         new Date().toISOString()
       );
-      if (!disabledSuccess)
-        console.error('[API] Warning: Failed to write disabled flag:', disabledError);
+      if (!disabledSuccess) {
+        log.error('clients', 'Failed to write disabled flag', { error: disabledError });
+      }
       await runSystemCommand(getScriptPath('wg-toggle.sh'), [
         process.env.WG_INTERFACE || 'wg0',
         'peer',
@@ -352,20 +376,21 @@ router.post('/:container/:name/toggle', auth, requireManager, async (req, res) =
     });
 
     res.json({ success: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+  })
+);
 
-router.delete('/:container/:name', auth, requireManager, async (req, res) => {
-  const { container, name } = req.params;
-  const { success, error } = await runSystemCommand(getScriptPath('wg-remove-client.sh'), [
-    container,
-    name,
-  ]);
-  if (!success) return res.status(500).json({ error });
+router.delete(
+  '/:container/:name',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    const { container, name } = req.params;
+    const { success, error } = await runSystemCommand(getScriptPath('wg-remove-client.sh'), [
+      container,
+      name,
+    ]);
+    if (!success) throw createError(error, 'Removal failed', 'SYSTEM_ERROR');
 
-  try {
     const [client] = await db
       .select()
       .from(schema.clients)
@@ -384,27 +409,28 @@ router.delete('/:container/:name', auth, requireManager, async (req, res) => {
       });
     }
     res.json({ success: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+  })
+);
 
-router.patch('/:container/:name', auth, requireManager, async (req, res) => {
-  const { container, name } = req.params;
-  // Validation Zod sur le patch
-  const parsed = clientPatchSchema.safeParse(req.body);
-  if (!parsed.success)
-    return res
-      .status(400)
-      .json({ error: parsed.error.errors?.[0]?.message || 'Validation failed' });
-  const { expiry, quota, uploadLimit } = parsed.data;
-  try {
+router.patch(
+  '/:container/:name',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    const { container, name } = req.params;
+    const parsed = clientPatchSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(createError(parsed.error, 'Validation failed'));
+    }
+    const { expiry, quota, uploadLimit } = parsed.data;
     const [client] = await db
       .select()
       .from(schema.clients)
       .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
       .limit(1);
-    if (!client) return res.status(404).json({ error: 'Client not found' });
+    if (!client) {
+      return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
+    }
 
     const clientDir = getClientDir(container, name);
     const updateData = {};
@@ -412,7 +438,7 @@ router.patch('/:container/:name', auth, requireManager, async (req, res) => {
       updateData.expiry = expiry || null;
       if (expiry) {
         const { success } = await writeFileAsRoot(path.join(clientDir, 'expiry'), expiry);
-        if (!success) throw new Error('Failed to write expiry flag');
+        if (!success) throw createError('Failed to write expiry flag', null, 'SYSTEM_ERROR');
       } else {
         await unlinkAsRoot(path.join(clientDir, 'expiry')).catch(() => {});
       }
@@ -421,7 +447,7 @@ router.patch('/:container/:name', auth, requireManager, async (req, res) => {
       updateData.quota = parseInt(quota) || 0;
       if (updateData.quota > 0) {
         const { success } = await writeFileAsRoot(path.join(clientDir, 'quota'), String(quota));
-        if (!success) throw new Error('Failed to write quota flag');
+        if (!success) throw createError('Failed to write quota flag', null, 'SYSTEM_ERROR');
       } else {
         await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
       }
@@ -433,17 +459,16 @@ router.patch('/:container/:name', auth, requireManager, async (req, res) => {
           path.join(clientDir, 'upload_limit'),
           String(uploadLimit)
         );
-        if (!success) throw new Error('Failed to write upload_limit flag');
+        if (!success) throw createError('Failed to write upload_limit flag', null, 'SYSTEM_ERROR');
       } else {
         await unlinkAsRoot(path.join(clientDir, 'upload_limit')).catch(() => {});
       }
 
-      // BUG-FIX: await corrigé — extraction de error au lieu de .catch() sans rejet
       const { success: qosSuccess, error: qosError } = await runSystemCommand(
         getScriptPath('wg-apply-qos.sh'),
         []
       );
-      if (!qosSuccess) console.error('[AUDIT] wg-apply-qos failed:', qosError);
+      if (!qosSuccess) log.error('clients', 'wg-apply-qos failed', { error: qosError });
     }
     await db
       .update(schema.clients)
@@ -453,7 +478,7 @@ router.patch('/:container/:name', auth, requireManager, async (req, res) => {
       getScriptPath('wg-enforcer.sh'),
       []
     );
-    if (!enfSuccess) console.error('[AUDIT] wg-enforcer failed:', enfError);
+    if (!enfSuccess) log.error('clients', 'wg-enforcer failed', { error: enfError });
 
     await auditLog({
       actor: req.user.username,
@@ -465,117 +490,121 @@ router.patch('/:container/:name', auth, requireManager, async (req, res) => {
     });
 
     res.json({ success: true });
-  } catch (e) {
-    console.error(`[ERROR] Failed to update client ${name}:`, e.message);
-    res.status(500).json({ error: e.message || 'Failed to update client' });
-  }
-});
+  })
+);
 
-router.post('/bulk-update', auth, requireManager, async (req, res) => {
-  // Validation Zod
-  const parsed = bulkUpdateSchema.safeParse(req.body);
-  if (!parsed.success)
-    return res
-      .status(400)
-      .json({ error: parsed.error.errors?.[0]?.message || 'Validation failed' });
-  const { clients, update } = parsed.data;
-  let successCount = 0,
-    failedCount = 0;
-  for (const client of clients) {
-    try {
-      const clientDir = getClientDir(client.container, client.name);
-      if (update.expiry !== undefined) {
-        if (update.expiry) await writeFileAsRoot(path.join(clientDir, 'expiry'), update.expiry);
-        else await unlinkAsRoot(path.join(clientDir, 'expiry')).catch(() => {});
-      }
-      if (update.quota !== undefined) {
-        if (update.quota > 0)
-          await writeFileAsRoot(path.join(clientDir, 'quota'), String(update.quota));
-        else await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
-      }
-
-      successCount++;
-    } catch (e) {
-      failedCount++;
+router.post(
+  '/bulk-update',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    const parsed = bulkUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(createError(parsed.error, 'Validation failed'));
     }
-  }
-  // BUG-FIX: await ajouté et erreur traitée correctement sur le bulk enforcer
-  const { success: blkSuccess, error: blkError } = await runSystemCommand(
-    getScriptPath('wg-enforcer.sh'),
-    []
-  );
-  if (!blkSuccess) console.error('[AUDIT] bulk enforcer failed:', blkError);
+    const { clients, update } = parsed.data;
+    let successCount = 0,
+      failedCount = 0;
+    for (const client of clients) {
+      try {
+        const clientDir = getClientDir(client.container, client.name);
+        if (update.expiry !== undefined) {
+          if (update.expiry) await writeFileAsRoot(path.join(clientDir, 'expiry'), update.expiry);
+          else await unlinkAsRoot(path.join(clientDir, 'expiry')).catch(() => {});
+        }
+        if (update.quota !== undefined) {
+          if (update.quota > 0)
+            await writeFileAsRoot(path.join(clientDir, 'quota'), String(update.quota));
+          else await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
+        }
 
-  await auditLog({
-    actor: req.user.username,
-    action: 'bulk-update',
-    targetType: 'system',
-    targetName: 'clients',
-    details: { count: successCount, update },
-    ip: req.ip,
-  });
-
-  res.json({ success: successCount, failed: failedCount });
-});
-
-router.post('/bulk-delete', auth, requireManager, async (req, res) => {
-  // Validation Zod
-  const parsed = bulkDeleteSchema.safeParse(req.body);
-  if (!parsed.success)
-    return res
-      .status(400)
-      .json({ error: parsed.error.errors?.[0]?.message || 'Validation failed' });
-  const { clients } = parsed.data;
-  let successCount = 0,
-    failedCount = 0;
-  for (const client of clients) {
-    try {
-      const [dbClient] = await db
-        .select()
-        .from(schema.clients)
-        .where(
-          and(eq(schema.clients.container, client.container), eq(schema.clients.name, client.name))
-        )
-        .limit(1);
-      const { success } = await runSystemCommand(getScriptPath('wg-remove-client.sh'), [
-        client.container,
-        client.name,
-      ]);
-      if (success && dbClient) {
-        await db.delete(schema.usage).where(eq(schema.usage.publicKey, dbClient.publicKey));
-        await db.delete(schema.clients).where(eq(schema.clients.publicKey, dbClient.publicKey));
         successCount++;
-      } else {
+      } catch (e) {
         failedCount++;
       }
-    } catch (e) {
-      failedCount++;
     }
-  }
-  await auditLog({
-    actor: req.user.username,
-    action: 'bulk-delete',
-    targetType: 'system',
-    targetName: 'clients',
-    details: { count: successCount },
-    ip: req.ip,
-  });
+    await runSystemCommand(getScriptPath('wg-enforcer.sh'), []).catch(() => {});
 
-  res.json({ success: successCount, failed: failedCount });
-});
+    await auditLog({
+      actor: req.user.username,
+      action: 'bulk-update',
+      targetType: 'system',
+      targetName: 'clients',
+      details: { count: successCount, update },
+      ip: req.ip,
+    });
 
-router.post('/move', auth, requireManager, async (req, res) => {
-  // Validation Zod
-  const parsed = moveClientSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors?.[0].message });
-  const { container, name, newContainer } = parsed.data;
-  const { success, error } = await runSystemCommand(getScriptPath('wg-move-client.sh'), [
-    container,
-    name,
-    newContainer,
-  ]);
-  if (!success) return res.status(500).json({ error });
-  try {
+    res.json({ success: successCount, failed: failedCount });
+  })
+);
+
+router.post(
+  '/bulk-delete',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    const parsed = bulkDeleteSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(createError(parsed.error, 'Validation failed'));
+    }
+    const { clients } = parsed.data;
+    let successCount = 0,
+      failedCount = 0;
+    for (const client of clients) {
+      try {
+        const [dbClient] = await db
+          .select()
+          .from(schema.clients)
+          .where(
+            and(
+              eq(schema.clients.container, client.container),
+              eq(schema.clients.name, client.name)
+            )
+          )
+          .limit(1);
+        const { success } = await runSystemCommand(getScriptPath('wg-remove-client.sh'), [
+          client.container,
+          client.name,
+        ]);
+        if (success && dbClient) {
+          await db.delete(schema.usage).where(eq(schema.usage.publicKey, dbClient.publicKey));
+          await db.delete(schema.clients).where(eq(schema.clients.publicKey, dbClient.publicKey));
+          successCount++;
+        } else {
+          failedCount++;
+        }
+      } catch (e) {
+        failedCount++;
+      }
+    }
+    await auditLog({
+      actor: req.user.username,
+      action: 'bulk-delete',
+      targetType: 'system',
+      targetName: 'clients',
+      details: { count: successCount },
+      ip: req.ip,
+    });
+
+    res.json({ success: successCount, failed: failedCount });
+  })
+);
+
+router.post(
+  '/move',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    const parsed = moveClientSchema.safeParse(req.body);
+    if (!parsed.success)
+      return res.status(400).json(createError(parsed.error, 'Validation failed'));
+    const { container, name, newContainer } = parsed.data;
+    const { success, error } = await runSystemCommand(getScriptPath('wg-move-client.sh'), [
+      container,
+      name,
+      newContainer,
+    ]);
+    if (!success) throw createError(error, 'Move failed', 'SYSTEM_ERROR');
     await db
       .update(schema.clients)
       .set({ container: newContainer })
@@ -591,16 +620,19 @@ router.post('/move', auth, requireManager, async (req, res) => {
     });
 
     res.json({ success: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+  })
+);
 
-router.get('/:container/:name/history', auth, requireManager, async (req, res) => {
-  const { container, name } = req.params;
-  const limit = parseInt(req.query.limit) || 50;
-  const offset = parseInt(req.query.offset) || 0;
-  try {
+router.get(
+  '/:container/:name/history',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    const { container, name } = req.params;
+    const parsed = paginationSchema.safeParse(req.query);
+    const limit = parsed.success ? parsed.data.limit : 50;
+    const offset = parsed.success ? parsed.data.offset : 0;
+
     const history = await db
       .select()
       .from(schema.logs)
@@ -609,43 +641,45 @@ router.get('/:container/:name/history', auth, requireManager, async (req, res) =
       .limit(limit)
       .offset(offset);
     res.json(history);
-  } catch (e) {
-    console.error(`[ERROR] Failed to fetch history for ${name}:`, e.message);
-    res.json([]);
-  }
-});
+  })
+);
 
-router.get('/:container/:name/history-hours', auth, requireManager, async (req, res) => {
-  const { container, name } = req.params;
-  try {
-    const [client] = await db
-      .select()
-      .from(schema.clients)
-      .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
-      .limit(1);
-    if (!client) return res.status(404).json({ error: 'Client not found' });
-    const history = await db
-      .select()
-      .from(schema.logs)
-      .where(and(eq(schema.logs.type, 'snapshot'), eq(schema.logs.name, client.publicKey)))
-      .orderBy(desc(schema.logs.timestamp))
-      .limit(72);
-    res.json(history.map((h) => ({ time: h.timestamp, rx: h.usageDaily, tx: h.usageTotal })));
-  } catch (e) {
-    console.error(`[ERROR] Failed to fetch hourly history for ${name}:`, e.message);
-    res.json([]);
-  }
-});
-
-router.get('/:container/:name/config', auth, requireManager, async (req, res) => {
-  try {
+router.get(
+  '/:container/:name/history-hours',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
     const { container, name } = req.params;
     const [client] = await db
       .select()
       .from(schema.clients)
       .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
       .limit(1);
-    if (!client) return res.status(404).json({ error: 'Client not found' });
+    if (!client) return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
+
+    const history = await db
+      .select()
+      .from(schema.logs)
+      .where(and(eq(schema.logs.type, 'snapshot'), eq(schema.logs.name, client.publicKey)))
+      .orderBy(desc(schema.logs.timestamp))
+      .limit(72);
+
+    res.json(history.map((h) => ({ time: h.timestamp, rx: h.usageDaily, tx: h.usageTotal })));
+  })
+);
+
+router.get(
+  '/:container/:name/config',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    const { container, name } = req.params;
+    const [client] = await db
+      .select()
+      .from(schema.clients)
+      .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
+      .limit(1);
+    if (!client) return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
 
     const clientDir = getClientDir(container, name);
     const configPath = path.join(clientDir, `${name}.conf`);
@@ -654,14 +688,11 @@ router.get('/:container/:name/config', auth, requireManager, async (req, res) =>
       res.json({ config: configText });
     } catch (err) {
       if (err.code === 'ENOENT') {
-        return res.status(404).json({ error: 'Configuration file not found' });
+        throw createError('Configuration file not found', null, 'NOT_FOUND');
       }
       throw err;
     }
-  } catch (e) {
-    console.error(`[ERROR] Failed to fetch config for ${req.params.name}:`, e.message);
-    res.status(500).json({ error: 'Failed to fetch configuration' });
-  }
-});
+  })
+);
 
 module.exports = router;

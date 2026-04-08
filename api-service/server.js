@@ -171,6 +171,70 @@ app.get('/api/debug/logs', auth, requireAdmin, (req, res) => {
   res.json({ count: entries.length, level: level || 'ALL', entries });
 });
 
+// --- P12 : Observability Metrics (Prometheus Style) ---
+app.get('/api/metrics', async (req, res) => {
+  const os = require('os');
+  const { db, schema } = require('./db');
+  const counters = log.getCounters();
+  const p95 = log.getP95Latency ? log.getP95Latency() : 0;
+
+  let output = '# HELP wg_fux_log_events_total Total number of log events by level\n';
+  output += '# TYPE wg_fux_log_events_total counter\n';
+  Object.entries(counters).forEach(([level, count]) => {
+    output += `wg_fux_log_events_total{level="${level.toLowerCase()}"} ${count}\n`;
+  });
+
+  output += `wg_fux_http_request_p95_latency_ms ${p95}\n`;
+
+  const routeCounters = log.getRouteCounters();
+  output += '\n# HELP wg_fux_http_requests_total Total number of HTTP requests by route\n';
+  output += '# TYPE wg_fux_http_requests_total counter\n';
+  output += '# HELP wg_fux_http_errors_total Total number of HTTP errors (4xx/5xx) by route\n';
+  output += '# TYPE wg_fux_http_errors_total counter\n';
+
+  Object.entries(routeCounters).forEach(([route, counts]) => {
+    const [method, path] = route.split(' ');
+    output += `wg_fux_http_requests_total{method="${method}",path="${path}"} ${counts.total}\n`;
+    output += `wg_fux_http_errors_total{method="${method}",path="${path}"} ${counts.errors}\n`;
+  });
+
+  output += '\n# HELP wg_fux_uptime_seconds Process uptime\n';
+  output += '# TYPE wg_fux_uptime_seconds counter\n';
+  output += `wg_fux_uptime_seconds ${Math.floor(process.uptime())}\n`;
+
+  output += '\n# HELP wg_fux_system_load_avg System load average (1m)\n';
+  output += '# TYPE wg_fux_system_load_avg gauge\n';
+  output += `wg_fux_system_load_avg ${os.loadavg()[0]}\n`;
+
+  output += '\n# HELP wg_fux_system_cpu_count Total system CPU cores\n';
+  output += '# TYPE wg_fux_system_cpu_count gauge\n';
+  output += `wg_fux_system_cpu_count ${os.cpus().length}\n`;
+
+  try {
+    const clients = await db.select().from(schema.clients);
+    output += '\n# HELP wg_fux_clients_total Total number of registered VPN clients\n';
+    output += '# TYPE wg_fux_clients_total gauge\n';
+    output += `wg_fux_clients_total ${clients.length}\n`;
+
+    const onlineCount = clients.filter((c) => c.enabled).length; // Approximative, enabled clients
+    output += '\n# HELP wg_fux_clients_enabled_total Total number of enabled VPN clients\n';
+    output += '# TYPE wg_fux_clients_enabled_total gauge\n';
+    output += `wg_fux_clients_enabled_total ${onlineCount}\n`;
+  } catch (e) {
+    log.error('metrics', 'Failed to fetch client metrics', { error: e.message });
+  }
+
+  output += '\n# HELP wg_fux_memory_usage_bytes Process memory usage\n';
+  output += '# TYPE wg_fux_memory_usage_bytes gauge\n';
+  const mem = process.memoryUsage();
+  output += `wg_fux_memory_usage_bytes{type="rss"} ${mem.rss}\n`;
+  output += `wg_fux_memory_usage_bytes{type="heap_total"} ${mem.heapTotal}\n`;
+  output += `wg_fux_memory_usage_bytes{type="heap_used"} ${mem.heapUsed}\n`;
+
+  res.set('Content-Type', 'text/plain');
+  res.send(output);
+});
+
 // Root fallback (Redundant index serving removed in v6.3 stabilization)
 app.get('/', (req, res) => {
   res.json({ message: 'WG-FUX API Modular is up (Standardized)', status: 'online' });
@@ -230,19 +294,23 @@ app.use((err, req, res, _next) => {
 
 // --- Startup ---
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', async () => {
-  console.log('----------------------------------------------------');
-  console.log(`🚀 WG-FUX API Modular running on port ${PORT}`);
-  console.log(`🛠️ Mode: ${process.env.NODE_ENV || 'production'}`);
-  console.log('----------------------------------------------------');
+if (require.main === module) {
+  server.listen(PORT, '0.0.0.0', async () => {
+    console.log('----------------------------------------------------');
+    console.log(`🚀 WG-FUX API Modular running on port ${PORT}`);
+    console.log(`🛠️ Mode: ${process.env.NODE_ENV || 'production'}`);
+    console.log('----------------------------------------------------');
 
-  try {
-    await initializeDatabase();
-    await initializeDNS();
+    try {
+      await initializeDatabase();
+      await initializeDNS();
 
-    startJobs(); // Start background tasks
-  } catch (err) {
-    console.error('❌ FATAL: API failed to initialize database:', err);
-    process.exit(1);
-  }
-});
+      startJobs(); // Start background tasks
+    } catch (err) {
+      console.error('❌ FATAL: API failed to initialize database:', err);
+      process.exit(1);
+    }
+  });
+}
+
+module.exports = { app, server };
