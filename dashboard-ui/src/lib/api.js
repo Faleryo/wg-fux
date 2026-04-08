@@ -57,16 +57,16 @@ axiosInstance.interceptors.request.use((config) => {
 // Intercepteur pour gérer l'expiration de session (Auto-Logout) et logs de performance
 axiosInstance.interceptors.response.use(
   (response) => {
-    // Log performance in dev mode
-    const duration = response.config.metadata
-      ? new Date() - response.config.metadata.startTime
-      : 'unknown';
-    const isDev = window.location.port === '5173' || window.location.hostname === 'localhost';
-
+    // P7 : Logging structuré minimal en développement
     if (isDev) {
-      console.log(
-        `[API-SUCCESS] ${response.config.method.toUpperCase()} ${response.config.url} (${duration}ms)`
-      );
+      const logEntry = {
+        ts: new Date().toISOString(),
+        level: 'info',
+        svc: 'ui-api',
+        msg: `[API-SUCCESS] ${response.config.method.toUpperCase()} ${response.config.url}`,
+        duration_ms: duration,
+      };
+      console.log(JSON.stringify(logEntry));
     }
     return response;
   },
@@ -79,13 +79,18 @@ axiosInstance.interceptors.response.use(
     const errMsg = data?.message || data?.error || error.message || 'Unknown API Error';
     const errCode = data?.code || 'ERR_UNKNOWN';
 
-    const isDev = window.location.port === '5173' || window.location.hostname === 'localhost';
-
+    // P7 : Logging structuré des erreurs
     if (isDev || status >= 400) {
-      console.error(
-        `[API-ERR] ${error.config?.method?.toUpperCase()} ${error.config?.url} [${status}] (${duration}ms):`,
-        { code: errCode, message: errMsg, path: data?.path }
-      );
+      const logEntry = {
+        ts: new Date().toISOString(),
+        level: status >= 500 ? 'error' : 'warn',
+        svc: 'ui-api',
+        msg: `[API-ERR] ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+        status,
+        duration_ms: duration,
+        error: { code: errCode, message: errMsg, path: data?.path },
+      };
+      console.error(JSON.stringify(logEntry));
     }
 
     // Auto-logout on auth failure (Grade Diamond Hardening)

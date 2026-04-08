@@ -102,9 +102,9 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('unhandledRejection', (reason) => {
-  console.error('[CRASH-DEBUG] Unhandled Rejection:', reason);
-  _write('WARN', 'process', 'UnhandledRejection', {
+  _write('ERROR', 'process', 'UnhandledRejection', {
     reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? (reason.stack || '').split('\n')?.[1]?.trim() : undefined,
   });
 });
 
