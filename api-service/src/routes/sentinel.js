@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
 
-// In-memory store for Sentinel status (Shared with other routes if needed)
+// In-memory store for Sentinel status
 let sentinelStatus = {
   lastHeartbeat: null,
   status: 'offline',
@@ -11,22 +11,11 @@ let sentinelStatus = {
 };
 
 // Heartbeat endpoint for Sentinel V2
-// WAVE 4: Secured with shared secret (SENTINEL_TOKEN) or JWT
-router.post('/heartbeat', async (req, res) => {
-  const token = req.headers['x-api-token'];
-  const sentinelToken = process.env.SENTINEL_TOKEN || 'vibe-sentinel-trust-99';
-    
-  if (token !== sentinelToken) {
-    // Fallback: check if it's a valid admin/manager JWT
-    try {
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (decoded.role !== 'admin' && decoded.role !== 'manager') throw new Error();
-    } catch {
-      return res.status(401).json({ error: 'Sentinel Auth failed' });
-    }
-  }
-
+// WAVE 5: Strictly rely on 'auth' middleware for SENTINEL_TOKEN verification + IP check
+router.post('/heartbeat', auth, async (req, res) => {
+  // If we reach here, 'auth' middleware has already verified the token AND the IP
+  // or it verified a valid admin/manager JWT.
+  
   const { status, logs, stats } = req.body;
     
   sentinelStatus = {

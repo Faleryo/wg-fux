@@ -35,7 +35,7 @@ router.get('/containers', auth, async (req, res) => {
 router.post('/containers', auth, requireManager, async (req, res) => {
   // Validation Zod sur le nom du container
   const parsed = containerSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors?.?.[0]?.message || 'Validation failed' });
   const { name } = parsed.data;
   const { success, error } = await runSystemCommand(getScriptPath('wg-create-container.sh'), [name]);
   if (!success) return res.status(500).json({ error });
@@ -76,7 +76,7 @@ router.get('/', auth, async (req, res) => {
   try {
     const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 10000), 10000);
     const offset = Math.max(0, parseInt(req.query.offset) || 0);
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')?.[0];
         
     const stdout = await getWireGuardStats();
     const peers = parseWireGuardDump(stdout);
@@ -160,7 +160,7 @@ router.get('/export', auth, async (req, res) => {
 router.post('/', auth, requireManager, async (req, res) => {
   try {
     const result = clientSchema.safeParse(req.body);
-    if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
+    if (!result.success) return res.status(400).json({ error: result.error.errors?.?.[0].message });
 
     const { name, container, expiry, quota, uploadLimit } = result.data;
     const cleanExpiry = expiry || '';
@@ -181,7 +181,7 @@ router.post('/', auth, requireManager, async (req, res) => {
       const publicKey = await fsPromises.readFile(pubKeyFile, 'utf8').then(s => s.trim());
       const conf = await fsPromises.readFile(confFile, 'utf8');
       const ipMatch = conf.match(/Address\s*=\s*([^#\n]+)/m);
-      const ip = ipMatch ? ipMatch[1].split(',')[0].trim() : '';
+      const ip = ipMatch ? ipMatch?.[1].split(',')?.[0].trim() : '';
             
       return { publicKey, ip };
     };
@@ -224,7 +224,7 @@ router.post('/', auth, requireManager, async (req, res) => {
 router.post('/:container/:name/toggle', auth, requireManager, async (req, res) => {
   // Validation Zod sur le body
   const parsed = toggleSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors?.?.[0]?.message || 'Validation failed' });
 
   try {
     const { container, name } = req.params;
@@ -245,7 +245,7 @@ router.post('/:container/:name/toggle', auth, requireManager, async (req, res) =
       }
       const addressMatch = config.match(/^\s*Address\s*=\s*([^#\n]+)/m);
       if (!addressMatch) throw new Error(`Invalid configuration file for ${name}`);
-      const ips = addressMatch[1].trim().split(',').map(ip => ip.trim().split('/')[0]).map(ip => ip.includes(':') ? `${ip}/128` : `${ip}/32`).join(',');
+      const ips = addressMatch?.[1].trim().split(',').map(ip => ip.trim().split('/')?.[0]).map(ip => ip.includes(':') ? `${ip}/128` : `${ip}/32`).join(',');
       await runSystemCommand(getScriptPath('wg-toggle.sh'), [process.env.WG_INTERFACE || 'wg0', 'peer', publicKey, 'allowed-ips', ips]);
     } else {
       const { success: disabledSuccess, error: disabledError } = await writeFileAsRoot(path.join(clientDir, 'disabled'), new Date().toISOString());
@@ -298,7 +298,7 @@ router.patch('/:container/:name', auth, requireManager, async (req, res) => {
   const { container, name } = req.params;
   // Validation Zod sur le patch
   const parsed = clientPatchSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors?.?.[0]?.message || 'Validation failed' });
   const { expiry, quota, uploadLimit } = parsed.data;
   try {
     const [client] = await db.select().from(schema.clients).where(and(eq(schema.clients.container, container), eq(schema.clients.name, name))).limit(1);
@@ -361,7 +361,7 @@ router.patch('/:container/:name', auth, requireManager, async (req, res) => {
 router.post('/bulk-update', auth, requireManager, async (req, res) => {
   // Validation Zod
   const parsed = bulkUpdateSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors?.?.[0]?.message || 'Validation failed' });
   const { clients, update } = parsed.data;
   let successCount = 0, failedCount = 0;
   for (const client of clients) {
@@ -399,7 +399,7 @@ router.post('/bulk-update', auth, requireManager, async (req, res) => {
 router.post('/bulk-delete', auth, requireManager, async (req, res) => {
   // Validation Zod
   const parsed = bulkDeleteSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors?.?.[0]?.message || 'Validation failed' });
   const { clients } = parsed.data;
   let successCount = 0, failedCount = 0;
   for (const client of clients) {
@@ -429,7 +429,7 @@ router.post('/bulk-delete', auth, requireManager, async (req, res) => {
 router.post('/move', auth, requireManager, async (req, res) => {
   // Validation Zod
   const parsed = moveClientSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors?.?.[0].message });
   const { container, name, newContainer } = parsed.data;
   const { success, error } = await runSystemCommand(getScriptPath('wg-move-client.sh'), [container, name, newContainer]);
   if (!success) return res.status(500).json({ error });

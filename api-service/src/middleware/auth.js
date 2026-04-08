@@ -33,15 +33,11 @@ const auth = async (req, res, next) => {
     return res.status(401).json({ error: 'Auth required' });
   }
 
-  const clientIp = req.ip || req.socket?.remoteAddress || '';
+  const clientIp = req.socket?.remoteAddress || '';
   const isInternalNetwork = (
     clientIp === '127.0.0.1' ||
     clientIp === '::1' ||
-    clientIp === '::ffff:127.0.0.1' ||
-    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(clientIp) ||
-    clientIp.startsWith('::ffff:172.') ||
-    clientIp.startsWith('10.') ||
-    clientIp.startsWith('::ffff:10.')
+    clientIp === '::ffff:127.0.0.1'
   );
 
   // 💠 SRE Sentinel Bypass: prioritisation absolue

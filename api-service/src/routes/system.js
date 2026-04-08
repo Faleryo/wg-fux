@@ -81,7 +81,7 @@ router.get('/traffic-history', auth, async (req, res, next) => {
 
     const grouped = {};
     history.forEach(h => {
-      const time = h.timestamp.toISOString().split(':')[0];
+      const time = h.timestamp.toISOString().split(':')?.[0];
       if (!grouped[time]) grouped[time] = { time, rx: 0, tx: 0 };
       grouped[time].rx += h.usageDaily || 0;
       grouped[time].tx += h.usageTotal || 0;
@@ -199,7 +199,7 @@ router.get('/config', auth, requireAdmin, async (req, res) => {
 
 router.post('/config', auth, requireAdmin, async (req, res) => {
   const result = systemConfigSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
+  if (!result.success) return res.status(400).json({ error: result.error.errors?.?.[0]?.message || 'Validation failed' });
   const { port, mtu, dns, subnet, keepalive } = result.data;
 
   try {
@@ -388,7 +388,7 @@ router.get('/security-logs', auth, requireAdmin, async (req, res) => {
     if (!success) return res.json([]);
     const lines = stdout.split('\n').filter(Boolean).map(line => {
       const parts = line.split(' - ');
-      return { date: parts[0], message: parts[1] || line };
+      return { date: parts?.[0], message: parts?.[1] || line };
     });
     res.json(lines.reverse());
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -420,11 +420,11 @@ router.get('/security-audit', auth, requireAdmin, async (req, res) => {
     const system = await getSystemStats();
 
     const { stdout: f2bStats } = await runSystemCommand('fail2ban-client', ['status', 'wg-api']).catch(() => ({ stdout: '' }));
-    const bannedCount = (f2bStats.match(/Currently banned:\s+(\d+)/) || [0, 0])[1];
+    const bannedCount = (f2bStats.match(/Currently banned:\s+(\d+)/) || [0, 0])?.[1];
 
     res.json({
       firewall: ufwStatus.includes('active') ? 'Protected' : 'Warning',
-      ufw: ufwStatus.trim().split('\n')[0],
+      ufw: ufwStatus.trim().split('\n')?.[0],
       containers: dockerPsi.trim().split('\n'),
       diskUsage: `${system.disk}%`,
       integrity: 'Optimal',

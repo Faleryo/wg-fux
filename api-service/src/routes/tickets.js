@@ -20,7 +20,7 @@ router.get('/', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const result = ticketSchema.safeParse(req.body);
-    if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
+    if (!result.success) return res.status(400).json({ error: result.error.errors?.?.[0]?.message || 'Validation failed' });
         
     const { title, message } = result.data;
     const ticketData = {

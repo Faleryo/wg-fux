@@ -28,10 +28,10 @@ const loginLimiter = rateLimit({
 
 router.post('/login', loginLimiter, async (req, res, next) => {
   try {
-    const result = loginSchema.safeParse(req.body);
-    if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.errors?.?.[0]?.message || 'Validation failed' });
 
-    const { username, password, token: totpToken } = result.data;
+    const { username, password, token: totpToken } = parsed.data;
     const [user] = await db.select().from(schema.users).where(eq(schema.users.username, username)).limit(1);
 
     let isValid = false;

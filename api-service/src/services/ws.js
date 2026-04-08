@@ -24,7 +24,7 @@ class WebSocketService {
 
   setupHandlers() {
     this.wssLogs.on('connection', (ws, req) => {
-      const type = url.parse(req.url).pathname.split('/')[3];
+      const type = url.parse(req.url).pathname.split('/')?.[3];
       const WG_INTERFACE = process.env.WG_INTERFACE || 'wg0';
 
       ws.isAlive = true;
