@@ -70,7 +70,7 @@ router.post('/containers', auth, requireManager, asyncWrap(async (req, res) => {
 
 router.delete('/containers/:name', auth, requireManager, asyncWrap(async (req, res) => {
   const { name } = req.params;
-  const { success, error } = await runSystemCommand(getScriptPath('wg-delete-container.sh'), [
+  const { success, error } = await runSystemCommand(getScriptPath('wg-remove-container.sh'), [
     name,
   ]);
   if (!success) {

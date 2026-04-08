@@ -203,11 +203,18 @@ router.get('/config', auth, requireAdmin, asyncWrap(async (req, res) => {
 
   const iface = process.env.WG_INTERFACE || 'wg0';
   const [livePort, liveMtu] = await Promise.all([
-    runCommand(WG_BIN, ['show', iface, 'listen-port'])
+    runSystemCommand(WG_BIN, ['show', iface, 'listen-port'])
       .then((r) => r.stdout)
       .catch(() => null),
-    runCommand('cat', [`/sys/class/net/${iface}/mtu`])
-      .then((r) => r.stdout)
+    runSystemCommand('ip', ['-j', 'link', 'show', iface])
+      .then((r) => {
+        try {
+          const data = JSON.parse(r.stdout);
+          return data[0]?.mtu?.toString() || null;
+        } catch {
+          return null;
+        }
+      })
       .catch(() => null),
   ]);
 
