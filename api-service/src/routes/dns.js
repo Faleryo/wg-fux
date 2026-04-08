@@ -82,8 +82,8 @@ router.post('/config', auth, requireAdmin, async (req, res) => {
 
     if (safesearch_enabled !== undefined) {
       requests.push(
-        axios.post(
-          `${AGH_BASE_URL}/control/safesearch/status`,
+        axios.put(
+          `${AGH_BASE_URL}/control/safesearch/settings`,
           { enabled: !!safesearch_enabled },
           AGH_AUTH
         )
@@ -91,31 +91,30 @@ router.post('/config', auth, requireAdmin, async (req, res) => {
     }
 
     if (safebrowsing_enabled !== undefined) {
-      requests.push(
-        axios.post(`${AGH_BASE_URL}/control/safebrowsing/enable`, {}, AGH_AUTH).catch(async () => {
-          if (!safebrowsing_enabled)
-            return axios.post(`${AGH_BASE_URL}/control/safebrowsing/disable`, {}, AGH_AUTH);
-        })
-      );
+      const mode = safebrowsing_enabled ? 'enable' : 'disable';
+      requests.push(axios.post(`${AGH_BASE_URL}/control/safebrowsing/${mode}`, {}, AGH_AUTH));
     }
 
     if (parental_enabled !== undefined) {
-      requests.push(
-        axios.post(`${AGH_BASE_URL}/control/parental/enable`, {}, AGH_AUTH).catch(async () => {
-          if (!parental_enabled)
-            return axios.post(`${AGH_BASE_URL}/control/parental/disable`, {}, AGH_AUTH);
-        })
-      );
+      const mode = parental_enabled ? 'enable' : 'disable';
+      requests.push(axios.post(`${AGH_BASE_URL}/control/parental/${mode}`, {}, AGH_AUTH));
     }
 
     await Promise.all(requests);
 
     res.json({ success: true });
   } catch (error) {
-    log.error('dns', 'Failed to update multi-tier DNS config in AGH', { error: error.message });
-    res
-      .status(500)
-      .json({ error: 'Internal DNS Error', message: 'Could not update all AdGuard Home settings' });
+    log.error('dns', 'Failed to update multi-tier DNS config in AGH', {
+      error: error.message,
+      details: error.response?.data,
+      path: error.config?.url,
+      method: error.config?.method,
+    });
+    res.status(500).json({
+      error: 'Internal DNS Error',
+      message: 'Could not update all AdGuard Home settings',
+      details: error.response?.data || error.message,
+    });
   }
 });
 
