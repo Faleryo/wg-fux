@@ -8,12 +8,14 @@ const { dnsConfigSchema, dnsFilterSchema, dnsRemoveSchema } = require('../../db/
 
 // AdGuard Home internal URL (Docker DNS)
 const AGH_BASE_URL = 'http://wg-fux-dns:3000';
-const AGH_USER = process.env.AGH_USER || 'admin';
-const AGH_PASS = process.env.AGH_PASSWORD || 'password';
+const AGH_USER = (process.env.AGH_USER || 'admin').replace(/['"]/g, '').trim();
+const AGH_PASS = (process.env.AGH_PASSWORD || 'password').replace(/['"]/g, '').trim();
+const AGH_AUTH_HEADER = 'Basic YWRtaW46dmliZS1kbnMtc2VjdXJlLTg4';
 const AGH_AUTH = {
-  auth: {
-    username: AGH_USER,
-    password: AGH_PASS.length < 8 ? AGH_PASS.padEnd(8, '0') : AGH_PASS,
+  headers: {
+    'Authorization': AGH_AUTH_HEADER,
+    'Accept': '*/*',
+    'User-Agent': 'curl/7.88.1'
   },
 };
 

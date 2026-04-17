@@ -31,9 +31,9 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
   const env = { ...process.env, LC_ALL: 'C', LANG: 'C' };
   const commandStr = `${cmd} ${args.join(' ')}`;
 
-  // 🛡️ OBSIDIAN-HARDENING: Strict argument validation
+  // 🛡️ OBSIDIAN-HARDENING: Strict argument validation + Unicode/Emoji support
   // eslint-disable-next-line no-misleading-character-class
-  const SAFE_ARG = /^[a-zA-Z0-9/._@ ():~+[\]\n\r{}'\\",À-ÿ-]*$/u;
+  const SAFE_ARG = /^[a-zA-Z0-9/._@ ():~+[\]\n\r{}'\\",À-ÿ\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}-]*$/u;
   for (const arg of args) {
     if (arg && !SAFE_ARG.test(arg)) {
       if (log && typeof log.error === 'function') {
@@ -66,7 +66,7 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
   try {
     if (stdinData !== null) {
       return await new Promise((resolve) => {
-        const proc = childProcess.spawn(cmd, args, { timeout: 15000, env });
+        const proc = childProcess.spawn(cmd, args, { timeout: 90000, env });
         let stdout = '',
           stderr = '';
         proc.stdout.on('data', (d) => {
@@ -103,7 +103,7 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
     }
 
     const { stdout, stderr } = await execFilePromise(cmd, args, {
-      timeout: 10000,
+      timeout: 90000,
       maxBuffer: 10 * 1024 * 1024,
       env,
     });

@@ -18,11 +18,14 @@ const VibeButton = ({
   const variants = {
     primary: 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30 text-white border-transparent',
     secondary: 'bg-white/10 hover:bg-white/15 text-white border-white/5',
-    ghost: 'bg-transparent hover:bg-white/5 text-slate-400 hover:text-white border-transparent',
+    ghost:
+      'bg-transparent hover:bg-white/5 text-slate-400 hover:text-white border-transparent',
     danger:
       'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20 shadow-rose-500/10',
     success:
       'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10',
+    spectre:
+      'bg-transparent hover:bg-indigo-500/10 text-indigo-400 border-indigo-500/30 shadow-[0_0_15px_-5px_rgba(99,102,241,0.3)]',
   };
 
   const sizes = {
@@ -54,7 +57,12 @@ const VibeButton = ({
       <span className="relative z-10">{children}</span>
 
       {/* Effet Liquid Sparkle sur Hover */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none rounded-2xl"></div>
+
+      {/* Outer Glow on Primary */}
+      {variant === 'primary' && (
+        <div className="absolute -inset-0.5 bg-indigo-500 opacity-20 blur-xl group-hover:opacity-40 transition-opacity -z-10 rounded-2xl" />
+      )}
     </motion.button>
   );
 };

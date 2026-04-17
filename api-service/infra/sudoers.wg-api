@@ -1,0 +1,25 @@
+# 💠 WG-FUX: Minimal Sudoers Policy (Obsidian Grade)
+# Restricted privileges for the API user
+
+# Network & System Binaries
+Defaults:wg-api !requiretty
+wg-api ALL=(ALL) NOPASSWD: /usr/bin/wg, /usr/bin/wg-quick, /usr/sbin/ufw, /usr/sbin/sysctl, /sbin/ip, /usr/bin/truncate, /usr/bin/pgrep
+
+# Specific Shell Scripts (Authorized list)
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-file-proxy.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-restore.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-backup.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/sentinel.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/vibe-check.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-harden.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-speedtest.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-check-expiry.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-optimize.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-apply-qos.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-send-msg.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-create-client.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-toggle.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-remove-client.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-move-client.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-create-container.sh
+wg-api ALL=(ALL) NOPASSWD: /app/core-vpn/scripts/wg-remove-container.sh

@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 // ─── Base Skeleton ────────────────────────────────────────────────────────────
 export const Skeleton = ({ className, style, ...props }) => (
   <div
-    className={cn('animate-shimmer rounded-2xl bg-white/[0.06]', className)}
+    className={cn('animate-pulse rounded-2xl bg-indigo-500/10', className)}
     style={style}
     {...props}
   />
@@ -12,11 +12,11 @@ export const Skeleton = ({ className, style, ...props }) => (
 
 // ─── Dashboard Skeleton ───────────────────────────────────────────────────────
 export const SkeletonDashboard = () => (
-  <div className="space-y-6 animate-in fade-in duration-500">
+  <div className="space-y-6 animate-in fade-in duration-1000">
     {/* Row 1 */}
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
       <div className="xl:col-span-8">
-        <div className="bg-slate-900/40 border border-white/5 rounded-[2.5rem] p-8 space-y-8 min-h-[320px]">
+        <div className="glass-card p-8 space-y-8 min-h-[320px] shadow-2xl">
           <div className="flex justify-between items-start flex-wrap gap-4">
             <div className="space-y-3">
               <Skeleton className="h-10 w-56" />
@@ -56,9 +56,9 @@ export const SkeletonDashboard = () => (
 
 // ─── Card Skeleton ────────────────────────────────────────────────────────────
 export const SkeletonCard = ({ count = 6 }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-500">
+  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-1000">
     {[...Array(count)].map((_, i) => (
-      <div key={i} className="bg-slate-900/40 border border-white/5 rounded-[2.5rem] p-8 space-y-5">
+      <div key={i} className="glass-card p-8 space-y-5 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Skeleton className="w-12 h-12 rounded-2xl" />
@@ -89,8 +89,8 @@ export const SkeletonCard = ({ count = 6 }) => (
 
 // ─── Table Skeleton ───────────────────────────────────────────────────────────
 export const SkeletonTable = ({ rows = 8 }) => (
-  <div className="bg-slate-900/40 border border-white/5 rounded-[2.5rem] overflow-hidden animate-in fade-in duration-500">
-    <div className="p-6 border-b border-white/5">
+  <div className="glass-panel rounded-[2.5rem] overflow-hidden animate-in fade-in duration-1000 shadow-2xl">
+    <div className="p-6 border-b border-white/5 bg-white/5">
       <div className="flex gap-4">
         <Skeleton className="h-10 w-64 rounded-2xl" />
         <Skeleton className="h-10 w-36 rounded-2xl" />

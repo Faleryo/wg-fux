@@ -33,12 +33,27 @@ const WG_BIN = process.env.WG_BIN || 'wg';
 const WG_QUICK_BIN = process.env.WG_QUICK_BIN || 'wg-quick';
 
 // --- AdGuard Status Check ---
+const AGH_BASE_URL = 'http://wg-fux-dns:3000';
+const AGH_USER = (process.env.AGH_USER || 'admin').replace(/['"]/g, '').trim();
+const AGH_PASS = (process.env.AGH_PASSWORD || 'password').replace(/['"]/g, '').trim();
+
 router.get(
   '/adguard-status',
   auth,
   asyncWrap(async (req, res) => {
     try {
-      const response = await axios.get('http://adguard:3000/control/status', { timeout: 3000 });
+      // SRE Logic: AdGuard Home requires minimum 8 chars for password
+      let aghPassword = AGH_PASS;
+      if (aghPassword.length < 8) {
+        aghPassword = AGH_PASS.padEnd(8, '0');
+      }
+      
+      const authHeader = `Basic ${Buffer.from(`${AGH_USER}:${aghPassword}`).toString('base64')}`;
+      
+      const response = await axios.get(`${AGH_BASE_URL}/control/status`, {
+        headers: { Authorization: authHeader },
+        timeout: 3000,
+      });
       res.json({ status: response.status === 200 ? 'active' : 'inactive' });
     } catch (e) {
       log.warn('system', 'AdGuard health check failed', { error: e.message });

@@ -85,21 +85,21 @@ services:
     ports:
       - "${SERVER_PORT:-51820}:${SERVER_PORT:-51820}/udp"
       - "127.0.0.1:3000:3000"
-    # Port 3000 est interne au réseau vpn-internal, mais exposé localement pour sentinel
+    stop_grace_period: 1m
     networks:
       - vpn-internal
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 60s
-      timeout: 10s
+      test: ["CMD", "curl", "-L", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
       retries: 5
-      start_period: 90s
+      start_period: 60s
 
     deploy:
       resources:
         limits:
           cpus: '0.5'
-          memory: 128M
+          memory: 256M
 
 
   ui:
@@ -142,7 +142,7 @@ services:
         ipv4_address: 172.20.0.100
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
-      interval: 600s
+      interval: 60s
       timeout: 10s
       retries: 3
       start_period: 60s

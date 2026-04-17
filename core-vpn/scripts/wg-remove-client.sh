@@ -5,6 +5,8 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 # shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
 
+set -euo pipefail
+
 check_root
 load_config
 

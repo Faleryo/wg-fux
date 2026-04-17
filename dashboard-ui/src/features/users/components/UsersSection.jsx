@@ -1,20 +1,26 @@
 import React, { useState } from 'react';
-import { Users, Plus, Shield, Search, Trash2, UserCheck } from 'lucide-react';
+import { Users, Plus, Shield, Search, Trash2, UserCheck, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { cn } from '../../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlassCard from '../../../components/ui/Card';
 import VibeButton from '../../../components/ui/Button';
 
-const UsersSection = ({ users = [], loading = false, onCreateUser, onDelete }) => {
+const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDelete }) => {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = (users || []).filter((user) => {
+    const searchLower = String(searchTerm || '').toLowerCase();
+    return (
+      String(user?.username || '')
+        .toLowerCase()
+        .includes(searchLower) ||
+      String(user?.role || '')
+        .toLowerCase()
+        .includes(searchLower)
+    );
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
@@ -97,11 +103,11 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onDelete }) =
                               : 'border border-white/5'
                           )}
                         >
-                          {user.username.charAt(0).toUpperCase()}
+                          {String(user?.username || '?').charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <div className="text-sm font-black text-white uppercase tracking-tight flex items-center gap-2">
-                            {user.username}
+                            {user.username || 'Inconnu'}
                             {user.role === 'admin' && (
                               <Shield size={14} className={cn(`text-${theme}-400`)} />
                             )}
@@ -127,19 +133,31 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onDelete }) =
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-black uppercase tracking-widest bg-emerald-500/5 px-4 py-1.5 rounded-xl border border-emerald-500/10 w-fit">
                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
-                        Active
+                        {user.expiry && new Date(user.expiry) < new Date() ? 'Expiré' : 'Actif'}
                       </div>
                     </td>
                     <td className="px-6 py-6 text-right">
                       <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform lg:translate-x-2 lg:group-hover:translate-x-0">
                         <VibeButton
+                          variant="secondary"
+                          size="sm"
+                          icon={RefreshCw}
+                          className="p-2.5"
+                          title="Éditer Opérateur"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(user);
+                          }}
+                        />
+                        <VibeButton
                           variant="danger"
                           size="sm"
                           icon={Trash2}
                           className="p-2.5"
+                          title="Supprimer Opérateur"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onDelete(user.username);
+                            onDelete(user);
                           }}
                         />
                       </div>

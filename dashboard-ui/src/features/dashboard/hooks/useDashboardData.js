@@ -18,6 +18,8 @@ const useDashboardData = (session) => {
   const prevDataRef = useRef({ clients: [], timestamp: null });
 
   const [clients, setClients] = useState([]);
+  const [activeInterface, setActiveInterface] = useState('wg0');
+  const [interfaces, setInterfaces] = useState([]);
   const [allContainers, setAllContainers] = useState([]);
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({});
@@ -89,16 +91,27 @@ const useDashboardData = (session) => {
   const fetchData = useCallback(async () => {
     try {
       const isAdmin = sessionRole === 'admin';
-      const [clientsRes, statsRes, healthRes, containersRes, usersRes] = await Promise.all([
+      const [
+        clientsRes,
+        statsRes,
+        healthRes,
+        readyCheckRes,
+        containersRes,
+        interfacesRes,
+        usersRes,
+      ] = await Promise.all([
         axiosInstance.get('/clients'),
-        axiosInstance.get('/system/stats').catch(() => ({ data: {} })),
+        axiosInstance.get(`/system/stats?interface=${activeInterface}`).catch(() => ({ data: {} })),
         axiosInstance.get('/system/health').catch(() => ({ data: { status: 'unhealthy' } })),
         axiosInstance.get('/ready').catch(() => ({ data: { status: 'not ready' } })),
         axiosInstance.get('/clients/containers').catch(() => ({ data: [] })),
+        axiosInstance.get('/system/interfaces').catch(() => ({ data: [] })),
         isAdmin
           ? axiosInstance.get('/users').catch(() => ({ data: [] }))
           : Promise.resolve({ data: [] }),
       ]);
+      const fetchedInterfaces = interfacesRes.data || [];
+      setInterfaces(fetchedInterfaces);
 
       const now = Date.now();
       const fetchedClients = clientsRes.data || [];
@@ -131,7 +144,7 @@ const useDashboardData = (session) => {
       setSystemStats(statsRes.data?.system || { cpu: 0, memory: 0, disk: 0 });
       setHealth({
         ...(healthRes.data || { status: 'unknown' }),
-        ready: arguments[1][3]?.data?.status === 'ready',
+        ready: readyCheckRes.data?.status === 'ready',
       });
 
       const totalDownRate = clientsWithRates.reduce((acc, c) => acc + (c.downloadRate || 0), 0);
@@ -169,7 +182,7 @@ const useDashboardData = (session) => {
       console.error('[useDashboardData] Fetch error:', error);
       setLoading(false);
     }
-  }, [sessionRole]);
+  }, [sessionRole, activeInterface]);
 
   // ── Bootstrap + Polling ───────────────────────────────────────────────────
   useEffect(() => {
@@ -251,6 +264,9 @@ const useDashboardData = (session) => {
     handleRunSpeedtest,
     // Setters needed by MainLayout
     setUsers,
+    activeInterface,
+    setActiveInterface,
+    interfaces,
   };
 };
 

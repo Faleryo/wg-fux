@@ -9,7 +9,7 @@ export const ThemeProvider = ({ children }) => {
   const getInitialMode = () => {
     const params = new URLSearchParams(window.location.search);
     const themeParam = params.get('theme');
-    if (themeParam === 'light' || themeParam === 'dark') return themeParam;
+    if (themeParam === 'light' || themeParam === 'dark' || themeParam === 'spectre') return themeParam;
     return localStorage.getItem('theme-mode') || 'light';
   };
 
@@ -17,7 +17,9 @@ export const ThemeProvider = ({ children }) => {
   const isDark = mode === 'dark';
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', mode === 'dark');
+    document.documentElement.classList.remove('dark', 'spectre');
+    if (mode === 'dark') document.documentElement.classList.add('dark');
+    if (mode === 'spectre') document.documentElement.classList.add('spectre');
     localStorage.setItem('theme-mode', mode);
   }, [mode]);
 

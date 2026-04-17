@@ -27,6 +27,31 @@ import { motion } from 'framer-motion';
 import GlassCard from '../../../components/ui/Card';
 import VibeButton from '../../../components/ui/Button';
 import { LiveTelemetryChart } from './LiveTelemetryChart';
+import InterfaceSelector from '../../../components/SRE/InterfaceSelector';
+import EdgeNodeHeatmap from '../../../components/SRE/EdgeNodeHeatmap';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 100,
+      damping: 10,
+    },
+  },
+};
 
 const DashboardSection = ({
   stats,
@@ -41,6 +66,9 @@ const DashboardSection = ({
   sentinel,
   adguardStatus,
   onNavigate,
+  activeInterface,
+  setActiveInterface,
+  interfaces,
 }) => {
   const { theme, isDark } = useTheme();
   const cpu = systemStats?.cpu || 0;
@@ -97,7 +125,12 @@ const DashboardSection = ({
   }, [clients]);
 
   return (
-    <div className="space-y-6 md:space-y-10 animate-in slide-in-from-bottom-10 duration-700">
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="space-y-6 md:space-y-10"
+    >
       {/* ── Quota Alert Banner ──────────────────────────────────────────────── */}
       {quotaAlerts.length > 0 && (
         <div className="flex items-start gap-4 p-4 bg-rose-500/5 border border-rose-500/20 rounded-2xl animate-in slide-in-from-top-2 duration-500">
@@ -141,7 +174,7 @@ const DashboardSection = ({
           (GlassCard's motion.div wrapper cannot have col-span) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-12 gap-6 md:gap-8">
         {/* Hero Card — 2xl:col-span-8 */}
-        <div className="2xl:col-span-8">
+        <motion.div variants={itemVariants} className="2xl:col-span-8">
           <GlassCard className="p-6 md:p-10 flex flex-col justify-between group min-h-[320px]">
             {/* Decorative server icon — pointer-events-none always */}
             <div className="absolute -right-10 -bottom-10 pointer-events-none">
@@ -174,17 +207,23 @@ const DashboardSection = ({
                     System Security Integrated: 100% Integrity
                   </p>
                 </div>
-                <div
-                  className={cn(
-                    'px-4 py-2 rounded-full text-[10px] font-black tracking-[0.2em] border whitespace-nowrap transition-all duration-500',
-                    health.status === 'healthy' && health.ready
-                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 animate-pulse'
-                      : health.status === 'healthy'
-                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
-                        : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                  )}
-                >
-                  {health.status === 'healthy' && health.ready ? 'OPERATIONAL' : health.status === 'healthy' ? 'READY' : 'CHECKING'}
+                <div className="flex items-center gap-4 flex-wrap">
+                  <InterfaceSelector
+                    onSelect={setActiveInterface}
+                    current={activeInterface}
+                  />
+                  <div
+                    className={cn(
+                      'px-4 py-2 rounded-full text-[10px] font-black tracking-[0.2em] border whitespace-nowrap transition-all duration-500',
+                      health.status === 'healthy' && health.ready
+                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 animate-pulse'
+                        : health.status === 'healthy'
+                          ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                          : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                    )}
+                  >
+                    {health.status === 'healthy' && health.ready ? 'OPERATIONAL' : health.status === 'healthy' ? 'READY' : 'CHECKING'}
+                  </div>
                 </div>
               </div>
 
@@ -273,10 +312,10 @@ const DashboardSection = ({
               </div>
             </div>
           </GlassCard>
-        </div>
+        </motion.div>
 
         {/* Right sidebar cards — lg:col-span-1 2xl:col-span-4 */}
-        <div className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6">
+        <motion.div variants={itemVariants} className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6">
           {/* Sentinel & AdGuard */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
             {/* Sentinel */}
@@ -437,18 +476,27 @@ const DashboardSection = ({
               </p>
             </div>
           </GlassCard>
-        </div>
+        </motion.div>
       </div>
 
+      {/* === ROW 1.5: Edge Distributed Nodes (Phase 4) === */}
+      {interfaces && interfaces.length > 0 && (
+        <motion.div variants={itemVariants}>
+          <GlassCard className="p-6 md:p-8">
+            <EdgeNodeHeatmap interfaces={interfaces} />
+          </GlassCard>
+        </motion.div>
+      )}
+
       {/* === ROW 2: Telemetry + Pie + Speedtest === */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-12 gap-6 lg:gap-8">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-12 gap-6 lg:gap-8">
         {/* Telemetry — md:col-span-2 lg:col-span-2 2xl:col-span-8 */}
         <div className="md:col-span-2 lg:col-span-2 2xl:col-span-8">
           <LiveTelemetryChart />
         </div>
 
         {/* Pie + Speedtest — lg:col-span-1 2xl:col-span-4 */}
-        <div className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6">
+        <motion.div variants={itemVariants} className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6">
           {/* Traffic Répartition */}
           <GlassCard className="p-6 group flex-1" hover={true}>
             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 flex items-center gap-3">
@@ -587,9 +635,9 @@ const DashboardSection = ({
               </div>
             )}
           </GlassCard>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 };
 

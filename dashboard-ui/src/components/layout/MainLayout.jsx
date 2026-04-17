@@ -11,6 +11,8 @@ import ErrorBoundary from '../ErrorBoundary';
 import Sidebar from './Sidebar';
 import { SkeletonDashboard } from '../ui/Skeleton';
 import GlobalSearch from '../ui/GlobalSearch';
+import PerformanceMonitor from '../SRE/PerformanceMonitor';
+import InterfaceSelector from '../SRE/InterfaceSelector';
 
 // Modals
 import ConfirmModal from '../modals/ConfirmModal';
@@ -18,6 +20,7 @@ import CreateClientModal from '../modals/CreateClientModal';
 import CreateContainerModal from '../modals/CreateContainerModal';
 import QRCodeModal from '../modals/QRCodeModal';
 import CreateUserModal from '../modals/CreateUserModal';
+import EditUserModal from '../modals/EditUserModal';
 import EditClientModal from '../modals/EditClientModal';
 
 // Feature: Dashboard
@@ -59,6 +62,8 @@ const MainLayout = ({ session, onLogout }) => {
   const [showCreateContainerModal, setShowCreateContainerModal] = useState(false);
   const [targetContainerForCreate, setTargetContainerForCreate] = useState(null);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedClientForEdit, setSelectedClientForEdit] = useState(null);
   const [selectedClientForModal, setSelectedClientForModal] = useState(null);
@@ -82,6 +87,9 @@ const MainLayout = ({ session, onLogout }) => {
     onlinePeers,
     fetchData,
     handleRunSpeedtest,
+    activeInterface,
+    setActiveInterface,
+    interfaces,
   } = useDashboardData(session);
 
   // ── Persist active tab ────────────────────────────────────────────────────
@@ -155,19 +163,25 @@ const MainLayout = ({ session, onLogout }) => {
   const handleDeleteContainerPrompt = (containerName) =>
     setConfirmModal({ open: true, type: 'delete-container', container: containerName });
 
-  const handleDeleteUser = async (username) => {
-    try {
-      await axiosInstance.delete(`/users/${username}`);
-      addToast(`Opérateur ${username} supprimé`, 'success');
-      fetchData();
-    } catch (err) {
-      addToast(err.response?.data?.error || 'Erreur suppression', 'error');
-    }
+  const handleDeleteUser = (user) => {
+    setConfirmModal({ open: true, type: 'delete-user', user });
   };
 
   const executeDeleteClient = async () => {
-    const { type, client, container } = confirmModal;
-    setConfirmModal({ open: false, client: null, container: null });
+    const { type, client, container, user } = confirmModal;
+    setConfirmModal({ open: false, client: null, container: null, user: null });
+
+    if (type === 'delete-user' && user) {
+      try {
+        await axiosInstance.delete(`/users/${user.username}`);
+        addToast(`Opérateur ${user.username} supprimé`, 'success');
+        fetchData();
+      } catch (err) {
+        addToast(err.response?.data?.error || 'Erreur suppression', 'error');
+      }
+      return;
+    }
+
     if (type === 'delete-container' && container) {
       try {
         await axiosInstance.delete(`/clients/containers/${container}`);
@@ -232,6 +246,9 @@ const MainLayout = ({ session, onLogout }) => {
             adguardStatus={adguardStatus}
             onCreateClient={() => setShowCreateModal(true)}
             onNavigate={handleNavigate}
+            activeInterface={activeInterface}
+            setActiveInterface={setActiveInterface}
+            interfaces={interfaces}
           />
         );
       case 'containers':
@@ -285,6 +302,10 @@ const MainLayout = ({ session, onLogout }) => {
             loading={loading}
             onRefresh={fetchData}
             onDelete={handleDeleteUser}
+            onEdit={(user) => {
+              setSelectedUserForEdit(user);
+              setShowEditUserModal(true);
+            }}
             onCreateUser={() => setShowCreateUserModal(true)}
           />
         );
@@ -317,6 +338,7 @@ const MainLayout = ({ session, onLogout }) => {
 
   return (
     <div className="min-h-screen flex font-sans antialiased overflow-x-hidden transition-colors duration-700 selection:bg-indigo-500/30 bg-[var(--bg-canvas)]">
+      <div className="mesh-bg" />
       <button
         onClick={() => setSidebarOpen(true)}
         className="fixed top-4 left-4 z-40 p-2.5 glass-panel border rounded-xl md:hidden shadow-lg active:scale-95 transition-all"
@@ -351,6 +373,21 @@ const MainLayout = ({ session, onLogout }) => {
         uptime={uptime}
       />
 
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ width: '0%' }}
+            animate={{ width: '100%' }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.5, ease: 'easeInOut' }}
+            className={cn(
+              'fixed top-0 left-0 h-[2px] z-[100] shadow-[0_0_8px_indigo]',
+              `bg-${theme}-500 shadow-${theme}-500/50`
+            )}
+          />
+        )}
+      </AnimatePresence>
+
       <main className="flex-1 min-w-0 pt-20 md:pt-0 pb-10 overflow-x-hidden relative transition-all duration-300">
         <div className="fixed inset-0 pointer-events-none -z-10 bg-transparent">
           <div
@@ -376,11 +413,68 @@ const MainLayout = ({ session, onLogout }) => {
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             >
+              {/* 💠 Obsidian Status Banner */}
+              {!topologySelectedClient && activeSection === 'dashboard' && (
+                <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className={cn(
+                    "flex items-center justify-between px-5 py-4 rounded-2xl glass-panel border transition-all duration-500",
+                    sentinelStatus?.status === 'active' || sentinelStatus?.status === 'online'
+                      ? "border-emerald-500/20 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.05)]"
+                      : "border-red-500/20 bg-red-500/5 shadow-[0_0_20px_rgba(239,68,68,0.05)]"
+                  )}>
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-2.5 h-2.5 rounded-full animate-pulse shadow-[0_0_8px_currentColor]",
+                        sentinelStatus?.status === 'active' || sentinelStatus?.status === 'online' ? "text-emerald-500" : "text-red-500"
+                      )} style={{ backgroundColor: 'currentColor' }} />
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-tighter opacity-40">Sentinel V2 Node</p>
+                        <p className="text-sm font-semibold tracking-tight">
+                          {sentinelStatus?.status === 'active' || sentinelStatus?.status === 'online' ? 'Surveillance Active' : 'Sentinel Hors-ligne'}
+                        </p>
+                      </div>
+                    </div>
+                    {sentinelStatus?.lastHeartbeat && (
+                      <span className="text-[9px] font-mono opacity-30">
+                        {new Date(sentinelStatus.lastHeartbeat).toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className={cn(
+                    "flex items-center justify-between px-5 py-4 rounded-2xl glass-panel border transition-all duration-500",
+                    adguardStatus?.status === 'active'
+                      ? "border-indigo-500/20 bg-indigo-500/5 shadow-[0_0_20px_rgba(99,102,241,0.05)]"
+                      : "border-amber-500/20 bg-amber-500/5 shadow-[0_0_20px_rgba(245,158,11,0.05)]"
+                  )}>
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor]",
+                        adguardStatus?.status === 'active' ? "text-indigo-500" : "text-amber-500"
+                      )} style={{ backgroundColor: 'currentColor' }} />
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-tighter opacity-40">DNS Protection</p>
+                        <p className="text-sm font-semibold tracking-tight">
+                          {adguardStatus?.status === 'active' ? 'Filtrage DNS Actif' : 'DNS Interrompu'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-mono opacity-30 uppercase">
+                      {adguardStatus?.version || 'v0.107+'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <ErrorBoundary sectionName={activeSection}>{renderSection()}</ErrorBoundary>
             </motion.div>
           </AnimatePresence>
         </div>
       </main>
+
+      <div className="fixed bottom-6 right-6 z-40 hidden xl:block animate-in fade-in slide-in-from-right-10 duration-1000">
+        <PerformanceMonitor />
+      </div>
 
       <GlobalSearch
         isOpen={showSearch}
@@ -442,6 +536,25 @@ const MainLayout = ({ session, onLogout }) => {
         />
       )}
 
+      {showEditUserModal && selectedUserForEdit && (
+        <EditUserModal
+          isOpen={showEditUserModal}
+          onClose={() => {
+            setShowEditUserModal(false);
+            setSelectedUserForEdit(null);
+          }}
+          user={selectedUserForEdit}
+          onSave={async (username, updateData) => {
+            await axiosInstance.patch(`/users/${username}`, updateData);
+            fetchData();
+          }}
+          onReset2FA={async (username) => {
+            await axiosInstance.post(`/users/${username}/reset-2fa`);
+            fetchData();
+          }}
+        />
+      )}
+
       <ConfirmModal
         isOpen={confirmModal.open}
         title={
@@ -469,6 +582,14 @@ const MainLayout = ({ session, onLogout }) => {
                 {confirmModal.client.container}
               </strong>{' '}
               ?
+            </span>
+          ) : confirmModal.type === 'delete-user' && confirmModal.user ? (
+            <span>
+              Supprimer l'opérateur{' '}
+              <strong className={cn('font-mono', isDark ? 'text-white' : 'text-slate-900')}>
+                {confirmModal.user.username}
+              </strong>{' '}
+              ? Cette action révoquera immédiatement ses accès système.
             </span>
           ) : (
             'Cette action est irréversible.'

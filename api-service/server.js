@@ -295,22 +295,26 @@ app.use((err, req, res, _next) => {
 // --- Startup ---
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
-  server.listen(PORT, '0.0.0.0', async () => {
-    console.log('----------------------------------------------------');
-    console.log(`🚀 WG-FUX API Modular running on port ${PORT}`);
-    console.log(`🛠️ Mode: ${process.env.NODE_ENV || 'production'}`);
-    console.log('----------------------------------------------------');
-
+  (async () => {
     try {
+      console.log('----------------------------------------------------');
+      console.log(`📡 Initializing WG-FUX API Services...`);
+      
       await initializeDatabase();
       await initializeDNS();
-
+      
       startJobs(); // Start background tasks
+      
+      server.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 WG-FUX API Modular running on port ${PORT}`);
+        console.log(`🛠️ Mode: ${process.env.NODE_ENV || 'production'}`);
+        console.log('----------------------------------------------------');
+      });
     } catch (err) {
-      console.error('❌ FATAL: API failed to initialize database:', err);
+      console.error('❌ FATAL: API failed to initialize:', err);
       process.exit(1);
     }
-  });
+  })();
 }
 
 module.exports = { app, server };

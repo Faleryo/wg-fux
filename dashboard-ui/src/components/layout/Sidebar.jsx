@@ -17,6 +17,7 @@ import {
   Sun,
   Moon,
   Globe,
+  Ghost,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
@@ -369,11 +370,18 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
               >
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')}
-                    className="p-2 rounded-xl transition-all bg-white/5 text-slate-400 hover:text-white"
-                    title="Changer de mode"
+                    onClick={() => {
+                      if (mode === 'light') setMode('dark');
+                      else if (mode === 'dark') setMode('spectre');
+                      else setMode('light');
+                    }}
+                    className={cn(
+                      'p-2 rounded-xl transition-all duration-500',
+                      mode === 'spectre' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-white/5 text-slate-400 hover:text-white'
+                    )}
+                    title={`Mode: ${mode.toUpperCase()}`}
                   >
-                    {mode === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+                    {mode === 'dark' ? <Moon size={14} /> : mode === 'spectre' ? <Ghost size={14} /> : <Sun size={14} />}
                   </button>
                   <button
                     onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
@@ -420,16 +428,18 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
             )}
           >
             <button
-              onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')}
+              onClick={() => {
+                if (mode === 'light') setMode('dark');
+                else if (mode === 'dark') setMode('spectre');
+                else setMode('light');
+              }}
               className={cn(
-                'p-2.5 rounded-xl transition-all',
-                isDark
-                  ? 'bg-white/5 text-slate-400 hover:text-white'
-                  : 'bg-black/5 text-slate-500 hover:text-slate-900'
+                'p-2.5 rounded-xl transition-all duration-500',
+                mode === 'spectre' ? 'bg-indigo-500/20 text-indigo-400' : isDark ? 'bg-white/5 text-slate-400 hover:text-white' : 'bg-black/5 text-slate-500 hover:text-slate-900'
               )}
-              title="Thème"
+              title={`Mode: ${mode.toUpperCase()}`}
             >
-              {mode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              {mode === 'dark' ? <Moon size={16} /> : mode === 'spectre' ? <Ghost size={16} /> : <Sun size={16} />}
             </button>
             <button
               onClick={handleRestartServer}

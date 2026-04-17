@@ -14,8 +14,8 @@ if [ -f "$SCRIPT_DIR/sentinel.env" ]; then
     source "$SCRIPT_DIR/sentinel.env"
 fi
 TOKEN="${SENTINEL_TOKEN:-vibe-sentinel-trust-99}"
-HEARTBEAT_URL="http://localhost:3000/api/sentinel/heartbeat"
-HEALTH_URL="http://localhost:3000/api/health"
+HEARTBEAT_URL="http://127.0.0.1:3000/api/sentinel/heartbeat"
+HEALTH_URL="http://127.0.0.1:3000/api/health"
 
 # SRE Utilities
 check_dependency "curl"

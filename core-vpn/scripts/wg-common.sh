@@ -95,37 +95,41 @@ detect_public_ip() {
         fi
     done
 
-    # Fallback to local interface IP (non-loopback)
-    ip=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || echo "127.0.0.1")
-    echo "$ip"
+  # Fallback to local interface IP (non-loopback)
+  ip=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || echo "127.0.0.1")
+  echo "$ip"
 }
 
 # --- Core SRE Functions ---
 check_root() {
-    if [ "$EUID" -ne 0 ]; then
-        log_error "This script must be run with root (EUID: 0). Current: $EUID"
-        exit 1
-    fi
+  if [ "$EUID" -ne 0 ]; then
+    log_error "This script must be run with root (EUID: 0). Current: $EUID"
+    exit 1
+  fi
 }
 
 load_config() {
-    local conf="/etc/wireguard/manager.conf"
-    if [ -f "$conf" ]; then
-        # shellcheck disable=SC1090
-        source "$conf"
-        # Export for subprocesses
-        export SERVER_IP SERVER_PORT VPN_SUBNET VPN_SUBNET_V6 CLIENT_DNS SERVER_MTU WG_INTERFACE
-    else
-        log_warn "Manager configuration $conf missing. Using environment defaults."
-    fi
+  local conf="/etc/wireguard/manager.conf"
+  if [ -f "$conf" ]; then
+    # shellcheck disable=SC1090
+    source "$conf"
+    # Export for subprocesses
+    export SERVER_IP SERVER_PORT VPN_SUBNET VPN_SUBNET_V6 CLIENT_DNS SERVER_MTU WG_INTERFACE
+  else
+    log_warn "Manager configuration $conf missing. Using environment defaults."
+  fi
 }
 
 validate_id() {
-    local id="$1"
-    if [[ ! "$id" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-        log_error "Invalid identifier: '$id' (Only a-Z, 0-9, -, _ allowed)."
-        exit 1
-    fi
+  local id="$1"
+  if [[ ! "$id" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    log_error "Invalid identifier: '$id' (Only a-Z, 0-9, -, _ allowed)."
+    exit 1
+  fi
+  if [ ${#id} -gt 32 ]; then
+    log_error "Identifier too long: '$id' (Max 32 characters)."
+    exit 1
+  fi
 }
 
 # Telegram notification hub

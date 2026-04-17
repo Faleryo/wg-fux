@@ -388,7 +388,8 @@ export const ClientList = ({
   // Inject empty containers
   if (Array.isArray(allContainers)) {
     allContainers.forEach((c) => {
-      if (!containerGroups[c]) containerGroups[c] = [];
+      const cName = typeof c === 'string' ? c : (c?.name || '');
+      if (cName && !containerGroups[cName]) containerGroups[cName] = [];
     });
   }
 
@@ -399,8 +400,8 @@ export const ClientList = ({
     ? (containerGroups[activeContainer] || []).filter(
         (c) =>
           !search ||
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
-          (c.ip || '').includes(search)
+          String(c?.name || '').toLowerCase().includes(search.toLowerCase()) ||
+          String(c?.ip || '').includes(search)
       )
     : [];
 

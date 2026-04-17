@@ -100,17 +100,24 @@ SERVER_PUBKEY=$(cat /etc/wireguard/server-public.key)
 CLIENT_IP="${VPN_SUBNET%.*}.$IP_SUFFIX"
 
 if [ -n "${VPN_SUBNET_V6:-}" ]; then
-    # Extraction robuste du préfixe avant l'ID client
-    IPV6_PREFIX="${VPN_SUBNET_V6%/*}"
-    # On s'assure qu'on finit par un séparateur correct pour l'ID suffixe
-    if [[ "$IPV6_PREFIX" == *"::" ]]; then
-        NET_PREFIX="$IPV6_PREFIX"
-    elif [[ "$IPV6_PREFIX" == *: ]]; then
-        NET_PREFIX="$IPV6_PREFIX"
+    # Improved robust prefix extraction
+    NET_PREFIX="${VPN_SUBNET_V6%/*}"
+    # Normalize trailing colons
+    [[ "$NET_PREFIX" == *:: ]] || [[ "$NET_PREFIX" == *: ]] || NET_PREFIX="${NET_PREFIX}:"
+    # Ensure double colons if it's a base prefix
+    [[ "$NET_PREFIX" == *:: ]] || [[ "$NET_PREFIX" == *: ]] || NET_PREFIX="${NET_PREFIX}:"
+    
+    # Standardize to double colon for suffix addition if it's a short prefix
+    if [[ ! "$NET_PREFIX" == *:: ]]; then
+        if [[ "$NET_PREFIX" == *: ]]; then
+            CLIENT_IPV6="${NET_PREFIX}:${IP_SUFFIX}"
+        else
+            CLIENT_IPV6="${NET_PREFIX}::${IP_SUFFIX}"
+        fi
     else
-        NET_PREFIX="${IPV6_PREFIX}::"
+        CLIENT_IPV6="${NET_PREFIX}${IP_SUFFIX}"
     fi
-    CLIENT_IPV6="${NET_PREFIX}${IP_SUFFIX}"
+
     ADDRESS_STR="$CLIENT_IP/24, $CLIENT_IPV6/64"
     ALLOWED_IPS_STR="$CLIENT_IP/32,$CLIENT_IPV6/128"
 else

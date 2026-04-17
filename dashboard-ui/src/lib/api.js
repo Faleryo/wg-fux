@@ -44,6 +44,8 @@ export const getWsUri = (type) => {
   return `${protocol}//${host}/ws${tokenParam}`;
 };
 
+const isDev = import.meta.env.DEV;
+
 // Intercepteur pour ajouter le token API et tracer le temps de réponse (dev)
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token');
@@ -57,6 +59,9 @@ axiosInstance.interceptors.request.use((config) => {
 // Intercepteur pour gérer l'expiration de session (Auto-Logout) et logs de performance
 axiosInstance.interceptors.response.use(
   (response) => {
+    const duration = response.config.metadata
+      ? new Date() - response.config.metadata.startTime
+      : null;
     // P7 : Logging structuré minimal en développement
     if (isDev) {
       const logEntry = {
@@ -96,7 +101,10 @@ axiosInstance.interceptors.response.use(
     // Auto-logout on auth failure (Grade Diamond Hardening)
     // 401: Unauthorized (Token expiré ou invalide)
     // 403 + Account expired: Spécifique à certains profils de sécurité
-    if (status === 401 || (status === 403 && (data?.error === 'ACCOUNT_EXPIRED' || errMsg === 'Account expired'))) {
+    if (
+      status === 401 ||
+      (status === 403 && (data?.error === 'ACCOUNT_EXPIRED' || errMsg === 'Account expired'))
+    ) {
       logOut();
     }
     return Promise.reject(error);

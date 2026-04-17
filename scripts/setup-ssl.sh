@@ -135,8 +135,13 @@ _apply_le_cert() {
     log_info "Application du certificat Let's Encrypt dans Nginx..."
 
     # Remplacer les chemins cert auto-signé par les chemins LE
-    sed -i "s|ssl_certificate /etc/nginx/ssl/server.crt;|ssl_certificate /etc/letsencrypt/live/$DOMAIN_DIR/fullchain.pem;|g" "$NGINX_CONF" 2>/dev/null || true
-    sed -i "s|ssl_certificate_key /etc/nginx/ssl/server.key;|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;|g" "$NGINX_CONF" 2>/dev/null || true
+    # SRE-FIX: On ne remplace que si la ligne contient encore le chemin par défaut (idempotence)
+    if grep -q "ssl_certificate /etc/nginx/ssl/server.crt;" "$NGINX_CONF"; then
+        sed -i "s|ssl_certificate /etc/nginx/ssl/server.crt;|ssl_certificate /etc/letsencrypt/live/$DOMAIN_DIR/fullchain.pem;|g" "$NGINX_CONF"
+    fi
+    if grep -q "ssl_certificate_key /etc/nginx/ssl/server.key;" "$NGINX_CONF"; then
+        sed -i "s|ssl_certificate_key /etc/nginx/ssl/server.key;|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;|g" "$NGINX_CONF"
+    fi
 
     # Mettre à jour server_name si encore le placeholder
     # FIX: On utilise une regex plus souple pour supporter "server_name ${DOMAIN} _;" (Support hybride)

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -32,7 +32,7 @@
 }
 
 .dark {
-  /* Dark Canvas */
+  /* Dark Canvas - Obsidian */
   --bg-canvas: #020617;
   --glass-bg: rgba(15, 23, 42, 0.85);
   --glass-card: rgba(30, 41, 59, 0.4);
@@ -40,6 +40,18 @@
   --glass-text: #ffffff;
   --glass-text-muted: rgba(255, 255, 255, 0.5);
   --glass-shadow: 10px 0 30px -15px rgba(0, 0, 0, 0.4);
+}
+
+.spectre {
+  /* Deep Space - Ghost Edition */
+  --bg-canvas: #000000;
+  --glass-bg: rgba(0, 0, 0, 0.9);
+  --glass-card: rgba(5, 5, 5, 0.7);
+  --glass-border: rgba(99, 102, 241, 0.2);
+  --glass-text: #f8fafc;
+  --glass-text-muted: #64748b;
+  --brand-primary: #818cf8;
+  --glass-shadow: 0 0 50px -10px rgba(99, 102, 241, 0.1);
 }
 
 html,
@@ -105,6 +117,42 @@ body {
   .btn-premium:hover {
     @apply brightness-110 -translate-y-0.5 shadow-indigo-500/50;
   }
+}
+
+/* Premium Mesh Background (Pure CSS) */
+.mesh-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -20;
+  filter: blur(100px);
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.mesh-bg::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 50% 50%, var(--brand-primary) 0%, transparent 50%),
+              radial-gradient(circle at 20% 80%, var(--brand-secondary) 0%, transparent 40%),
+              radial-gradient(circle at 80% 20%, #ec4899 0%, transparent 40%);
+  animation: mesh-rotate 20s linear infinite;
+}
+
+@keyframes mesh-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+h1, h2, h3, .font-heading {
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.02em;
 }
 
 /* Custom scrollbar */

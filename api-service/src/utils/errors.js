@@ -8,10 +8,15 @@ const createError = (error, message, code = 'INTERNAL_ERROR', path = null) => {
   // Handle Zod Error objects
   if (error && typeof error === 'object' && error.name === 'ZodError') {
     code = 'VALIDATION_ERROR';
-    const issues = error.errors || error.issues || [];
+    const issues = Array.isArray(error.errors) 
+      ? error.errors 
+      : Array.isArray(error.issues) 
+        ? error.issues 
+        : [];
+    
     details = issues.map((e) => ({
-      path: e.path.join('.'),
-      message: e.message,
+      path: Array.isArray(e.path) ? e.path.join('.') : '',
+      message: e.message || 'Validation error',
     }));
     message = message || 'Validation failed';
   }
@@ -20,6 +25,7 @@ const createError = (error, message, code = 'INTERNAL_ERROR', path = null) => {
     NOT_FOUND: 404,
     FORBIDDEN: 403,
     UNAUTHORIZED: 401,
+    INVALID_AUTH: 401,
     VALIDATION_ERROR: 400,
     BAD_REQUEST: 400,
     EPERM_SAFE_EXEC: 403,

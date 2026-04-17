@@ -43,18 +43,20 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
   // Compute results
   const results = [];
   if (query.length >= 1) {
-    const q = query.toLowerCase();
-    NAV_ITEMS.filter(
-      (n) => n.label.toLowerCase().includes(q) || n.desc.toLowerCase().includes(q)
-    ).forEach((n) => results.push({ ...n, category: 'Navigation', type: 'section' }));
+    const q = String(query || '').toLowerCase();
+    NAV_ITEMS.filter((n) => {
+      const label = String(n?.label || '').toLowerCase();
+      const desc = String(n?.desc || '').toLowerCase();
+      return label.includes(q) || desc.includes(q);
+    }).forEach((n) => results.push({ ...n, category: 'Navigation', type: 'section' }));
 
-    clients
-      .filter(
-        (c) =>
-          c.name?.toLowerCase().includes(q) ||
-          (c.ip || '').includes(q) ||
-          (c.container || '').toLowerCase().includes(q)
-      )
+    (clients || [])
+      .filter((c) => {
+        const name = String(c?.name || '').toLowerCase();
+        const container = String(c?.container || '').toLowerCase();
+        const ip = String(c?.ip || '').toLowerCase();
+        return name.includes(q) || container.includes(q) || ip.includes(q);
+      })
       .slice(0, 6)
       .forEach((c) =>
         results.push({

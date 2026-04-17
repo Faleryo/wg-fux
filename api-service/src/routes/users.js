@@ -22,6 +22,7 @@ router.get(
   asyncWrap(async (req, res) => {
     const users = await db
       .select({
+        id: schema.users.id,
         username: schema.users.username,
         role: schema.users.role,
         expiry: schema.users.expiry,

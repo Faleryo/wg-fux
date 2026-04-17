@@ -163,8 +163,7 @@ const dnsConfigSchema = z
     safesearch_enabled: z.boolean().optional(),
     safebrowsing_enabled: z.boolean().optional(),
     parental_enabled: z.boolean().optional(),
-  })
-  .strict();
+  });
 
 const userUpdateSchema = z
   .object({

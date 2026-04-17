@@ -27,8 +27,6 @@ API_DATA="api-service/data"
 WG_DIR="/etc/wireguard"
 SWAP_FILE="/swap_wgfux"
 
-# SRE Note: All log calls below have been migrated to log_info/log_error unifiés.
-
 # SRE: Modes Spéciaux (Simulation, Auto, Désinstallation)
 DRY_RUN=false
 AUTO_MODE=false
@@ -74,131 +72,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-preflight_scan() {
-    log_info "Lancement du Scan de Pré-vol (v6.5 Multilingual Guardian)..."
-    
-    # 1. Architecture CPU
-    local arch; arch=$(uname -m)
-    log_info "Architecture : $arch"
-    
-    # 2. Mémoire Vive
-    local ram_kb; ram_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-    local ram_mb=$((ram_kb / 1024))
-    if [ "$ram_mb" -lt 1024 ]; then
-        log_warn "Mémoire vive faible (${ram_mb}MB). Le build Docker pourrait échouer sans swap."
-    else
-        log_success "Mémoire vive OK (${ram_mb}MB)."
-    fi
-    
-    # 3. Espace Disque (/)
-    local free_kb; free_kb=$(df -k / | awk 'NR==2 {print $4}')
-    local free_gb=$((free_kb / 1024 / 1024))
-    if [ "$free_gb" -lt 5 ]; then
-        log_warn "Espace disque restreint (${free_gb}GB libres). 5GB minimum recommandés."
-    else
-        log_success "Espace disque OK (${free_gb}GB)."
-    fi
-    
-    # 4. Connectivité
-    if ping -c 1 8.8.8.8 &>/dev/null; then
-        log_success "Connectivité Internet OK."
-    else
-        log_error "Pas de connectivité Internet. Impossible de télécharger les dépendances."
-        exit 1
-    fi
-
-    # 5. WARN-2 : Vérification des permissions /etc/wireguard (critique en production)
-    # SRE: Changé de 700 à 755 pour permettre à l'utilisateur wg-api de traverser vers /etc/wireguard/clients
-    if [ -d "$WG_DIR" ]; then
-        local wg_perms; wg_perms=$(stat -c "%a %U:%G" "$WG_DIR")
-        local wg_perm_octal; wg_perm_octal=$(echo "$wg_perms" | awk '{print $1}')
-        if [ "$wg_perm_octal" != "755" ]; then
-            log_warn "/etc/wireguard permissions = $wg_perms (requis : 755 pour accès API)"
-            log_warn "Correction automatique des permissions..."
-            sudo chmod 755 "$WG_DIR"
-            sudo chown root:root "$WG_DIR"
-            log_success "/etc/wireguard configuré à 755 root:root"
-        else
-            log_success "/etc/wireguard permissions OK ($wg_perms)"
-        fi
-    fi
-}
-
-check_and_install_deps() {
-    log_info "Vérification des composants système indispensables..."
-    
-    local ram_kb; ram_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-    local ram_mb=$((ram_kb / 1024))
-
-    if ! command -v docker &>/dev/null || ! command -v docker compose version &>/dev/null; then
-        log_warn "Docker ou Docker Compose v2 manquant. Installation..."
-        install_deps
-    else
-        # 💠 SRE: Optimisation Docker pour faible RAM (< 1GB)
-        if [ "$ram_mb" -lt 1024 ]; then
-            log_warn "Faible RAM détectée (< 1GB). Application de l'optimisation SRE Low-RAM..."
-            sudo mkdir -p /etc/docker
-            sudo tee /etc/docker/daemon.json > /dev/null <<EOF
-{
-  "max-concurrent-downloads": 1,
-  "max-concurrent-uploads": 1,
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "10m",
-    "max-file": "3"
-  },
-  "iptables": true,
-  "default-ulimits": {
-    "nofile": {"Name": "nofile", "Hard": 1024, "Soft": 1024}
-  }
-}
-EOF
-            log_success "Configuration Docker optimisée pour ${ram_mb}MB de RAM. Redémarrage du service..."
-            sudo systemctl restart docker 2>/dev/null || true
-        fi
-    fi
-}
-
-ensure_docker_ready() {
-    local max_attempts=40 # Encore plus patient pour les petits VPS
-    local attempt=1
-    
-    # Premier check passif
-    if sudo docker ps &>/dev/null; then return 0; fi
-
-    # 💠 SRE: Déblocage agressif du service (Unmask, Reload, Start)
-    sudo systemctl unmask docker.service docker.socket 2>/dev/null || true
-    sudo systemctl daemon-reload
-    sudo systemctl restart docker 2>/dev/null || sudo service docker restart 2>/dev/null || true
-    
-    while [ $attempt -le $max_attempts ]; do
-        if [ -S /run/docker.sock ] || [ -S /var/run/docker.sock ]; then
-            if sudo docker ps &>/dev/null; then
-                log_success "Docker est prêt et opérationnel."
-                return 0
-            fi
-        fi
-        
-        # 💠 SRE: Si on arrive à l'essai 20 et que ça ne marche toujours pas, on tente le bootstrap auto
-        if [ "$attempt" -eq 20 ]; then
-            if [ "${DOCKER_REPAIR_TRIED:-false}" != "true" ]; then
-                log_warn "Délai d'attente prolongé (20/40). Tentative de diagnostic/réparation auto..."
-                export DOCKER_REPAIR_TRIED=true
-                check_and_install_deps
-            else
-                log_error "Échec critique: Docker ne répond toujours pas après tentative de réinstallation."
-                exit 1
-            fi
-        fi
-
-
-        sleep 3
-        attempt=$((attempt + 1))
-    done
-
-    log_error "Impossible de joindre le démon Docker après ${max_attempts} essais."
-    return 1
-}
+# --- Module Loading ---
+for mod in scripts/setup/*.sh; do
+    [ -f "$mod" ] && source "$mod"
+done
 
 uninstall() {
     local purge_all=0
@@ -412,8 +289,6 @@ update_process() {
     setup_ssl_bootstrap
 
     # 💠 SRE: SSL après le démarrage des services (Nginx doit être UP pour le challenge ACME)
-    # Phase 1 (cert auto-signé) déjà active via nginx/default.conf
-    # Phase 2 (Let's Encrypt) nécessite Nginx sur port 80 → on l'exécute ici
     if [ -n "${DOMAIN:-}" ]; then
         log_info "Lancement de la configuration SSL (Phase 2 / Let's Encrypt)..."
         setup_ssl
@@ -470,163 +345,6 @@ git_upgrade() {
     else
         log_error "Échec du reset Git. Vérifiez votre connexion ou l'état du dépôt."
         exit 1
-    fi
-}
-
-install_deps() {
-    log_info "Tentative d'installation des dépendances..."
-    if command -v apt-get &> /dev/null; then
-        sudo apt-get update
-        sudo apt-get install -y docker.io docker-compose-v2 wireguard-tools openssl curl nodejs python3
-        sudo systemctl enable --now docker
-        ensure_docker_ready
-    else
-        log_error "Gestionnaire de paquets 'apt' non trouvé. Veuillez installer manuellement : docker, docker-compose-v2, wireguard-tools, openssl, curl, nodejs."
-        exit 1
-    fi
-}
-
-
-setup_swap() {
-    local target_size_mb=4096 # Standard for low RAM
-    local ram_kb
-    ram_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-    local ram_mb=$((ram_kb / 1024))
-
-    # Activation automatique si RAM < 3GB (seuil relevé pour Docker builds)
-    if [ "$ram_mb" -lt 3072 ]; then
-        log_warn "Mémoire vive réduite détectée (${ram_mb}MB)."
-
-        # 1. Vérification intelligente de TOUT swap actif sur le système
-        local swap_active_mb
-        swap_active_mb=$(swapon --show=SIZE --bytes --noheadings | awk '{s+=$1} END {print s/1024/1024}')
-        swap_active_mb=${swap_active_mb:-0}
-        swap_active_mb=$(printf "%.0f" "$swap_active_mb")
-
-        if [ "$swap_active_mb" -gt 1024 ]; then
-            log_info "Un swap total suffisant (${swap_active_mb}MB) est déjà présent. Esquive..."
-            return 0
-        fi
-
-        if [ -f "$SWAP_FILE" ]; then
-            log_info "Fichier de swap WG-FUX ($SWAP_FILE) déjà présent."
-            if swapon --show | grep -q "$SWAP_FILE"; then
-                log_info "Swap déjà actif. Rien à faire."
-            else
-                sudo chmod 600 "$SWAP_FILE"
-                sudo mkswap "$SWAP_FILE" 2>/dev/null || true
-                sudo swapon "$SWAP_FILE" 2>/dev/null || true
-            fi
-            return 0
-        fi
-
-        # 2. Calcul de l'espace disque disponible (/)
-        local free_kb
-        free_kb=$(df -k / | awk 'NR==2 {print $4}')
-        local free_mb=$((free_kb / 1024))
-        local safety_margin=1024
-        local available_for_swap=$((free_mb - safety_margin))
-
-        if [ "$available_for_swap" -lt 512 ]; then
-            log_error "Espace disque critique (${free_mb}MB libre). Impossible de créer un Swap."
-            log_info "Libérez de l'espace disque pour permettre le build Docker."
-            return 0
-        fi
-
-        # Ajuster la taille du swap selon l'espace disponible
-        if [ "$target_size_mb" -gt "$available_for_swap" ]; then
-            target_size_mb=$available_for_swap
-            log_info "Espace disque restreint. Ajustement du Swap à ${target_size_mb}MB."
-        fi
-
-        log_info "Création du fichier Swap de ${target_size_mb}MB..."
-        
-        # Tentative de création avec fallocate puis dd en secours
-        if sudo fallocate -l "${target_size_mb}M" "$SWAP_FILE" 2>/dev/null || \
-           sudo dd if=/dev/zero of="$SWAP_FILE" bs=1M count="$target_size_mb" status=none; then
-            
-            sudo chmod 600 "$SWAP_FILE"
-            sudo mkswap "$SWAP_FILE" > /dev/null
-            if sudo swapon "$SWAP_FILE"; then
-                # Persistance
-                if ! grep -q "$SWAP_FILE" /etc/fstab; then
-                    echo -e "\n# WG-FUX Swap\n$SWAP_FILE none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
-                fi
-                log_success "Swap de ${target_size_mb}MB activé."
-            else
-                log_error "Échec de l'activation du swap. Nettoyage..."
-                sudo rm -f "$SWAP_FILE"
-            fi
-        else
-            log_error "Échec physique de création du swap. Nettoyage..."
-            sudo rm -f "$SWAP_FILE"
-        fi
-    fi
-}
-
-# --- Gestion SSL & Let's Encrypt (v6.5 - Consolidated) ---
-setup_ssl_bootstrap() {
-    log_info "Bootstrap SSL : Vérification des certificats de secours..."
-    local ssl_dir="$SCRIPT_DIR/infra/ssl"
-    mkdir -p "$ssl_dir"
-    
-    if [ ! -f "$ssl_dir/server.crt" ] || [ ! -f "$ssl_dir/server.key" ]; then
-        log_warn "Certificats SSL manquants. Génération d'un certificat auto-signé de secours..."
-        if openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-            -keyout "$ssl_dir/server.key" \
-            -out "$ssl_dir/server.crt" \
-            -subj "/CN=localhost" 2>/dev/null; then
-            log_success "Certificat de secours généré dans $ssl_dir"
-        else
-            log_error "Échec de la génération du certificat SSL."
-            return 1
-        fi
-    else
-        log_success "Certificats SSL (Auto-signés ou Let's Encrypt) déjà présents."
-    fi
-}
-
-setup_ssl() {
-    if ! sudo docker compose ps -q nginx >/dev/null 2>&1; then
-        log_error "Le proxy Nginx doit être en cours d'exécution pour valider Let's Encrypt."
-        log_warn "Lancez d'abord l'Option 1 (Installation) ou l'Option 3 (Mise à jour)."
-        return 1
-    fi
-    # FIX Diamond: Utilisation du dossier scripts standardisé
-    local ssl_script="scripts/setup-ssl.sh"
-    if [ ! -f "$ssl_script" ]; then
-        ssl_script="core-vpn/scripts/setup-ssl.sh"
-    fi
-    if [ -f "$ssl_script" ]; then
-        cd "$SCRIPT_DIR" || return 1
-        chmod +x "$ssl_script"
-        bash "$ssl_script"
-    else
-        log_error "Script $ssl_script introuvable pour la configuration SSL."
-        return 1
-    fi
-}
-
-setup_firewall() {
-    local port="${SERVER_PORT:-51820}"
-    log_info "Configuration du pare-feu (Ports: 80, 443, $port/udp)..."
-
-    if command -v ufw &> /dev/null; then
-        log_info "Configuration et activation proactive de UFW (Ports: 80, 443, $port/udp, 22/tcp)..."
-        sudo ufw allow 80/tcp 2>/dev/null || true
-        sudo ufw allow 443/tcp 2>/dev/null || true
-        sudo ufw allow "$port"/udp 2>/dev/null || true
-        sudo ufw allow 22/tcp 2>/dev/null || true # Garder SSH ouvert
-        echo "y" | sudo ufw enable 2>/dev/null || true
-        log_success "UFW est maintenant actif et configuré."
-    elif command -v iptables &> /dev/null; then
-        log_info "Utilisation de iptables..."
-        sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
-        sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
-        sudo iptables -I INPUT -p udp --dport "$port" -j ACCEPT 2>/dev/null || true
-        log_success "Règles iptables appliquées."
-    else
-        log_warn "Aucun gestionnaire de pare-feu (ufw/iptables) détecté. Ouvrez les ports manuellement."
     fi
 }
 
@@ -735,44 +453,10 @@ AGH_USER=$(sanitize "${AGH_USER:-admin}")
 read -rsp "AGH Password: " AGH_PASS
 echo ""
 # SALT, JWT and SENTINEL are now either reused or generated above.
-
-log_info "Génération du hash sécurisé (PBKDF2-SHA512)..."
-BUF_SCRIPT=$(mktemp /tmp/wg-hash-XXXXXX.js)
-cat > "$BUF_SCRIPT" << 'NODESCRIPT'
-const crypto = require('crypto');
-const pass = process.env.WGFUX_PASS;
-const salt = process.env.WGFUX_SALT;
-if (!pass || !salt) { process.exit(1); }
-process.stdout.write(crypto.pbkdf2Sync(pass, salt, 600000, 64, 'sha512').toString('hex'));
-NODESCRIPT
-
-ADMIN_HASH=""
-# Tentative 1 : Node local
-if command -v node &>/dev/null; then
-    log_info "Utilisation de Node.js local..."
-    ADMIN_HASH=$(WGFUX_PASS="$ADMIN_PASS" WGFUX_SALT="$SALT" node "$BUF_SCRIPT" 2>/dev/null || echo "")
-fi
-
-# Tentative 2 : Python3 local (Backup ultra-robuste)
-if [ -z "$ADMIN_HASH" ] && command -v python3 &>/dev/null; then
-    log_info "Node.js absent. Utilisation de Python3 local..."
-    ADMIN_HASH=$(WGFUX_PASS="$ADMIN_PASS" WGFUX_SALT="$SALT" python3 -c 'import hashlib, os, binascii; dk = hashlib.pbkdf2_hmac("sha512", os.environ["WGFUX_PASS"].encode(), os.environ["WGFUX_SALT"].encode(), 600000); print(binascii.hexlify(dk).decode())' 2>/dev/null || echo "")
-fi
-
-# Tentative 3 : Docker (Dernier recours)
-if [ -z "$ADMIN_HASH" ]; then
-    log_info "Node/Python absents. Tentative via Docker (node:20-slim)..."
-    if sudo docker image inspect node:20-slim &>/dev/null || sudo docker pull node:20-slim &>/dev/null; then
-        ADMIN_HASH=$(sudo docker run --rm -e "WGFUX_PASS=$ADMIN_PASS" -e "WGFUX_SALT=$SALT" \
-            -v "$BUF_SCRIPT:/tmp/hash.js:ro" node:20-slim node /tmp/hash.js 2>/dev/null || echo "")
-    fi
-fi
-
-rm -f "$BUF_SCRIPT"
+ADMIN_HASH=$(generate_admin_hash "$ADMIN_PASS" "$SALT")
 
 if [ -z "$ADMIN_HASH" ]; then
     log_error "Échec critique de la génération du hash."
-    log_info "Installez manuellement nodejs ou python3 pour continuer."
     exit 1
 fi
 log_success "Hash généré avec succès."
@@ -794,11 +478,7 @@ fi
 
 # 5. Écriture des fichiers
 log_info "Étape 4 : Préparation des scripts utilitaires"
-# Note: L'API utilise désormais getScriptPath pour une résolution interne robuste.
-# On garde les liens symboliques pour l'usage manuel dans le terminal.
 SCRIPTS_INTERNAL_DIR="$(pwd)/core-vpn/scripts"
-# shellcheck disable=SC1091
-source "$SCRIPTS_INTERNAL_DIR/wg-common.sh"
 for script in "$SCRIPTS_INTERNAL_DIR"/wg-*.sh; do
     if [ -f "$script" ]; then
         target="/usr/local/bin/$(basename "$script")"
@@ -835,21 +515,16 @@ PostUp = /usr/local/bin/wg-postup.sh %i
 PostDown = /usr/local/bin/wg-postdown.sh %i
 EOF
 
-# SRE Hardening: Secure the config file immediately
 sudo chmod 600 "$WG_DIR/wg0.conf"
 
-# BUG-FIX: JWT_SECRET écrit directement via printf sans passer par une variable shell
-# intermédiaire exposée (protège contre set -x, ps aux, /proc/environ leaks)
-# BUG-FIX: Force ALLOWED_ORIGINS dynamique pour inclure le DOMAINE si présent
-# SRE: Inclusion du SENTINEL_TOKEN pour le watchdog interne
+# BUG-FIX: Force ALLOWED_ORIGINS dynamique
 ALLOWED_ORIGINS="http://$SERVER_IP,https://$SERVER_IP,http://localhost,https://localhost,http://localhost:3000,http://127.0.0.1:3000"
 if [ -n "${DOMAIN:-}" ]; then
     ALLOWED_ORIGINS="$ALLOWED_ORIGINS,http://$DOMAIN,https://${DOMAIN:-}"
 fi
 
-# SRE: Inclusion des secrets AdGuard pour communication interne API -> AGH
-# WAVE 4: Robust .env generation
-cat <<'ENDEFF' > "$API_ENV"
+# SRE: Inclusion des secrets pour communication interne
+cat <<ENDEFF > "$API_ENV"
 PORT=3000
 NODE_ENV="production"
 SENTINEL_TOKEN="$SENTINEL_TOKEN"
@@ -866,8 +541,6 @@ AGH_PASSWORD="$AGH_PASS"
 DOMAIN="$DOMAIN"
 ENDEFF
 
-# BUG-FIX: Root .env must contain ALL variables for Docker Compose interpolation
-# This ensures AGH_USER, AGH_PASSWORD and others are not defaulted to "admin/password"
 cat <<EOF > .env
 SERVER_PORT="$SERVER_PORT"
 SERVER_IP="$SERVER_IP"
@@ -884,25 +557,21 @@ ADMIN_PASSWORD_SALT="$SALT"
 ALLOWED_ORIGINS="$ALLOWED_ORIGINS"
 EOF
 
-# Ensure api-service/.env is a symlink or a copy for consistency (SRE Recommendation)
-# We keep the cat to api-service/.env for safety but root .env is the master.
-
 unset JWT_SECRET ADMIN_HASH SALT ADMIN_PASS
 
 # 6. Sentinel & Alerts
 log_info "Étape 6 : Sentinel Monitoring & Alerts (SRE)"
-printf "%b[?] Voulez-vous activer les alertes Telegram via Bot API ? (y/N): %b" "${YELLOW}" "${NC}"
-read -r enable_telegram
-if [[ "$enable_telegram" =~ ^[yY]$ ]]; then
-    printf "%b[?] Entrez le Telegram Bot Token: %b" "${YELLOW}" "${NC}"
-    read -r TG_TOKEN
-    printf "%b[?] Entrez le Telegram Chat ID: %b" "${YELLOW}" "${NC}"
-    read -r TG_CHATID
-    echo "TELEGRAM_BOT_TOKEN=\"$TG_TOKEN\"" | sudo tee /etc/wireguard/sentinel.conf > /dev/null
-    echo "TELEGRAM_CHAT_ID=\"$TG_CHATID\"" | sudo tee -a /etc/wireguard/sentinel.conf > /dev/null
-    log_success "Configuration Telegram sauvegardée dans /etc/wireguard/sentinel.conf"
-else
-    log_info "Alertes Telegram ignorées."
+if [ "$AUTO_MODE" = false ]; then
+    printf "%b[?] Voulez-vous activer les alertes Telegram via Bot API ? (y/N): %b" "${YELLOW}" "${NC}"
+    read -r enable_telegram
+    if [[ "$enable_telegram" =~ ^[yY]$ ]]; then
+        printf "%b[?] Entrez le Telegram Bot Token: %b" "${YELLOW}" "${NC}"
+        read -r TG_TOKEN
+        printf "%b[?] Entrez le Telegram Chat ID: %b" "${YELLOW}" "${NC}"
+        read -r TG_CHATID
+        echo "TELEGRAM_BOT_TOKEN=\"$TG_TOKEN\"" | sudo tee /etc/wireguard/sentinel.conf > /dev/null
+        echo "TELEGRAM_CHAT_ID=\"$TG_CHATID\"" | sudo tee -a /etc/wireguard/sentinel.conf > /dev/null
+    fi
 fi
 
 log_info "Installation du service Sentinel Watchdog..."
@@ -914,19 +583,16 @@ sudo systemctl daemon-reload
 sudo systemctl enable sentinel.service
 echo "SENTINEL_TOKEN=\"$SENTINEL_TOKEN\"" | sudo tee core-vpn/scripts/sentinel.env > /dev/null
 sudo systemctl restart sentinel.service
-log_success "Sentinel Watchdog est actif et surveille le système."
 
 # 7. Finalisation & Lancement
-log_info "Étape 7 : Application des optimisations persistantes (Kernel Tuning)..."
-sudo bash "$SCRIPT_DIR/wg-harden.sh"
-sudo bash "$SCRIPT_DIR/wg-optimize.sh" gaming
+log_info "Étape 7 : Application des optimisations persistantes..."
+sudo bash "$SCRIPT_DIR/core-vpn/scripts/wg-harden.sh"
+sudo bash "$SCRIPT_DIR/core-vpn/scripts/wg-optimize.sh" gaming
 
 log_success "Configuration terminée."
 update_process
 
-# SRE-DIAMOND: Auto-prompt for SSL if a domain was provided
-if [ -n "$DOMAIN" ]; then
-    echo -e "\n${BLUE}[SRE] Un domaine a été configuré ($DOMAIN).${NC}"
+if [ -n "$DOMAIN" ] && [ "$AUTO_MODE" = false ]; then
     printf "%b[?] Voulez-vous lancer la configuration SSL (Let's Encrypt) maintenant ? (Y/n): %b" "${YELLOW}" "${NC}"
     read -r start_ssl
     if [[ ! "$start_ssl" =~ ^[nN]$ ]]; then
