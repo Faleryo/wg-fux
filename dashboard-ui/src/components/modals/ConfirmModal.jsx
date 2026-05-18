@@ -5,17 +5,17 @@ import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
 
 /**
- * 💠 ConfirmModal — Modal de confirmation destructive premium
+ * ConfirmModal — Modal de confirmation destructive premium
  * Remplace les window.confirm() basiques par un dialog Liquid Glass.
  *
  * Props:
- *   isOpen: boolean
- *   onConfirm: () => void
- *   onCancel: () => void
- *   title: string
- *   message: string | ReactNode
- *   confirmLabel?: string  (défaut: "Supprimer")
- *   intent?: 'danger' | 'warning'  (défaut: 'danger')
+ * isOpen: boolean
+ * onConfirm: () => void
+ * onCancel: () => void
+ * title: string
+ * message: string | ReactNode
+ * confirmLabel?: string (défaut: "Supprimer")
+ * intent?: 'danger' | 'warning' (défaut: 'danger')
  */
 const ConfirmModal = ({
   isOpen,

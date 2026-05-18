@@ -204,13 +204,47 @@ const interfaceWatchdog = async () => {
   }
 };
 
+const adguardWatchdog = async () => {
+  const axios = require('axios');
+  const AGH_BASE_URL = 'http://adguard:3000';
+  const AGH_USER = (process.env.AGH_USER || '').replace(/['"]/g, '').trim();
+  const AGH_PASS = (process.env.AGH_PASSWORD || '').replace(/['"]/g, '').trim();
+  if (!AGH_USER || !AGH_PASS) {
+    log.warn('sre', 'AdGuard credentials not configured; skipping watchdog');
+    return;
+  }
+  let aghPassword = AGH_PASS;
+  if (aghPassword.length < 8) aghPassword = AGH_PASS.padEnd(8, '0');
+  const authHeader = `Basic ${Buffer.from(`${AGH_USER}:${aghPassword}`).toString('base64')}`;
+
+  try {
+    await axios.get(`${AGH_BASE_URL}/control/status`, {
+      headers: { Authorization: authHeader },
+      timeout: 5000,
+    });
+  } catch (e) {
+    log.warn('sre', 'AdGuard Home health check failed. Attempting restart via Sentinel API...');
+    // In Docker, we can't easily restart another container without Docker socket.
+    // However, the Sentinel Watchdog (Python) on the host manages this.
+    // We log it and send a notification.
+    const notify = require('./notifications');
+    await notify.send(
+      'sre',
+      '🚨 ALERTE DNS: AdGuard Home ne répond plus. Intervention Sentinel requise.',
+      { error: e.message }
+    );
+  }
+};
+
 const startJobs = () => {
   if (process.env.VITEST === 'true') return;
   loadSchedules();
   setInterval(updateUsage, 60000);
   setInterval(logTrafficHistory, 60000);
   setInterval(interfaceWatchdog, 30000);
+  setInterval(adguardWatchdog, 60000);
   setInterval(rotateEnforcerLogs, 3600000);
+  setInterval(vacuumDatabase, 86400000 * 7); // Weekly maintenance
   scheduleAutomaticBackup();
 };
 
@@ -258,6 +292,17 @@ const scheduleAutomaticBackup = () => {
     }));
     if (!result.success) log.error('jobs', 'Automatic backup failed', { err: result.error });
   });
+};
+
+const vacuumDatabase = async () => {
+  log.info('db', '📦 Running database maintenance (VACUUM)...');
+  try {
+    const { sqlite } = require('../../db');
+    sqlite.exec('VACUUM');
+    log.success('db', '✅ Database VACUUM complete.');
+  } catch (e) {
+    log.error('db', '❌ Database VACUUM failed', { err: e.message });
+  }
 };
 
 const getJobStatus = () => ({

@@ -155,15 +155,14 @@ const systemConfigSchema = z.object({
     .optional(),
 });
 
-const dnsConfigSchema = z
-  .object({
-    upstream_dns: z.array(z.string()).optional(),
-    bootstrap_dns: z.array(z.string()).optional(),
-    filtering_enabled: z.boolean().optional(),
-    safesearch_enabled: z.boolean().optional(),
-    safebrowsing_enabled: z.boolean().optional(),
-    parental_enabled: z.boolean().optional(),
-  });
+const dnsConfigSchema = z.object({
+  upstream_dns: z.array(z.string()).optional(),
+  bootstrap_dns: z.array(z.string()).optional(),
+  filtering_enabled: z.boolean().optional(),
+  safesearch_enabled: z.boolean().optional(),
+  safebrowsing_enabled: z.boolean().optional(),
+  parental_enabled: z.boolean().optional(),
+});
 
 const userUpdateSchema = z
   .object({

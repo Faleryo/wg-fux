@@ -1,4 +1,18 @@
 require('dotenv').config();
+const Sentry = require('@sentry/node');
+const { nodeProfilingIntegration } = require('@sentry/profiling-node');
+
+if (process.env.SENTRY_DSN && process.env.SENTRY_DSN.startsWith('http')) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    integrations: [nodeProfilingIntegration()],
+    // Performance Monitoring
+    tracesSampleRate: 1.0,
+    profilesSampleRate: 1.0,
+    environment: process.env.NODE_ENV || 'production',
+  });
+}
+
 const express = require('express');
 const http = require('http');
 
@@ -14,9 +28,9 @@ const { startJobs } = require('./src/services/jobs');
 const { checkScripts } = require('./src/services/system');
 const log = require('./src/services/logger');
 
-// Vibe-OS v6.3: Global Security Headers (Hardened)
+// : Global Security Headers (Hardened)
 const vibeHeaders = (req, res, next) => {
-  res.set('X-Powered-By', 'Vibe-OS v6.3 (Watcher)');
+  res.set('X-Powered-By', 'Vibe-Shield');
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('X-Frame-Options', 'DENY');
   res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -39,6 +53,10 @@ const app = express();
 app.set('trust proxy', 1); // Trust first-hop proxy (Nginx) for rate-limiting
 
 const server = http.createServer(app);
+
+// --- Swagger Documentation ---
+const { swaggerUi, specs } = require('./src/utils/swagger');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // --- Middleware ---
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -68,7 +86,7 @@ app.use(log.requestMiddleware);
 // --- Security & Custom Metadata Headers (Cleaned Wave 3) ---
 app.use((req, res, next) => {
   // Custom header for versioning only, standard security headers are handled by Nginx proxy
-  res.setHeader('X-WG-Shield-Version', '3.1.0-Platinum');
+  res.setHeader('X-WG-Shield-Status', 'active');
   next();
 });
 
@@ -95,14 +113,12 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login', authLimiter);
 
 // --- Public Routes ---
-app.get('/api/install/status', (req, res) =>
-  res.json({ installed: true, version: '3.0.1 (Modular)' })
-);
+app.get('/api/install/status', (req, res) => res.json({ installed: true, version: '3.1.0-' }));
 app.get('/api/health', async (req, res) => {
   const scriptsOk = await checkScripts();
   res.json({
     status: scriptsOk ? 'healthy' : 'degraded',
-    version: '3.1.0-Platinum',
+    version: '3.1.0-',
     uptime: process.uptime(),
     sre: { watcher: 'v6.3', scripts: scriptsOk ? 'ok' : 'fail' },
   });
@@ -133,8 +149,8 @@ app.use('/api/sentinel', auth, sentinelRoutes);
 app.use('/api/dns', auth, requireAdmin, dnsRoutes);
 
 // ─── Debug Route (admin only) ─────────────────────────────────────────────────
-// GET /api/debug            → rapport de santé complet
-// GET /api/debug/logs       → circular buffer des 200 derniers logs
+// GET /api/debug → rapport de santé complet
+// GET /api/debug/logs → circular buffer des 200 derniers logs
 // GET /api/debug/logs?level=ERROR&limit=50
 app.get('/api/debug', auth, requireAdmin, (req, res) => {
   const os = require('os');
@@ -172,7 +188,7 @@ app.get('/api/debug/logs', auth, requireAdmin, (req, res) => {
 });
 
 // --- P12 : Observability Metrics (Prometheus Style) ---
-app.get('/api/metrics', async (req, res) => {
+app.get('/api/metrics', auth, requireAdmin, async (req, res) => {
   const os = require('os');
   const { db, schema } = require('./db');
   const counters = log.getCounters();
@@ -261,7 +277,11 @@ app.use((req, res) => {
 // NOTE: These headers are set early in the pipeline. helmet() above handles most of them;
 // we add custom headers here for all non-upgrade requests.
 
-const { createError } = require('./src/utils/errors');
+// Sentry Error Handler
+if (process.env.SENTRY_DSN) {
+  app.use(Sentry.Handlers.errorHandler());
+}
+
 app.use((err, req, res, _next) => {
   const isProd = process.env.NODE_ENV === 'production';
   const statusCode = err.status || err.statusCode || 500;
@@ -269,7 +289,7 @@ app.use((err, req, res, _next) => {
 
   if (statusCode >= 500) {
     log.error('server', `Unhandled Exception: ${err.message}`, {
-      stack: err.stack,
+      stack: isProd ? undefined : err.stack,
       path: req.path,
       method: req.method,
       code: errorCode,
@@ -282,14 +302,18 @@ app.use((err, req, res, _next) => {
     });
   }
 
-  const errorResponse = createError(
-    isProd && statusCode >= 500 ? 'Service Error' : err.message,
-    isProd && statusCode >= 500 ? 'An internal error occurred.' : err.message,
-    errorCode,
-    req.path
-  );
-
-  res.status(statusCode).json(errorResponse);
+  // SRE FIX: Build a plain JSON response instead of re-calling createError
+  // (createError now returns Error instances which don't serialize cleanly to JSON)
+  res.status(statusCode).json({
+    success: false,
+    status: statusCode,
+    error: isProd && statusCode >= 500 ? 'Service Error' : err.error || err.message,
+    message: isProd && statusCode >= 500 ? 'An internal error occurred.' : err.message,
+    code: errorCode,
+    path: req.path,
+    details: err.details || null,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // --- Startup ---
@@ -298,13 +322,13 @@ if (require.main === module) {
   (async () => {
     try {
       console.log('----------------------------------------------------');
-      console.log(`📡 Initializing WG-FUX API Services...`);
-      
+      console.log('📡 Initializing WG-FUX API Services...');
+
       await initializeDatabase();
       await initializeDNS();
-      
+
       startJobs(); // Start background tasks
-      
+
       server.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 WG-FUX API Modular running on port ${PORT}`);
         console.log(`🛠️ Mode: ${process.env.NODE_ENV || 'production'}`);

@@ -1,13 +1,9 @@
 const jwt = require('jsonwebtoken');
 const log = require('../services/logger');
 
-/**
- * 💠 NUCLEAR TEST BYPASS for coverage (Vitest context)
- */
 const getIsTest = () =>
-  process.env.VITEST === 'true' ||
-  process.env.NODE_ENV === 'test' ||
-  global.TEST_BYPASS_AUTH === true;
+  process.env.NODE_ENV !== 'production' &&
+  (process.env.VITEST === 'true' || process.env.NODE_ENV === 'test');
 
 const auth = async (req, res, next) => {
   if (getIsTest()) {
@@ -19,9 +15,7 @@ const auth = async (req, res, next) => {
   if (!token) return res.status(401).json({ error: 'Auth required' });
 
   // 🛡️ SRE-HARDENING: Internal agent bypass (Sentinel Watchdog)
-  const sentinelToken = (process.env.SENTINEL_TOKEN || 'vibe-sentinel-trust-99')
-    .replace(/['"]/g, '')
-    .trim();
+  const sentinelToken = (process.env.SENTINEL_TOKEN || '').replace(/['"]/g, '').trim();
   const receivedToken = (token || '').replace(/['"]/g, '').trim();
 
   if (sentinelToken && receivedToken === sentinelToken) {
@@ -33,7 +27,12 @@ const auth = async (req, res, next) => {
   }
 
   // 🛡️ Detect potentially failed Sentinel attempts for logging
-  if (receivedToken && receivedToken.startsWith('vibe-') && receivedToken !== sentinelToken) {
+  if (
+    receivedToken &&
+    receivedToken.startsWith('vibe-') &&
+    sentinelToken &&
+    receivedToken !== sentinelToken
+  ) {
     log.warn('auth', '❌ Sentinel Watchdog auth mismatch', {
       expected: sentinelToken.substring(0, 4) + '***',
       received: receivedToken.substring(0, 4) + '***',
@@ -43,12 +42,10 @@ const auth = async (req, res, next) => {
   try {
     const jwtSecret = (process.env.JWT_SECRET || '').replace(/['"]/g, '').trim();
     if (!jwtSecret) {
-      if (process.env.NODE_ENV === 'production') {
-        log.error('auth', '❌ JWT_SECRET NOT SET IN PRODUCTION ENVIRONMENT');
-        return res.status(500).json({ error: 'Server authentication misconfigured' });
-      }
+      log.error('auth', '❌ JWT_SECRET NOT SET. Authentication unavailable.');
+      return res.status(500).json({ error: 'Server authentication misconfigured' });
     }
-    const decoded = jwt.verify(token, jwtSecret || 'test_secret');
+    const decoded = jwt.verify(token, jwtSecret);
     req.user = decoded;
     next();
   } catch (error) {

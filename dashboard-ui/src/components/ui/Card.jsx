@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
 
 /**
- * GlassCard: Composant de base "Liquid Glass" de Vibe-OS.
+ * GlassCard: Composant de base "Liquid Glass" de .
  * Centralise les effets de flou, les bordures et les ombres.
  */
 const GlassCard = ({ children, className, animate = true, delay = 0, hover = true, onClick }) => {

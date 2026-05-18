@@ -1,5 +1,5 @@
 #!/bin/bash
-# --- VIBE-OS : Create Client v6.2 (Elite SRE) ---
+# --- : Create Client v6.2 (SRE) ---
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
@@ -20,65 +20,65 @@ validate_id "$CONTAINER"
 validate_id "$NAME"
 
 if [[ -n "$EXPIRY" && ! "$EXPIRY" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-    log_error "Invalid expiry date: $EXPIRY"
-    exit 1
+ log_error "Invalid expiry date: $EXPIRY"
+ exit 1
 fi
 
 if [[ -n "$QUOTA" && ! "$QUOTA" =~ ^[0-9]+$ ]]; then
-    log_error "Invalid Quota: $QUOTA"
-    exit 1
+ log_error "Invalid Quota: $QUOTA"
+ exit 1
 fi
 
 if [ -d "/etc/wireguard/clients/$CONTAINER/$NAME" ]; then
-    log_warn "Client '$NAME' already exists in container '$CONTAINER'. Skipping creation."
-    exit 0 # Idempotence
+ log_warn "Client '$NAME' already exists in container '$CONTAINER'. Skipping creation."
+ exit 0 # Idempotence
 fi
 
 # Validation critique du serveur
 if [ -z "${SERVER_IP:-}" ]; then
-    log_error "SERVER_IP missing in manager.conf. Cannot generate Endpoint."
-    exit 1
+ log_error "SERVER_IP missing in manager.conf. Cannot generate Endpoint."
+ exit 1
 fi
 
 if [ ! -f /etc/wireguard/server-public.key ]; then
-    log_error "/etc/wireguard/server-public.key not found."
-    exit 1
+ log_error "/etc/wireguard/server-public.key not found."
+ exit 1
 fi
 
 # --- IP CALCULATION & LOCK ---
 IP_SUFFIX=""
 {
-  flock -x 200 || exit 1
-  
-  used_ips=" "
-  # Improved robust IP scanning across all containers
-  for client_conf in /etc/wireguard/clients/*/*/*.conf; do
-      [ -f "$client_conf" ] || continue
-      # Extract first IPv4 Address from the conf using a more precise regex
-      ip_val=$(grep -i "^Address" "$client_conf" | sed -n 's/^Address *= *\([^, \n]*\).*/\1/p' | cut -d'/' -f1 | tr -d '[:space:]')
-      if [[ "$ip_val" =~ ^([0-9]{1,3}\.){3}([0-9]{1,3})$ ]]; then
-          current_id=$(echo "$ip_val" | cut -d'.' -f4)
-          used_ips="${used_ips}${current_id} "
-      fi
-  done
-  
-  # Also check server IP to be safe
-  server_suffix=$(echo "${VPN_SUBNET%.*}" | cut -d'.' -f4)
-  [[ -z "$server_suffix" ]] && server_suffix="1"
-  used_ips="${used_ips}${server_suffix} "
+ flock -x 200 || exit 1
 
-  # Find first available suffix from 2 to 254
-  for ((i=2; i<=254; i++)); do
-      if [[ ! " ${used_ips} " == *" $i "* ]]; then
-          IP_SUFFIX=$i
-          break
-      fi
-  done
+ used_ips=" "
+ # Improved robust IP scanning across all containers
+ for client_conf in /etc/wireguard/clients/*/*/*.conf; do
+ [ -f "$client_conf" ] || continue
+ # Extract first IPv4 Address from the conf using a more precise regex
+ ip_val=$(grep -i "^Address" "$client_conf" | sed -n 's/^Address *= *\([^, \n]*\).*/\1/p' | cut -d'/' -f1 | tr -d '[:space:]')
+ if [[ "$ip_val" =~ ^([0-9]{1,3}\.){3}([0-9]{1,3})$ ]]; then
+ current_id=$(echo "$ip_val" | cut -d'.' -f4)
+ used_ips="${used_ips}${current_id} "
+ fi
+ done
+
+ # Also check server IP to be safe
+ server_suffix=$(echo "${VPN_SUBNET%.*}" | cut -d'.' -f4)
+ [[ -z "$server_suffix" ]] && server_suffix="1"
+ used_ips="${used_ips}${server_suffix} "
+
+ # Find first available suffix from 2 to 254
+ for ((i=2; i<=254; i++)); do
+ if [[ ! " ${used_ips} " == *" $i "* ]]; then
+ IP_SUFFIX=$i
+ break
+ fi
+ done
 } 200>/var/lock/wg-ip.lock
 
 if [ -z "$IP_SUFFIX" ]; then
-    log_error "Subnet exhausted (max 254 clients)."
-    exit 1
+ log_error "Subnet exhausted (max 254 clients)."
+ exit 1
 fi
 
 BASE_DIR="/etc/wireguard/clients"
@@ -100,29 +100,29 @@ SERVER_PUBKEY=$(cat /etc/wireguard/server-public.key)
 CLIENT_IP="${VPN_SUBNET%.*}.$IP_SUFFIX"
 
 if [ -n "${VPN_SUBNET_V6:-}" ]; then
-    # Improved robust prefix extraction
-    NET_PREFIX="${VPN_SUBNET_V6%/*}"
-    # Normalize trailing colons
-    [[ "$NET_PREFIX" == *:: ]] || [[ "$NET_PREFIX" == *: ]] || NET_PREFIX="${NET_PREFIX}:"
-    # Ensure double colons if it's a base prefix
-    [[ "$NET_PREFIX" == *:: ]] || [[ "$NET_PREFIX" == *: ]] || NET_PREFIX="${NET_PREFIX}:"
-    
-    # Standardize to double colon for suffix addition if it's a short prefix
-    if [[ ! "$NET_PREFIX" == *:: ]]; then
-        if [[ "$NET_PREFIX" == *: ]]; then
-            CLIENT_IPV6="${NET_PREFIX}:${IP_SUFFIX}"
-        else
-            CLIENT_IPV6="${NET_PREFIX}::${IP_SUFFIX}"
-        fi
-    else
-        CLIENT_IPV6="${NET_PREFIX}${IP_SUFFIX}"
-    fi
+ # Improved robust prefix extraction
+ NET_PREFIX="${VPN_SUBNET_V6%/*}"
+ # Normalize trailing colons
+ [[ "$NET_PREFIX" == *:: ]] || [[ "$NET_PREFIX" == *: ]] || NET_PREFIX="${NET_PREFIX}:"
+ # Ensure double colons if it's a base prefix
+ [[ "$NET_PREFIX" == *:: ]] || [[ "$NET_PREFIX" == *: ]] || NET_PREFIX="${NET_PREFIX}:"
 
-    ADDRESS_STR="$CLIENT_IP/24, $CLIENT_IPV6/64"
-    ALLOWED_IPS_STR="$CLIENT_IP/32,$CLIENT_IPV6/128"
+ # Standardize to double colon for suffix addition if it's a short prefix
+ if [[ ! "$NET_PREFIX" == *:: ]]; then
+ if [[ "$NET_PREFIX" == *: ]]; then
+ CLIENT_IPV6="${NET_PREFIX}:${IP_SUFFIX}"
+ else
+ CLIENT_IPV6="${NET_PREFIX}::${IP_SUFFIX}"
+ fi
+ else
+ CLIENT_IPV6="${NET_PREFIX}${IP_SUFFIX}"
+ fi
+
+ ADDRESS_STR="$CLIENT_IP/24, $CLIENT_IPV6/64"
+ ALLOWED_IPS_STR="$CLIENT_IP/32,$CLIENT_IPV6/128"
 else
-    ADDRESS_STR="$CLIENT_IP/24"
-    ALLOWED_IPS_STR="$CLIENT_IP/32"
+ ADDRESS_STR="$CLIENT_IP/24"
+ ALLOWED_IPS_STR="$CLIENT_IP/32"
 fi
 
 ACTUAL_ENDPOINT="$SERVER_IP:$SERVER_PORT"
@@ -150,23 +150,25 @@ echo "$ALLOWED_IPS_STR" > "$CLIENT_DIR/allowed_ips.txt"
 
 # Sync with interface
 if ip link show "$WG_INTERFACE" > /dev/null 2>&1; then
-    ALLOWED_IPS_VAL=$(cat "$CLIENT_DIR/allowed_ips.txt")
-    if ! wg set "$WG_INTERFACE" peer "$PUBKEY" preshared-key "$CLIENT_DIR/preshared.key" allowed-ips "$ALLOWED_IPS_VAL"; then
-        log_warn "Failed to apply peer '$NAME' to interface '$WG_INTERFACE'. Will be applied by enforcer later."
-    fi
+ ALLOWED_IPS_VAL=$(cat "$CLIENT_DIR/allowed_ips.txt")
+ if ! wg set "$WG_INTERFACE" peer "$PUBKEY" preshared-key "$CLIENT_DIR/preshared.key" allowed-ips "$ALLOWED_IPS_VAL"; then
+ log_warn "Failed to apply peer '$NAME' to interface '$WG_INTERFACE'. Will be applied by enforcer later."
+ fi
 fi
 
 # QR Code
 if command -v qrencode &> /dev/null; then
-    qrencode -o "$CLIENT_DIR/$NAME.png" -t png -r "$CLIENT_DIR/$NAME.conf" || true
+ qrencode -o "$CLIENT_DIR/$NAME.png" -t png -r "$CLIENT_DIR/$NAME.conf" || true
 fi
 
-# Permissions
-# Vibe-OS v6.3 fix: Allow wg-api user to write metadata (quota, expiry) to client dir
+# Final Permissions & Ownership
+# Keys and the .conf (which embeds the private key) must be owner-only.
+# Metadata files (expiry, quota, allowed_ips.txt, disabled) stay group-readable
+# for the enforcer if it runs as a different uid.
 chown -R 1001:1001 "$CLIENT_DIR"
-chmod 770 "$CLIENT_DIR"
-chmod 660 "$CLIENT_DIR/"*
-chown root:root "$CLIENT_DIR/private.key" "$CLIENT_DIR/preshared.key" && chmod 600 "$CLIENT_DIR/private.key" "$CLIENT_DIR/preshared.key"
+chmod 700 "$CLIENT_DIR"
+chmod 640 "$CLIENT_DIR/"* 2>/dev/null || true
+chmod 600 "$CLIENT_DIR/private.key" "$CLIENT_DIR/preshared.key" "$CLIENT_DIR/$NAME.conf"
 
 # Apply QoS
 "$SCRIPT_DIR/wg-apply-qos.sh" || true

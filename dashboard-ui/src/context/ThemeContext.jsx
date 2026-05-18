@@ -9,7 +9,8 @@ export const ThemeProvider = ({ children }) => {
   const getInitialMode = () => {
     const params = new URLSearchParams(window.location.search);
     const themeParam = params.get('theme');
-    if (themeParam === 'light' || themeParam === 'dark' || themeParam === 'spectre') return themeParam;
+    if (themeParam === 'light' || themeParam === 'dark' || themeParam === 'spectre')
+      return themeParam;
     return localStorage.getItem('theme-mode') || 'light';
   };
 

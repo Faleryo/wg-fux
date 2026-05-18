@@ -140,7 +140,9 @@ const LogsSection = () => {
   }, [activeTab]);
 
   const filteredLogs = (logs || []).filter((log) =>
-    JSON.stringify(log || {}).toLowerCase().includes(String(searchTerm || '').toLowerCase())
+    JSON.stringify(log || {})
+      .toLowerCase()
+      .includes(String(searchTerm || '').toLowerCase())
   );
 
   const getStatusStyle = (status) => {

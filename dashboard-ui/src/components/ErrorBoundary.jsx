@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 /**
- * 💠 VIBE-OS React Error Boundary
+ * React Error Boundary
  * Empêche toute l'app de crasher si un composant lève une erreur.
  * Affiche un fallback premium Liquid Glass style.
  */

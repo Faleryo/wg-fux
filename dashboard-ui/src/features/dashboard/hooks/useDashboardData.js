@@ -87,8 +87,11 @@ const useDashboardData = (session) => {
   }, []);
 
   // ── Main Data Fetch ───────────────────────────────────────────────────────
+  const isFetchingRef = useRef(false);
   const sessionRole = session?.role;
   const fetchData = useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
       const isAdmin = sessionRole === 'admin';
       const [
@@ -181,6 +184,8 @@ const useDashboardData = (session) => {
     } catch (error) {
       console.error('[useDashboardData] Fetch error:', error);
       setLoading(false);
+    } finally {
+      isFetchingRef.current = false;
     }
   }, [sessionRole, activeInterface]);
 

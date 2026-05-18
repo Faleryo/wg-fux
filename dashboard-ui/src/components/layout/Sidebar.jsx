@@ -18,6 +18,7 @@ import {
   Moon,
   Globe,
   Ghost,
+  LifeBuoy,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
@@ -56,6 +57,7 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
     { id: 'dns', icon: <Globe size={20} />, label: 'DNS Editor' },
     { id: 'optimization', icon: <Gauge size={20} />, label: t('optimization') },
     { id: 'audit', icon: <ShieldCheck size={20} />, label: 'Audit' },
+    { id: 'support', icon: <LifeBuoy size={20} />, label: 'Support' },
     {
       id: 'settings',
       icon: <Settings size={20} />,
@@ -377,11 +379,19 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
                     }}
                     className={cn(
                       'p-2 rounded-xl transition-all duration-500',
-                      mode === 'spectre' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-white/5 text-slate-400 hover:text-white'
+                      mode === 'spectre'
+                        ? 'bg-indigo-500/20 text-indigo-400'
+                        : 'bg-white/5 text-slate-400 hover:text-white'
                     )}
                     title={`Mode: ${mode.toUpperCase()}`}
                   >
-                    {mode === 'dark' ? <Moon size={14} /> : mode === 'spectre' ? <Ghost size={14} /> : <Sun size={14} />}
+                    {mode === 'dark' ? (
+                      <Moon size={14} />
+                    ) : mode === 'spectre' ? (
+                      <Ghost size={14} />
+                    ) : (
+                      <Sun size={14} />
+                    )}
                   </button>
                   <button
                     onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
@@ -435,11 +445,21 @@ const Sidebar = ({ activeSection, setActiveSection, isOpen, onClose, onLogout, u
               }}
               className={cn(
                 'p-2.5 rounded-xl transition-all duration-500',
-                mode === 'spectre' ? 'bg-indigo-500/20 text-indigo-400' : isDark ? 'bg-white/5 text-slate-400 hover:text-white' : 'bg-black/5 text-slate-500 hover:text-slate-900'
+                mode === 'spectre'
+                  ? 'bg-indigo-500/20 text-indigo-400'
+                  : isDark
+                    ? 'bg-white/5 text-slate-400 hover:text-white'
+                    : 'bg-black/5 text-slate-500 hover:text-slate-900'
               )}
               title={`Mode: ${mode.toUpperCase()}`}
             >
-              {mode === 'dark' ? <Moon size={16} /> : mode === 'spectre' ? <Ghost size={16} /> : <Sun size={16} />}
+              {mode === 'dark' ? (
+                <Moon size={16} />
+              ) : mode === 'spectre' ? (
+                <Ghost size={16} />
+              ) : (
+                <Sun size={16} />
+              )}
             </button>
             <button
               onClick={handleRestartServer}

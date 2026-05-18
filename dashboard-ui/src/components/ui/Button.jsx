@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
 
 /**
- * VibeButton: Bouton premium Vibe-OS avec variantes Liquid UI.
+ * VibeButton: Bouton premium avec variantes Liquid UI.
  */
 const VibeButton = ({
   children,
@@ -18,8 +18,7 @@ const VibeButton = ({
   const variants = {
     primary: 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30 text-white border-transparent',
     secondary: 'bg-white/10 hover:bg-white/15 text-white border-white/5',
-    ghost:
-      'bg-transparent hover:bg-white/5 text-slate-400 hover:text-white border-transparent',
+    ghost: 'bg-transparent hover:bg-white/5 text-slate-400 hover:text-white border-transparent',
     danger:
       'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20 shadow-rose-500/10',
     success:

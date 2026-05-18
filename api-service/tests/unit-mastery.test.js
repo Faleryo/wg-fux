@@ -142,4 +142,21 @@ describe('Unit Mastery - Service Layer', () => {
     await db.delete(schema.clients);
     await db.delete(schema.containers);
   });
+
+  it('System Service - Security Validation', async () => {
+    const { getWireGuardStats, getMTU, getTelemetry } = require('../src/services/system');
+
+    // Test invalid interface names (Command Injection protection)
+    const invalidIface = 'wg0; rm -rf /';
+
+    const stats = await getWireGuardStats(invalidIface);
+    expect(stats).toEqual([]);
+
+    const mtu = await getMTU(invalidIface);
+    expect(mtu).toBe(1420);
+
+    const telemetry = await getTelemetry(invalidIface);
+    expect(telemetry.cpu).toBe('0.0');
+    expect(telemetry.mtu).toBe(1420);
+  });
 });

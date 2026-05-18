@@ -32,16 +32,18 @@ const PerformanceMonitor = () => {
   return (
     <GlassCard className="p-4 flex flex-col gap-2 min-w-[200px]">
       <div className="flex justify-between items-center">
-        <span className="text-zinc-400 text-xs font-medium uppercase tracking-wider">Performance SRE</span>
-        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${p95 < 500 ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+        <span className="text-zinc-400 text-xs font-medium uppercase tracking-wider">
+          Performance SRE
+        </span>
+        <span
+          className={`text-[10px] px-1.5 py-0.5 rounded-full border ${p95 < 500 ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}
+        >
           {statusLabel}
         </span>
       </div>
-      
+
       <div className="flex items-baseline gap-1">
-        <span className={`text-2xl font-bold font-mono ${statusColor}`}>
-          {p95}
-        </span>
+        <span className={`text-2xl font-bold font-mono ${statusColor}`}>{p95}</span>
         <span className="text-zinc-500 text-sm">ms</span>
         <span className="text-zinc-400 text-xs ml-auto">(p95 latence)</span>
       </div>
@@ -57,7 +59,9 @@ const PerformanceMonitor = () => {
         </div>
         <div className="flex flex-col">
           <span className="text-zinc-500">Bloat</span>
-          <span className={`font-bold ${metrics.bufferbloat === 'A+' ? 'text-green-400' : 'text-yellow-400'}`}>
+          <span
+            className={`font-bold ${metrics.bufferbloat === 'A+' ? 'text-green-400' : 'text-yellow-400'}`}
+          >
             {metrics.bufferbloat}
           </span>
         </div>

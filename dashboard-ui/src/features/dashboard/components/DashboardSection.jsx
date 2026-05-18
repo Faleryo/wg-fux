@@ -125,7 +125,7 @@ const DashboardSection = ({
   }, [clients]);
 
   return (
-    <motion.div 
+    <motion.div
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -170,8 +170,8 @@ const DashboardSection = ({
       )}
 
       {/* === ROW 1: Hero Banner + Right Stats ===
-          Wrapper divs carry the col-span classes so the grid works correctly
-          (GlassCard's motion.div wrapper cannot have col-span) */}
+ Wrapper divs carry the col-span classes so the grid works correctly
+ (GlassCard's motion.div wrapper cannot have col-span) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-12 gap-6 md:gap-8">
         {/* Hero Card — 2xl:col-span-8 */}
         <motion.div variants={itemVariants} className="2xl:col-span-8">
@@ -208,10 +208,7 @@ const DashboardSection = ({
                   </p>
                 </div>
                 <div className="flex items-center gap-4 flex-wrap">
-                  <InterfaceSelector
-                    onSelect={setActiveInterface}
-                    current={activeInterface}
-                  />
+                  <InterfaceSelector onSelect={setActiveInterface} current={activeInterface} />
                   <div
                     className={cn(
                       'px-4 py-2 rounded-full text-[10px] font-black tracking-[0.2em] border whitespace-nowrap transition-all duration-500',
@@ -222,7 +219,11 @@ const DashboardSection = ({
                           : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
                     )}
                   >
-                    {health.status === 'healthy' && health.ready ? 'OPERATIONAL' : health.status === 'healthy' ? 'READY' : 'CHECKING'}
+                    {health.status === 'healthy' && health.ready
+                      ? 'OPERATIONAL'
+                      : health.status === 'healthy'
+                        ? 'READY'
+                        : 'CHECKING'}
                   </div>
                 </div>
               </div>
@@ -315,7 +316,10 @@ const DashboardSection = ({
         </motion.div>
 
         {/* Right sidebar cards — lg:col-span-1 2xl:col-span-4 */}
-        <motion.div variants={itemVariants} className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6">
+        <motion.div
+          variants={itemVariants}
+          className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6"
+        >
           {/* Sentinel & AdGuard */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
             {/* Sentinel */}
@@ -489,14 +493,20 @@ const DashboardSection = ({
       )}
 
       {/* === ROW 2: Telemetry + Pie + Speedtest === */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-12 gap-6 lg:gap-8">
+      <motion.div
+        variants={itemVariants}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-12 gap-6 lg:gap-8"
+      >
         {/* Telemetry — md:col-span-2 lg:col-span-2 2xl:col-span-8 */}
         <div className="md:col-span-2 lg:col-span-2 2xl:col-span-8">
           <LiveTelemetryChart />
         </div>
 
         {/* Pie + Speedtest — lg:col-span-1 2xl:col-span-4 */}
-        <motion.div variants={itemVariants} className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6">
+        <motion.div
+          variants={itemVariants}
+          className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6"
+        >
           {/* Traffic Répartition */}
           <GlassCard className="p-6 group flex-1" hover={true}>
             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 flex items-center gap-3">

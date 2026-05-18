@@ -1,52 +1,81 @@
-# 💎 WG-FUX : Plateforme WireGuard Platinum
+# wg-fux
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-platinum-gold.svg)
-![Protocol](https://img.shields.io/badge/engine-Vibe--OS-cyan.svg)
+Panneau d'administration WireGuard pour une équipe / un usage perso.
 
-**WG-FUX** est une plateforme de gestion **Next-Gen** pour serveurs WireGuard. Conçue pour la résilience, la sécurité et la performance (Standard Vibe-OS Platinum).
+Gère un (ou plusieurs) serveurs WireGuard via une UI web : création de clients,
+quotas, expiry, statistiques temps réel, DNS filtré (AdGuard Home), audit log,
+backups chiffrés.
 
-## 🚀 Pourquoi WG-FUX ?
+## Stack
 
-- **Architecture Modulaire** : Isolation des services (Auth, Clients, Logs, Tickets, Users).
-- **Sentinel Watchdog** : Un gardien autonome surveillant la santé des tâches de fond.
-- **Hyper-Performance** : SQLite en mode **WAL (Write-Ahead Logging)** pour une concurrence fluide.
-- **Sécurité Platinum** : PBKDF2 (600k itérations), Headers de sécurité renforcés, JWT & RBAC durcis.
-- **Interface Liquid Glass** : Dashboards modernes, réactifs et intuitifs.
+| Composant | Rôle |
+|---|---|
+| `api-service/` | API Node.js / Express + SQLite (Drizzle ORM) + WebSocket |
+| `dashboard-ui/` | UI React 18 / Vite 6 |
+| `core-vpn/scripts/` | Scripts shell qui pilotent `wg` / `wg-quick` |
+| `infra/nginx/` | Reverse proxy + TLS termination |
+| `infra/dns/` | AdGuard Home (DNS résolveur pour les peers) |
+| `core-vpn/scripts/sentinel.sh` | Watchdog : redémarre les containers cassés |
 
----
+## Fonctionnalités
 
-## 🛠️ Installation Rapide
+- **Clients** : création / suppression / déplacement entre containers, génération
+  de config + QR code, expiry & quota par client, ban/unban auto via
+  `wg-enforcer.sh`
+- **Auth** : login + JWT, TOTP 2FA, RBAC (admin / manager / viewer), audit log
+- **Monitoring** : stats temps réel (rx/tx, handshake) en WebSocket, métriques
+  Prometheus, dashboard santé
+- **DNS** : AdGuard Home intégré, filtering / safesearch / parental
+- **Backups** : `wg-backup.sh` chiffré AES-256 (passphrase via
+  `BACKUP_PASSPHRASE`), `wg-restore.sh` validé contre les archives malveillantes
+- **Tickets** : système support basique
+- **Self-healing** : sentinel watchdog avec back-off, `vibe-check.sh` qui diffe
+  DB ↔ filesystem ↔ kernel
+
+## Installation
 
 ```bash
-git clone https://github.com/votre-user/wg-fux.git
+git clone <repo>
 cd wg-fux
 cp api-service/.env.example api-service/.env
+# Remplir .env (JWT_SECRET, SENTINEL_TOKEN, AGH_PASSWORD, BACKUP_PASSPHRASE, ...)
 ./setup.sh --install
 ```
 
----
+Prérequis hôte : Docker, Docker Compose, modules kernel WireGuard.
 
-## 🏗️ Architecture
+## Configuration
 
-| Composant | Technologie | Rôle |
-| :--- | :--- | :--- |
-| **API Core** | 🧩 Node.js / Express | Moteur de gestion modulaire |
-| **Persistance** | 🗄️ SQLite (WAL) + Drizzle ORM | Base de données Platinum |
-| **Dashboard** | ⚡ React 18 + Vite 6 | UI Premium (Liquid Glass, feature-based) |
-| **DNS** | 🔒 AdGuard Home | Résolution DNS interne pour clients VPN |
-| **Proxy** | 🛡️ Nginx | Reverse-proxy sécurisé (TLS termination) |
+Toutes les valeurs sensibles passent par `.env` (jamais commité). Voir
+[`api-service/.env.example`](api-service/.env.example) pour l'ensemble des
+variables et leur rôle.
 
----
+Variables critiques :
 
-## 🔐 Sécurité & Confidentialité
+- `JWT_SECRET` — `openssl rand -hex 64`
+- `SENTINEL_TOKEN` — `openssl rand -hex 32`
+- `ADMIN_PASSWORD_HASH` / `ADMIN_PASSWORD_SALT` — générés par `setup.sh`
+- `AGH_PASSWORD` — min 8 caractères
+- `BACKUP_PASSPHRASE` — `openssl rand -base64 32`
+- `ALLOWED_ORIGINS` — domaine(s) du frontend en production
 
-Ce dépôt est conçu pour être **Zéro-Secret**. Tous les paramètres sensibles (`JWT_SECRET`, passwords, keys) sont gérés via des fichiers `.env` exclus du contrôle de version.
+## Backup / Restore
 
----
+```bash
+# Backup chiffré
+BACKUP_PASSPHRASE='...' core-vpn/scripts/wg-backup.sh
 
-> [!NOTE]
-> Cette plateforme est certifiée **Platinum Tier** par le protocole **Vibe-OS**.
+# Restore depuis archive .tar.gz.enc
+BACKUP_PASSPHRASE='...' core-vpn/scripts/wg-restore.sh /app/backups/wg_fux_backup_*.tar.gz.enc
+```
 
-> [!CAUTION]
-> **Production** : Assurez-vous que l'hôte dispose des modules kernel WireGuard installés avant de lancer le conteneur `api` en mode `privileged`.
+## Tests
+
+```bash
+cd api-service && npm test
+cd dashboard-ui && npx playwright test
+```
+
+## Licence
+
+MIT.

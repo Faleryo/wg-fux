@@ -1,5 +1,5 @@
 /**
- * WG-FUX Structured Logger — Vibe-OS SRE Protocol
+ * WG-FUX Structured Logger — SRE Protocol
  *
  * Version 3.1.2 - Rugged Edition (Anti-DoS)
  */
@@ -19,7 +19,7 @@ const LATENCY_BUFFER_SIZE = 100;
 const latencies = [];
 
 /**
- * Obsidian SRE: Rolling P95 Calculation
+ * SRE: Rolling P95 Calculation
  */
 const getP95Latency = () => {
   if (latencies.length === 0) return 0;

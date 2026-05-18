@@ -7,7 +7,7 @@ const path = require('path');
 
 const { db, schema } = require('../../db');
 const { eq, and, desc, gt } = require('drizzle-orm');
-const { auth, requireAdmin } = require('../middleware/auth');
+const { auth, requireAdmin, requireManager } = require('../middleware/auth');
 const {
   systemConfigSchema,
   optimizeSchema,
@@ -33,13 +33,14 @@ const WG_BIN = process.env.WG_BIN || 'wg';
 const WG_QUICK_BIN = process.env.WG_QUICK_BIN || 'wg-quick';
 
 // --- AdGuard Status Check ---
-const AGH_BASE_URL = 'http://wg-fux-dns:3000';
-const AGH_USER = (process.env.AGH_USER || 'admin').replace(/['"]/g, '').trim();
-const AGH_PASS = (process.env.AGH_PASSWORD || 'password').replace(/['"]/g, '').trim();
+const AGH_BASE_URL = 'http://adguard:3000';
+const AGH_USER = (process.env.AGH_USER || '').replace(/['"]/g, '').trim();
+const AGH_PASS = (process.env.AGH_PASSWORD || '').replace(/['"]/g, '').trim();
 
 router.get(
   '/adguard-status',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     try {
       // SRE Logic: AdGuard Home requires minimum 8 chars for password
@@ -47,9 +48,9 @@ router.get(
       if (aghPassword.length < 8) {
         aghPassword = AGH_PASS.padEnd(8, '0');
       }
-      
+
       const authHeader = `Basic ${Buffer.from(`${AGH_USER}:${aghPassword}`).toString('base64')}`;
-      
+
       const response = await axios.get(`${AGH_BASE_URL}/control/status`, {
         headers: { Authorization: authHeader },
         timeout: 3000,
@@ -67,6 +68,7 @@ router.get(
 router.get(
   '/stats',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const iface = req.query.interface || process.env.WG_INTERFACE || 'wg0';
     const peers = await getWireGuardStats(iface);
@@ -96,6 +98,7 @@ router.get(
 router.get(
   '/telemetry',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const { getTelemetry } = require('../services/system');
     const iface = req.query.interface || process.env.WG_INTERFACE || 'wg0';
@@ -107,6 +110,7 @@ router.get(
 router.get(
   '/interfaces',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const { getInterfaces } = require('../services/system');
     const interfaces = await getInterfaces();
@@ -117,6 +121,7 @@ router.get(
 router.get(
   '/traffic-history',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const since24h = new Date(Date.now() - 24 * 3600 * 1000);
     const history = await db
@@ -410,6 +415,7 @@ router.post(
 router.get(
   '/optimize',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const stateFile = '/etc/wireguard/active_profile';
     if (!fs.existsSync(stateFile)) return res.json({ profile: 'default' });
@@ -439,6 +445,7 @@ router.post(
 router.get(
   '/audit',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const stats = await getSystemStats();
     const [{ stdout: fwStatus }, { stdout: ipFwd }, { success: fail2banActive }] =
@@ -658,7 +665,7 @@ router.get(
       interface: success ? 'up' : 'down',
       stats: system,
       jobs: getJobStatus(),
-      version: '3.1.0-Platinum',
+      version: '3.1.0-',
     });
   })
 );

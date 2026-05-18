@@ -5,6 +5,16 @@ const { eq, desc } = require('drizzle-orm');
 const { ticketSchema, ticketReplySchema } = require('../../db/validation');
 const { auth } = require('../middleware/auth');
 const { asyncWrap, createError } = require('../utils/errors');
+const { auditLog } = require('../services/audit');
+const { rateLimit } = require('express-rate-limit');
+
+const ticketLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 heure
+  max: 5, // 5 tickets max par heure
+  message: { error: 'Limite de tickets atteinte. Veuillez patienter.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 router.get(
   '/',
@@ -27,6 +37,7 @@ router.get(
 router.post(
   '/',
   auth,
+  ticketLimiter,
   asyncWrap(async (req, res) => {
     const result = ticketSchema.safeParse(req.body);
     if (!result.success) {
@@ -44,6 +55,15 @@ router.post(
       updatedAt: new Date(),
     };
     const [newTicket] = await db.insert(schema.tickets).values(ticketData).returning();
+
+    await auditLog({
+      actor: req.user.username,
+      action: 'create_ticket',
+      targetType: 'ticket',
+      targetName: String(newTicket.id),
+      status: 'success',
+    });
+
     res.json({ ...newTicket, messages: JSON.parse(newTicket.messages) });
   })
 );
@@ -83,9 +103,18 @@ router.post(
     }
 
     const updateData = { messages: JSON.stringify(messages), updatedAt: new Date() };
-    if (status) updateData.status = status;
+    if (status && req.user.role === 'admin') updateData.status = status;
 
     await db.update(schema.tickets).set(updateData).where(eq(schema.tickets.id, req.params.id));
+
+    await auditLog({
+      actor: req.user.username,
+      action: 'reply_ticket',
+      targetType: 'ticket',
+      targetName: String(req.params.id),
+      status: 'success',
+      details: { status: updateData.status || ticket.status },
+    });
     res.json({ success: true });
   })
 );

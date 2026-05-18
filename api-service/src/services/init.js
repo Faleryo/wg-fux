@@ -3,6 +3,7 @@ const { db, sqlite, schema } = require('../../db');
 const logger = require('./logger');
 
 const { eq } = require('drizzle-orm');
+const fs = require('fs').promises;
 
 async function initializeDatabase() {
   logger.info('db', '📦WG-FUX Database Initialization...');
@@ -11,75 +12,88 @@ async function initializeDatabase() {
     // 1. Create Tables if they don't exist
     // better-sqlite3 handles this via SQL, but we can also use drizzle metadata or simple SQL
     sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        hash TEXT NOT NULL,
-        salt TEXT NOT NULL,
-        role TEXT DEFAULT 'viewer',
-        twoFactorSecret TEXT,
-        expiry TEXT
-      );
+ CREATE TABLE IF NOT EXISTS users (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ username TEXT NOT NULL UNIQUE,
+ hash TEXT NOT NULL,
+ salt TEXT NOT NULL,
+ role TEXT DEFAULT 'viewer',
+ twoFactorSecret TEXT,
+ expiry TEXT
+ );
+ `);
 
-      CREATE TABLE IF NOT EXISTS containers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
-        interface TEXT DEFAULT 'wg0',
-        createdAt INTEGER DEFAULT (strftime('%s', 'now'))
-      );
+    sqlite.exec(`
+ CREATE TABLE IF NOT EXISTS containers (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ name TEXT NOT NULL UNIQUE,
+ interface TEXT DEFAULT 'wg0',
+ createdAt INTEGER DEFAULT (strftime('%s', 'now'))
+ );
+ `);
 
-      CREATE TABLE IF NOT EXISTS clients (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        container TEXT NOT NULL,
-        name TEXT NOT NULL,
-        ip TEXT,
-        publicKey TEXT NOT NULL UNIQUE,
-        expiry TEXT,
-        quota INTEGER DEFAULT 0,
-        uploadLimit INTEGER DEFAULT 0,
-        createdAt INTEGER DEFAULT (strftime('%s', 'now')),
-        enabled INTEGER DEFAULT 1
-      );
+    sqlite.exec(`
+ CREATE TABLE IF NOT EXISTS clients (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ container TEXT NOT NULL,
+ name TEXT NOT NULL,
+ ip TEXT,
+ publicKey TEXT NOT NULL UNIQUE,
+ expiry TEXT,
+ quota INTEGER DEFAULT 0,
+ uploadLimit INTEGER DEFAULT 0,
+ createdAt INTEGER DEFAULT (strftime('%s', 'now')),
+ enabled INTEGER DEFAULT 1
+ );
+ `);
 
-      CREATE TABLE IF NOT EXISTS usage (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        publicKey TEXT NOT NULL UNIQUE,
-        total INTEGER DEFAULT 0,
-        daily TEXT
-      );
+    sqlite.exec(`
+ CREATE TABLE IF NOT EXISTS usage (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ publicKey TEXT NOT NULL UNIQUE,
+ total INTEGER DEFAULT 0,
+ daily TEXT
+ );
+ `);
 
-      CREATE TABLE IF NOT EXISTS logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp INTEGER DEFAULT (strftime('%s', 'now')),
-        type TEXT DEFAULT 'snapshot',
-        status TEXT,
-        container TEXT,
-        name TEXT,
-        virtualIp TEXT,
-        realIp TEXT,
-        usageDaily INTEGER DEFAULT 0,
-        usageTotal INTEGER DEFAULT 0
-      );
+    sqlite.exec(`
+ CREATE TABLE IF NOT EXISTS logs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ timestamp INTEGER DEFAULT (strftime('%s', 'now')),
+ type TEXT DEFAULT 'snapshot',
+ status TEXT,
+ container TEXT,
+ name TEXT,
+ virtualIp TEXT,
+ realIp TEXT,
+ usageDaily INTEGER DEFAULT 0,
+ usageTotal INTEGER DEFAULT 0
+ );
+ `);
 
-      CREATE TABLE IF NOT EXISTS tickets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL,
-        title TEXT NOT NULL,
-        status TEXT DEFAULT 'open',
-        messages TEXT,
-        updatedAt INTEGER DEFAULT (strftime('%s', 'now'))
-      );
-      CREATE TABLE IF NOT EXISTS auditLogs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp INTEGER DEFAULT (strftime('%s', 'now')),
-        actor TEXT NOT NULL,
-        action TEXT NOT NULL,
-        targetType TEXT NOT NULL,
-        targetName TEXT,
-        details TEXT,
-        ip TEXT
-      );
-    `);
+    sqlite.exec(`
+ CREATE TABLE IF NOT EXISTS tickets (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ username TEXT NOT NULL,
+ title TEXT NOT NULL,
+ status TEXT DEFAULT 'open',
+ messages TEXT,
+ updatedAt INTEGER DEFAULT (strftime('%s', 'now'))
+ );
+ `);
+
+    sqlite.exec(`
+ CREATE TABLE IF NOT EXISTS auditLogs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ timestamp INTEGER DEFAULT (strftime('%s', 'now')),
+ actor TEXT NOT NULL,
+ action TEXT NOT NULL,
+ targetType TEXT,
+ targetName TEXT,
+ details TEXT,
+ ip TEXT
+ );
+ `);
 
     // 2. Migration Phase 4 : Add interface column to containers if missing
     try {
@@ -93,14 +107,14 @@ async function initializeDatabase() {
 
     // 3. Create Indexes if they don't exist
     sqlite.exec(`
-      CREATE UNIQUE INDEX IF NOT EXISTS username_idx ON users(username);
-      CREATE UNIQUE INDEX IF NOT EXISTS container_name_idx ON containers(name);
-      CREATE UNIQUE INDEX IF NOT EXISTS pubkey_idx ON clients(publicKey);
-      CREATE INDEX IF NOT EXISTS container_idx ON clients(container);
-      CREATE INDEX IF NOT EXISTS log_timestamp_idx ON logs(timestamp);
-      CREATE INDEX IF NOT EXISTS audit_timestamp_idx ON auditLogs(timestamp);
-      CREATE INDEX IF NOT EXISTS audit_actor_idx ON auditLogs(actor);
-    `);
+ CREATE UNIQUE INDEX IF NOT EXISTS username_idx ON users(username);
+ CREATE UNIQUE INDEX IF NOT EXISTS container_name_idx ON containers(name);
+ CREATE UNIQUE INDEX IF NOT EXISTS pubkey_idx ON clients(publicKey);
+ CREATE INDEX IF NOT EXISTS container_idx ON clients(container);
+ CREATE INDEX IF NOT EXISTS log_timestamp_idx ON logs(timestamp);
+ CREATE INDEX IF NOT EXISTS audit_timestamp_idx ON auditLogs(timestamp);
+ CREATE INDEX IF NOT EXISTS audit_actor_idx ON auditLogs(actor);
+ `);
 
     logger.info('db', '✅ Schema synchronization complete.');
 
@@ -139,6 +153,26 @@ async function initializeDatabase() {
         '⚠️ Missing ADMIN_PASSWORD_HASH/SALT in env. Admin user not seeded/synced.'
       );
     }
+
+    // 4. Sync Containers from Filesystem
+    const clientsDir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
+    try {
+      const entries = await fs.readdir(clientsDir, { withFileTypes: true });
+      const diskContainers = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+
+      for (const name of diskContainers) {
+        const existing = sqlite.prepare('SELECT id FROM containers WHERE name = ?').get(name);
+        if (!existing) {
+          logger.info('db', `📦 Syncing container from disk: ${name}`);
+          await db.insert(schema.containers).values({ name, interface: 'wg0' });
+        }
+      }
+      logger.info('db', '✅ Container synchronization complete.');
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        logger.warn('db', `⚠️ Could not sync containers from disk: ${err.message}`);
+      }
+    }
   } catch (error) {
     logger.error('db', '❌ Database initialization failed', { err: error.message });
     throw error;
@@ -146,13 +180,21 @@ async function initializeDatabase() {
 }
 
 /**
- * 💠 SRE: Automate AdGuard Home Initialization (Bug-Fix 500)
+ * SRE: Automate AdGuard Home Initialization (Bug-Fix 500)
  * This ensures that the DNS menu works without manual setup.
  */
 async function initializeDNS() {
-  const AGH_BASE_URL = 'http://wg-fux-dns:3000';
+  const AGH_BASE_URL = 'http://adguard:3000';
   const username = process.env.AGH_USER || 'admin';
-  const password = process.env.AGH_PASSWORD || 'password';
+  const password = process.env.AGH_PASSWORD;
+
+  if (!password || password === 'password' || password === 'CHANGE_ME') {
+    if (process.env.NODE_ENV === 'production') {
+      logger.error('dns', '❌ FATAL: AGH_PASSWORD is not set or is insecure in production.');
+      throw new Error('Insecure AGH_PASSWORD');
+    }
+    logger.warn('dns', '⚠️ Using insecure default password for AdGuard (Non-production only)');
+  }
 
   logger.info('dns', '🛡️ Check AdGuard Home status...');
   if (process.env.VITEST === 'true') return logger.info('dns', '🧪 VITEST: Skipping DNS init');
@@ -172,7 +214,7 @@ async function initializeDNS() {
     // 2. If we reach here, we might have a 302 Found or initialized: false
     logger.info('dns', '🚀 Initializing AdGuard Home with .env credentials...');
 
-    // 💠 SRE: AdGuard Home requires a password of at least 8 characters.
+    // SRE: AdGuard Home requires a password of at least 8 characters.
     let aghPassword = password;
     if (aghPassword.length < 8) {
       logger.info('dns', '⚠️ AGH password too short (< 8 chars). Applying SRE padding...');
@@ -190,7 +232,7 @@ async function initializeDNS() {
     logger.info('dns', '✅ AdGuard Home initialized successfully.');
   } catch (error) {
     if (error.response && error.response.status === 302) {
-      // 💠 SRE: AGH redirects to /control/install.html when not initialized
+      // SRE: AGH redirects to /control/install.html when not initialized
       logger.info('dns', '🚀 Initializing AdGuard Home (Wizard Bypass)...');
       try {
         let aghPassword = password;

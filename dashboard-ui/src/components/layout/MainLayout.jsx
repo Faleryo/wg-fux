@@ -33,6 +33,7 @@ import ContainersSection from '../../features/clients/components/ClientList';
 import ClientDetail from '../../features/clients/components/ClientDetail';
 import UsersSection from '../../features/users/components/UsersSection';
 import LogsSection from '../../features/monitoring/components/LogsSection';
+import SupportSection from '../../features/support/components/SupportSection';
 import SettingsSection from '../../features/settings/components/SettingsSection';
 import OptimizationSection from '../../features/settings/components/OptimizationSection';
 import AuditSection from '../../features/monitoring/components/AuditSection';
@@ -121,6 +122,8 @@ const MainLayout = ({ session, onLogout }) => {
       await axiosInstance.post('/clients', { name, container, expiry, quota, uploadLimit });
       fetchData();
       addToast(`Peer ${name} créé avec succès`, 'success');
+      // 📊 SaaS Tracking
+      window.posthog?.capture('client_created', { container, name });
     } catch (e) {
       addToast(e.response?.data?.error || 'Erreur lors de la création du client', 'error');
     }
@@ -197,6 +200,8 @@ const MainLayout = ({ session, onLogout }) => {
       await axiosInstance.delete(`/clients/${client.container}/${client.name}`);
       addToast('Client supprimé', 'success');
       fetchData();
+      // 📊 SaaS Tracking
+      window.posthog?.capture('client_deleted', { container: client.container, name: client.name });
       if (topologySelectedClient?.id === client.id) setTopologySelectedClient(null);
     } catch (err) {
       addToast(err.response?.data?.error || 'Erreur lors de la suppression', 'error');
@@ -315,6 +320,8 @@ const MainLayout = ({ session, onLogout }) => {
         return <SettingsSection />;
       case 'optimization':
         return <OptimizationSection systemStats={systemStats} />;
+      case 'support':
+        return <SupportSection />;
       case 'audit':
         return <AuditSection />;
       case 'dns':
@@ -413,24 +420,36 @@ const MainLayout = ({ session, onLogout }) => {
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             >
-              {/* 💠 Obsidian Status Banner */}
+              {/* Status Banner */}
               {!topologySelectedClient && activeSection === 'dashboard' && (
                 <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className={cn(
-                    "flex items-center justify-between px-5 py-4 rounded-2xl glass-panel border transition-all duration-500",
-                    sentinelStatus?.status === 'active' || sentinelStatus?.status === 'online'
-                      ? "border-emerald-500/20 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.05)]"
-                      : "border-red-500/20 bg-red-500/5 shadow-[0_0_20px_rgba(239,68,68,0.05)]"
-                  )}>
+                  <div
+                    className={cn(
+                      'flex items-center justify-between px-5 py-4 rounded-2xl glass-panel border transition-all duration-500',
+                      sentinelStatus?.status === 'active' || sentinelStatus?.status === 'online'
+                        ? 'border-emerald-500/20 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.05)]'
+                        : 'border-red-500/20 bg-red-500/5 shadow-[0_0_20px_rgba(239,68,68,0.05)]'
+                    )}
+                  >
                     <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "w-2.5 h-2.5 rounded-full animate-pulse shadow-[0_0_8px_currentColor]",
-                        sentinelStatus?.status === 'active' || sentinelStatus?.status === 'online' ? "text-emerald-500" : "text-red-500"
-                      )} style={{ backgroundColor: 'currentColor' }} />
+                      <div
+                        className={cn(
+                          'w-2.5 h-2.5 rounded-full animate-pulse shadow-[0_0_8px_currentColor]',
+                          sentinelStatus?.status === 'active' || sentinelStatus?.status === 'online'
+                            ? 'text-emerald-500'
+                            : 'text-red-500'
+                        )}
+                        style={{ backgroundColor: 'currentColor' }}
+                      />
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-tighter opacity-40">Sentinel V2 Node</p>
+                        <p className="text-[10px] font-black uppercase tracking-tighter opacity-40">
+                          Sentinel V2 Node
+                        </p>
                         <p className="text-sm font-semibold tracking-tight">
-                          {sentinelStatus?.status === 'active' || sentinelStatus?.status === 'online' ? 'Surveillance Active' : 'Sentinel Hors-ligne'}
+                          {sentinelStatus?.status === 'active' ||
+                          sentinelStatus?.status === 'online'
+                            ? 'Surveillance Active'
+                            : 'Sentinel Hors-ligne'}
                         </p>
                       </div>
                     </div>
@@ -441,21 +460,30 @@ const MainLayout = ({ session, onLogout }) => {
                     )}
                   </div>
 
-                  <div className={cn(
-                    "flex items-center justify-between px-5 py-4 rounded-2xl glass-panel border transition-all duration-500",
-                    adguardStatus?.status === 'active'
-                      ? "border-indigo-500/20 bg-indigo-500/5 shadow-[0_0_20px_rgba(99,102,241,0.05)]"
-                      : "border-amber-500/20 bg-amber-500/5 shadow-[0_0_20px_rgba(245,158,11,0.05)]"
-                  )}>
+                  <div
+                    className={cn(
+                      'flex items-center justify-between px-5 py-4 rounded-2xl glass-panel border transition-all duration-500',
+                      adguardStatus?.status === 'active'
+                        ? 'border-indigo-500/20 bg-indigo-500/5 shadow-[0_0_20px_rgba(99,102,241,0.05)]'
+                        : 'border-amber-500/20 bg-amber-500/5 shadow-[0_0_20px_rgba(245,158,11,0.05)]'
+                    )}
+                  >
                     <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor]",
-                        adguardStatus?.status === 'active' ? "text-indigo-500" : "text-amber-500"
-                      )} style={{ backgroundColor: 'currentColor' }} />
+                      <div
+                        className={cn(
+                          'w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor]',
+                          adguardStatus?.status === 'active' ? 'text-indigo-500' : 'text-amber-500'
+                        )}
+                        style={{ backgroundColor: 'currentColor' }}
+                      />
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-tighter opacity-40">DNS Protection</p>
+                        <p className="text-[10px] font-black uppercase tracking-tighter opacity-40">
+                          DNS Protection
+                        </p>
                         <p className="text-sm font-semibold tracking-tight">
-                          {adguardStatus?.status === 'active' ? 'Filtrage DNS Actif' : 'DNS Interrompu'}
+                          {adguardStatus?.status === 'active'
+                            ? 'Filtrage DNS Actif'
+                            : 'DNS Interrompu'}
                         </p>
                       </div>
                     </div>
@@ -469,6 +497,47 @@ const MainLayout = ({ session, onLogout }) => {
               <ErrorBoundary sectionName={activeSection}>{renderSection()}</ErrorBoundary>
             </motion.div>
           </AnimatePresence>
+
+          {/* SaaS Footer (Legal & Versioning) */}
+          <footer className="pt-10 pb-6 border-t border-white/5 opacity-40 hover:opacity-100 transition-opacity duration-500">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-4 text-[10px] font-medium tracking-widest uppercase">
+                <span className="text-indigo-500">WG-FUX Enterprise</span>
+                <span className="w-1 h-1 rounded-full bg-white/20" />
+                <span>v6.5.0-</span>
+              </div>
+              <div className="flex items-center gap-8 text-[11px] font-bold">
+                <a
+                  href="/legal/privacy.html"
+                  target="_blank"
+                  className="hover:text-indigo-400 transition-colors"
+                >
+                  Privacy Policy
+                </a>
+                <a
+                  href="/legal/tos.html"
+                  target="_blank"
+                  className="hover:text-indigo-400 transition-colors"
+                >
+                  Terms of Service
+                </a>
+                <a href="#" className="hover:text-indigo-400 transition-colors">
+                  Documentation
+                </a>
+                <a
+                  href="https://github.com/faleryo/wg-fux"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-indigo-400 transition-colors"
+                >
+                  GitHub
+                </a>
+              </div>
+              <div className="text-[10px] opacity-60">
+                &copy; {new Date().getFullYear()} Faleryo Labs. All rights reserved.
+              </div>
+            </div>
+          </footer>
         </div>
       </main>
 

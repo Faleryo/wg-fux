@@ -3,11 +3,11 @@ IFACE=$(ip route get 8.8.8.8 2>/dev/null | grep -Po '(?<=dev )[^ ]+' | head -1 |
 echo "=== Interface Physique: $IFACE ==="
 
 if command -v ethtool >/dev/null; then
-    echo "--- Ring Buffer (Hardware) ---"
-    ethtool -g "$IFACE" | grep -A 5 "Current"
-    echo ""
-    echo "--- Compteurs d'Erreurs (Non-Zero) ---"
-    ethtool -S "$IFACE" 2>/dev/null | grep -E "miss|drop|fifo|error|discards" | grep -v ": 0" || echo "Aucune erreur détectée."
+ echo "--- Ring Buffer (Hardware) ---"
+ ethtool -g "$IFACE" | grep -A 5 "Current"
+ echo ""
+ echo "--- Compteurs d'Erreurs (Non-Zero) ---"
+ ethtool -S "$IFACE" 2>/dev/null | grep -E "miss|drop|fifo|error|discards" | grep -v ": 0" || echo "Aucune erreur détectée."
 fi
 
 echo ""

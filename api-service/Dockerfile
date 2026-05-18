@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iputils-ping \
     ufw \
     openresolv \
+    build-essential \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 

@@ -80,7 +80,7 @@ axiosInstance.interceptors.response.use(
     const status = error.response?.status;
     const data = error.response?.data;
 
-    // Obsidian-Tier Error Parsing: On favorise le message détaillé si présent
+    // -Tier Error Parsing: On favorise le message détaillé si présent
     const errMsg = data?.message || data?.error || error.message || 'Unknown API Error';
     const errCode = data?.code || 'ERR_UNKNOWN';
 
@@ -98,12 +98,16 @@ axiosInstance.interceptors.response.use(
       console.error(JSON.stringify(logEntry));
     }
 
-    // Auto-logout on auth failure (Grade Diamond Hardening)
-    // 401: Unauthorized (Token expiré ou invalide)
-    // 403 + Account expired: Spécifique à certains profils de sécurité
+    // Auto-logout on auth failure for AUTHENTICATED requests only.
+    // Skip the /auth/login endpoint itself — a wrong-password 401 should
+    // surface as an in-form error, not as a session-expired redirect that
+    // wipes localStorage and reloads the page.
+    const url = error.config?.url || '';
+    const isLoginAttempt = url.endsWith('/auth/login');
     if (
-      status === 401 ||
-      (status === 403 && (data?.error === 'ACCOUNT_EXPIRED' || errMsg === 'Account expired'))
+      !isLoginAttempt &&
+      (status === 401 ||
+        (status === 403 && (data?.error === 'ACCOUNT_EXPIRED' || errMsg === 'Account expired')))
     ) {
       logOut();
     }
@@ -111,11 +115,13 @@ axiosInstance.interceptors.response.use(
   }
 );
 
+// Clears session storage and notifies the app via a custom event so React can
+// swap to <LoginPage/> without a full page reload (which would lose error
+// toasts, dev-server HMR state, and feel sluggish).
 function logOut() {
-  const keys = ['wg-api-token', 'wg-user-role', 'wg-user-username'];
-  keys.forEach((k) => {
+  ['wg-api-token', 'wg-user-role', 'wg-user-username', 'wg-fux-cache'].forEach((k) => {
     localStorage.removeItem(k);
     sessionStorage.removeItem(k);
   });
-  window.location.href = '/login';
+  window.dispatchEvent(new CustomEvent('wg-auth-expired'));
 }

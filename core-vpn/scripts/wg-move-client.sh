@@ -1,5 +1,5 @@
 #!/bin/bash
-# --- VIBE-OS : Move Client v6.2 (Elite SRE) ---
+# --- : Move Client v6.2 (SRE) ---
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
@@ -14,13 +14,13 @@ NAME="${2:-}"
 NEW_CONTAINER="${3:-}"
 
 if [[ ! "$OLD_CONTAINER" =~ ^[a-zA-Z0-9_\-]+$ || ! "$NEW_CONTAINER" =~ ^[a-zA-Z0-9_\-]+$ ]]; then
-    log_error "Invalid container name."
-    exit 1
+ log_error "Invalid container name."
+ exit 1
 fi
 
 if [[ ! "$NAME" =~ ^[a-zA-Z0-9_\-]+$ ]]; then
-    log_error "Invalid client name."
-    exit 1
+ log_error "Invalid client name."
+ exit 1
 fi
 
 BASE_DIR="/etc/wireguard/clients"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const STORAGE_KEYS = {
   token: 'wg-api-token',
@@ -13,15 +13,25 @@ const readSession = () => ({
   username: localStorage.getItem(STORAGE_KEYS.username),
 });
 
+const clearStorage = () => {
+  Object.values(STORAGE_KEYS).forEach((k) => {
+    localStorage.removeItem(k);
+    sessionStorage.removeItem(k);
+  });
+};
+
 /**
- * Feature: Auth
- * Manages authentication session state, login and logout.
- * Previously inline in App.jsx.
+ * Manages auth session state.
+ *
+ * Listens for the `wg-auth-expired` event dispatched by the axios interceptor
+ * (lib/api.js) when the server returns 401 / ACCOUNT_EXPIRED on an
+ * authenticated request. That lets us swap to <LoginPage/> via state change
+ * instead of a full page reload.
  */
 const useAuth = () => {
   const [session, setSession] = useState(readSession);
 
-  const login = (token, rememberMe, role, username) => {
+  const login = useCallback((token, rememberMe, role, username) => {
     if (rememberMe) {
       localStorage.setItem(STORAGE_KEYS.token, token);
     } else {
@@ -30,16 +40,21 @@ const useAuth = () => {
     if (role) localStorage.setItem(STORAGE_KEYS.role, role);
     if (username) localStorage.setItem(STORAGE_KEYS.username, username);
     setSession({ token, role: role || null, username: username || null });
-  };
+  }, []);
 
-  const logout = () => {
-    localStorage.removeItem(STORAGE_KEYS.token);
-    sessionStorage.removeItem(STORAGE_KEYS.token);
-    localStorage.removeItem(STORAGE_KEYS.role);
-    localStorage.removeItem(STORAGE_KEYS.username);
-    sessionStorage.removeItem(STORAGE_KEYS.cache);
+  const logout = useCallback(() => {
+    clearStorage();
     setSession({ token: null, role: null, username: null });
-  };
+  }, []);
+
+  useEffect(() => {
+    const onExpired = () => {
+      clearStorage();
+      setSession({ token: null, role: null, username: null });
+    };
+    window.addEventListener('wg-auth-expired', onExpired);
+    return () => window.removeEventListener('wg-auth-expired', onExpired);
+  }, []);
 
   return { session, login, logout };
 };

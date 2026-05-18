@@ -1,5 +1,5 @@
 #!/bin/bash
-# --- VIBE-OS v6.5 : WireGuard Post-Up Hook ---
+# --- : WireGuard Post-Up Hook ---
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
@@ -12,22 +12,22 @@ IP6TABLES_BIN=$(command -v ip6tables || echo "/usr/sbin/ip6tables")
 SERVER_INTERFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
 
 _add_rule() {
-    local cmd="$1"
-    shift
-    # SRE: Ensure -t <table> is placed BEFORE the action (-C, -I) for nf_tables compatibility
-    if [ "${1:-}" == "-t" ]; then
-        local table_opt="$1 $2"
-        shift 2
-        # shellcheck disable=SC2086
-        if ! "$cmd" $table_opt -C "$@" &>/dev/null; then
-            # shellcheck disable=SC2086
-            "$cmd" $table_opt -I "$@"
-        fi
-    else
-        if ! "$cmd" -C "$@" &>/dev/null; then
-            "$cmd" -I "$@"
-        fi
-    fi
+ local cmd="$1"
+ shift
+ # SRE: Ensure -t <table> is placed BEFORE the action (-C, -I) for nf_tables compatibility
+ if [ "${1:-}" == "-t" ]; then
+ local table_opt="$1 $2"
+ shift 2
+ # shellcheck disable=SC2086
+ if ! "$cmd" $table_opt -C "$@" &>/dev/null; then
+ # shellcheck disable=SC2086
+ "$cmd" $table_opt -I "$@"
+ fi
+ else
+ if ! "$cmd" -C "$@" &>/dev/null; then
+ "$cmd" -I "$@"
+ fi
+ fi
 }
 
 log_info "Configuration du pare-feu pour $INTERFACE ($SERVER_INTERFACE)..."
@@ -38,7 +38,7 @@ _add_rule "$IPTABLES_BIN" FORWARD -o "$INTERFACE" -m conntrack --ctstate RELATED
 
 # 2. NAT (IPv4)
 if [ -n "$SERVER_INTERFACE" ]; then
-    _add_rule "$IPTABLES_BIN" -t nat POSTROUTING -o "$SERVER_INTERFACE" -j MASQUERADE
+ _add_rule "$IPTABLES_BIN" -t nat POSTROUTING -o "$SERVER_INTERFACE" -j MASQUERADE
 fi
 
 # 3. MSS Clamping (Performance)
@@ -50,12 +50,12 @@ _add_rule "$IPTABLES_BIN" -t nat PREROUTING -i "$INTERFACE" -p tcp --dport 53 -j
 
 # 5. IPv6 Handling
 if [ -n "$IP6TABLES_BIN" ]; then
-    _add_rule "$IP6TABLES_BIN" FORWARD -i "$INTERFACE" -j ACCEPT
-    _add_rule "$IP6TABLES_BIN" FORWARD -o "$INTERFACE" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-    if [ -n "$SERVER_INTERFACE" ]; then
-        _add_rule "$IP6TABLES_BIN" -t nat POSTROUTING -o "$SERVER_INTERFACE" -j MASQUERADE
-    fi
-    _add_rule "$IP6TABLES_BIN" -t mangle FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+ _add_rule "$IP6TABLES_BIN" FORWARD -i "$INTERFACE" -j ACCEPT
+ _add_rule "$IP6TABLES_BIN" FORWARD -o "$INTERFACE" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+ if [ -n "$SERVER_INTERFACE" ]; then
+ _add_rule "$IP6TABLES_BIN" -t nat POSTROUTING -o "$SERVER_INTERFACE" -j MASQUERADE
+ fi
+ _add_rule "$IP6TABLES_BIN" -t mangle FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
 fi
 
 log_info "Pare-feu configuré avec succès (v6.5 SRE)."

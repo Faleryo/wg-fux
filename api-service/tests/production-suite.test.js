@@ -7,13 +7,13 @@ global.TEST_BYPASS_AUTH = true;
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 const request = require('supertest');
 
-// --- 💠 ENVIRONMENT ISOLATION 💠 ---
+// --- ENVIRONMENT ISOLATION ---
 vi.mock('dotenv', () => ({ config: vi.fn().mockReturnValue({ parsed: {} }) }));
 vi.stubEnv('NODE_ENV', 'test');
 vi.stubEnv('TEST_BYPASS_AUTH', 'true');
 vi.stubEnv('VITEST', 'true');
 
-// --- 💠 STUBS & MOCKS 💠 ---
+// --- STUBS & MOCKS ---
 vi.mock('axios', () => ({
   get: vi.fn(() => Promise.resolve({ data: { initialized: true, status: 'ok' }, status: 200 })),
   post: vi.fn(() => Promise.resolve({ data: { success: true }, status: 200 })),

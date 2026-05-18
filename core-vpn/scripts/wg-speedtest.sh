@@ -1,8 +1,8 @@
 #!/bin/bash
 #!/bin/bash
-# --- VIBE-OS v6.2 : Speedtest Script (Resilient Version) ---
+# --- : Speedtest Script (Resilient Version) ---
 # GHOST-SCAN FIX v6.2: Removed duplicate log() function (now uses log_info from wg-common.sh).
-SCRIPT_DIR="$(dirname "$(readlink -f "$0")")" 
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 # shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
@@ -18,16 +18,16 @@ log_info "Detecting speedtest-cli..."
 SPEEDTEST_BIN=$(command -v speedtest-cli || command -v speedtest || echo "")
 
 if [ -n "$SPEEDTEST_BIN" ]; then
-    log_info "Running full speedtest via $SPEEDTEST_BIN (timeout 60s)..."
-    # Capture both stdout and stderr, return 0 to bypass runSystemCommand error check
-    RESULT=$(timeout 60s "$SPEEDTEST_BIN" --json 2>/dev/null || echo "")
-    
-    if [ -n "$RESULT" ]; then
-        log_info "Full speedtest successful."
-        echo "$RESULT"
-        exit 0
-    fi
-    log_warn "Full speedtest failed or timed out."
+ log_info "Running full speedtest via $SPEEDTEST_BIN (timeout 60s)..."
+ # Capture both stdout and stderr, return 0 to bypass runSystemCommand error check
+ RESULT=$(timeout 60s "$SPEEDTEST_BIN" --json 2>/dev/null || echo "")
+
+ if [ -n "$RESULT" ]; then
+ log_info "Full speedtest successful."
+ echo "$RESULT"
+ exit 0
+ fi
+ log_warn "Full speedtest failed or timed out."
 fi
 
 # 3. Fallback : Mesure via curl (Cloudflare) si speedtest-cli échoue
@@ -39,15 +39,15 @@ END=$(date +%s%3N)
 DIFF=$(( END - START ))
 
 if [ "$DIFF" -gt 0 ] && [ "$BYTES" -gt 0 ]; then
-    # Mbps = (bytes * 8) / (ms * 1000)
-    MBPS=$(echo "scale=2; ($BYTES * 8) / ($DIFF * 1000)" | bc 2>/dev/null || echo "0")
-    # Normalize to Bits for UI consistency
-    BITS=$(safe_math "$MBPS * 1000000")
-    log_info "Fallback estimate: ${MBPS} Mbps (${BITS} bits/s)"
-    printf '{"available": true, "source": "fallback", "download": %s, "upload": 0, "ping": %s, "bytes": %s}\n' "$BITS" "$LATENCY" "$BYTES"
+ # Mbps = (bytes * 8) / (ms * 1000)
+ MBPS=$(echo "scale=2; ($BYTES * 8) / ($DIFF * 1000)" | bc 2>/dev/null || echo "0")
+ # Normalize to Bits for UI consistency
+ BITS=$(safe_math "$MBPS * 1000000")
+ log_info "Fallback estimate: ${MBPS} Mbps (${BITS} bits/s)"
+ printf '{"available": true, "source": "fallback", "download": %s, "upload": 0, "ping": %s, "bytes": %s}\n' "$BITS" "$LATENCY" "$BYTES"
 else
-    log_warn "All bandwidth tests failed. Returning latency only."
-    printf '{"available": false, "source": "none", "download": 0, "upload": 0, "ping": %s, "error": "test_failed"}\n' "$LATENCY"
+ log_warn "All bandwidth tests failed. Returning latency only."
+ printf '{"available": false, "source": "none", "download": 0, "upload": 0, "ping": %s, "error": "test_failed"}\n' "$LATENCY"
 fi
 
 exit 0

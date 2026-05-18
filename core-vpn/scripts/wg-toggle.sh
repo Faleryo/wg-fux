@@ -1,5 +1,5 @@
 #!/bin/bash
-# --- VIBE-OS : Peer Toggle v6.2 (Elite SRE) ---
+# --- : Peer Toggle v6.2 (SRE) ---
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
@@ -18,10 +18,10 @@ if [[ "$COMMAND" != "peer" ]]; then log_error "Toggle: Only 'peer' command allow
 if [[ ! "$PEER" =~ ^[a-zA-Z0-9+/=]+$ ]]; then log_error "Toggle: Invalid peer public key"; exit 1; fi
 
 if [[ "$ACTION" == "remove" ]]; then
-    # Idempotence: ignore failure if peer is NOT in the interface (already removed)
-    /usr/bin/wg set "$INTERFACE" peer "$PEER" remove 2>/dev/null || true
+ # Idempotence: ignore failure if peer is NOT in the interface (already removed)
+ /usr/bin/wg set "$INTERFACE" peer "$PEER" remove 2>/dev/null || true
 elif [[ "$ACTION" == "allowed-ips" ]]; then
-    if [[ ! "$VALUE" =~ ^[a-fA-F0-9:.,/\ ]+$ ]]; then log_error "Toggle: Invalid AllowedIPs"; exit 1; fi
-    /usr/bin/wg set "$INTERFACE" peer "$PEER" allowed-ips "$VALUE" || { log_warn "Toggle: allowed-ips set failed (check if peer exists)"; }
+ if [[ ! "$VALUE" =~ ^[a-fA-F0-9:.,/\ ]+$ ]]; then log_error "Toggle: Invalid AllowedIPs"; exit 1; fi
+ /usr/bin/wg set "$INTERFACE" peer "$PEER" allowed-ips "$VALUE" || { log_warn "Toggle: allowed-ips set failed (check if peer exists)"; }
 else
-    log_error "Toggle: Unsupported action '$ACTION'"; exit 1; fi
+ log_error "Toggle: Unsupported action '$ACTION'"; exit 1; fi

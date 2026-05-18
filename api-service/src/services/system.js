@@ -72,6 +72,10 @@ const parseWireGuardDump = (data) => {
 const getWireGuardStats = async (iface) => {
   try {
     const targetIface = iface || process.env.WG_INTERFACE || 'wg0';
+    if (!isValidName(targetIface)) {
+      log.error('system', `Invalid interface name: ${targetIface}`);
+      return [];
+    }
     const result = await executeScript('wg-stats.sh', [targetIface], {
       json: true,
     });
@@ -113,6 +117,8 @@ const waitForFile = async (filePath, retries = 5, delay = 500) => {
 const getMTU = async (iface) => {
   try {
     const targetIface = iface || process.env.WG_INTERFACE || 'wg0';
+    if (!isValidName(targetIface)) return 1420;
+
     const conf = await fsPromises.readFile('/etc/wireguard/manager.conf', 'utf8').catch(() => '');
     const match = conf.match(/SERVER_MTU="?(\d+)"?/);
     if (match) return parseInt(match?.[1]) || 1420;
@@ -149,6 +155,16 @@ const estimateJitter = async () => {
 const getTelemetry = async (iface) => {
   try {
     const targetIface = iface || process.env.WG_INTERFACE || 'wg0';
+    if (!isValidName(targetIface)) {
+      return {
+        cpu: '0.0',
+        memory: '0.0',
+        mtu: 1420,
+        jitter: '0.50',
+        bufferbloat: 'A+',
+        timestamp: new Date().toISOString(),
+      };
+    }
     const stats = await getSystemStats();
     const mtu = await getMTU(targetIface);
     const jitter = await estimateJitter();

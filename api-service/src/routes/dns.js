@@ -7,15 +7,17 @@ const { asyncWrap, createError } = require('../utils/errors');
 const { dnsConfigSchema, dnsFilterSchema, dnsRemoveSchema } = require('../../db/validation');
 
 // AdGuard Home internal URL (Docker DNS)
-const AGH_BASE_URL = 'http://wg-fux-dns:3000';
-const AGH_USER = (process.env.AGH_USER || 'admin').replace(/['"]/g, '').trim();
-const AGH_PASS = (process.env.AGH_PASSWORD || 'password').replace(/['"]/g, '').trim();
-const AGH_AUTH_HEADER = 'Basic YWRtaW46dmliZS1kbnMtc2VjdXJlLTg4';
+const AGH_BASE_URL = process.env.AGH_BASE_URL || 'http://wg-fux-dns:3000';
+const AGH_USER = (process.env.AGH_USER || '').replace(/['"]/g, '').trim();
+const AGH_PASS = (process.env.AGH_PASSWORD || '').replace(/['"]/g, '').trim();
+if (!AGH_USER || !AGH_PASS) {
+  log.error('dns', 'AGH_USER / AGH_PASSWORD not configured — DNS routes will fail');
+}
 const AGH_AUTH = {
   headers: {
-    'Authorization': AGH_AUTH_HEADER,
-    'Accept': '*/*',
-    'User-Agent': 'curl/7.88.1'
+    Authorization: `Basic ${Buffer.from(`${AGH_USER}:${AGH_PASS}`).toString('base64')}`,
+    Accept: '*/*',
+    'User-Agent': 'wg-fux-api',
   },
 };
 

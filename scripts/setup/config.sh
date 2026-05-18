@@ -1,51 +1,64 @@
 #!/bin/bash
-# 💠 Security & Configuration Module
-# Part of WG-FUX v6.5.0-Obsidian+
+# Secrets, hashing, firewall helpers.
 
+# Generates a PBKDF2-SHA512 hash with 600k iterations. Uses Node.js or Python3.
+# Returns the hash on stdout (empty string + non-zero on failure).
 generate_admin_hash() {
-    local pass="$1"
-    local salt="$2"
-    local hash=""
+    local pass="$1" salt="$2" hash=""
+    if [ -z "$pass" ] || [ -z "$salt" ]; then
+        log_error "generate_admin_hash: missing pass or salt"
+        return 1
+    fi
 
-    log_info "Génération du hash sécurisé (PBKDF2-SHA512)..."
-    local buf_script; buf_script=$(mktemp /tmp/wg-hash-XXXXXX.js)
-    cat > "$buf_script" << 'NODESCRIPT'
-const crypto = require('crypto');
-const pass = process.env.WGFUX_PASS;
-const salt = process.env.WGFUX_SALT;
-if (!pass || !salt) { process.exit(1); }
-process.stdout.write(crypto.pbkdf2Sync(pass, salt, 600000, 64, 'sha512').toString('hex'));
-NODESCRIPT
-
-    # Attempt 1: Node.js
     if command -v node &>/dev/null; then
-        hash=$(WGFUX_PASS="$pass" WGFUX_SALT="$salt" node "$buf_script" 2>/dev/null || echo "")
+        hash=$(WGFUX_PASS="$pass" WGFUX_SALT="$salt" node -e '
+            const c = require("crypto");
+            process.stdout.write(
+                c.pbkdf2Sync(process.env.WGFUX_PASS, process.env.WGFUX_SALT,
+                             600000, 64, "sha512").toString("hex")
+            );
+        ' 2>/dev/null || echo "")
     fi
 
-    # Attempt 2: Python3
     if [ -z "$hash" ] && command -v python3 &>/dev/null; then
-        hash=$(WGFUX_PASS="$pass" WGFUX_SALT="$salt" python3 -c 'import hashlib, os, binascii; dk = hashlib.pbkdf2_hmac("sha512", os.environ["WGFUX_PASS"].encode(), os.environ["WGFUX_SALT"].encode(), 600000); print(binascii.hexlify(dk).decode())' 2>/dev/null || echo "")
+        hash=$(WGFUX_PASS="$pass" WGFUX_SALT="$salt" python3 -c '
+import hashlib, os, binascii
+dk = hashlib.pbkdf2_hmac("sha512",
+                         os.environ["WGFUX_PASS"].encode(),
+                         os.environ["WGFUX_SALT"].encode(),
+                         600000)
+print(binascii.hexlify(dk).decode())
+' 2>/dev/null || echo "")
     fi
 
-    rm -f "$buf_script"
+    unset WGFUX_PASS WGFUX_SALT
+    if [ -z "$hash" ]; then
+        log_error "Neither node nor python3 produced a hash."
+        return 1
+    fi
     echo "$hash"
 }
 
 setup_firewall() {
     local port="${SERVER_PORT:-51820}"
-    log_info "Configuration du pare-feu (Ports: 80, 443, $port/udp)..."
+    log_info "Configuring firewall (80/tcp, 443/tcp, ${port}/udp)…"
 
-    if command -v ufw &> /dev/null; then
-        sudo ufw allow 80/tcp 2>/dev/null || true
-        sudo ufw allow 443/tcp 2>/dev/null || true
+    if command -v ufw &>/dev/null; then
+        sudo ufw allow 22/tcp     2>/dev/null || true
+        sudo ufw allow 80/tcp     2>/dev/null || true
+        sudo ufw allow 443/tcp    2>/dev/null || true
         sudo ufw allow "$port"/udp 2>/dev/null || true
-        sudo ufw allow 22/tcp 2>/dev/null || true
-        echo "y" | sudo ufw enable 2>/dev/null || true
-        log_success "UFW configuré."
-    elif command -v iptables &> /dev/null; then
-        sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
-        sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
-        sudo iptables -I INPUT -p udp --dport "$port" -j ACCEPT 2>/dev/null || true
-        log_success "iptables configuré."
+        sudo ufw --force enable    2>/dev/null || true
+        log_success "ufw configured."
+    elif command -v iptables &>/dev/null; then
+        sudo iptables -C INPUT -p tcp --dport 80  -j ACCEPT 2>/dev/null || \
+            sudo iptables -I INPUT -p tcp --dport 80  -j ACCEPT
+        sudo iptables -C INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || \
+            sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+        sudo iptables -C INPUT -p udp --dport "$port" -j ACCEPT 2>/dev/null || \
+            sudo iptables -I INPUT -p udp --dport "$port" -j ACCEPT
+        log_success "iptables rules added (not persisted — use iptables-persistent)."
+    else
+        log_warn "Neither ufw nor iptables found, skipping firewall config."
     fi
 }

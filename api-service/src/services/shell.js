@@ -23,18 +23,27 @@ const isRoot = !process.getuid || process.getuid() === 0;
 const SUDO = isRoot ? null : process.env.SUDO_BIN || 'sudo';
 const SUDO_ARGS = isRoot ? [] : ['-n'];
 
+/* eslint-disable no-control-regex */
+const ANSI_RE = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
+/* eslint-enable no-control-regex */
+const stripAnsi = (str) => (typeof str === 'string' ? str.replace(ANSI_RE, '') : str);
+
 /**
  * Standardized Shell Command Wrapper
  * HARDENING: Binary existence check and structured logging
  */
 const runCommand = async (cmd, args = [], stdinData = null) => {
   const env = { ...process.env, LC_ALL: 'C', LANG: 'C' };
-  const commandStr = `${cmd} ${args.join(' ')}`;
+
+  // 🛡️ SRE-HARDENING: Strip ANSI colors from arguments to avoid SAFE_ARG violations
+  const sanitizedArgs = args.map((arg) => stripAnsi(arg));
+  const commandStr = `${cmd} ${sanitizedArgs.join(' ')}`;
 
   // 🛡️ OBSIDIAN-HARDENING: Strict argument validation + Unicode/Emoji support
+  // Removed brackets [], braces {}, quotes "' and backslashes \ to prevent script injection.
   // eslint-disable-next-line no-misleading-character-class
-  const SAFE_ARG = /^[a-zA-Z0-9/._@ ():~+[\]\n\r{}'\\",À-ÿ\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}-]*$/u;
-  for (const arg of args) {
+  const SAFE_ARG = /^[a-zA-Z0-9/._@ ():~+À-ÿ\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}-]*$/u;
+  for (const arg of sanitizedArgs) {
     if (arg && !SAFE_ARG.test(arg)) {
       if (log && typeof log.error === 'function') {
         log.error('shell', `Unsafe character detected in command argument: "${arg}"`, {
@@ -66,7 +75,7 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
   try {
     if (stdinData !== null) {
       return await new Promise((resolve) => {
-        const proc = childProcess.spawn(cmd, args, { timeout: 90000, env });
+        const proc = childProcess.spawn(cmd, sanitizedArgs, { timeout: 90000, env });
         let stdout = '',
           stderr = '';
         proc.stdout.on('data', (d) => {
@@ -102,7 +111,7 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
       });
     }
 
-    const { stdout, stderr } = await execFilePromise(cmd, args, {
+    const { stdout, stderr } = await execFilePromise(cmd, sanitizedArgs, {
       timeout: 90000,
       maxBuffer: 10 * 1024 * 1024,
       env,
@@ -132,20 +141,20 @@ const runSystemCommand = async (file, args = [], stdinData = null) => {
  * Write a file with sudo if necessary (via tee)
  */
 const writeFileAsRoot = async (filePath, content) => {
-  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), [
-    'write',
-    filePath,
-    content,
-  ]);
+  const { success, error, code } = await runSystemCommand(
+    getScriptPath('wg-file-proxy.sh'),
+    ['write', filePath],
+    content
+  );
   return { success, error, code };
 };
 
 const appendFileAsRoot = async (filePath, content) => {
-  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), [
-    'append',
-    filePath,
-    content,
-  ]);
+  const { success, error, code } = await runSystemCommand(
+    getScriptPath('wg-file-proxy.sh'),
+    ['append', filePath],
+    content
+  );
   return { success, error, code };
 };
 

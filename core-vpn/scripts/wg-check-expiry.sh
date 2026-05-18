@@ -1,5 +1,5 @@
 #!/bin/bash
-# --- VIBE-OS : Check Expiry v6.2 (Elite SRE) ---
+# --- : Check Expiry v6.2 (SRE) ---
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"

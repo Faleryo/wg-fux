@@ -16,7 +16,7 @@ vi.mock('../features/auth', async () => {
 
 // Mock MainLayout
 vi.mock('../components/layout/MainLayout', () => ({
-  default: ({ session, onLogout }) => <div data-testid="main-layout">Main Layout</div>
+  default: ({ session, onLogout }) => <div data-testid="main-layout">Main Layout</div>,
 }));
 
 describe('App Root', () => {

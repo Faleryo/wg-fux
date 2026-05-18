@@ -1,5 +1,5 @@
 #!/bin/bash
-# --- VIBE-OS : Create Container v6.3 (Frontier Explorer) ---
+# --- : Create Container v6.3 (Frontier Explorer) ---
 set -euo pipefail
 
 CONTAINER="${1:-}"
@@ -12,9 +12,9 @@ if [[ ! "$CONTAINER" =~ ^[a-zA-Z0-9_\-]+$ ]]; then echo "Error: Invalid containe
 BASE_DIR="/etc/wireguard/clients"
 TARGET_DIR="$BASE_DIR/$CONTAINER"
 
-if [ -d "$TARGET_DIR" ]; then 
-    echo "Container $CONTAINER already exists"
-    exit 0 
+if [ -d "$TARGET_DIR" ]; then
+ echo "Container $CONTAINER already exists"
+ exit 0
 fi
 
 mkdir -p "$TARGET_DIR"

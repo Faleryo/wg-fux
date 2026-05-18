@@ -6,7 +6,7 @@ const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
 const { rateLimit } = require('express-rate-limit');
 const { db, schema } = require('../../db');
-const { eq, desc, and } = require('drizzle-orm');
+const { eq, desc, and, gt } = require('drizzle-orm');
 const { loginSchema } = require('../../db/validation');
 const { auth, requireAdmin, requireManager } = require('../middleware/auth');
 const { verifyPassword, logLoginAttempt } = require('../services/auth');
@@ -31,6 +31,34 @@ const loginLimiter = rateLimit({
   },
 });
 
+/**
+ * @openapi
+ * /auth/login:
+ * post:
+ * summary: Authentifie un utilisateur
+ * description: Retourne un JWT en cas de succès. Supporte le 2FA si activé.
+ * tags: [Auth]
+ * requestBody:
+ * required: true
+ * content:
+ * application/json:
+ * schema:
+ * type: object
+ * properties:
+ * username:
+ * type: string
+ * password:
+ * type: string
+ * token:
+ * type: string
+ * responses:
+ * 200:
+ * description: Authentification réussie
+ * 401:
+ * description: Identifiants invalides
+ * 403:
+ * description: 2FA requis ou compte expiré
+ */
 router.post(
   '/login',
   loginLimiter,
@@ -79,7 +107,7 @@ router.post(
 
       await logLoginAttempt(username, clientIp, userAgent, true);
 
-      // SECURITY-ALERT: Notify admin of successful login (Vibe-OS sentinel) with Geo-IP
+      // SECURITY-ALERT: Notify admin of successful login ( sentinel) with Geo-IP
       if (user.role === 'admin') {
         const notifyAdmin = async () => {
           let location = 'Localisation inconnue';
@@ -109,19 +137,47 @@ router.post(
       }
 
       const token = jwt.sign({ username: user.username, role: user.role }, process.env.JWT_SECRET, {
-        expiresIn: '7d',
+        expiresIn: '24h',
       });
       res.json({ valid: true, token, role: user.role });
     } else {
       await logLoginAttempt(username, clientIp, userAgent, false);
+
+      // SRE-HARDENING: Progressive delay to combat distributed brute-force
+      const attempts = await db
+        .select({ count: schema.logs.id })
+        .from(schema.logs)
+        .where(
+          and(
+            eq(schema.logs.name, username),
+            eq(schema.logs.status, 'failure'),
+            gt(schema.logs.timestamp, new Date(Date.now() - 15 * 60 * 1000))
+          )
+        );
+
+      const delay = Math.min(10000, 500 * Math.pow(2, attempts.length));
       setTimeout(
         () => res.status(401).json(createError('Invalid credentials', null, 'INVALID_AUTH')),
-        Math.random() * 500 + 200
+        delay + Math.random() * 500
       );
     }
   })
 );
 
+/**
+ * @openapi
+ * /auth/check:
+ * get:
+ * summary: Vérifie la validité du token JWT
+ * tags: [Auth]
+ * security:
+ * - bearerAuth: []
+ * responses:
+ * 200:
+ * description: Token valide
+ * 401:
+ * description: Token invalide ou expiré
+ */
 router.get(
   '/check',
   auth,
@@ -204,6 +260,29 @@ router.post(
   auth,
   requireManager,
   asyncWrap(async (req, res) => {
+    const { password, token: totpToken } = req.body || {};
+    if (!password) {
+      return res.status(400).json(createError('Password required', null, 'REAUTH_REQUIRED'));
+    }
+
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.username, req.user.username))
+      .limit(1);
+    if (!user) return res.status(404).json(createError('User not found', null, 'NOT_FOUND'));
+
+    const passwordOk = await verifyPassword(password, user.passwordHash);
+    if (!passwordOk) {
+      return res.status(401).json(createError('Invalid credentials', null, 'INVALID_AUTH'));
+    }
+
+    if (user.twoFactorSecret) {
+      if (!totpToken || !authenticator.check(totpToken, user.twoFactorSecret)) {
+        return res.status(401).json(createError('Invalid 2FA token', null, 'INVALID_2FA'));
+      }
+    }
+
     await db
       .update(schema.users)
       .set({ twoFactorSecret: null })

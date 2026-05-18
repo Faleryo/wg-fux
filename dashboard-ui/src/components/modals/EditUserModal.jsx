@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Key, Shield, Eye, EyeOff, RefreshCw, Save, Trash2, AlertTriangle } from 'lucide-react';
+import {
+  Users,
+  Key,
+  Shield,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  Save,
+  Trash2,
+  AlertTriangle,
+} from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
@@ -58,8 +68,13 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
   };
 
   const handleReset2FA = async () => {
-    if (!window.confirm(`Réinitialiser le 2FA pour ${user.username} ? L'opérateur pourra se reconnecter sans son code actuel.`)) return;
-    
+    if (
+      !window.confirm(
+        `Réinitialiser le 2FA pour ${user.username} ? L'opérateur pourra se reconnecter sans son code actuel.`
+      )
+    )
+      return;
+
     setLoading(true);
     setError('');
     try {
@@ -81,16 +96,27 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
   if (!user) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Éditer Opérateur: ${user.username}`} maxWidth="max-w-md">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Éditer Opérateur: ${user.username}`}
+      maxWidth="max-w-md"
+    >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Identity Info (ReadOnly) */}
         <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-2xl bg-${theme}-600 flex items-center justify-center text-white font-black`}>
+          <div
+            className={`w-12 h-12 rounded-2xl bg-${theme}-600 flex items-center justify-center text-white font-black`}
+          >
             {user.username.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="text-xs font-black text-white uppercase tracking-tight">{user.username}</div>
-            <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">Identité Verrouillée</div>
+            <div className="text-xs font-black text-white uppercase tracking-tight">
+              {user.username}
+            </div>
+            <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">
+              Identité Verrouillée
+            </div>
           </div>
         </div>
 
@@ -161,15 +187,15 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
 
         {/* 2FA Helper */}
         <div className="pt-2">
-           <button
-             type="button"
-             onClick={handleReset2FA}
-             disabled={loading}
-             className="w-full py-3 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-           >
-             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-             Réinitialiser 2FA (TOTP)
-           </button>
+          <button
+            type="button"
+            onClick={handleReset2FA}
+            disabled={loading}
+            className="w-full py-3 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Réinitialiser 2FA (TOTP)
+          </button>
         </div>
 
         {/* Messages */}

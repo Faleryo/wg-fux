@@ -1,15 +1,15 @@
 #!/bin/bash
-# --- VIBE-OS v6.5 Obsidian Standard ---
+# --- ---
 # NOTE: Pas de set -euo pipefail ici — ce fichier est une bibliothèque sourcée.
 # Chaque script principal gère son propre mode d'erreur.
 
-VERSION="6.5.0-Obsidian+"
+VERSION="6.5.0-+"
 # shellcheck disable=SC2034
 # PROJECT_ROOT calculé dynamiquement pour éviter les chemins hardcodés
 _WG_COMMON_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" 2>/dev/null || true
 PROJECT_ROOT="$(dirname "$(dirname "$_WG_COMMON_DIR")")" 2>/dev/null || true
 
-# 💠 SRE Hardening: Force English locale for all subprocesses (ping, df, wg, top)
+# SRE Hardening: Force English locale for all subprocesses (ping, df, wg, top)
 # This prevents parsing errors in non-English environments.
 export LC_ALL=C
 export LANG=C
@@ -34,13 +34,23 @@ ERR_NOT_FOUND=404
 ERR_GENERIC=500
 
 # Colors & Formatting
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
-NC='\033[0m'
-BOLD='\033[1m'
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+ RED='\033[0;31m'
+ GREEN='\033[0;32m'
+ YELLOW='\033[1;33m'
+ BLUE='\033[0;34m'
+ PURPLE='\033[0;35m'
+ NC='\033[0m'
+ BOLD='\033[1m'
+else
+ RED=''
+ GREEN=''
+ YELLOW=''
+ BLUE=''
+ PURPLE=''
+ NC=''
+ BOLD=''
+fi
 
 # Unified Logging
 log_info() { echo -e "${BLUE}[INFO]${NC} $*"; }
@@ -49,112 +59,128 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $*"; }
 log_sre() { echo -e "${PURPLE}[SRE]${NC} ${BOLD}$*${NC}"; }
 
+# SQL escape: doubles single quotes per SQLite spec. Use to safely embed
+# untrusted strings into SQL string literals: WHERE name='$(sql_escape "$x")'
+sql_escape() {
+ printf "%s" "${1-}" | sed "s/'/''/g"
+}
+
+# Validates a string is a WireGuard public key (44-char base64 ending in =).
+# Returns 0 if valid, 1 otherwise.
+is_valid_wg_key() {
+ [[ "${1-}" =~ ^[A-Za-z0-9+/]{43}=$ ]]
+}
+
 # SRE Utilities
 check_dependency() {
-    local dep="$1"
-    if ! command -v "$dep" &>/dev/null; then
-        log_error "Dependency missing: $dep. Please install it to continue."
-        return 1
-    fi
-    return 0
+ local dep="$1"
+ if ! command -v "$dep" &>/dev/null; then
+ log_error "Dependency missing: $dep. Please install it to continue."
+ return 1
+ fi
+ return 0
 }
 
 wait_for_port() {
-    local host="$1"
-    local port="$2"
-    local timeout="${3:-30}"
-    local waited=0
-    
-    log_info "Waiting for service on $host:$port (max ${timeout}s)..."
-    while ! timeout 2 bash -c "</dev/tcp/$host/$port" &>/dev/null; do
-        sleep 2
-        waited=$((waited + 2))
-        if [ "$waited" -ge "$timeout" ]; then
-            log_warn "Timeout reached for $host:$port."
-            return 1
-        fi
-    done
-    log_info "Service $host:$port is READY."
-    return 0
+ local host="$1"
+ local port="$2"
+ local timeout="${3:-30}"
+ local waited=0
+
+ log_info "Waiting for service on $host:$port (max ${timeout}s)..."
+ while ! timeout 2 bash -c "</dev/tcp/$host/$port" &>/dev/null; do
+ sleep 2
+ waited=$((waited + 2))
+ if [ "$waited" -ge "$timeout" ]; then
+ log_warn "Timeout reached for $host:$port."
+ return 1
+ fi
+ done
+ log_info "Service $host:$port is READY."
+ return 0
 }
 
 # --- Missing SRE Utilities ---
 sanitize() {
-    # Remove surrounding whitespace
-    echo "$1" | xargs 2>/dev/null || echo "$1"
+ # Remove surrounding whitespace safely
+ local val="$1"
+ # Use printf to avoid interpretation of leading hyphens
+ printf "%s" "$val" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
 detect_public_ip() {
-    # Attempt to detect public IPv4 using multiple services
-    local ip=""
-    for service in "ifconfig.me" "api.ipify.org" "ident.me" "icanhazip.com"; do
-        ip=$(curl -4 -s --max-time 3 "$service" 2>/dev/null || echo "")
-        if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-            echo "$ip"
-            return 0
-        fi
-    done
+ # Attempt to detect public IPv4 using multiple services with strict timeouts
+ local ip=""
+ for service in "ifconfig.me" "api.ipify.org" "ident.me" "icanhazip.com"; do
+ ip=$(curl -4 -s --connect-timeout 2 --max-time 4 "$service" 2>/dev/null | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" || echo "")
+ if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+ echo "$ip"
+ return 0
+ fi
+ done
 
-  # Fallback to local interface IP (non-loopback)
-  ip=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || echo "127.0.0.1")
-  echo "$ip"
+ # Fallback to local interface IP (non-loopback)
+ ip=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || echo "127.0.0.1")
+ echo "$ip"
 }
 
 # --- Core SRE Functions ---
 check_root() {
-  if [ "$EUID" -ne 0 ]; then
-    log_error "This script must be run with root (EUID: 0). Current: $EUID"
-    exit 1
-  fi
+ if [ "$EUID" -ne 0 ]; then
+ log_error "This script must be run with root (EUID: 0). Current: $EUID"
+ exit 1
+ fi
 }
 
 load_config() {
-  local conf="/etc/wireguard/manager.conf"
-  if [ -f "$conf" ]; then
-    # shellcheck disable=SC1090
-    source "$conf"
-    # Export for subprocesses
-    export SERVER_IP SERVER_PORT VPN_SUBNET VPN_SUBNET_V6 CLIENT_DNS SERVER_MTU WG_INTERFACE
-  else
-    log_warn "Manager configuration $conf missing. Using environment defaults."
-  fi
+ local conf="/etc/wireguard/manager.conf"
+ if [ -f "$conf" ]; then
+ # shellcheck disable=SC1090
+ source "$conf"
+ # Export for subprocesses
+ export SERVER_IP SERVER_PORT VPN_SUBNET VPN_SUBNET_V6 CLIENT_DNS SERVER_MTU WG_INTERFACE
+ else
+ log_warn "Manager configuration $conf missing. Using environment defaults."
+ fi
 }
 
 validate_id() {
-  local id="$1"
-  if [[ ! "$id" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-    log_error "Invalid identifier: '$id' (Only a-Z, 0-9, -, _ allowed)."
-    exit 1
-  fi
-  if [ ${#id} -gt 32 ]; then
-    log_error "Identifier too long: '$id' (Max 32 characters)."
-    exit 1
-  fi
+ local id="$1"
+ if [[ ! "$id" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+ log_error "Invalid identifier: '$id' (Only a-Z, 0-9, -, _ allowed)."
+ exit 1
+ fi
+ if [ ${#id} -gt 32 ]; then
+ log_error "Identifier too long: '$id' (Max 32 characters)."
+ exit 1
+ fi
 }
 
 # Telegram notification hub
 send_telegram_msg() {
-    local message="$1"
-    local level="${2:-INFO}"
-    local conf_file="/etc/wireguard/sentinel.conf"
-    
-    if [ -f "$conf_file" ]; then
-        # shellcheck disable=SC1090
-        source "$conf_file"
-        
-        if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
-            local icon="⚠️"
-            if [ "$level" == "ERROR" ]; then icon="🚨"; fi
-            if [ "$level" == "SUCCESS" ]; then icon="✅"; fi
+ local message="$1"
+ local level="${2:-INFO}"
+ local conf_file="/etc/wireguard/sentinel.conf"
 
-            # SRE BUG-M4 FIX: Message envoyé en plain text pour éviter l'injection HTML
-            # (les caractères <, >, & dans $message corrompraient le HTML)
-            local plain_msg="$icon ALERTE WG-FUX ($VERSION)\n\n$message"
+ if [ -f "$conf_file" ]; then
+ # shellcheck disable=SC1090
+ source "$conf_file"
 
-            curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-                --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
-                --data-urlencode "text=$plain_msg" \
-                > /dev/null
-        fi
-    fi
+ if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+ local icon="⚠️"
+ if [ "$level" == "ERROR" ]; then icon="🚨"; fi
+ if [ "$level" == "SUCCESS" ]; then icon="✅"; fi
+
+ # SRE SECURITY: Use a temporary file for the message body to avoid shell evaluation/injection
+ local tmp_msg_file; tmp_msg_file=$(mktemp)
+ printf "%b ALERTE WG-FUX (%s)\n\n%s" "$icon" "$VERSION" "$message" > "$tmp_msg_file"
+
+ curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+ --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+ --data-urlencode "text@$tmp_msg_file" \
+ > /dev/null
+
+ rm -f "$tmp_msg_file"
+ fi
+ fi
 }

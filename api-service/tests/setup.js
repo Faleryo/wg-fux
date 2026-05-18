@@ -8,7 +8,7 @@ process.env.DB_PATH = ':memory:';
 process.env.ALLOWED_ORIGINS = '*';
 process.env.VITEST = 'true';
 
-// --- 💠 GLOBAL NUCLEAR MOCKS 💠 ---
+// --- GLOBAL MOCKS ---
 
 // 1. AXIOS (Static string mock)
 vi.mock('axios', () => ({

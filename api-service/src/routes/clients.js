@@ -21,6 +21,15 @@ const { getScriptPath } = require('../services/config');
 const { auditLog } = require('../services/audit');
 const log = require('../services/logger');
 const { asyncWrap, createError } = require('../utils/errors');
+const { rateLimit } = require('express-rate-limit');
+
+const creationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'Trop de requêtes. Veuillez patienter 1 minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const identifierRegex = /^[a-zA-Z0-9_-]+$/;
 
 // 🛡️ OBSIDIAN-HARDENING: Global parameter validation
@@ -39,7 +48,6 @@ router.param('name', (req, res, next, val) => {
 
 router.get(
   '/containers',
-  auth,
   asyncWrap(async (req, res) => {
     const dir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
     try {
@@ -55,8 +63,8 @@ router.get(
 
 router.post(
   '/containers',
-  auth,
   requireManager,
+  creationLimiter,
   asyncWrap(async (req, res) => {
     const parsed = containerSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -69,6 +77,9 @@ router.post(
     if (!success) {
       throw createError(error, 'Failed to create container', 'SYSTEM_ERROR');
     }
+
+    // 🛡️ Sync DB
+    await db.insert(schema.containers).values({ name, interface: 'wg0' }).onConflictDoNothing();
 
     await auditLog({
       actor: req.user.username,
@@ -83,7 +94,6 @@ router.post(
 
 router.delete(
   '/containers/:name',
-  auth,
   requireManager,
   asyncWrap(async (req, res) => {
     const { name } = req.params;
@@ -93,6 +103,9 @@ router.delete(
     if (!success) {
       throw createError(error, 'Failed to delete container', 'SYSTEM_ERROR');
     }
+
+    // 🛡️ Sync DB
+    await db.delete(schema.containers).where(eq(schema.containers.name, name));
 
     await auditLog({
       actor: req.user.username,
@@ -110,6 +123,7 @@ router.delete(
 router.get(
   '/',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const { getInterfaces } = require('../services/system');
     const allInterfaces = await getInterfaces();
@@ -156,12 +170,14 @@ router.get(
       );
     }
 
-    // Pagination
+    // Pagination — when ?page is provided, cap page size to a sensible default
+    // (50) and validate against the schema; otherwise return the full list.
+    const PAGE_SIZE_DEFAULT = 50;
+    const PAGE_SIZE_MAX = 500;
     const pageParsed = paginationSchema.safeParse(req.query);
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const pageSize = pageParsed.success
-      ? pageParsed.data.limit || filtered.length
-      : filtered.length;
+    const requestedLimit = pageParsed.success ? pageParsed.data.limit : null;
+    const pageSize = Math.min(PAGE_SIZE_MAX, requestedLimit || PAGE_SIZE_DEFAULT);
 
     const total = filtered.length;
     const paginated = req.query.page
@@ -182,6 +198,7 @@ router.get(
 router.get(
   '/export',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const format = req.query.format === 'json' ? 'json' : 'csv';
     const allClients = await db.select().from(schema.clients);
@@ -218,6 +235,7 @@ router.post(
   '/',
   auth,
   requireManager,
+  creationLimiter,
   asyncWrap(async (req, res) => {
     const result = clientSchema.safeParse(req.body);
     if (!result.success) {
@@ -259,27 +277,65 @@ router.post(
     if (pkMatch) {
       publicKey = pkMatch[1];
     } else {
-      // Fallback: Read from generated config file
-      const configPath = path.join(getClientDir(container, name), `${name}.conf`);
+      // SRE FIX: Read the CLIENT's public key from its own public.key file
+      // NOT from the .conf (which contains the SERVER's PublicKey in [Peer])
+      const clientDir = getClientDir(container, name);
+      const publicKeyPath = path.join(clientDir, 'public.key');
       try {
-        const config = await fsPromises.readFile(configPath, 'utf8');
-        const match =
-          config.match(/PublicKey\s*=\s*([a-zA-Z0-9+/=]{44})/i) ||
-          config.match(/PublicKey\s*=\s*(\S+)/i);
-        if (match) publicKey = match[1];
-      } catch (e) {
-        log.warn('clients', `Could not find publicKey for ${name} in output or config`, {
-          err: e.message,
+        publicKey = (await fsPromises.readFile(publicKeyPath, 'utf8')).trim();
+      } catch (e1) {
+        // Secondary fallback: try reading PrivateKey from .conf and derive pubkey
+        log.warn('clients', `public.key not found for ${name}, trying .conf fallback`, {
+          err: e1.message,
         });
-        // Emergency fallback for tests or specific script versions
-        publicKey = `temp_pk_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        try {
+          const configPath = path.join(clientDir, `${name}.conf`);
+          const config = await fsPromises.readFile(configPath, 'utf8');
+          // Extract PrivateKey (client's own key) from [Interface] section
+          const privMatch = config.match(/PrivateKey\s*=\s*([a-zA-Z0-9+/=]{44})/);
+          if (privMatch) {
+            // Derive public key from private key using wg pubkey
+            const { stdout: derivedPk } = await runSystemCommand('bash', [
+              '-c',
+              `echo "${privMatch[1]}" | wg pubkey`,
+            ]);
+            if (derivedPk && derivedPk.trim().length === 44) {
+              publicKey = derivedPk.trim();
+            }
+          }
+        } catch (e2) {
+          log.warn('clients', `Could not derive publicKey for ${name}`, { err: e2.message });
+        }
+        // Final emergency fallback
+        if (!publicKey) {
+          publicKey = `temp_pk_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        }
       }
     }
 
-    const [newClient] = await db
-      .insert(schema.clients)
-      .values({ container, name, publicKey, expiry, quota, uploadLimit, enabled: true })
-      .returning();
+    let newClient;
+    try {
+      [newClient] = await db
+        .insert(schema.clients)
+        .values({ container, name, publicKey, expiry, quota, uploadLimit, enabled: true })
+        .returning();
+    } catch (dbErr) {
+      if (
+        dbErr.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+        dbErr.message?.includes('UNIQUE constraint')
+      ) {
+        return res
+          .status(409)
+          .json(
+            createError(
+              `Client '${name}' already exists in database`,
+              'Duplicate client entry',
+              'CONFLICT'
+            )
+          );
+      }
+      throw dbErr;
+    }
 
     await auditLog({
       actor: req.user.username,

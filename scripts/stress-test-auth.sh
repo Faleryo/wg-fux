@@ -16,13 +16,13 @@ start_time=$(date +%s%N)
 
 # Function to perform a single login request
 do_request() {
-    local start=$(date +%s%N)
-    local resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$TARGET_URL" \
-        -H "Content-Type: application/json" \
-        -d '{"username":"admin","password":"admin123"}')
-    local end=$(date +%s%N)
-    local diff=$(( (end - start) / 1000000 ))
-    echo "$resp $diff"
+ local start=$(date +%s%N)
+ local resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$TARGET_URL" \
+ -H "Content-Type: application/json" \
+ -d '{"username":"admin","password":"admin123"}')
+ local end=$(date +%s%N)
+ local diff=$(( (end - start) / 1000000 ))
+ echo "$resp $diff"
 }
 
 export -f do_request
@@ -42,15 +42,15 @@ avg_lat=$(echo "$results" | awk '{sum+=$2} END {print sum/NR}')
 
 echo "--------------------------------------" | tee -a "$LOG_FILE"
 echo "📊 Results:" | tee -a "$LOG_FILE"
-echo "  - Success (200): $success_count" | tee -a "$LOG_FILE"
-echo "  - Rate Limited (429): $ratelimit_count" | tee -a "$LOG_FILE"
-echo "  - Errors: $error_count" | tee -a "$LOG_FILE"
-echo "  - Avg Latency: ${avg_lat}ms" | tee -a "$LOG_FILE"
-echo "  - Total Time: ${total_diff}ms" | tee -a "$LOG_FILE"
+echo " - Success (200): $success_count" | tee -a "$LOG_FILE"
+echo " - Rate Limited (429): $ratelimit_count" | tee -a "$LOG_FILE"
+echo " - Errors: $error_count" | tee -a "$LOG_FILE"
+echo " - Avg Latency: ${avg_lat}ms" | tee -a "$LOG_FILE"
+echo " - Total Time: ${total_diff}ms" | tee -a "$LOG_FILE"
 echo "--------------------------------------" | tee -a "$LOG_FILE"
 
 if [ "$ratelimit_count" -gt 0 ]; then
-    echo "✅ PASS: Rate limiting is active (Shadowing detection works)." | tee -a "$LOG_FILE"
+ echo "✅ PASS: Rate limiting is active (Shadowing detection works)." | tee -a "$LOG_FILE"
 else
-    echo "⚠️ WARNING: No rate limiting detected. Check express-rate-limit config." | tee -a "$LOG_FILE"
+ echo "⚠️ WARNING: No rate limiting detected. Check express-rate-limit config." | tee -a "$LOG_FILE"
 fi

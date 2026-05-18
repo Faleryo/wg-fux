@@ -115,7 +115,8 @@ class WebSocketService {
         return;
       }
       try {
-        jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        request.user = decoded; // Attach user to request for handleUpgrade
       } catch (e) {
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
@@ -127,9 +128,10 @@ class WebSocketService {
           this.wssLogs.emit('connection', ws, request)
         );
       } else if (pathname === '/api/status-ws') {
-        this.wssStatus.handleUpgrade(request, socket, head, (ws) =>
-          this.wssStatus.emit('connection', ws, request)
-        );
+        this.wssStatus.handleUpgrade(request, socket, head, (ws) => {
+          ws.username = request.user?.username; // Store identity
+          this.wssStatus.emit('connection', ws, request);
+        });
       } else {
         socket.destroy();
       }
@@ -161,6 +163,17 @@ class WebSocketService {
         log.error('ws', 'WS status broadcast error', { err: e.message });
       }
     }, 5000);
+  }
+
+  sendToUser(username, type, payload) {
+    const message = JSON.stringify({ type, ...payload });
+    [this.wssLogs, this.wssStatus].forEach((wss) => {
+      wss.clients.forEach((client) => {
+        if (client.readyState === 1 && client.username === username) {
+          client.send(message);
+        }
+      });
+    });
   }
 
   shutdown() {

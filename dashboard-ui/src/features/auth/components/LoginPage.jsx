@@ -17,7 +17,7 @@ import { cn } from '../../../lib/utils';
 import { axiosInstance } from '../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const LoginPage = ({ onLogin }) => {
+const LoginPage = ({ onLogin, onBack }) => {
   const { theme, mode } = useTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -47,11 +47,14 @@ const LoginPage = ({ onLogin }) => {
 
       if (status === 429) {
         setError('Trop de tentatives. Réessayez plus tard.');
-      } else if (status === 403 && (data?.error === '2FA_REQUIRED' || data?.message === '2FA_REQUIRED')) {
+      } else if (
+        status === 403 &&
+        (data?.error === '2FA_REQUIRED' || data?.message === '2FA_REQUIRED')
+      ) {
         setShowTotp(true);
         setError('');
       } else {
-        // Extraction du message riche (Obsidian Tier)
+        // Extraction du message riche ( Tier)
         setError(data?.message || data?.error || 'Erreur de connexion au serveur');
       }
     } finally {
@@ -61,6 +64,18 @@ const LoginPage = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-700 bg-[var(--bg-canvas)]">
+      {/* Back button for SaaS navigation */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="absolute top-8 left-8 z-50 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors group"
+        >
+          <div className="w-8 h-8 rounded-lg glass-panel border border-white/5 flex items-center justify-center group-hover:border-indigo-500/50 transition-all">
+            <ArrowRight size={14} className="rotate-180" />
+          </div>
+          <span>Back to Home</span>
+        </button>
+      )}
       {/* ---- Ambient Background ---- */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <motion.div
@@ -141,7 +156,7 @@ const LoginPage = ({ onLogin }) => {
               {window.APP_TITLE || 'WG-FUX'}
             </h1>
             <p className="text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60">
-              Zero Latency Engine — v4.0.1
+              Zero Latency Engine — v3.1.0-
             </p>
           </div>
 
@@ -362,7 +377,7 @@ const LoginPage = ({ onLogin }) => {
                 isDark ? 'text-white' : 'text-slate-500'
               )}
             >
-              Sentinel Crypto-Guard — Layer v4.0.1
+              Sentinel Crypto-Guard — Layer v3.1.0-
             </p>
           </div>
         </div>

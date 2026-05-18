@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
- * 💠 VIBE-OS SRE Hook: useWebSocket
+ * SRE Hook: useWebSocket
  * Provides resilient real-time connectivity with exponential backoff strategy.
  */
 export const useWebSocket = (url, options = {}) => {

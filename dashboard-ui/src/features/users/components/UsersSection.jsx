@@ -103,7 +103,9 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                               : 'border border-white/5'
                           )}
                         >
-                          {String(user?.username || '?').charAt(0).toUpperCase()}
+                          {String(user?.username || '?')
+                            .charAt(0)
+                            .toUpperCase()}
                         </div>
                         <div>
                           <div className="text-sm font-black text-white uppercase tracking-tight flex items-center gap-2">

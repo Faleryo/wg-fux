@@ -23,7 +23,9 @@ const InterfaceSelector = ({ onSelect, current }) => {
 
   return (
     <div className="flex items-center gap-3 bg-slate-900/50 p-1.5 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-2">Node</span>
+      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-2">
+        Node
+      </span>
       <div className="flex gap-1">
         {interfaces.map((iface) => (
           <button
@@ -35,9 +37,15 @@ const InterfaceSelector = ({ onSelect, current }) => {
                 : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-transparent'
             }`}
           >
-            <div className={`w-1.5 h-1.5 rounded-full ${iface.status === 'up' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-500'}`}></div>
+            <div
+              className={`w-1.5 h-1.5 rounded-full ${iface.status === 'up' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-500'}`}
+            ></div>
             {iface.name.toUpperCase()}
-            {iface.type === 'WireGuard' && <span className="text-[8px] opacity-50 px-1 border border-current rounded uppercase">Edge</span>}
+            {iface.type === 'WireGuard' && (
+              <span className="text-[8px] opacity-50 px-1 border border-current rounded uppercase">
+                Edge
+              </span>
+            )}
           </button>
         ))}
       </div>

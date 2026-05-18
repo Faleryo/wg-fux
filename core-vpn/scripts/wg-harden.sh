@@ -11,15 +11,15 @@ touch "$SYSCTL_CONF"
 
 # Helper for memory application + persistence
 apply_sysctl_harden() {
-    local key=$1 val=$2
-    # Apply to memory
-    sysctl -w "$key=$val" > /dev/null 2>&1 || true
-    # Apply to file (idempotent)
-    if grep -q "^$key=" "$SYSCTL_CONF"; then
-        sed -i "s|^$key=.*|$key=$val|" "$SYSCTL_CONF"
-    else
-        echo "$key=$val" >> "$SYSCTL_CONF"
-    fi
+ local key=$1 val=$2
+ # Apply to memory
+ sysctl -w "$key=$val" > /dev/null 2>&1 || true
+ # Apply to file (idempotent)
+ if grep -q "^$key=" "$SYSCTL_CONF"; then
+ sed -i "s|^$key=.*|$key=$val|" "$SYSCTL_CONF"
+ else
+ echo "$key=$val" >> "$SYSCTL_CONF"
+ fi
 }
 
 # Protection contre le spoofing (Reverse Path Filtering)
