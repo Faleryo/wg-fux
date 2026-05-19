@@ -8,8 +8,8 @@ const ITERATIONS = 600000; // must match src/services/auth.js
 
 async function resetAdmin() {
   const password = process.env.ADMIN_PASSWORD;
-  if (!password || password.length < 12) {
-    console.error('❌ ADMIN_PASSWORD env var required (min 12 chars).');
+  if (!password) {
+    console.error('❌ ADMIN_PASSWORD env var required.');
     process.exit(2);
   }
 

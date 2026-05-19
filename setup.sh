@@ -189,9 +189,9 @@ configure_interactive() {
     echo "── Admin account ──"
     ADMIN_USER=$(ask "Admin username" "admin" '^[a-zA-Z0-9_-]{2,32}$')
     while true; do
-        ADMIN_PASS=$(ask_secret "Admin password (min 12 chars)")
-        if [ "${#ADMIN_PASS}" -ge 12 ]; then break; fi
-        log_warn "Password too short."
+        ADMIN_PASS=$(ask_secret "Admin password")
+        [ -n "$ADMIN_PASS" ] && break
+        log_warn "Password cannot be empty."
     done
 
     echo
@@ -234,8 +234,8 @@ configure_from_env() {
         log_error "Non-interactive install requires: ${missing[*]}"
         exit 2
     fi
-    [ "${#ADMIN_PASS}" -ge 12 ] || { log_error "WGFUX_ADMIN_PASS too short (<12)."; exit 2; }
-    [ "${#AGH_PASS}" -ge 8 ]  || { log_error "WGFUX_AGH_PASS too short (<8)."; exit 2; }
+    [ -n "$ADMIN_PASS" ] || { log_error "WGFUX_ADMIN_PASS empty."; exit 2; }
+    [ "${#AGH_PASS}" -ge 8 ] || { log_error "WGFUX_AGH_PASS too short (<8 — AdGuard Home requirement)."; exit 2; }
 }
 
 write_env_files() {

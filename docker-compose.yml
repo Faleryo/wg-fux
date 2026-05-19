@@ -75,7 +75,7 @@ services:
       - ./api-service/.env
     environment:
       - AGH_USER=${AGH_USER:-admin}
-      - AGH_PASSWORD=${AGH_PASSWORD:-password}
+      - AGH_PASSWORD=${AGH_PASSWORD:?AGH_PASSWORD must be set in .env}
     volumes:
       - wg_fux_data:/app/data
       - ./core-vpn:/app/core-vpn:ro

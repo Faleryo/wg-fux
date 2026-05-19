@@ -1,41 +1,28 @@
 import React, { useState } from 'react';
-import {
-  ShieldCheck,
-  Users,
-  Key,
-  Eye,
-  EyeOff,
-  Smartphone,
-  ArrowRight,
-  RefreshCw,
-  AlertCircle,
-  Check,
-  Lock,
-} from 'lucide-react';
-import { useTheme } from '../../../context/ThemeContext';
-import { cn } from '../../../lib/utils';
+import { ShieldCheck, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { axiosInstance } from '../../../lib/api';
-import { motion, AnimatePresence } from 'framer-motion';
 
-const LoginPage = ({ onLogin, onBack }) => {
-  const { theme, mode } = useTheme();
+const LoginPage = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [totp, setTotp] = useState('');
   const [showTotp, setShowTotp] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-
-  const isDark = mode === 'dark';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!username || !password) return;
     setLoading(true);
     setError('');
     try {
-      const { data } = await axiosInstance.post('/auth/login', { username, password, token: totp });
+      const { data } = await axiosInstance.post('/auth/login', {
+        username,
+        password,
+        token: totp,
+      });
       if (data.valid && data.token) {
         onLogin(data.token, rememberMe, data.role, username);
       } else {
@@ -44,18 +31,16 @@ const LoginPage = ({ onLogin, onBack }) => {
     } catch (err) {
       const data = err.response?.data;
       const status = err.response?.status;
-
       if (status === 429) {
         setError('Trop de tentatives. Réessayez plus tard.');
       } else if (
         status === 403 &&
-        (data?.error === '2FA_REQUIRED' || data?.message === '2FA_REQUIRED')
+        (data?.error === '2FA_REQUIRED' || data?.code === '2FA_REQUIRED')
       ) {
         setShowTotp(true);
         setError('');
       } else {
-        // Extraction du message riche ( Tier)
-        setError(data?.message || data?.error || 'Erreur de connexion au serveur');
+        setError(data?.message || data?.error || 'Erreur de connexion');
       }
     } finally {
       setLoading(false);
@@ -63,325 +48,132 @@ const LoginPage = ({ onLogin, onBack }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-700 bg-[var(--bg-canvas)]">
-      {/* Back button for SaaS navigation */}
-      {onBack && (
-        <button
-          onClick={onBack}
-          className="absolute top-8 left-8 z-50 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors group"
-        >
-          <div className="w-8 h-8 rounded-lg glass-panel border border-white/5 flex items-center justify-center group-hover:border-indigo-500/50 transition-all">
-            <ArrowRight size={14} className="rotate-180" />
+    <div className="min-h-screen flex items-center justify-center px-4 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      <div className="w-full max-w-sm">
+        {/* Header */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="p-3 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white mb-4">
+            <ShieldCheck size={28} strokeWidth={1.8} />
           </div>
-          <span>Back to Home</span>
-        </button>
-      )}
-      {/* ---- Ambient Background ---- */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <motion.div
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: isDark ? [0.08, 0.18, 0.08] : [0.03, 0.06, 0.03],
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-          className={cn(
-            'absolute -top-[20%] -left-[10%] w-[80vw] h-[80vw] rounded-full blur-[160px] max-w-3xl',
-            `bg-${theme}-600/20`
-          )}
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: isDark ? [0.05, 0.12, 0.05] : [0.02, 0.04, 0.02],
-          }}
-          transition={{ duration: 18, repeat: Infinity, delay: 3, ease: 'easeInOut' }}
-          className="absolute -bottom-[20%] -right-[10%] w-[70vw] h-[70vw] rounded-full blur-[160px] bg-emerald-600/10 max-w-2xl"
-        />
-        <div
-          className={cn(
-            'absolute inset-0 bg-[size:50px_50px]',
-            isDark
-              ? 'bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)]'
-              : 'bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)]'
-          )}
-        />
-      </div>
+          <h1 className="text-xl font-semibold tracking-tight">wg-fux</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Connexion à l'administration
+          </p>
+        </div>
 
-      {/* ---- Login Card ---- */}
-      <motion.div
-        initial={{ opacity: 0, y: 32, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-        className="w-full max-w-[460px] relative z-10"
-      >
-        <div className="glass-card p-10 md:p-14 overflow-hidden relative shadow-2xl">
-          <div
-            className={cn(
-              'absolute inset-0 opacity-[0.03] pointer-events-none',
-              `bg-gradient-to-br from-${theme}-500 to-transparent`
-            )}
-          />
-
-          {/* ---- Header ---- */}
-          <div className="text-center mb-12 relative z-10">
-            <motion.div
-              whileHover={{ rotate: 5, scale: 1.05 }}
-              transition={{ type: 'spring', stiffness: 400 }}
-              className="inline-flex relative mb-8"
-            >
-              <div
-                className={cn(
-                  'absolute inset-0 blur-3xl opacity-20 rounded-full',
-                  `bg-${theme}-500`
-                )}
-              />
-              <div
-                className={cn(
-                  'relative p-6 rounded-[2rem] border shadow-2xl transition-all duration-700',
-                  isDark
-                    ? 'bg-slate-950/80 border-white/10 text-emerald-500'
-                    : 'bg-white border-slate-200 text-emerald-600'
-                )}
-              >
-                <ShieldCheck size={48} strokeWidth={1.5} />
-              </div>
-            </motion.div>
-
-            <h1
-              className={cn(
-                'text-5xl font-black tracking-tighter mb-3 italic transition-colors duration-700 uppercase',
-                isDark ? 'text-white' : 'text-slate-900'
-              )}
-            >
-              {window.APP_TITLE || 'WG-FUX'}
-            </h1>
-            <p className="text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60">
-              Zero Latency Engine — v3.1.0-
-            </p>
-          </div>
-
-          {/* ---- Form ---- */}
-          <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-            <AnimatePresence mode="wait">
-              {!showTotp ? (
-                <motion.div
-                  key="login-fields"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  className="space-y-5"
-                >
-                  <div className="group space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 opacity-50">
-                      Identifiant Unique
-                    </label>
-                    <div className="relative">
-                      <Users
-                        className={cn(
-                          'absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300',
-                          isDark
-                            ? 'text-slate-600 group-focus-within:text-white'
-                            : 'text-slate-400 group-focus-within:text-slate-900'
-                        )}
-                        size={18}
-                      />
-                      <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="w-full glass-input pl-12"
-                        placeholder="SECRET_ID"
-                        autoFocus
-                        autoComplete="username"
-                      />
-                    </div>
-                  </div>
-                  <div className="group space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 opacity-50">
-                      Clé de Chiffrement
-                    </label>
-                    <div className="relative">
-                      <Key
-                        className={cn(
-                          'absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300',
-                          isDark
-                            ? 'text-slate-600 group-focus-within:text-white'
-                            : 'text-slate-400 group-focus-within:text-slate-900'
-                        )}
-                        size={18}
-                      />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full glass-input pl-12 pr-12"
-                        placeholder="••••••••"
-                        autoComplete="current-password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className={cn(
-                          'absolute right-4 top-1/2 -translate-y-1/2 transition-colors',
-                          isDark
-                            ? 'text-slate-600 hover:text-white'
-                            : 'text-slate-400 hover:text-slate-900'
-                        )}
-                      >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="totp-field"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="text-center space-y-6"
-                >
-                  <div
-                    className={cn(
-                      'inline-flex p-5 rounded-3xl transition-colors',
-                      isDark ? 'bg-white/5' : 'bg-slate-50',
-                      `text-${theme}-500`
-                    )}
+        {/* Card */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            {!showTotp ? (
+              <>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="username"
+                    className="block text-sm font-medium text-slate-700 dark:text-slate-300"
                   >
-                    <Smartphone size={40} />
-                  </div>
-                  <div>
-                    <h3
-                      className={cn(
-                        'text-xl font-black uppercase tracking-tight mb-1',
-                        isDark ? 'text-white' : 'text-slate-900'
-                      )}
-                    >
-                      Double Facteur
-                    </h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60">
-                      Synchronisation Sentinel requise
-                    </p>
-                  </div>
+                    Nom d'utilisateur
+                  </label>
                   <input
+                    id="username"
+                    name="username"
                     type="text"
-                    value={totp}
-                    onChange={(e) => setTotp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    className="w-full glass-input text-center text-3xl font-mono font-black tracking-[0.6em]"
-                    placeholder="000000"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
                     autoFocus
-                    maxLength={6}
-                    inputMode="numeric"
+                    className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-100 focus:border-transparent"
+                    placeholder="admin"
                   />
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
 
-            <div className="flex items-center justify-between py-1">
-              <label className="flex items-center gap-2.5 cursor-pointer group select-none">
-                <div
-                  onClick={() => setRememberMe(!rememberMe)}
-                  className={cn(
-                    'w-5 h-5 rounded-lg border flex items-center justify-center transition-all duration-300',
-                    rememberMe
-                      ? `bg-${theme}-600 border-${theme}-600`
-                      : isDark
-                        ? 'bg-slate-950 border-white/10 group-hover:border-white/20'
-                        : 'bg-white border-slate-200 group-hover:border-slate-300'
-                  )}
-                >
-                  {rememberMe && <Check size={11} className="text-white" strokeWidth={4} />}
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                  >
+                    Mot de passe
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 pr-10 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-100 focus:border-transparent"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? 'Masquer' : 'Afficher'}
+                      tabIndex={-1}
+                      className="absolute inset-y-0 right-0 px-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 select-none cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-slate-900 focus:ring-slate-900 dark:focus:ring-slate-100"
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    Rester connecté
+                  </span>
+                </label>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <h2 className="text-base font-semibold">Code à deux facteurs</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Saisis le code à 6 chiffres de ton authenticator.
+                  </p>
                 </div>
                 <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="hidden"
+                  type="text"
+                  value={totp}
+                  onChange={(e) => setTotp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoFocus
+                  className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-center text-xl font-mono tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-100 focus:border-transparent"
+                  placeholder="000000"
                 />
-                <span
-                  className={cn(
-                    'text-[9px] font-black uppercase tracking-[0.2em] transition-colors',
-                    isDark
-                      ? 'text-slate-600 group-hover:text-slate-400'
-                      : 'text-slate-400 group-hover:text-slate-600'
-                  )}
-                >
-                  Mémoriser
-                </span>
-              </label>
-              <p
-                onClick={() =>
-                  alert('Récupération de clé : Contactez votre administrateur Sentinel.')
-                }
-                className="text-[9px] font-black uppercase tracking-widest text-indigo-500/50 hover:text-indigo-500 cursor-pointer transition-colors duration-300"
-              >
-                Clé perdue ?
-              </p>
-            </div>
+              </div>
+            )}
 
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="flex items-center gap-3 p-4 rounded-2xl bg-red-500/5 border border-red-500/10"
-                >
-                  <AlertCircle size={18} className="text-red-500 flex-shrink-0" />
-                  <p className="text-[10px] font-black text-red-500 leading-relaxed uppercase tracking-widest">
-                    {error}
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {error && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300"
+              >
+                <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+                <p className="text-sm leading-snug">{error}</p>
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={loading || !username || !password || (showTotp && totp.length < 6)}
-              className={cn(
-                'group relative w-full py-5 text-white rounded-2xl font-black uppercase text-xs tracking-[0.3em] overflow-hidden transition-all duration-500 active:scale-[0.97] disabled:opacity-20 shadow-xl',
-                `bg-${theme}-600 hover:bg-${theme}-500 shadow-${theme}-600/30`
-              )}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 text-sm font-medium hover:bg-slate-800 dark:hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 dark:focus:ring-slate-100 dark:focus:ring-offset-slate-900 transition-colors"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-              <div className="relative flex items-center justify-center gap-3">
-                {loading ? (
-                  <RefreshCw className="animate-spin text-white" size={18} />
-                ) : showTotp ? (
-                  <Lock size={18} />
-                ) : (
-                  <ArrowRight size={18} strokeWidth={3} />
-                )}
-                <span>
-                  {loading
-                    ? 'Séquençage...'
-                    : !username || !password
-                      ? 'Identifiants requis'
-                      : showTotp
-                        ? 'Valider Phase 2'
-                        : 'Démarrer Session'}
-                </span>
-              </div>
+              {loading && <Loader2 size={16} className="animate-spin" />}
+              {loading
+                ? 'Connexion…'
+                : showTotp
+                  ? 'Valider'
+                  : 'Se connecter'}
             </button>
           </form>
-
-          <div
-            className={cn(
-              'mt-12 pt-8 border-t text-center relative z-10',
-              isDark ? 'border-slate-500/10' : 'border-slate-200'
-            )}
-          >
-            <p
-              className={cn(
-                'text-[8px] font-black tracking-[0.5em] uppercase transition-colors duration-700 opacity-40',
-                isDark ? 'text-white' : 'text-slate-500'
-              )}
-            >
-              Sentinel Crypto-Guard — Layer v3.1.0-
-            </p>
-          </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

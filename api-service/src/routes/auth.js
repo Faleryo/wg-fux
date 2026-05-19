@@ -272,7 +272,7 @@ router.post(
       .limit(1);
     if (!user) return res.status(404).json(createError('User not found', null, 'NOT_FOUND'));
 
-    const passwordOk = await verifyPassword(password, user.passwordHash);
+    const passwordOk = await verifyPassword(password, user.hash, user.salt);
     if (!passwordOk) {
       return res.status(401).json(createError('Invalid credentials', null, 'INVALID_AUTH'));
     }
