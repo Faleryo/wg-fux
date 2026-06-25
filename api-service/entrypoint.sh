@@ -15,4 +15,4 @@ chown -R wg-api:wg-api /app/data /etc/wireguard/clients
 chmod -R 755 /app/data /etc/wireguard/clients
 
 echo "[BOOT] Starting API Server as wg-api..."
-exec sudo -u wg-api node /app/server.js
+exec sudo -E -u wg-api node /app/server.js
