@@ -28,7 +28,7 @@ RUN useradd -m -s /bin/bash wg-api
 # Setup sudoers - Allow wg-api to run ONLY specific scripts and network binaries
 # SECURITY: Bare binaries (rm, ls, tee, test) are STRICTLY removed to prevent privilege escalation.
 # I/O operations are handled through wg-file-proxy.sh
-RUN echo "wg-api ALL=(ALL) NOPASSWD: /usr/local/bin/*.sh, /app/core-vpn/scripts/*.sh, /usr/bin/wg, /usr/bin/wg-quick, /usr/sbin/ufw, /usr/sbin/sysctl, /sbin/ip" > /etc/sudoers.d/wg-api && \
+RUN echo "wg-api ALL=(ALL) SETENV:NOPASSWD: /usr/local/bin/*.sh, /app/core-vpn/scripts/*.sh, /usr/bin/wg, /usr/bin/wg-quick, /usr/sbin/ufw, /usr/sbin/sysctl, /sbin/ip" > /etc/sudoers.d/wg-api && \
     chmod 0440 /etc/sudoers.d/wg-api
 
 
