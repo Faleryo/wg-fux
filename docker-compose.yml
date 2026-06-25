@@ -85,6 +85,7 @@ services:
     tmpfs:
       - /tmp:size=100M
       - /var/log:size=10M
+      - /var/lock:size=1M
       - /etc/sysctl.d:size=1M
     read_only: true
     ports:
