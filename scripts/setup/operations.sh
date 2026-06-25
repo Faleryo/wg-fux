@@ -159,12 +159,24 @@ cmd_reset_password() {
     hash=$(generate_admin_hash "$pass" "$salt")
     [ -n "$hash" ] || { log_error "Hash generation failed."; exit 1; }
 
+    # Update .env (for persistence across container rebuilds)
     sed -i "s|^ADMIN_PASSWORD_HASH=.*|ADMIN_PASSWORD_HASH=$hash|" "$API_ENV"
     sed -i "s|^ADMIN_PASSWORD_SALT=.*|ADMIN_PASSWORD_SALT=$salt|" "$API_ENV"
+    # Ensure the lines exist even if sed matched nothing
+    grep -q '^ADMIN_PASSWORD_HASH=' "$API_ENV" || echo "ADMIN_PASSWORD_HASH=$hash" >> "$API_ENV"
+    grep -q '^ADMIN_PASSWORD_SALT=' "$API_ENV" || echo "ADMIN_PASSWORD_SALT=$salt" >> "$API_ENV"
     log_success "Password hash updated in $API_ENV"
 
+    # Update the database directly inside the running container.
+    # This guarantees the password works even if sed failed or init sync is skipped.
+    if docker compose ps -q api &>/dev/null; then
+        docker compose exec -T -e ADMIN_PASSWORD="$pass" api node /app/reset-admin.js && \
+            log_success "Password updated directly in database." || \
+            log_warn "Could not update database directly (container not running?)."
+    fi
+
     echo
-    log_warn "The API container must be restarted for the change to take effect."
+    log_warn "The API container must be restarted for the env change to take effect."
     if ask_yes_no "Restart the API container now?" "y"; then
         sudo docker compose restart api
         log_success "API container restarted."
