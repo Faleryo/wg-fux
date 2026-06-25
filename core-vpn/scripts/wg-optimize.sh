@@ -179,9 +179,10 @@ if [ "$PROFILE" = "gaming" ]; then
  # 5. WireGuard INTERFACE TUNING
  # ----------------------------------------------------------
  if ip link show "$INTERFACE" > /dev/null 2>&1; then
- # MTU 1280 = IPv6 minimum, zero fragmentation on mobile/4G/5G.
- # Trade-off : ~10% throughput loss vs 1420. Gaming-mobile only.
- ip link set dev "$INTERFACE" mtu 1280 2>/dev/null && log "✓ MTU $INTERFACE = 1280 (zero fragmentation gaming mobile)" || log "⚠ failed to set MTU on $INTERFACE"
+	# MTU depuis manager.conf (défaut 1420). Les peers gaming peuvent
+	# réduire leur propre MTU côté client si nécessaire (ex: 1280 sur 4G).
+	local target_mtu="${SERVER_MTU:-1420}"
+	ip link set dev "$INTERFACE" mtu "$target_mtu" 2>/dev/null && log "✓ MTU $INTERFACE = $target_mtu (depuis manager.conf)" || log "⚠ failed to set MTU on $INTERFACE"
 
  # txqueuelen élevé = moins de drops sous burst
  ip link set dev "$INTERFACE" txqueuelen 1000 2>/dev/null && log "✓ txqueuelen $INTERFACE = 1000" || log "⚠ failed to set txqueuelen on $INTERFACE"
@@ -219,17 +220,21 @@ if [ "$PROFILE" = "gaming" ]; then
  # ----------------------------------------------------------
  # 8. IRQ COALESCING — Léger pour latence sans saturer le CPU
  # ----------------------------------------------------------
- # rx-usecs 8 = 8µs entre interruptions (vs 0 = à chaque paquet → CPU saturé
- # sur petite VPS). adaptive-rx=on laisse le driver ajuster dynamiquement.
- # Compromis : +1µs de jitter, mais soutenable sur VPS 1 vCPU / 512MB.
- ETH_IFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
- if [ -n "$ETH_IFACE" ]; then
- if ethtool -C "$ETH_IFACE" rx-usecs 8 adaptive-rx on 2>/dev/null; then
- log "✓ IRQ coalescing rx-usecs=8 adaptive-rx=on sur $ETH_IFACE"
- else
- log "⚠ ethtool non disponible ou $ETH_IFACE inaccessible"
- fi
- fi
+	# rx-usecs 8 = 8µs entre interruptions (vs 0 = à chaque paquet → CPU saturé
+	# sur petite VPS). adaptive-rx=on laisse le driver ajuster dynamiquement.
+	# Compromis : +1µs de jitter, mais soutenable sur VPS 1 vCPU / 512MB.
+	if command -v ethtool &>/dev/null; then
+	ETH_IFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
+	if [ -n "$ETH_IFACE" ]; then
+	if ethtool -C "$ETH_IFACE" rx-usecs 8 adaptive-rx on 2>/dev/null; then
+	log "✓ IRQ coalescing rx-usecs=8 adaptive-rx=on sur $ETH_IFACE"
+	else
+	log "⚠ ethtool échoué sur $ETH_IFACE (driver non supporté ?)"
+	fi
+	fi
+	else
+	log "⚠ ethtool non installé — skip IRQ coalescing"
+	fi
 
  log "🎮 Gaming Profile DONE — Latence cible ≤20ms activée"
 
@@ -248,10 +253,12 @@ elif [ "$PROFILE" = "streaming" ]; then
  apply_sysctl net.ipv4.tcp_window_scaling 1
  apply_sysctl net.ipv4.tcp_mtu_probing 1 # PLPMTUD automatique
 
- # BBR pour streaming aussi (meilleur que CUBIC sur liens avec perte)
- if grep -q "bbr" /proc/sys/net/ipv4/tcp_available_congestion_control 2>/dev/null; then
- apply_sysctl net.ipv4.tcp_congestion_control bbr
- fi
+	# BBR pour streaming aussi (meilleur que CUBIC sur liens avec perte)
+	if grep -q "bbr" /proc/sys/net/ipv4/tcp_available_congestion_control 2>/dev/null; then
+	apply_sysctl net.ipv4.tcp_congestion_control bbr
+	apply_sysctl net.core.default_qdisc fq
+	log "✓ FQ qdisc activé (pacing BBR streaming)"
+	fi
 
  # MTU standard WireGuard 1420
  if ip link show "$INTERFACE" > /dev/null 2>&1; then
@@ -273,24 +280,27 @@ elif [ "$PROFILE" = "streaming" ]; then
 # PROFILE: AUTO — Détection heuristique
 # ============================================================
 elif [ "$PROFILE" = "auto" ]; then
- # Note: State file will be written by the sub-call to gaming or streaming
- log "🤖 Auto Mode : Analyse heuristique..."
- # Mesure la latence du gateway : si < 10ms → Gaming, sinon Streaming
- GW=$(ip route | grep default | awk '{print $3}' | head -n1)
- if [ -n "$GW" ]; then
- RTT=$(ping -c 4 -q "$GW" 2>/dev/null | awk -F'/' '/rtt/{print $5}' | cut -d. -f1)
- log "Gateway RTT mesuré : ${RTT:-unknown}ms"
- if [ -n "$RTT" ] && [ "$RTT" -lt 15 ]; then
- log "→ RTT ≤15ms détecté : activation Gaming Mode"
- exec "$0" gaming
- else
- log "→ RTT >15ms détecté : activation Streaming Mode"
- exec "$0" streaming
- fi
- else
- log "⚠ Gateway introuvable → fallback Gaming par défaut"
- exec "$0" gaming
- fi
+	# Note: State file will be written by the sub-call to gaming or streaming
+	log "🤖 Auto Mode : Analyse heuristique..."
+	GW=$(ip route | grep default | awk '{print $3}' | head -n1)
+	if [ -z "$GW" ]; then
+	log "⚠ Gateway introuvable → fallback Gaming par défaut"
+	exec "$0" gaming
+	fi
+	if ! command -v ping &>/dev/null; then
+	log "⚠ ping indisponible → fallback Gaming par défaut"
+	exec "$0" gaming
+	fi
+	# Mesure la latence du gateway : si < 15ms → Gaming, sinon Streaming
+	RTT=$(ping -c 2 -q "$GW" 2>/dev/null | awk -F'/' '/rtt/{print $5}' | cut -d. -f1)
+	log "Gateway RTT mesuré : ${RTT:-unknown}ms"
+	if [ -n "$RTT" ] && [ "$RTT" -lt 15 ]; then
+	log "→ RTT ≤15ms détecté : activation Gaming Mode"
+	exec "$0" gaming
+	else
+	log "→ RTT >15ms détecté : activation Streaming Mode"
+	exec "$0" streaming
+	fi
 
 # ============================================================
 # PROFILE: RESTORE / DEFAULT — Valeurs kernel par défaut
