@@ -132,12 +132,12 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                           user.role === 'admin'
                             ? ''
                             : 'bg-white/5 text-slate-400 border-white/5',
-                          style={user.role === 'admin' ? {
-                            backgroundColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '1a' : '#6366f11a',
-                            color: COLOR_MAP[theme]?.[400] || '#818cf8',
-                            borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '33' : '#6366f133'
-                          } : undefined}
                         )}
+                        style={user.role === 'admin' ? {
+                          backgroundColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '1a' : '#6366f11a',
+                          color: COLOR_MAP[theme]?.[400] || '#818cf8',
+                          borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '33' : '#6366f133'
+                        } : undefined}
                       >
                         {user.role}
                       </span>
