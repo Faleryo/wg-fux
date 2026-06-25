@@ -55,15 +55,17 @@ describe('Unit Mastery - Service Layer', () => {
   });
 
   it('Validation Mastery (Zod Utils)', () => {
-    const { paginationSchema, clientSchema } = require('../src/utils/validation');
+    const { paginationSchema, clientSchema } = require('../db/validation');
 
-    // Pagination
-    expect(paginationSchema.parse({ page: '2', limit: '20' }).page).toBe(2);
-    expect(paginationSchema.parse({}).page).toBe(1); // Defaults
+    // Pagination (schema uses limit/offset, not page)
+    expect(paginationSchema.parse({ limit: '20', offset: '2' }).limit).toBe(20);
+    expect(paginationSchema.parse({ limit: '20', offset: '2' }).offset).toBe(2);
+    // Clamps negative to min 1; falsy 0 falls back to 50
+    expect(paginationSchema.parse({ limit: '-5' }).limit).toBe(1);
 
     // Client
-    expect(clientSchema.safeParse({ name: 'ok' }).success).toBe(true);
-    expect(clientSchema.safeParse({ name: 'a' }).success).toBe(false); // Too short
+    expect(clientSchema.safeParse({ name: 'ok', container: 'wg0' }).success).toBe(true);
+    expect(clientSchema.safeParse({ name: '', container: 'wg0' }).success).toBe(false); // Empty name
   });
 
   it('WS Service Mastery', async () => {

@@ -52,7 +52,8 @@ async function initializeDatabase() {
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  publicKey TEXT NOT NULL UNIQUE,
  total INTEGER DEFAULT 0,
- daily TEXT
+ daily TEXT,
+ FOREIGN KEY (publicKey) REFERENCES clients(publicKey) ON DELETE CASCADE
  );
  `);
 
@@ -95,14 +96,20 @@ async function initializeDatabase() {
     }
 
     // 3. Create Indexes if they don't exist
+    // Keep in sync with db/schema.js
     sqlite.exec(`
  CREATE UNIQUE INDEX IF NOT EXISTS username_idx ON users(username);
  CREATE UNIQUE INDEX IF NOT EXISTS container_name_idx ON containers(name);
  CREATE UNIQUE INDEX IF NOT EXISTS pubkey_idx ON clients(publicKey);
+ CREATE UNIQUE INDEX IF NOT EXISTS usage_pubkey_idx ON usage(publicKey);
  CREATE INDEX IF NOT EXISTS container_idx ON clients(container);
  CREATE INDEX IF NOT EXISTS log_timestamp_idx ON logs(timestamp);
+ CREATE INDEX IF NOT EXISTS log_type_timestamp_idx ON logs(type, timestamp);
+ CREATE INDEX IF NOT EXISTS log_status_idx ON logs(status);
+ CREATE INDEX IF NOT EXISTS log_name_idx ON logs(name);
  CREATE INDEX IF NOT EXISTS audit_timestamp_idx ON auditLogs(timestamp);
  CREATE INDEX IF NOT EXISTS audit_actor_idx ON auditLogs(actor);
+ CREATE INDEX IF NOT EXISTS audit_action_idx ON auditLogs(action);
  `);
 
     logger.info('db', '✅ Schema synchronization complete.');

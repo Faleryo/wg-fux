@@ -101,9 +101,9 @@ find "$CLIENTS_DIR" -name "public.key" -print0 2>/dev/null | while IFS= read -r 
    if [ -n "$ALLOWED_IPS" ] && [ -f "$PSK" ]; then
    wg set "$WG_INTERFACE" peer "$PUBKEY" preshared-key "$PSK" allowed-ips "$ALLOWED_IPS" 2>/dev/null || true
    log_info "Peer $CLIENT_NAME re-activé sur $WG_INTERFACE"
-   command -v "$SCRIPT_DIR/wg-apply-qos.sh" &>/dev/null && "$SCRIPT_DIR/wg-apply-qos.sh" 2>/dev/null || true
-   fi
-   # Fall through to re-check all limits after unban
+    test -x "$SCRIPT_DIR/wg-apply-qos.sh" && "$SCRIPT_DIR/wg-apply-qos.sh" 2>/dev/null || true
+    fi
+    # Fall through to re-check all limits after unban
    else
     continue # Still disabled, nothing to do
    fi
@@ -114,13 +114,13 @@ find "$CLIENTS_DIR" -name "public.key" -print0 2>/dev/null | while IFS= read -r 
  log_warn "Bannissement (Expiration) : $CLIENT_NAME"
  echo "Expired" > "$CLIENT_DIR/disabled"
  wg set "$WG_INTERFACE" peer "$PUBKEY" remove 2>/dev/null || true
- command -v "$SCRIPT_DIR/wg-apply-qos.sh" &>/dev/null && "$SCRIPT_DIR/wg-apply-qos.sh" 2>/dev/null || true
+ test -x "$SCRIPT_DIR/wg-apply-qos.sh" && "$SCRIPT_DIR/wg-apply-qos.sh" 2>/dev/null || true
  send_telegram_msg "Access revoked for $CLIENT_NAME (Subscription expired)." "WARN"
  elif [ "$IS_QUOTA_EXCEEDED" -eq 1 ]; then
  log_warn "Bannissement (Quota dépassé) : $CLIENT_NAME"
  echo "Quota exceeded" > "$CLIENT_DIR/disabled"
  wg set "$WG_INTERFACE" peer "$PUBKEY" remove 2>/dev/null || true
- command -v "$SCRIPT_DIR/wg-apply-qos.sh" &>/dev/null && "$SCRIPT_DIR/wg-apply-qos.sh" 2>/dev/null || true
+ test -x "$SCRIPT_DIR/wg-apply-qos.sh" && "$SCRIPT_DIR/wg-apply-qos.sh" 2>/dev/null || true
  send_telegram_msg "Access revoked for $CLIENT_NAME (Quota exceeded)." "WARN"
  fi
 done || true

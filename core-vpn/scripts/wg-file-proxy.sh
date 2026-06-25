@@ -3,7 +3,7 @@
 # Empêche l'utilisation directe de /bin/rm et /usr/bin/tee via API.
 # Opérations limitées strictement aux répertoires de log et clients Wireguard.
 
-set -e
+set -euo pipefail
 
 ALLOWED_DIR="/etc/wireguard/clients/"
 ALLOWED_LOG="/var/log/"

@@ -3,7 +3,7 @@
 # "The Watcher's Eye"
 # Tool: Reversed Verification (Zero-Regression Watcher)
 
-set -e
+set -euo pipefail
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
