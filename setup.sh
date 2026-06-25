@@ -209,6 +209,13 @@ configure_interactive() {
         [ -n "$ADMIN_PASS" ] && break
         log_warn "Password cannot be empty."
     done
+    local admin_confirm
+    while true; do
+        admin_confirm=$(ask_secret "Confirm admin password")
+        [ "$ADMIN_PASS" = "$admin_confirm" ] && break
+        log_warn "Passwords do not match. Try again."
+    done
+    unset admin_confirm
 
     echo
     echo "── AdGuard Home ──"
@@ -218,6 +225,13 @@ configure_interactive() {
         if [ "${#AGH_PASS}" -ge 8 ]; then break; fi
         log_warn "AGH password too short."
     done
+    local agh_confirm
+    while true; do
+        agh_confirm=$(ask_secret "Confirm AGH password")
+        [ "$AGH_PASS" = "$agh_confirm" ] && break
+        log_warn "Passwords do not match. Try again."
+    done
+    unset agh_confirm
 
     echo
     echo "── Optional: Telegram alerts ──"

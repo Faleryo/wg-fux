@@ -148,12 +148,20 @@ cmd_reset_password() {
 
     echo
     echo "  Current admin user: $user"
+    local pass_confirm
     while true; do
         read -rsp "$(printf '%b? New password for %s: %b' "${YELLOW}" "$user" "${NC}")" pass
         echo
         [ -n "$pass" ] && break
         log_warn "Password cannot be empty."
     done
+    while true; do
+        read -rsp "$(printf '%b? Confirm new password: %b' "${YELLOW}" "${NC}")" pass_confirm
+        echo
+        [ "$pass" = "$pass_confirm" ] && break
+        log_warn "Passwords do not match. Try again."
+    done
+    unset pass_confirm
 
     salt=$(openssl rand -hex 16)
     hash=$(generate_admin_hash "$pass" "$salt")
