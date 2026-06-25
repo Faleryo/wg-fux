@@ -13,7 +13,7 @@ generate_admin_hash() {
     if command -v node &>/dev/null; then
         hash=$(WGFUX_PASS="$pass" WGFUX_SALT="$salt" node -e '
             const c = require("crypto");
-            process.stdout.write(
+            console.log(
                 c.pbkdf2Sync(process.env.WGFUX_PASS, process.env.WGFUX_SALT,
                              600000, 64, "sha512").toString("hex")
             );
