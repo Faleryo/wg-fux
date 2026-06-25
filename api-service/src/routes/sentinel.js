@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { auth } = require('../middleware/auth');
+const { auth, requireAdmin } = require('../middleware/auth');
 const { asyncWrap, createError } = require('../utils/errors');
 const { sentinelHeartbeatSchema } = require('../../db/validation');
 
 // In-memory store for Sentinel status
-let sentinelStatus = {
+const sentinelStatus = {
   lastHeartbeat: null,
   status: 'offline',
   logs: [],
@@ -16,6 +16,7 @@ let sentinelStatus = {
 router.post(
   '/heartbeat',
   auth,
+  requireAdmin,
   asyncWrap(async (req, res) => {
     const parsed = sentinelHeartbeatSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -24,12 +25,11 @@ router.post(
 
     const { status, logs, stats } = parsed.data;
 
-    sentinelStatus = {
-      lastHeartbeat: new Date(),
-      status: status || 'active',
-      logs: Array.isArray(logs) ? logs.slice(-20) : [],
-      stats: stats || {},
-    };
+    // Atomic update to avoid race conditions
+    sentinelStatus.lastHeartbeat = new Date();
+    sentinelStatus.status = status || 'active';
+    sentinelStatus.logs = Array.isArray(logs) ? logs.slice(-20) : [];
+    sentinelStatus.stats = stats || {};
 
     res.json({ success: true });
   })

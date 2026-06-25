@@ -1,12 +1,15 @@
 #!/bin/bash
+set -euo pipefail
 
 # WG-FUX v6.3 "Watcher's Eye"
 # SRE Brick: Auth Stress Test (Concurrency & Rate-Limit Audit)
 
-TARGET_URL="http://localhost:3000/api/auth/login"
-CONCURRENCY=10
-TOTAL_REQUESTS=100
-LOG_FILE="/home/faleryo/wg-fux/logs/stress-test.log"
+TARGET_URL="${TARGET_URL:-http://localhost:3000/api/auth/login}"
+CONCURRENCY="${CONCURRENCY:-10}"
+TOTAL_REQUESTS="${TOTAL_REQUESTS:-100}"
+LOG_FILE="${LOG_FILE:-./logs/stress-test.log}"
+USERNAME="${TEST_USERNAME:-admin}"
+PASSWORD="${TEST_PASSWORD:-admin123}"
 
 mkdir -p "$(dirname "$LOG_FILE")"
 
@@ -14,22 +17,21 @@ echo "🚀 Starting Auth Stress Test: $TOTAL_REQUESTS requests ($CONCURRENCY con
 
 start_time=$(date +%s%N)
 
-# Function to perform a single login request
+# Function to perform a single login request (exported for xargs usage)
 do_request() {
- local start=$(date +%s%N)
+ local start=$(date +%s%N 2>/dev/null || date +%s%N)
  local resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$TARGET_URL" \
  -H "Content-Type: application/json" \
- -d '{"username":"admin","password":"admin123"}')
- local end=$(date +%s%N)
- local diff=$(( (end - start) / 1000000 ))
+  -d "{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}")
+ local end=$(date +%s%N 2>/dev/null || date +%s%N)
+ local diff=$(( (end - start) / 1000000 2>/dev/null || echo 0 ))
  echo "$resp $diff"
 }
-
 export -f do_request
-export TARGET_URL
+export TARGET_URL USERNAME PASSWORD
 
 # Run requests using xargs for concurrency (since parallel might not be installed)
-results=$(seq "$TOTAL_REQUESTS" | xargs -I{} -P "$CONCURRENCY" bash -c "do_request")
+results=$(seq "$TOTAL_REQUESTS" | xargs -I{} -P "$CONCURRENCY" bash -c "do_request" 2>/dev/null || echo "")
 
 end_time=$(date +%s%N)
 total_diff=$(( (end_time - start_time) / 1000000 ))
@@ -38,7 +40,7 @@ total_diff=$(( (end_time - start_time) / 1000000 ))
 success_count=$(echo "$results" | grep -c "^200")
 ratelimit_count=$(echo "$results" | grep -c "^429")
 error_count=$(echo "$results" | grep -vE "^(200|429)" | wc -l)
-avg_lat=$(echo "$results" | awk '{sum+=$2} END {print sum/NR}')
+avg_lat=$(echo "$results" | awk '{sum+=$2; count++} END {if (count > 0) print sum/count; else print "N/A"}')
 
 echo "--------------------------------------" | tee -a "$LOG_FILE"
 echo "📊 Results:" | tee -a "$LOG_FILE"

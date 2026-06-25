@@ -7,8 +7,10 @@ CHECK_INTERVAL=60
 API_URL="http://localhost:3000/api/health"
 ADGUARD_URL="http://localhost:3002"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-LOG_FILE="${WATCHDOG_LOG_FILE:-$SCRIPT_DIR/../logs/watchdog.log}"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+LOG_FILE="${WATCHDOG_LOG_FILE:-$PROJECT_ROOT/logs/watchdog.log}"
 PID_FILE="/tmp/wg-fux-watchdog.pid"
+DOCKER_COMPOSE_CMD="docker compose -f $PROJECT_ROOT/docker-compose.yml"
 
 mkdir -p "$(dirname "$LOG_FILE")"
 
@@ -32,21 +34,21 @@ check_api() {
  # Verify both connectivity AND SRE health check (scripts availability)
  if ! HEALTH_RESP=$(curl -sf --max-time 10 "$API_URL"); then
  log_event "⚠️ WARNING: API connection failed. Restarting..."
- docker compose restart api
+ cd "$PROJECT_ROOT" && docker compose restart api
  else
  STATUS=$(echo "$HEALTH_RESP" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
  if [ "$STATUS" != "healthy" ]; then
- log_event "🚨 CRITICAL: API is $STATUS (Script integrity failure). Investigating..."
- # For now, just restart to attempt recovery
- docker compose restart api
+  log_event "🚨 CRITICAL: API is $STATUS (Script integrity failure). Investigating..."
+  # For now, just restart to attempt recovery
+  cd "$PROJECT_ROOT" && docker compose restart api
  fi
  fi
 }
 
 check_adguard() {
  if ! curl -sf --max-time 10 "$ADGUARD_URL" > /dev/null; then
- log_event "⚠️ WARNING: AdGuard UI is unresponsive. Restarting..."
- docker compose restart adguard
+  log_event "⚠️ WARNING: AdGuard UI is unresponsive. Restarting..."
+  cd "$PROJECT_ROOT" && docker compose restart adguard
  fi
 }
 

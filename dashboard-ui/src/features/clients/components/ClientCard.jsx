@@ -1,5 +1,5 @@
 import { Edit, Trash2, Pause, Play, ChevronRight, QrCode } from 'lucide-react';
-import { cn, formatBytes } from '../../../lib/utils';
+import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import GlassCard from '../../../components/ui/Card';
 import { isOnlineClient, isExpired, isExpiringSoon } from './ClientListHelpers';
 
@@ -22,8 +22,9 @@ const ClientCard = ({ client, color, onSelect, onToggle, onEdit, onQRCode, onDel
           <div
             className={cn(
               'w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black text-white shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6',
-              online ? `bg-${color}-500 shadow-${color}-500/30` : 'bg-slate-800 text-slate-500'
+              online ? '' : 'bg-slate-800 text-slate-500'
             )}
+            style={online ? { backgroundColor: COLOR_MAP[color]?.[500] || '#6366f1', boxShadow: `0 8px 32px -8px ${COLOR_MAP[color]?.[500] || '#6366f1'}4d` } : undefined}
           >
             {client.name.charAt(0).toUpperCase()}
           </div>
@@ -96,9 +97,12 @@ const ClientCard = ({ client, color, onSelect, onToggle, onEdit, onQRCode, onDel
               <div
                 className={cn(
                   'h-full rounded-full',
-                  quotaPct > 80 ? 'bg-rose-500' : `bg-${color}-500`
+                  quotaPct > 80 ? 'bg-rose-500' : ''
                 )}
-                style={{ width: `${quotaPct}%` }}
+                style={{
+                  width: `${quotaPct}%`,
+                  ...(quotaPct <= 80 ? { backgroundColor: COLOR_MAP[color]?.[500] || '#6366f1' } : {}),
+                }}
               />
             </div>
           </div>
@@ -150,9 +154,9 @@ const ClientCard = ({ client, color, onSelect, onToggle, onEdit, onQRCode, onDel
         </div>
         <div
           className={cn(
-            'p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300',
-            `bg-${color}-500/10 text-${color}-400`
+            'p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300'
           )}
+          style={{ backgroundColor: COLOR_MAP[color]?.[500] ? COLOR_MAP[color][500] + '1a' : '#6366f11a', color: COLOR_MAP[color]?.[400] || '#818cf8' }}
         >
           <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
         </div>

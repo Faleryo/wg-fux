@@ -1,6 +1,10 @@
 bind_host: 0.0.0.0
 bind_port: 3000
-users: []
+# ⚠️ Remplacer par un admin user configuré via setup.sh
+# L'absence d'admin laisse AGH ouvert — configurer AGH_USER/AGH_PASSWORD
+users:
+  - name: admin
+    password: {{ .Env.AGH_PASSWORD | password "$2a$10$CHANGEME_IMMEDIATELY" }}
 http:
   web_prefix: "/dns"
 dns:
@@ -30,5 +34,5 @@ filters:
     name: HaGeZi - Multi Pro (SmartTV & Mobile)
   - enabled: true
     id: 30
-    url: https://big.oisd.nl/
+    url: https://big.oisd.nl/domainswild2
     name: OISD - Full Protection

@@ -37,8 +37,20 @@ const useAuth = () => {
     } else {
       sessionStorage.setItem(STORAGE_KEYS.token, token);
     }
-    if (role) localStorage.setItem(STORAGE_KEYS.role, role);
-    if (username) localStorage.setItem(STORAGE_KEYS.username, username);
+    if (role) {
+      if (rememberMe) {
+        localStorage.setItem(STORAGE_KEYS.role, role);
+      } else {
+        sessionStorage.setItem(STORAGE_KEYS.role, role);
+      }
+    }
+    if (username) {
+      if (rememberMe) {
+        localStorage.setItem(STORAGE_KEYS.username, username);
+      } else {
+        sessionStorage.setItem(STORAGE_KEYS.username, username);
+      }
+    }
     setSession({ token, role: role || null, username: username || null });
   }, []);
 

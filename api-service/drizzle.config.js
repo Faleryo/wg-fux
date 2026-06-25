@@ -1,9 +1,9 @@
 /** @type { import("drizzle-kit").Config } */
-export default {
+module.exports = {
   schema: './db/schema.js',
   out: './db/migrations',
   dialect: 'sqlite',
   dbCredentials: {
-    url: './data/database.sqlite',
+    url: './data/wg-fux.db',
   },
 };

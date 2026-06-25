@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users } from 'lucide-react';
-import { cn, formatBytes } from '../../../lib/utils';
+import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 
 const NetworkNode = ({ client, index, total, centerX, centerY, radius, isDark, isMobile, selectedNodeId, nowSec, onNodeClick, getContainerColor }) => {
   const angle = (index * (2 * Math.PI)) / total - Math.PI / 2;
@@ -26,8 +26,7 @@ const NetworkNode = ({ client, index, total, centerX, centerY, radius, isDark, i
           isMobile ? 'w-10 h-10' : 'w-16 h-16',
           isOnline
             ? cn(
-                isDark ? 'bg-slate-900/80' : 'bg-white/80',
-                `border-${color.name}-500/50 group-hover/node:bg-${color.name}-900/90 group-hover/node:border-${color.name}-400 group-hover/node:shadow-${color.name}-600/20`
+                isDark ? 'bg-slate-900/80' : 'bg-white/80'
               )
             : cn(
                 isDark
@@ -36,15 +35,20 @@ const NetworkNode = ({ client, index, total, centerX, centerY, radius, isDark, i
                 'group-hover/node:border-white/20'
               )
         )}
+        style={isOnline ? {
+          borderColor: COLOR_MAP[color.name]?.[500] ? COLOR_MAP[color.name][500] + '80' : '#6366f180',
+          backgroundColor: COLOR_MAP[color.name]?.[800] ? COLOR_MAP[color.name][800] + 'e6' : '#312e81e6',
+        } : undefined}
       >
         <Users
           size={isMobile ? 18 : 28}
           className={cn(
             'transition-all duration-300',
             isOnline
-              ? `text-${color.name}-400 group-hover/node:text-white group-hover/node:rotate-6`
+              ? 'group-hover/node:text-white group-hover/node:rotate-6'
               : 'text-slate-700 group-hover/node:text-slate-400'
           )}
+          style={isOnline ? { color: COLOR_MAP[color.name]?.[400] || '#818cf8' } : undefined}
         />
         {isOnline && (
           <span
@@ -91,10 +95,8 @@ const NetworkNode = ({ client, index, total, centerX, centerY, radius, isDark, i
                 {client.name}
               </span>
               <span
-                className={cn(
-                  'text-[9px] font-black uppercase tracking-widest',
-                  `text-${color.name}-400`
-                )}
+              className='text-[9px] font-black uppercase tracking-widest'
+              style={{ color: COLOR_MAP[color.name]?.[400] || '#818cf8' }}
               >
                 {client.container}
               </span>

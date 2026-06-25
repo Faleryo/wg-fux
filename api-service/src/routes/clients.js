@@ -48,6 +48,8 @@ router.param('name', (req, res, next, val) => {
 
 router.get(
   '/containers',
+  auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const dir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
     try {
@@ -144,7 +146,7 @@ router.get(
       const stat = wgStats[c.publicKey];
       return {
         ...c,
-        id: `${c.container}-${c.name}`,
+        id: c.id,
         interface: stat ? stat.interface : 'wg0',
         lastHandshake: stat ? stat.lastSeen : 0,
         downloadBytes: stat ? stat.tx : 0,
@@ -244,18 +246,27 @@ router.post(
 
     const { container, name, expiry, quota, uploadLimit } = result.data;
 
-    // Source of truth is the filesystem (matches GET /containers). The DB row
-    // is best-effort — auto-create it if missing so subsequent lookups are
-    // consistent.
+    // Auto-create container on filesystem+DB if missing (idempotent)
     const clientsBaseDir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
     const containerDir = path.join(clientsBaseDir, container);
     try {
       const stat = await fsPromises.stat(containerDir);
       if (!stat.isDirectory()) throw new Error('not a directory');
     } catch (_err) {
-      return res
-        .status(404)
-        .json(createError(`Container ${container} not found`, null, 'NOT_FOUND'));
+      const { success, error } = await runSystemCommand(getScriptPath('wg-create-container.sh'), [
+        container,
+      ]);
+      if (!success) {
+        return res
+          .status(500)
+          .json(
+            createError(
+              `Failed to auto-create container ${container}: ${error}`,
+              null,
+              'CONTAINER_CREATE_FAILED'
+            )
+          );
+      }
     }
     await db
       .insert(schema.containers)
@@ -279,7 +290,7 @@ router.post(
     // 🛡️ OBSIDIAN-HARDENING: Capture public key from script output or generated file
     let publicKey = '';
     const pkMatch =
-      (stdout || '').match(/PublicKey\s*=\s*(\S+)/i) || (stdout || '').match(/^(\S{44}=)$/m);
+      (stdout || '').match(/PublicKey\s*=\s*(\S+)/i) || (stdout || '').match(/^(\S{43}=)$/m);
 
     if (pkMatch) {
       publicKey = pkMatch[1];
@@ -312,7 +323,11 @@ router.post(
         }
         // Final emergency fallback
         if (!publicKey) {
-          publicKey = `temp_pk_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+          throw createError(
+            'Failed to extract client public key. Cannot create client without valid key.',
+            null,
+            'SYSTEM_ERROR'
+          );
         }
       }
     }
@@ -411,7 +426,9 @@ router.post(
         new Date().toISOString()
       );
       if (!disabledSuccess) {
-        log.error('clients', 'Failed to write disabled flag', { error: disabledError });
+        return res
+          .status(500)
+          .json(createError(disabledError, 'Failed to write disabled flag', 'SYSTEM_ERROR'));
       }
       await runSystemCommand(getScriptPath('wg-toggle.sh'), [
         process.env.WG_INTERFACE || 'wg0',
@@ -504,7 +521,7 @@ router.patch(
       }
     }
     if (quota !== undefined) {
-      updateData.quota = parseInt(quota) || 0;
+      updateData.quota = Math.max(0, parseInt(quota, 10) || 0);
       if (updateData.quota > 0) {
         const { success } = await writeFileAsRoot(path.join(clientDir, 'quota'), String(quota));
         if (!success) throw createError('Failed to write quota flag', null, 'SYSTEM_ERROR');
@@ -513,7 +530,7 @@ router.patch(
       }
     }
     if (uploadLimit !== undefined) {
-      updateData.uploadLimit = parseInt(uploadLimit) || 0;
+      updateData.uploadLimit = Math.max(0, parseInt(uploadLimit, 10) || 0);
       if (updateData.uploadLimit > 0) {
         const { success } = await writeFileAsRoot(
           path.join(clientDir, 'upload_limit'),
@@ -567,7 +584,7 @@ router.post(
       failedCount = 0;
     const dbPatch = {};
     if (update.expiry !== undefined) dbPatch.expiry = update.expiry || null;
-    if (update.quota !== undefined) dbPatch.quota = parseInt(update.quota) || 0;
+    if (update.quota !== undefined) dbPatch.quota = update.quota;
     for (const client of clients) {
       try {
         const clientDir = getClientDir(client.container, client.name);
@@ -581,22 +598,46 @@ router.post(
           else await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
         }
 
-        // Keep DB in sync — without this, subsequent reads return stale rows.
-        if (Object.keys(dbPatch).length > 0) {
-          await db
-            .update(schema.clients)
-            .set(dbPatch)
-            .where(
-              and(
-                eq(schema.clients.container, client.container),
-                eq(schema.clients.name, client.name)
-              )
-            );
-        }
-
         successCount++;
       } catch (e) {
         failedCount++;
+      }
+    }
+    if (Object.keys(dbPatch).length > 0 && successCount > 0) {
+      try {
+        await db.transaction(async (tx) => {
+          for (const client of clients) {
+            await tx
+              .update(schema.clients)
+              .set(dbPatch)
+              .where(
+                and(
+                  eq(schema.clients.container, client.container),
+                  eq(schema.clients.name, client.name)
+                )
+              );
+          }
+        });
+      } catch (e) {
+        log.error('clients', 'Bulk DB update failed, rolling back filesystem changes', {
+          err: e.message,
+        });
+        // Rollback filesystem changes to avoid desync
+        for (const client of clients) {
+          try {
+            const clientDir = getClientDir(client.container, client.name);
+            if (update.expiry !== undefined) {
+              await unlinkAsRoot(path.join(clientDir, 'expiry')).catch(() => {});
+            }
+            if (update.quota !== undefined) {
+              await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
+            }
+          } catch (_) {
+            // ignore cleanup errors during rollback
+          }
+        }
+        failedCount += successCount;
+        successCount = 0;
       }
     }
     await runSystemCommand(getScriptPath('wg-enforcer.sh'), []).catch(() => {});

@@ -57,7 +57,7 @@ const MaintenanceSettings = ({ handleBackup, isDark, theme }) => {
               les routes vpn.
             </p>
           </div>
-          <button className="w-full py-4 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-600/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+          <button className="w-full py-4 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-600/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed" disabled>
             Restaurer Valeurs Usine
           </button>
         </div>

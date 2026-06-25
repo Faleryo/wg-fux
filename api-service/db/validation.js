@@ -69,6 +69,7 @@ const bulkUpdateSchema = z.object({
     quota: z
       .union([z.number(), z.string()])
       .transform((v) => parseInt(v) || 0)
+      .refine((n) => n >= 0, 'Quota doit être positif')
       .optional(),
   }),
 });
@@ -103,8 +104,8 @@ const userSchema = z
       .string()
       .min(2, 'Username doit faire au moins 2 caractères')
       .regex(identifierRegex, "Format de nom d'utilisateur invalide"),
-    password: z.string().min(6).optional(),
-    role: z.enum(['admin', 'manager', 'viewer', 'user']).default('viewer'),
+    password: z.string().min(6, 'Mot de passe requis (min 6 caractères)'),
+    role: z.enum(['admin', 'manager', 'viewer']).default('viewer'),
     expiry: z.string().regex(dateRegex).or(z.null()).optional(),
   })
   .strict();
@@ -113,12 +114,12 @@ const userSchema = z
 const systemConfigSchema = z.object({
   port: z
     .union([z.number(), z.string()])
-    .transform((v) => parseInt(v))
+    .transform((v) => parseInt(v, 10))
     .refine((n) => n >= 1 && n <= 65535, 'Port invalide')
     .optional(),
   mtu: z
     .union([z.number(), z.string()])
-    .transform((v) => parseInt(v))
+    .transform((v) => parseInt(v, 10))
     .refine((n) => n >= 576 && n <= 9000, 'MTU invalide')
     .optional(),
   dns: z
@@ -153,7 +154,7 @@ const dnsConfigSchema = z.object({
 const userUpdateSchema = z
   .object({
     password: z.string().min(6).optional(),
-    role: z.enum(['admin', 'manager', 'viewer', 'user']).optional(),
+    role: z.enum(['admin', 'manager', 'viewer']).optional(),
     expiry: z.string().regex(dateRegex).or(z.null()).optional(),
   })
   .strict();
@@ -161,11 +162,11 @@ const userUpdateSchema = z
 const paginationSchema = z.object({
   limit: z
     .union([z.number(), z.string()])
-    .transform((v) => Math.min(Math.max(parseInt(v) || 50, 1), 500))
+    .transform((v) => Math.min(Math.max(parseInt(v, 10) || 50, 1), 500))
     .optional(),
   offset: z
     .union([z.number(), z.string()])
-    .transform((v) => Math.max(parseInt(v) || 0, 0))
+    .transform((v) => Math.max(parseInt(v, 10) || 0, 0))
     .optional(),
 });
 
@@ -202,11 +203,7 @@ const restartSchema = z.object({
 });
 
 const logsQuerySchema = paginationSchema.extend({
-  level: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR', 'AUDIT']).or(z.null()).optional(),
-  limit: z
-    .union([z.number(), z.string()])
-    .transform((v) => Math.min(Math.max(parseInt(v) || 100, 1), 500))
-    .optional(),
+  level: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR', 'AUDIT']).optional(),
 });
 
 module.exports = {

@@ -16,22 +16,49 @@ fi
 ACTION="$1"
 TARGET_RAW="$2"
 
-# 🛡️ Anti-TOCTOU: realpath(1) suit les symlinks existants.
-# Si la cible existe déjà, realpath résout TOUS les composants du chemin
-# (y compris les symlinks). Si elle n'existe pas encore, on résout le parent
-# (qui DOIT exister) et on concatène le nom de base.
-if [ -e "$TARGET_RAW" ]; then
-    TARGET=$(realpath "$TARGET_RAW")
+# 🛡️ Anti-TOCTOU: Walk every component of the ORIGINAL path, checking for
+# symlinks BEFORE resolving. This prevents escapes like
+# clients/evil@link/foo where evil@link -> /var/log — the ".." check alone
+# would miss this. Only after the walk do we resolve via realpath.
+
+# Build the original path one component at a time and check each
+ORIG_PATH="$TARGET_RAW"
+# Normalise: strip trailing slash
+ORIG_PATH="${ORIG_PATH%/}"
+# Walk from root, checking each segment
+CURRENT=""
+IFS='/' read -r -a SEGMENTS <<< "$ORIG_PATH"
+for SEG in "${SEGMENTS[@]}"; do
+  [ -z "$SEG" ] && continue
+  CURRENT="${CURRENT}/${SEG}"
+  if [ -L "$CURRENT" ]; then
+    echo "ERROR: Symlinks in path are forbidden."
+    exit 1
+  fi
+done
+
+# Resolve the canonical final target
+FULL_REAL=$(realpath "$TARGET_RAW" 2>/dev/null || echo "")
+if [ -z "$FULL_REAL" ]; then
+  # Final component may not exist yet (write/create mode); resolve parent
+  PARENT_DIR=$(realpath "$(dirname "$TARGET_RAW")" 2>/dev/null || echo "")
+  if [ -z "$PARENT_DIR" ]; then
+    echo "ERROR: Parent directory does not exist."
+    exit 1
+  fi
+  BASENAME=$(basename "$TARGET_RAW")
+  TARGET="$PARENT_DIR/$BASENAME"
 else
-    TARGET_DIR=$(realpath "$(dirname "$TARGET_RAW")")
-    TARGET="$TARGET_DIR/$(basename "$TARGET_RAW")"
+  TARGET="$FULL_REAL"
 fi
 
-# Validation stricte du chemin (Empêche path traversal "../")
-if [[ "$TARGET_RAW" == *".."* ]] || [[ "$TARGET" == *".."* ]]; then
- echo "ERROR: Path traversal is forbidden."
- exit 1
-fi
+# Final check: ensure no ".." appears in any component
+case "$TARGET_RAW" in
+ *"/../"* | */".." | ".."* | "../"*)
+  echo "ERROR: Path traversal is forbidden."
+  exit 1
+  ;;
+esac
 
 # Validation d'appartenance au périmètre sécurisé
 # SRE-HARDENING: On s'assure que le chemin commence exactement par le préfixe autorisé
@@ -52,14 +79,14 @@ done
 case "$ACTION" in
  "write")
  if [ $# -ge 3 ]; then
- echo -n "$3" > "$TARGET"
+ printf '%s' "$3" > "$TARGET"
  else
  cat > "$TARGET"
  fi
  ;;
  "append")
  if [ $# -ge 3 ]; then
- echo -n "$3" >> "$TARGET"
+ printf '%s' "$3" >> "$TARGET"
  else
  cat >> "$TARGET"
  fi

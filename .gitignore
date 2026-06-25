@@ -25,7 +25,7 @@ api-service/check-db.js
 api-service/test-hash.js
 scripts/evil-pentest.sh
 
-# Environnement & Secrets (CRITIQUE)s
+# Environnement & Secrets (CRITIQUE)
 .env
 .env.local
 .env.development.local
@@ -42,15 +42,14 @@ api-service/data/*.db-shm
 api-service/data/*.db-wal
 api-service/data/temp/
 
-# Infrastructure & SSL
-infra/ssl/*.key
-infra/ssl/*.crt
-infra/ssl/*.pem
+# Infrastructure & SSL (sensitive — remove from tracking if already committed)
+infra/ssl/*
 !infra/ssl/.gitkeep
 
 # WireGuard & Système
-/etc/wireguard/*
-!/etc/wireguard/templates/
+# Note: les chemins /etc/wireguard sont gérés hors du dépôt git
+# Les fichiers .conf sont exclus via *.key et *.conf globs ci-dessous
+*.conf
 *.key
 *.psk
 
@@ -59,6 +58,7 @@ logs/
 *.log
 *.txt
 api-service/logs/
+*.pid
 
 # Autres
 .DS_Store

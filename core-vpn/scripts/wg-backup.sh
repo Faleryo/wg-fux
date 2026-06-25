@@ -43,6 +43,7 @@ fi
 # 3. Compress + encrypt with AES-256 (pbkdf2)
 echo "🗜️ Compressing and encrypting backup..."
 OUT="$BACKUP_DIR/$BACKUP_NAME"
+set -o pipefail
 tar -czf - -C "$TEMP_DIR" . | \
  openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 \
  -pass env:BACKUP_PASSPHRASE \
@@ -51,6 +52,6 @@ chmod 600 "$OUT"
 
 # 4. Retention
 echo "🧹 Cleaning up backups older than $RETENTION_DAYS days..."
-find "$BACKUP_DIR" -name "wg_fux_backup_*.tar.gz.enc" -mtime "+$((RETENTION_DAYS - 1))" -delete
+find "$BACKUP_DIR" -name "wg_fux_backup_*.tar.gz.enc" -mtime "+$RETENTION_DAYS" -delete
 
 echo "✅ Encrypted backup written: $OUT"

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 API_DIR="/opt/wireguard-api"
 USERS_FILE="$API_DIR/data/users.json"
 ENV_FILE="$API_DIR/.env"
@@ -25,7 +26,10 @@ elif [ "$1" = "logout-all" ]; then
     if [ ! -f "$ENV_FILE" ]; then echo "Error: .env file not found"; exit 1; fi
     NEW_SECRET=$(openssl rand -hex 32)
     sed -i "s/^JWT_SECRET=.*/JWT_SECRET=$NEW_SECRET/" "$ENV_FILE"
-    systemctl restart wireguard-api
+    if systemctl is-active docker > /dev/null 2>&1; then
+      docker compose -f /opt/wireguard-api/docker-compose.yml restart api 2>/dev/null || docker compose restart api 2>/dev/null || true
+    fi
+    systemctl restart wireguard-api 2>/dev/null || true
     echo "All users have been logged out (JWT Secret rotated)."
 elif [ "$1" = "add" ]; then
     if [ -z "$2" ] || [ -z "$3" ]; then
@@ -55,7 +59,7 @@ elif [ "$1" = "add" ]; then
         if (users.find(u => u.username === username)) { console.log('User exists'); process.exit(1); }
         
         const salt = crypto.randomBytes(16).toString('hex');
-        const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+        const hash = crypto.pbkdf2Sync(password, salt, 600000, 64, 'sha512').toString('hex');
         const newUser = {username, hash, salt, role};
         if (expiry) newUser.expiry = expiry;
         
@@ -85,7 +89,7 @@ elif [ "$1" = "passwd" ]; then
         const userIndex = users.findIndex(u => u.username === username);
         if (userIndex === -1) { console.log('User not found'); process.exit(1); }
         const salt = crypto.randomBytes(16).toString('hex');
-        const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+        const hash = crypto.pbkdf2Sync(password, salt, 600000, 64, 'sha512').toString('hex');
         users[userIndex].salt = salt;
         users[userIndex].hash = hash;
         fs.writeFileSync('data/users.json', JSON.stringify(users, null, 2));

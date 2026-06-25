@@ -14,7 +14,7 @@ describe('Unit Mastery - Service Layer', () => {
     await initializeDatabase().catch(() => {}); // Ensure tables exist
     const { app: expressApp } = require('../server');
     app = expressApp;
-    vi.stubEnv('TEST_BYPASS_AUTH', 'true');
+    process.env.TEST_BYPASS_AUTH = 'true';
   });
 
   it('System Service - formatBytes', () => {
@@ -36,9 +36,9 @@ describe('Unit Mastery - Service Layer', () => {
     const res404 = await request(app).get('/api/invalid-route-666');
     expect(res404.statusCode).toBe(404);
 
-    // 2. Validation Fail (POST /api/users with bad data)
-    const res400 = await request(app).post('/api/users').send({ username: 'a' });
-    expect(res400.statusCode).toBe(400);
+    // 2. Auth required (POST /api/users without auth token)
+    const res401 = await request(app).post('/api/users').send({ username: 'a' });
+    expect(res401.statusCode).toBe(401);
   });
 
   it('Error Utils - createError', () => {

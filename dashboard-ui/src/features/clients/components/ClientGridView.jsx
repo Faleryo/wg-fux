@@ -35,7 +35,8 @@ const ClientGridView = ({
             animate={{ opacity: 1, x: 0 }}
             className={cn(
               'flex flex-col md:flex-row items-start md:items-center gap-6 p-6 rounded-[2rem] border relative overflow-hidden group',
-              `bg-${selectedColor}-500/5 border-${selectedColor}-500/15`
+              selectedColor === 'indigo' ? 'bg-indigo-500/10 border-indigo-500/20' :
+              `bg-${selectedColor}-500/10 border-${selectedColor}-500/20`
             )}
           >
             <div

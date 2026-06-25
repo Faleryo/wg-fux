@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
-import { cn } from '../../lib/utils';
+import { cn, COLOR_MAP } from '../../lib/utils';
 import VibeButton from '../ui/Button';
 
 const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
@@ -56,10 +56,9 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
         password: password || undefined,
         role: role !== user.role ? role : undefined,
       });
-      setSuccess('Profil mis à jour avec succès');
       setPassword('');
       setConfirmPassword('');
-      setTimeout(onClose, 1500);
+      onClose();
     } catch (err) {
       setError(err?.response?.data?.error || 'Erreur lors de la mise à jour');
     } finally {
@@ -90,7 +89,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
   const roles = [
     { id: 'viewer', label: 'Viewer', desc: 'Lecture seule', color: 'slate' },
     { id: 'manager', label: 'Manager', desc: 'Gestion Clients', color: 'indigo' },
-    { id: 'admin', label: 'Admin', desc: 'Accès complet', color: theme },
+    { id: 'admin', label: 'Admin', desc: 'Accès complet', color: 'indigo' },
   ];
 
   if (!user) return null;
@@ -106,7 +105,8 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
         {/* Identity Info (ReadOnly) */}
         <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4">
           <div
-            className={`w-12 h-12 rounded-2xl bg-${theme}-600 flex items-center justify-center text-white font-black`}
+            className='w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black'
+              style={{ backgroundColor: COLOR_MAP[theme]?.[600] || '#6366f1' }}
           >
             {user.username.charAt(0).toUpperCase()}
           </div>
@@ -134,7 +134,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
                 className={cn(
                   'flex flex-col items-center gap-2 py-3 rounded-2xl border transition-all duration-300 text-center',
                   role === r.id
-                    ? `bg-${r.color}-500/10 border-${r.color}-500/40 text-${r.color}-400 shadow-lg`
+                    ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 shadow-lg'
                     : 'bg-white/5 border-white/5 text-slate-500 hover:text-slate-300'
                 )}
               >

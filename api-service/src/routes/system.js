@@ -34,8 +34,8 @@ const WG_QUICK_BIN = process.env.WG_QUICK_BIN || 'wg-quick';
 
 // --- AdGuard Status Check ---
 const AGH_BASE_URL = 'http://adguard:3000';
-const AGH_USER = (process.env.AGH_USER || '').replace(/['"]/g, '').trim();
-const AGH_PASS = (process.env.AGH_PASSWORD || '').replace(/['"]/g, '').trim();
+const AGH_USER = (process.env.AGH_USER || '').trim();
+const AGH_PASS = (process.env.AGH_PASSWORD || '').trim();
 
 router.get(
   '/adguard-status',
@@ -133,7 +133,7 @@ router.get(
 
     const grouped = {};
     history.forEach((h) => {
-      const time = h.timestamp.toISOString().split(':')?.[0];
+      const time = h.timestamp ? h.timestamp.toISOString().split(':')?.[0] : '';
       if (!grouped[time]) grouped[time] = { time, rx: 0, tx: 0 };
       grouped[time].rx += h.usageDaily || 0;
       grouped[time].tx += h.usageTotal || 0;
@@ -331,8 +331,9 @@ router.post(
       throw createError(writeErr, 'Failed to write configuration file', 'EACCES');
     }
 
+    const wgIface = process.env.WG_INTERFACE || 'wg0';
     if (port)
-      await runSystemCommand(WG_BIN, ['set', process.env.WG_INTERFACE, 'listen-port', port]).catch(
+      await runSystemCommand(WG_BIN, ['set', wgIface, 'listen-port', port]).catch(
         () => {}
       );
 
@@ -379,6 +380,7 @@ router.get(
 );
 
 let isSpeedtestRunning = false;
+let speedtestTimeout = null;
 router.post(
   '/speedtest',
   auth,
@@ -390,6 +392,10 @@ router.post(
         .json(createError('Speedtest already running', null, 'CONCURRENCY_ERROR'));
     }
     isSpeedtestRunning = true;
+    speedtestTimeout = setTimeout(() => {
+      isSpeedtestRunning = false;
+      speedtestTimeout = null;
+    }, 120000);
     try {
       const { success, stdout, error } = await runSystemCommand(
         getScriptPath('wg-speedtest.sh'),
@@ -407,6 +413,10 @@ router.post(
       res.json(data);
     } finally {
       isSpeedtestRunning = false;
+      if (speedtestTimeout) {
+        clearTimeout(speedtestTimeout);
+        speedtestTimeout = null;
+      }
     }
   })
 );
@@ -476,7 +486,8 @@ router.get(
     if (!parsed.success) {
       return res.status(400).json(createError(parsed.error, 'Paramètres de logs invalides'));
     }
-    const { limit, level } = parsed.data;
+    const { level } = parsed.data;
+    const limit = Math.min(500, Math.max(1, parseInt(parsed.data.limit) || 100));
 
     let query = db.select().from(schema.logs).where(eq(schema.logs.type, 'auth'));
 
@@ -646,7 +657,11 @@ router.post(
   requireAdmin,
   asyncWrap(async (req, res) => {
     const result = await gcAuditLogs(0);
-    await runSystemCommand('truncate', ['-s', '0', '/var/log/wg-enforcer.log']).catch(() => {});
+    try {
+      await fsPromises.writeFile('/var/log/wg-enforcer.log', '');
+    } catch (_) {
+      log.warn('system', 'Failed to clear enforcer log');
+    }
     res.json({ success: true, ...result });
   })
 );

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Package, Trash2, ChevronRight } from 'lucide-react';
-import { cn, formatBytes } from '../../../lib/utils';
+import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import GlassCard from '../../../components/ui/Card';
 import { isOnlineClient } from './ClientListHelpers';
 
@@ -27,27 +27,18 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
         className="p-0 overflow-hidden cursor-pointer group relative border-white/5 hover:border-white/10"
       >
         <div
-          className={cn(
-            'absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-700 bg-gradient-to-br',
-            `from-${color}-500 to-transparent`
-          )}
+          className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-700 bg-gradient-to-br from-indigo-500 to-transparent"
         />
 
         <div
-          className={cn(
-            'h-1.5 w-full transition-all duration-700 group-hover:h-2 opacity-80',
-            `bg-${color}-500 shadow-md shadow-${color}-500/50`
-          )}
+          className="h-1.5 w-full transition-all duration-700 group-hover:h-2 opacity-80 bg-indigo-500 shadow-md shadow-indigo-500/50"
         />
 
         <div className="p-6 space-y-6 relative z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div
-                className={cn(
-                  'p-3 rounded-2xl border transition-all duration-500 group-hover:scale-110 group-hover:rotate-6',
-                  `bg-${color}-500/10 text-${color}-400 border-${color}-500/20`
-                )}
+                className="p-3 rounded-2xl border transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
               >
                 <Package size={24} />
               </div>
@@ -84,10 +75,7 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
                 </button>
               )}
               <div
-                className={cn(
-                  'w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 group-hover:bg-white/10',
-                  `text-${color}-400 border-${color}-500/10`
-                )}
+                className="w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 group-hover:bg-white/10 text-indigo-400 border-indigo-500/10"
               >
                 <ChevronRight
                   size={16}
@@ -131,7 +119,7 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
                     className={cn(
                       'w-6 h-6 rounded-lg border-2 border-slate-950 flex items-center justify-center text-[8px] font-black text-white',
                       isOnlineClient(c)
-                        ? `bg-${color}-500 shadow-lg shadow-${color}-500/20`
+                        ? 'bg-indigo-500 shadow-lg shadow-indigo-500/20'
                         : 'bg-slate-800'
                     )}
                   >

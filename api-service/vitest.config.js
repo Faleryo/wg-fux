@@ -10,7 +10,7 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.js'],
       exclude: ['node_modules/**', 'tests/**'],
-      all: false, // Show files with 0% coverage
+      all: false, // Don't include files not imported by tests
       thresholds: {
         lines: 70,
         functions: 70,

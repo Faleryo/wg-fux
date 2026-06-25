@@ -1,9 +1,9 @@
 // Admin password reset utility.
 // Usage: ADMIN_PASSWORD='your-strong-password' node reset-admin.js
+require('dotenv').config();
 const { db, schema } = require('./db');
 const { eq } = require('drizzle-orm');
 const crypto = require('crypto');
-require('dotenv').config();
 
 const ITERATIONS = 600000; // must match src/services/auth.js
 
@@ -11,6 +11,10 @@ async function resetAdmin() {
   const password = process.env.ADMIN_PASSWORD;
   if (!password) {
     console.error('❌ ADMIN_PASSWORD env var required.');
+    process.exit(2);
+  }
+  if (password.length < 8) {
+    console.error('❌ ADMIN_PASSWORD must be at least 8 characters.');
     process.exit(2);
   }
 

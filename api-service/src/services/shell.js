@@ -21,7 +21,7 @@ const execFilePromise = (cmd, args, opts) => {
 
 const isRoot = !process.getuid || process.getuid() === 0;
 const SUDO = isRoot ? null : process.env.SUDO_BIN || 'sudo';
-const SUDO_ARGS = isRoot ? [] : ['-n'];
+const SUDO_ARGS = isRoot ? [] : ['-E', '-n'];
 
 /* eslint-disable no-control-regex */
 const ANSI_RE = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
@@ -39,12 +39,8 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
   const sanitizedArgs = args.map((arg) => stripAnsi(arg));
   const commandStr = `${cmd} ${sanitizedArgs.join(' ')}`;
 
-  // 🛡️ OBSIDIAN-HARDENING: Strict argument validation + Unicode/Emoji support
-  // Allowed: alphanumerics, path/dot/at/dash, spaces, parens, colon, tilde,
-  // plus, comma, apostrophe, ! ?, accented Latin, and emojis.
   // Safe because spawn() never invokes a shell (args go directly to execvp).
-  // eslint-disable-next-line no-misleading-character-class
-  const SAFE_ARG = /^[a-zA-Z0-9/._@:-]*$/u;
+  const SAFE_ARG = /^[\p{L}\p{N}\s\-_.,:@+/=~!'()%&#[\]=*?]*$/u;
   for (const arg of sanitizedArgs) {
     if (arg && !SAFE_ARG.test(arg)) {
       if (log && typeof log.error === 'function') {

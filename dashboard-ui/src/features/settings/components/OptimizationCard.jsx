@@ -1,5 +1,5 @@
 import { useTheme } from '../../../context/ThemeContext';
-import { cn } from '../../../lib/utils';
+import { cn, COLOR_MAP } from '../../../lib/utils';
 
 const OptimizationCard = ({ profile, currentProfile, loading, onOptimize }) => {
   const { isDark } = useTheme();
@@ -12,36 +12,41 @@ const OptimizationCard = ({ profile, currentProfile, loading, onOptimize }) => {
           ? 'bg-slate-900/40 backdrop-blur-3xl'
           : 'bg-white border-black/5 shadow-sm',
         currentProfile === profile.id
-          ? `border-${profile.color}-500/50 shadow-2xl shadow-${profile.color}-500/20 bg-${profile.color}-500/5`
+          ? 'shadow-2xl'
           : isDark
             ? 'border-white/5 hover:border-white/10'
             : 'border-black/5 hover:border-indigo-500/20'
       )}
+      style={currentProfile === profile.id ? {
+        borderColor: COLOR_MAP[profile.color]?.[500] ? COLOR_MAP[profile.color][500] + '80' : '#6366f180',
+        boxShadow: `0 8px 32px -8px ${COLOR_MAP[profile.color]?.[500] || '#6366f1'}33`,
+        backgroundColor: COLOR_MAP[profile.color]?.[500] ? COLOR_MAP[profile.color][500] + '0d' : '#6366f10d',
+      } : undefined}
     >
       {currentProfile === profile.id && (
         <div
-          className={cn(
-            'absolute top-6 right-6 px-3 py-1 rounded-full border text-[8px] font-black uppercase tracking-[0.2em] animate-pulse',
-            `bg-${profile.color}-500/20 text-${profile.color}-400 border-${profile.color}-500/30`
-          )}
+          className='absolute top-6 right-6 px-3 py-1 rounded-full border text-[8px] font-black uppercase tracking-[0.2em] animate-pulse'
+          style={{
+            backgroundColor: COLOR_MAP[profile.color]?.[500] ? COLOR_MAP[profile.color][500] + '33' : '#6366f133',
+            color: COLOR_MAP[profile.color]?.[400] || '#818cf8',
+            borderColor: COLOR_MAP[profile.color]?.[500] ? COLOR_MAP[profile.color][500] + '4d' : '#6366f14d',
+          }}
         >
           Vecteur Actif
         </div>
       )}
       <div
-        className={cn(
-          'absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12 pointer-events-none',
-          `text-${profile.color}-500`
-        )}
+        className='absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12 pointer-events-none'
+        style={{ color: COLOR_MAP[profile.color]?.[500] || '#6366f1' }}
       >
         <profile.icon size={120} />
       </div>
       <div
         className={cn(
           'p-4 rounded-2xl mb-6 w-fit transition-transform group-hover:scale-110',
-          isDark ? 'bg-white/5' : 'bg-black/5',
-          `text-${profile.color}-400`
+          isDark ? 'bg-white/5' : 'bg-black/5'
         )}
+        style={{ color: COLOR_MAP[profile.color]?.[400] || '#818cf8' }}
       >
         <profile.icon size={24} />
       </div>
@@ -62,13 +67,17 @@ const OptimizationCard = ({ profile, currentProfile, loading, onOptimize }) => {
         className={cn(
           'w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-2xl active:scale-95 disabled:opacity-30',
           currentProfile === profile.id
-            ? `bg-${profile.color}-600 text-white shadow-${profile.color}-600/30`
+            ? 'text-white'
             : cn(
                 isDark
                   ? 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
                   : 'bg-slate-50 border-black/5 text-slate-500 hover:text-slate-900'
               )
         )}
+        style={currentProfile === profile.id ? {
+          backgroundColor: COLOR_MAP[profile.color]?.[600] || '#4f46e5',
+          boxShadow: `0 8px 32px -8px ${COLOR_MAP[profile.color]?.[600] || '#4f46e5'}4d`,
+        } : undefined}
       >
         {currentProfile === profile.id ? 'Optimisation Active' : 'Activer Profil'}
       </button>
