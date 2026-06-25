@@ -20,29 +20,31 @@ NGINX_CONF="infra/nginx/default.conf"
 # Définie tôt car appelée depuis deux endroits plus bas.
 # ─────────────────────────────────────────────────
 _apply_le_cert() {
- log_info "Application du certificat Let's Encrypt dans Nginx..."
+	log_info "Application du certificat Let's Encrypt dans Nginx..."
 
- if grep -q "ssl_certificate /etc/nginx/ssl/server.crt;" "$NGINX_CONF"; then
- sed -i "s|ssl_certificate /etc/nginx/ssl/server.crt;|ssl_certificate /etc/letsencrypt/live/$DOMAIN_DIR/fullchain.pem;|g" "$NGINX_CONF"
- fi
- if grep -q "ssl_certificate_key /etc/nginx/ssl/server.key;" "$NGINX_CONF"; then
- sed -i "s|ssl_certificate_key /etc/nginx/ssl/server.key;|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;|g" "$NGINX_CONF"
- fi
+	docker compose exec -T nginx sed -i \
+		"s|ssl_certificate /etc/nginx/ssl/server.crt;|ssl_certificate /etc/letsencrypt/live/$DOMAIN_DIR/fullchain.pem;|g" \
+		/etc/nginx/conf.d/default.conf
+	docker compose exec -T nginx sed -i \
+		"s|ssl_certificate_key /etc/nginx/ssl/server.key;|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;|g" \
+		/etc/nginx/conf.d/default.conf
 
- sed -i "s|server_name \${DOMAIN}\(.*\);|server_name $DOMAIN\1;|g" "$NGINX_CONF" 2>/dev/null || true
-
- log_info "Validation de la nouvelle config Nginx..."
- if docker compose exec -T nginx nginx -t 2>/dev/null; then
- log_info "Redémarrage de Nginx pour activer le certificat Let's Encrypt (Template Sync)..."
- docker compose restart nginx 2>/dev/null || true
- log_success "✅ SSL Let's Encrypt actif sur https://$DOMAIN"
- else
- log_error "Config Nginx invalide après patch LE. Rollback vers cert auto-signé..."
- sed -i "s|ssl_certificate /etc/letsencrypt/live/$DOMAIN_DIR/fullchain.pem;|ssl_certificate /etc/nginx/ssl/server.crt;|g" "$NGINX_CONF" 2>/dev/null || true
- sed -i "s|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;|ssl_certificate_key /etc/nginx/ssl/server.key;|g" "$NGINX_CONF" 2>/dev/null || true
- docker compose restart nginx 2>/dev/null || true
- log_warn "Rollback effectué. HTTPS actif avec cert auto-signé."
- fi
+	log_info "Validation de la nouvelle config Nginx..."
+	if docker compose exec -T nginx nginx -t 2>/dev/null; then
+	log_info "Rechargement de Nginx pour activer le certificat Let's Encrypt..."
+	docker compose exec -T nginx nginx -s reload 2>/dev/null || docker compose restart nginx 2>/dev/null || true
+	log_success "✅ SSL Let's Encrypt actif sur https://$DOMAIN"
+	else
+	log_error "Config Nginx invalide après patch LE. Rollback vers cert auto-signé..."
+	docker compose exec -T nginx sed -i \
+		"s|ssl_certificate /etc/letsencrypt/live/$DOMAIN_DIR/fullchain.pem;|ssl_certificate /etc/nginx/ssl/server.crt;|g" \
+		/etc/nginx/conf.d/default.conf
+	docker compose exec -T nginx sed -i \
+		"s|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;|ssl_certificate_key /etc/nginx/ssl/server.key;|g" \
+		/etc/nginx/conf.d/default.conf
+	docker compose exec -T nginx nginx -s reload 2>/dev/null || docker compose restart nginx 2>/dev/null || true
+	log_warn "Rollback effectué. HTTPS actif avec cert auto-signé."
+	fi
 }
 
 # ─────────────────────────────────────────────────
