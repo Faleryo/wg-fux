@@ -13,7 +13,7 @@ import {
   Command,
   ArrowRight,
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn, COLOR_MAP } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
 
 const NAV_ITEMS = [
@@ -140,9 +140,10 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
             <div className="flex items-center gap-4 px-6 py-5 border-b border-white/5 relative z-10">
               <Search
                 size={20}
+                style={{ color: query ? (COLOR_MAP[theme]?.[400] || '#818cf8') : undefined }}
                 className={cn(
                   'flex-shrink-0 transition-colors',
-                  query ? `text-${theme}-400` : 'text-slate-500'
+                  !query && 'text-slate-500'
                 )}
               />
               <input
@@ -188,10 +189,11 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
               {query.length === 0 ? (
                 <div className="py-10 text-center">
                   <div
-                    className={cn(
-                      'inline-flex p-4 rounded-2xl mb-4',
-                      `bg-${theme}-600/10 text-${theme}-400`
-                    )}
+                  className={'inline-flex p-4 rounded-2xl mb-4'}
+                  style={{
+                    backgroundColor: `${COLOR_MAP[theme]?.[600] || '#4f46e5'}1A`,
+                    color: COLOR_MAP[theme]?.[400] || '#818cf8',
+                  }}
                   >
                     <Command size={28} />
                   </div>
@@ -220,8 +222,8 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                             isDark
                               ? 'bg-white/5 group-hover:bg-white/10'
                               : 'bg-black/5 group-hover:bg-black/10',
-                            `text-${theme}-400`
                           )}
+                          style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
                         >
                           <n.icon size={16} />
                         </div>
@@ -260,25 +262,28 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                           <button
                             key={`${item.id}-${idx}`}
                             onClick={() => handleSelect(item)}
-                            className={cn(
-                              'w-full flex items-center gap-4 px-3 py-3 rounded-2xl transition-all group text-left',
-                              selectedIdx === idx
-                                ? `bg-${theme}-600/10 border border-${theme}-500/20`
-                                : 'hover:bg-white/5 border border-transparent'
-                            )}
+                              className={cn(
+                                'w-full flex items-center gap-4 px-3 py-3 rounded-2xl transition-all group text-left',
+                                selectedIdx === idx ? 'border' : 'hover:bg-white/5 border border-transparent'
+                              )}
+                              style={selectedIdx === idx ? {
+                                backgroundColor: `${COLOR_MAP[theme]?.[600] || '#4f46e5'}1A`,
+                                borderColor: `${COLOR_MAP[theme]?.[500] || '#6366f1'}33`,
+                              } : undefined}
                           >
                             <div
                               className={cn(
                                 'p-2.5 rounded-xl transition-all flex-shrink-0',
-                                selectedIdx === idx
-                                  ? `bg-${theme}-600 text-white`
-                                  : cn(
-                                      isDark
-                                        ? 'bg-white/5 group-hover:bg-white/10'
-                                        : 'bg-black/5 group-hover:bg-black/10',
-                                      `text-${theme}-400`
-                                    )
+                                selectedIdx === idx ? 'text-white' : (
+                                  isDark
+                                    ? 'bg-white/5 group-hover:bg-white/10'
+                                    : 'bg-black/5 group-hover:bg-black/10'
+                                )
                               )}
+                              style={{
+                                backgroundColor: selectedIdx === idx ? (COLOR_MAP[theme]?.[600] || '#4f46e5') : undefined,
+                                color: selectedIdx !== idx ? (COLOR_MAP[theme]?.[400] || '#818cf8') : undefined,
+                              }}
                             >
                               <item.icon size={16} />
                             </div>

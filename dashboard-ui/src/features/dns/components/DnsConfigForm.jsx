@@ -1,16 +1,22 @@
 import React from 'react';
-import {
-  Globe,
-  Shield,
-  Zap,
-  Settings2,
-  AlertCircle,
-} from 'lucide-react';
+import { Globe, Shield, Zap, Settings2, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../../../lib/utils';
 import DnsRecordsTable from './DnsRecordsTable';
 
-const DnsConfigForm = ({ activeTab, setActiveTab, config, setConfig, filtering, handleRemoveFilter, handleAddFilter, newFilterName, newFilterUrl, setNewFilterName, setNewFilterUrl }) => {
+const DnsConfigForm = ({
+  activeTab,
+  setActiveTab,
+  config,
+  setConfig,
+  filtering,
+  handleRemoveFilter,
+  handleAddFilter,
+  newFilterName,
+  newFilterUrl,
+  setNewFilterName,
+  setNewFilterUrl,
+}) => {
   return (
     <div className="glass-card border border-white/5 overflow-hidden p-0">
       <div className="flex border-b border-white/5 bg-black/10 overflow-x-auto custom-scrollbar no-scrollbar">
@@ -55,14 +61,14 @@ const DnsConfigForm = ({ activeTab, setActiveTab, config, setConfig, filtering, 
                 </h4>
                 <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
                   Entrez un serveur par ligne. Ces serveurs seront utilisés par AdGuard pour
-                  résoudre les requêtes de vos clients. Privilégiez les serveurs DoH ou DoT pour
-                  une sécurité maximale.
+                  résoudre les requêtes de vos clients. Privilégiez les serveurs DoH ou DoT pour une
+                  sécurité maximale.
                 </p>
               </div>
             </div>
 
             <textarea
-              value={config?.upstream_dns?.join('\n')}
+              value={config?.upstream_dns?.join('\n') ?? ''}
               onChange={(e) =>
                 setConfig({
                   ...config,
@@ -84,8 +90,8 @@ const DnsConfigForm = ({ activeTab, setActiveTab, config, setConfig, filtering, 
                       'Quad9 (DoH)': 'https://dns.quad9.net/dns-query',
                     };
                     const url = urls[preset];
-                    if (!config.upstream_dns.includes(url)) {
-                      setConfig({ ...config, upstream_dns: [...config.upstream_dns, url] });
+                    if (!(config.upstream_dns || []).includes(url)) {
+                      setConfig({ ...config, upstream_dns: [...(config.upstream_dns || []), url] });
                     }
                   }}
                   className="px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400 hover:bg-indigo-500/20 transition-all"

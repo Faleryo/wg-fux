@@ -66,6 +66,13 @@ if [ ! -d "$STAGE/wireguard" ]; then
  exit 1
 fi
 
+echo "⚠️ AVERTISSEMENT: rsync --delete va supprimer les fichiers dans /etc/wireguard/"
+echo "non présents dans la sauvegarde. Voulez-vous continuer ?"
+read -r -p "Confirmer la restauration ? (oui/non) " confirm
+if [ "$confirm" != "oui" ]; then
+  echo "❌ Restauration annulée."
+  exit 1
+fi
 rsync -a --delete "$STAGE/wireguard/" /etc/wireguard/
 echo "✅ Restauration effectuée avec succès."
 

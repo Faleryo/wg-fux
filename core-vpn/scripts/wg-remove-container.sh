@@ -2,10 +2,9 @@
 # --- : Remove Container ---
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+set -euo pipefail
 # shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
-
-set -euo pipefail
 
 check_root
 load_config
@@ -33,6 +32,7 @@ while IFS= read -r keyfile; do
  fi
 done < <(find "$TARGET_DIR" -name "public.key" 2>/dev/null)
 
+[[ "$TARGET_DIR" == /etc/wireguard/clients/* ]] || exit 1
 rm -rf "$TARGET_DIR"
 # Refresh QoS rules to clean up deleted clients
 "$SCRIPT_DIR/wg-apply-qos.sh" || true

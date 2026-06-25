@@ -17,7 +17,7 @@ if [ -f /etc/wireguard/manager.conf ]; then
 fi
 
 STATE_FILE="/var/run/wg-monitor.state"
-DB_FILE="${WG_DB_PATH:-${API_DATA_DIR:-/app/data}/wg-fux.db}"
+DB_FILE="${WG_DB_PATH:-/app/data}/wg-fux.db"
 INTERFACE="${WG_INTERFACE:-wg0}"
 touch "$STATE_FILE"
 
@@ -48,6 +48,7 @@ while true; do
  [ -z "$PUB_KEY" ] && continue
  if ! is_valid_wg_key "$PUB_KEY"; then continue; fi
   if [ -z "$HANDSHAKE" ] || [ "$HANDSHAKE" -eq 0 ] 2>/dev/null; then continue; fi
+  [[ "$HANDSHAKE" =~ ^[0-9]+$ ]] || continue
 
  DIFF=$((NOW - HANDSHAKE))
 
@@ -69,9 +70,16 @@ while true; do
  LAST_STATE=$(grep -F "$PUB_KEY" "$STATE_FILE" | awk '{print $2}' || echo "")
 
  # If handshake < 3 min (180s), considered connected
- if [ "$DIFF" -lt 180 ]; then
- if [ "$LAST_STATE" != "CONNECTED" ]; then
- sqlite3 "$DB_FILE" "INSERT INTO logs (timestamp, status, container, name, virtualIp, realIp, usageTotal) VALUES (strftime('%s','now')*1000, 'CONNECTED', '$(sql_escape "$CONTAINER_NAME")', '$(sql_escape "$CLIENT_NAME")', '$(sql_escape "$ALLOWED_IPS")', '$(sql_escape "$ENDPOINT")', ${USAGE_TOTAL//[^0-9]/});" 2>/dev/null || true
+  if [ "$DIFF" -lt 180 ]; then
+  if [ "$LAST_STATE" != "CONNECTED" ]; then
+   USAGE_TOTAL_CLEAN="${USAGE_TOTAL:-0}"
+   USAGE_TOTAL_CLEAN="${USAGE_TOTAL_CLEAN//[^0-9]/}"
+   declare ESC_CONTAINER ESC_NAME ESC_IPS ESC_EP
+   ESC_CONTAINER=$(sql_escape "$CONTAINER_NAME")
+   ESC_NAME=$(sql_escape "$CLIENT_NAME")
+   ESC_IPS=$(sql_escape "$ALLOWED_IPS")
+   ESC_EP=$(sql_escape "$ENDPOINT")
+   sqlite3 "$DB_FILE" "INSERT INTO logs (timestamp, status, container, name, virtualIp, realIp, usageTotal) VALUES (strftime('%s','now')*1000, 'CONNECTED', '$ESC_CONTAINER', '$ESC_NAME', '$ESC_IPS', '$ESC_EP', ${USAGE_TOTAL_CLEAN:-0});" 2>/dev/null || true
  if [ -x "$SCRIPT_DIR/wg-send-msg.sh" ]; then
  "$SCRIPT_DIR/wg-send-msg.sh" "🔌 VPN: $CLIENT_NAME connecté ($ENDPOINT)" || true
  fi
@@ -80,7 +88,14 @@ while true; do
   fi
   else
   if [ "$LAST_STATE" == "CONNECTED" ]; then
-  sqlite3 "$DB_FILE" "INSERT INTO logs (timestamp, status, container, name, virtualIp, realIp, usageTotal) VALUES (strftime('%s','now')*1000, 'DISCONNECTED', '$(sql_escape "$CONTAINER_NAME")', '$(sql_escape "$CLIENT_NAME")', '$(sql_escape "$ALLOWED_IPS")', '$(sql_escape "$ENDPOINT")', ${USAGE_TOTAL//[^0-9]/});" 2>/dev/null || true
+   USAGE_TOTAL_CLEAN="${USAGE_TOTAL:-0}"
+   USAGE_TOTAL_CLEAN="${USAGE_TOTAL_CLEAN//[^0-9]/}"
+   declare ESC_CONTAINER ESC_NAME ESC_IPS ESC_EP
+   ESC_CONTAINER=$(sql_escape "$CONTAINER_NAME")
+   ESC_NAME=$(sql_escape "$CLIENT_NAME")
+   ESC_IPS=$(sql_escape "$ALLOWED_IPS")
+   ESC_EP=$(sql_escape "$ENDPOINT")
+   sqlite3 "$DB_FILE" "INSERT INTO logs (timestamp, status, container, name, virtualIp, realIp, usageTotal) VALUES (strftime('%s','now')*1000, 'DISCONNECTED', '$ESC_CONTAINER', '$ESC_NAME', '$ESC_IPS', '$ESC_EP', ${USAGE_TOTAL_CLEAN:-0});" 2>/dev/null || true
   if [ -x "$SCRIPT_DIR/wg-send-msg.sh" ]; then
   "$SCRIPT_DIR/wg-send-msg.sh" "🔌 VPN: $CLIENT_NAME déconnecté" || true
   fi

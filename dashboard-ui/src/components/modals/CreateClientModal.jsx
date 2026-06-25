@@ -68,12 +68,18 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
       try {
         let expiry = '';
         if (!isUnlimited) {
+          const duration = parseInt(expiryDuration.value) || 0;
+          if (duration <= 0) {
+            addToast('Veuillez entrer une durée de validité valide', 'error');
+            setLoading(false);
+            submittingRef.current = false;
+            return;
+          }
           const date = new Date();
           if (expiryDuration.unit === 'days')
-            date.setDate(date.getDate() + parseInt(expiryDuration.value));
+            date.setDate(date.getDate() + duration);
           if (expiryDuration.unit === 'hours')
-            date.setHours(date.getHours() + parseInt(expiryDuration.value));
-          // Server validation expects YYYY-MM-DD format only
+            date.setHours(date.getHours() + duration);
           expiry = date.toISOString().split('T')[0];
         }
 
@@ -205,7 +211,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
                   min="0"
                   max="100"
                   value={quota}
-                  onChange={(e) => setQuota(e.target.value)}
+                  onChange={(e) => setQuota(Number(e.target.value))}
                   className="w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer"
                   style={{ accentColor: COLOR_MAP[theme]?.[500] || '#6366f1' }}
                 />
@@ -232,7 +238,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
                   max="100"
                   step="5"
                   value={uploadLimit}
-                  onChange={(e) => setUploadLimit(e.target.value)}
+                  onChange={(e) => setUploadLimit(Number(e.target.value))}
                   className="w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer"
                   style={{ accentColor: COLOR_MAP[theme]?.[500] || '#6366f1' }}
                 />

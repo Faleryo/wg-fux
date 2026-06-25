@@ -34,6 +34,10 @@ const createError = (error, message, code = 'INTERNAL_ERROR', path = null) => {
     EXTERNAL_SERVICE_ERROR: 502,
     CONCURRENCY_ERROR: 429,
     CONFLICT: 409,
+    ACCOUNT_EXPIRED: 403,
+    '2FA_REQUIRED': 403,
+    INVALID_2FA: 401,
+    AUTH_RATE_LIMIT: 429,
   };
 
   const statusCode = statusMap[code] || 500;
@@ -49,7 +53,7 @@ const createError = (error, message, code = 'INTERNAL_ERROR', path = null) => {
   // exposes it to clients consuming `res.json(createError(...))`.
   Object.defineProperty(errObj, 'message', { value: errMsg, enumerable: true, writable: true });
   errObj.error = typeof error === 'string' ? error : error?.message || 'Unknown Error';
-  errObj.code = error?.code || code;
+  errObj.code = code;
   errObj.path = path || null;
   errObj.details = details;
   errObj.timestamp = new Date().toISOString();

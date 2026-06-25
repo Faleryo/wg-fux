@@ -57,7 +57,7 @@ mkdir -p /var/lock 2>/dev/null || true
   # Scan .conf files across all containers
   for client_conf in /etc/wireguard/clients/*/*/*.conf; do
     [ -f "$client_conf" ] || continue
-    ip_val=$(grep -i "^Address" "$client_conf" | sed -n 's/^Address *= *\([^, \n]*\).*/\1/p' | cut -d'/' -f1 | tr -d '[:space:]')
+    ip_val=$(grep -i "^Address" "$client_conf" | sed -n 's/^Address *= *\([^, ]*\).*/\1/p' | cut -d'/' -f1 | tr -d '[:space:]')
     if [[ "$ip_val" =~ ^([0-9]{1,3}\.){3}([0-9]{1,3})$ ]]; then
       current_id=$(echo "$ip_val" | cut -d'.' -f4)
       used_ips="${used_ips}${current_id} "
@@ -93,53 +93,43 @@ mkdir -p /var/lock 2>/dev/null || true
   CLIENT_IP="${VPN_SUBNET%.*}.$IP_SUFFIX"
   mkdir -p "$CLIENT_DIR"
   echo "$CLIENT_IP" > "$CLIENT_DIR/.ip_reserved"
-} 200>/var/lock/wg-ip.lock
+  # Key Gen (still inside lock)
+  wg genkey | tee "$CLIENT_DIR/private.key" | wg pubkey > "$CLIENT_DIR/public.key"
+  wg genpsk > "$CLIENT_DIR/preshared.key"
 
-# SRE Fix: Immediate chown to avoid race condition with API file access
-chown 1001:1001 "$CLIENT_DIR"
-chmod 775 "$CLIENT_DIR"
+  PUBKEY=$(tr -d '[:space:]' < "$CLIENT_DIR/public.key")
+  PRIVKEY=$(tr -d '[:space:]' < "$CLIENT_DIR/private.key")
+  PSK=$(tr -d '[:space:]' < "$CLIENT_DIR/preshared.key")
+  SERVER_PUBKEY=$(cat /etc/wireguard/server-public.key)
 
-# Key Gen
-wg genkey | tee "$CLIENT_DIR/private.key" | wg pubkey > "$CLIENT_DIR/public.key"
-wg genpsk > "$CLIENT_DIR/preshared.key"
+  CLIENT_IP="${VPN_SUBNET%.*}.$IP_SUFFIX"
 
-PUBKEY=$(tr -d '[:space:]' < "$CLIENT_DIR/public.key")
-PRIVKEY=$(tr -d '[:space:]' < "$CLIENT_DIR/private.key")
-PSK=$(tr -d '[:space:]' < "$CLIENT_DIR/preshared.key")
-SERVER_PUBKEY=$(cat /etc/wireguard/server-public.key)
+  if [ -n "${VPN_SUBNET_V6:-}" ]; then
+   NET_PREFIX="${VPN_SUBNET_V6%/*}"
+   NET_PREFIX="${NET_PREFIX%:}"
+   [[ "$NET_PREFIX" == *:: ]] || NET_PREFIX="${NET_PREFIX}:"
 
-CLIENT_IP="${VPN_SUBNET%.*}.$IP_SUFFIX"
+   if [[ "$NET_PREFIX" == *:: ]]; then
+   CLIENT_IPV6="${NET_PREFIX}${IP_SUFFIX}"
+   else
+   CLIENT_IPV6="${NET_PREFIX}:${IP_SUFFIX}"
+   fi
 
-if [ -n "${VPN_SUBNET_V6:-}" ]; then
- # Improved robust prefix extraction
- NET_PREFIX="${VPN_SUBNET_V6%/*}"
- [[ "$NET_PREFIX" == *:: ]] || [[ "$NET_PREFIX" == *: ]] || NET_PREFIX="${NET_PREFIX}:"
+   ADDRESS_STR="$CLIENT_IP/24, $CLIENT_IPV6/64"
+   ALLOWED_IPS_STR="$CLIENT_IP/32,$CLIENT_IPV6/128"
+  else
+   ADDRESS_STR="$CLIENT_IP/24"
+   ALLOWED_IPS_STR="$CLIENT_IP/32"
+  fi
 
- if [[ ! "$NET_PREFIX" == *:: ]]; then
- if [[ "$NET_PREFIX" == *: ]]; then
- CLIENT_IPV6="${NET_PREFIX}:${IP_SUFFIX}"
- else
- CLIENT_IPV6="${NET_PREFIX}::${IP_SUFFIX}"
- fi
- else
- CLIENT_IPV6="${NET_PREFIX}${IP_SUFFIX}"
- fi
+  if [ -n "${SERVER_DOMAIN:-}" ]; then
+   ACTUAL_ENDPOINT="$SERVER_DOMAIN:$SERVER_PORT"
+  else
+   ACTUAL_ENDPOINT="$SERVER_IP:$SERVER_PORT"
+   [[ "$SERVER_IP" =~ : ]] && ACTUAL_ENDPOINT="[$SERVER_IP]:$SERVER_PORT"
+  fi
 
- ADDRESS_STR="$CLIENT_IP/24, $CLIENT_IPV6/64"
- ALLOWED_IPS_STR="$CLIENT_IP/32,$CLIENT_IPV6/128"
-else
- ADDRESS_STR="$CLIENT_IP/24"
- ALLOWED_IPS_STR="$CLIENT_IP/32"
-fi
-
-if [ -n "${SERVER_DOMAIN:-}" ]; then
- ACTUAL_ENDPOINT="$SERVER_DOMAIN:$SERVER_PORT"
-else
- ACTUAL_ENDPOINT="$SERVER_IP:$SERVER_PORT"
- [[ "$SERVER_IP" =~ : ]] && ACTUAL_ENDPOINT="[$SERVER_IP]:$SERVER_PORT"
-fi
-
-cat > "$CLIENT_DIR/$NAME.conf" <<EOC
+  cat > "$CLIENT_DIR/$NAME.conf" <<EOC
 [Interface]
 PrivateKey = $PRIVKEY
 Address = $ADDRESS_STR
@@ -154,10 +144,20 @@ AllowedIPs = 0.0.0.0/0, ::/0
 PersistentKeepalive = ${PERSISTENT_KEEPALIVE:-25}
 EOC
 
-[ -n "$EXPIRY" ] && echo "$EXPIRY" > "$CLIENT_DIR/expiry"
-[ -n "$QUOTA" ] && echo "$QUOTA" > "$CLIENT_DIR/quota"
-[[ "$UPLOAD_LIMIT" =~ ^[0-9]+$ ]] && [ "$UPLOAD_LIMIT" -gt 0 ] && echo "$UPLOAD_LIMIT" > "$CLIENT_DIR/upload_limit"
-echo "$ALLOWED_IPS_STR" > "$CLIENT_DIR/allowed_ips.txt"
+  [ -n "$EXPIRY" ] && echo "$EXPIRY" > "$CLIENT_DIR/expiry"
+  [ -n "$QUOTA" ] && echo "$QUOTA" > "$CLIENT_DIR/quota"
+  [[ "$UPLOAD_LIMIT" =~ ^[0-9]+$ ]] && [ "$UPLOAD_LIMIT" -gt 0 ] && echo "$UPLOAD_LIMIT" > "$CLIENT_DIR/upload_limit"
+  echo "$ALLOWED_IPS_STR" > "$CLIENT_DIR/allowed_ips.txt"
+
+  # Remove IP reservation marker (conf file exists now)
+  rm -f "$CLIENT_DIR/.ip_reserved"
+} 200>/var/lock/wg-ip.lock
+
+# SRE Fix: Immediate chown to avoid race condition with API file access
+_WG_API_UID=$(id -u wg-api 2>/dev/null || echo 1001)
+_WG_API_GID=$(id -g wg-api 2>/dev/null || echo 1001)
+chown "$_WG_API_UID:$_WG_API_GID" "$CLIENT_DIR"
+chmod 775 "$CLIENT_DIR"
 
 # Sync with interface
 if ip link show "$WG_INTERFACE" > /dev/null 2>&1; then
@@ -173,16 +173,10 @@ if command -v qrencode &> /dev/null; then
 fi
 
 # Final Permissions & Ownership
-# Keys and the .conf (which embeds the private key) must be owner-only.
-# Metadata files (expiry, quota, allowed_ips.txt, disabled) stay group-readable
-# for the enforcer if it runs as a different uid.
-chown -R 1001:1001 "$CLIENT_DIR"
+chown -R "$_WG_API_UID:$_WG_API_GID" "$CLIENT_DIR"
 chmod 700 "$CLIENT_DIR"
 chmod 640 "$CLIENT_DIR/"* 2>/dev/null || true
 chmod 600 "$CLIENT_DIR/private.key" "$CLIENT_DIR/preshared.key" "$CLIENT_DIR/$NAME.conf"
-
-# Remove IP reservation marker (conf file exists now)
-rm -f "$CLIENT_DIR/.ip_reserved"
 
 # Apply QoS
 "$SCRIPT_DIR/wg-apply-qos.sh" || true

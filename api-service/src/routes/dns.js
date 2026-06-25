@@ -7,9 +7,9 @@ const { asyncWrap, createError } = require('../utils/errors');
 const { dnsConfigSchema, dnsFilterSchema, dnsRemoveSchema } = require('../../db/validation');
 
 // AdGuard Home internal URL (Docker DNS)
-const AGH_BASE_URL = process.env.AGH_BASE_URL || 'http://wg-fux-dns:3000';
-const AGH_USER = (process.env.AGH_USER || '').replace(/['"]/g, '').trim();
-const AGH_PASS = (process.env.AGH_PASSWORD || '').replace(/['"]/g, '').trim();
+const AGH_BASE_URL = process.env.AGH_BASE_URL || 'http://adguard:3000';
+const AGH_USER = (process.env.AGH_USER || '').trim();
+const AGH_PASS = (process.env.AGH_PASSWORD || '').trim();
 if (!AGH_USER || !AGH_PASS) {
   log.error('dns', 'AGH_USER / AGH_PASSWORD not configured — DNS routes will fail');
 }
@@ -19,6 +19,7 @@ const AGH_AUTH = {
     Accept: '*/*',
     'User-Agent': 'wg-fux-api',
   },
+  timeout: 5000,
 };
 
 /**
@@ -35,13 +36,16 @@ router.get(
       safeBrowsing = { data: {} },
       parental = { data: {} };
     if (process.env.VITEST !== 'true') {
-      [dnsInfo, filtering, safeSearch, safeBrowsing, parental] = await Promise.all([
+      const results = await Promise.allSettled([
         axios.get(`${AGH_BASE_URL}/control/dns_info`, AGH_AUTH),
         axios.get(`${AGH_BASE_URL}/control/filtering/status`, AGH_AUTH),
         axios.get(`${AGH_BASE_URL}/control/safesearch/status`, AGH_AUTH),
         axios.get(`${AGH_BASE_URL}/control/safebrowsing/status`, AGH_AUTH),
         axios.get(`${AGH_BASE_URL}/control/parental/status`, AGH_AUTH),
       ]);
+      [dnsInfo, filtering, safeSearch, safeBrowsing, parental] = results.map((r) =>
+        r.status === 'fulfilled' ? r.value : { data: {} }
+      );
     }
 
     const aggregateConfig = {
@@ -212,6 +216,7 @@ router.post(
       );
       return res.json({ success: true, data: response.data });
     }
+    return res.json({ success: true });
   })
 );
 
@@ -237,6 +242,7 @@ router.post(
       );
       return res.json({ success: true, data: response.data });
     }
+    return res.json({ success: true });
   })
 );
 

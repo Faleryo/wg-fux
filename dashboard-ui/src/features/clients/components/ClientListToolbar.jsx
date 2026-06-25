@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Package, Search, Download, Plus } from 'lucide-react';
-import { cn, formatBytes } from '../../../lib/utils';
+import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import GlassCard from '../../../components/ui/Card';
 import VibeButton from '../../../components/ui/Button';
 import { isOnlineClient } from './ClientListHelpers';
@@ -55,10 +55,16 @@ const ClientListToolbar = ({
                 setActiveContainer(null);
                 setSearch('');
               }}
-              className={cn(
-                'flex items-center gap-2 px-3 py-2.5 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all flex-shrink-0',
-                `bg-${selectedColor}-500/10 text-${selectedColor}-400 border-${selectedColor}-500/20 hover:bg-${selectedColor}-500/20`
-              )}
+              className={
+                'flex items-center gap-2 px-3 py-2.5 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all flex-shrink-0'
+              }
+              style={{
+                backgroundColor: `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}1A`,
+                color: COLOR_MAP[selectedColor]?.[400] || '#818cf8',
+                borderColor: `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}33`,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}33`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}1A`; }}
             >
               <ChevronLeft size={15} />
               <span className="hidden sm:inline">Conteneurs</span>
@@ -69,15 +75,17 @@ const ClientListToolbar = ({
         <div className="min-w-0">
           {activeContainer ? (
             <div className="flex items-center gap-2">
-              <Package size={16} className={cn(`text-${selectedColor}-400`)} />
+              <Package size={16} style={{ color: COLOR_MAP[selectedColor]?.[400] || '#818cf8' }} />
               <span className="text-white font-black text-sm uppercase tracking-tight truncate">
                 {activeContainer}
               </span>
               <span
-                className={cn(
-                  'text-[9px] px-2 py-0.5 rounded-full border font-black uppercase',
-                  `bg-${selectedColor}-500/10 text-${selectedColor}-400 border-${selectedColor}-500/20`
-                )}
+                className={'text-[9px] px-2 py-0.5 rounded-full border font-black uppercase'}
+              style={{
+                backgroundColor: `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}1A`,
+                color: COLOR_MAP[selectedColor]?.[400] || '#818cf8',
+                borderColor: `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}33`,
+              }}
               >
                 {(containerGroups[activeContainer] || []).length} peers
               </span>

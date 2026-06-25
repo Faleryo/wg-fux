@@ -32,7 +32,7 @@ preflight_scan() {
         return 1
     fi
 
-    # /etc/wireguard exists & is readable
+    # /etc/wireguard exists & is readable (normalize permissions for safety)
     if [ -d "$WG_DIR" ]; then
         local perms; perms=$(stat -c "%a %U:%G" "$WG_DIR")
         if [ "$(echo "$perms" | awk '{print $1}')" != "755" ]; then

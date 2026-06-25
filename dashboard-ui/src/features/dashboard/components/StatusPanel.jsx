@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Shield, ShieldCheck, Activity, Cpu, Zap, HardDrive } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
-import { cn, formatBytes } from '../../../lib/utils';
+import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import { CircularProgress } from './StatCards';
 import GlassCard from '../../../components/ui/Card';
 
@@ -139,7 +139,7 @@ const StatusPanel = ({
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
-          <Cpu className={cn(`text-${theme}-400`)} size={18} /> Core Resources
+          <Cpu style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }} size={18} /> Core Resources
         </h3>
         <div className="flex justify-around items-center py-2">
           <CircularProgress label="CPU" value={cpu} color="text-indigo-500" icon={Cpu} />
@@ -164,8 +164,9 @@ const StatusPanel = ({
         <div
           className={cn(
             'p-3 rounded-2xl bg-white/5 shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 flex-shrink-0',
-            topClientRate > 0 ? `text-${theme}-400` : 'text-slate-600'
+            topClientRate > 0 ? '' : 'text-slate-600'
           )}
+          style={topClientRate > 0 ? { color: COLOR_MAP[theme]?.[400] || '#818cf8' } : undefined}
         >
           <Activity
             size={22}
@@ -184,7 +185,7 @@ const StatusPanel = ({
           >
             {topClient.name || 'Station Inactive'}
           </h4>
-          <p className={cn('text-xs font-mono font-bold mt-0.5', `text-${theme}-400`)}>
+          <p className='text-xs font-mono font-bold mt-0.5' style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}>
             {formatBytes(topClientRate)}/s Burst
           </p>
         </div>

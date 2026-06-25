@@ -79,6 +79,7 @@ export const LiveTelemetryChart = () => {
         setLoading(false);
       } catch (e) {
         console.error('Failed to fetch telemetry:', e);
+        setLoading(false);
       }
     };
     fetchData();

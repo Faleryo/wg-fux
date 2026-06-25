@@ -8,6 +8,8 @@ test('has title', async ({ page }) => {
 
 test('login page has login button', async ({ page }) => {
   await page.goto('/');
-  const loginButton = page.getByRole('button', { name: /Se connecter|Login/i });
+  const loginButton = page.getByRole('button', {
+    name: /Entrer dans le tunnel|Se connecter|Login/i,
+  });
   await expect(loginButton).toBeVisible();
 });

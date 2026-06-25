@@ -47,6 +47,11 @@ export const getWsToken = () => getToken();
 
 const isDev = import.meta.env.DEV;
 
+const sanitizeUrl = (url) => {
+  if (!url) return url;
+  return url.split('?')[0];
+};
+
 // Intercepteur pour ajouter le token API et tracer le temps de réponse (dev)
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('wg-api-token') || sessionStorage.getItem('wg-api-token');
@@ -69,7 +74,7 @@ axiosInstance.interceptors.response.use(
         ts: new Date().toISOString(),
         level: 'info',
         svc: 'ui-api',
-        msg: `[API-SUCCESS] ${response.config.method.toUpperCase()} ${response.config.url}`,
+        msg: `[API-SUCCESS] ${response.config.method.toUpperCase()} ${sanitizeUrl(response.config.url)}`,
         duration_ms: duration,
       };
       console.log(JSON.stringify(logEntry));
@@ -91,7 +96,7 @@ axiosInstance.interceptors.response.use(
         ts: new Date().toISOString(),
         level: status >= 500 ? 'error' : 'warn',
         svc: 'ui-api',
-        msg: `[API-ERR] ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+        msg: `[API-ERR] ${error.config?.method?.toUpperCase()} ${sanitizeUrl(error.config?.url)}`,
         status,
         duration_ms: duration,
         error: { code: errCode, message: errMsg, path: data?.path },

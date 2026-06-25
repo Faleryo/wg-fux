@@ -1,12 +1,14 @@
 const path = require('path');
 const fsPromises = require('fs').promises;
 const schedule = require('node-schedule');
-const { db, schema } = require('../../db');
+const { db, schema, sqlite } = require('../../db');
 const { eq, and, lt } = require('drizzle-orm');
 const { runSystemCommand, appendFileAsRoot } = require('./shell');
 const { getWireGuardStats } = require('./system');
 const log = require('./logger');
 const { getScriptPath } = require('./config');
+const { auditLog } = require('./audit');
+const notify = require('./notifications');
 
 const DATA_DIR = path.join(__dirname, '../../data');
 const SCHEDULE_FILE = path.join(DATA_DIR, 'optimization_schedule.json');
@@ -32,6 +34,10 @@ const loadSchedules = async () => {
       if (parts.length < 2) return;
       const hour = parseInt(parts[0]);
       const minute = parseInt(parts[1]);
+      if (isNaN(hour) || isNaN(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+        log.warn('jobs', 'Invalid schedule time, skipping', { task: task.id, time: task.time });
+        return;
+      }
 
       const rule = new schedule.RecurrenceRule();
       rule.hour = hour;
@@ -46,6 +52,22 @@ const loadSchedules = async () => {
     });
   } catch (e) {
     if (e.code !== 'ENOENT') log.error('jobs', 'Error loading schedules', { err: e.message });
+  }
+};
+
+const pruneSeenStats = async () => {
+  try {
+    const allClients = await db
+      .select({ publicKey: schema.clients.publicKey })
+      .from(schema.clients);
+    const validKeys = new Set(allClients.map((c) => c.publicKey));
+    for (const key of Object.keys(lastSeenStats)) {
+      if (!validKeys.has(key)) {
+        delete lastSeenStats[key];
+      }
+    }
+  } catch (e) {
+    log.error('jobs', 'Error pruning seen stats', { err: e.message });
   }
 };
 
@@ -67,41 +89,49 @@ const updateUsage = async () => {
       lastSeenStats[pubKey] = currentTotal;
 
       if (delta > 0) {
-        const usageResults = await db
-          .select()
-          .from(schema.usage)
-          .where(eq(schema.usage.publicKey, pubKey))
-          .limit(1);
-        const existingUsage = usageResults?.[0];
+        try {
+          await db.transaction(async (tx) => {
+            const usageResults = await tx
+              .select()
+              .from(schema.usage)
+              .where(eq(schema.usage.publicKey, pubKey))
+              .limit(1);
+            const existingUsage = usageResults?.[0];
 
-        let daily = {};
-        if (existingUsage?.daily) {
-          try {
-            daily =
-              typeof existingUsage.daily === 'string'
-                ? JSON.parse(existingUsage.daily)
-                : existingUsage.daily;
-          } catch {
-            daily = {};
-          }
-        }
+            let daily = {};
+            if (existingUsage?.daily) {
+              try {
+                daily =
+                  typeof existingUsage.daily === 'string'
+                    ? JSON.parse(existingUsage.daily)
+                    : existingUsage.daily;
+              } catch {
+                daily = {};
+              }
+            }
 
-        daily[today] = (Number(daily[today]) || 0) + delta;
-        const newTotal = (Number(existingUsage?.total) || 0) + delta;
+            daily[today] = (Number(daily[today]) || 0) + delta;
+            const newTotal = (Number(existingUsage?.total) || 0) + delta;
 
-        await db
-          .insert(schema.usage)
-          .values({
-            publicKey: pubKey,
-            total: newTotal,
-            daily: JSON.stringify(daily),
-          })
-          .onConflictDoUpdate({
-            target: schema.usage.publicKey,
-            set: { total: newTotal, daily: JSON.stringify(daily) },
+            await tx
+              .insert(schema.usage)
+              .values({
+                publicKey: pubKey,
+                total: newTotal,
+                daily: JSON.stringify(daily),
+              })
+              .onConflictDoUpdate({
+                target: schema.usage.publicKey,
+                set: { total: newTotal, daily: JSON.stringify(daily) },
+              });
           });
+        } catch (e) {
+          log.error('jobs', 'Usage update transaction failed', { pubKey, err: e.message });
+        }
       }
     }
+
+    await pruneSeenStats();
 
     const enfResult = await runSystemCommand(getScriptPath('wg-enforcer.sh'), []).catch((e) => ({
       success: false,
@@ -167,10 +197,13 @@ const logTrafficHistory = async () => {
 // State machine for the interface watchdog so we don't spam logs/notifs
 // every cycle when wg0 stays down. Emits ONE alert on transition and goes
 // silent until recovery or manual intervention.
+let _watchdogRunning = false;
 const _watchdogState = { status: 'up', alertedAt: 0, alertedKernel: false };
 const ALERT_BACKOFF_MS = 60 * 60 * 1000; // re-alert at most once per hour
 
 const interfaceWatchdog = async () => {
+  if (_watchdogRunning) return;
+  _watchdogRunning = true;
   const interfaceName = process.env.WG_INTERFACE || 'wg0';
   try {
     const check = await runSystemCommand('ip', ['link', 'show', interfaceName]);
@@ -234,7 +267,6 @@ const interfaceWatchdog = async () => {
     const error = repair.error;
 
     try {
-      const { auditLog } = require('./audit');
       await auditLog({
         actor: 'sre-watchdog',
         action: 'auto-healing',
@@ -256,14 +288,16 @@ const interfaceWatchdog = async () => {
     }
   } catch (e) {
     log.error('sre', 'Watchdog execution error', { err: e.message });
+  } finally {
+    _watchdogRunning = false;
   }
 };
 
 const adguardWatchdog = async () => {
   const axios = require('axios');
-  const AGH_BASE_URL = 'http://adguard:3000';
-  const AGH_USER = (process.env.AGH_USER || '').replace(/['"]/g, '').trim();
-  const AGH_PASS = (process.env.AGH_PASSWORD || '').replace(/['"]/g, '').trim();
+  const AGH_BASE_URL = process.env.AGH_BASE_URL || 'http://adguard:3000';
+  const AGH_USER = (process.env.AGH_USER || '').trim();
+  const AGH_PASS = (process.env.AGH_PASSWORD || '').trim();
   if (!AGH_USER || !AGH_PASS) {
     log.warn('sre', 'AdGuard credentials not configured; skipping watchdog');
     return;
@@ -284,7 +318,6 @@ const adguardWatchdog = async () => {
     // In Docker, we can't easily restart another container without Docker socket.
     // However, the Sentinel Watchdog (Python) on the host manages this.
     // We log it and send a notification.
-    const notify = require('./notifications');
     await notify.send(
       'sre',
       '🚨 ALERTE DNS: AdGuard Home ne répond plus. Intervention Sentinel requise.',
@@ -354,7 +387,6 @@ const scheduleAutomaticBackup = () => {
 const vacuumDatabase = async () => {
   log.info('db', '📦 Running database maintenance (VACUUM)...');
   try {
-    const { sqlite } = require('../../db');
     sqlite.exec('VACUUM');
     log.info('db', '✅ Database VACUUM complete.');
   } catch (e) {
@@ -374,5 +406,6 @@ module.exports = {
   updateUsage,
   logTrafficHistory,
   rotateEnforcerLogs,
+  pruneSeenStats,
   SCHEDULE_FILE,
 };

@@ -57,7 +57,9 @@ vi.mock('../src/services/system', () => ({
   getWireGuardStats: vi.fn().mockResolvedValue([]),
   getSystemStats: vi.fn().mockResolvedValue({ cpu: 10, mem: 20, disk: 30 }),
   getTelemetry: vi.fn().mockResolvedValue({ rx: 100, tx: 200 }),
-  getInterfaces: vi.fn().mockResolvedValue(['wg0']),
+  getInterfaces: vi
+    .fn()
+    .mockResolvedValue([{ name: 'wg0', type: 'WireGuard', status: 'up', mtu: '1420' }]),
   formatBytes: vi.fn((b) => `${b} B`),
   getInterfacePath: vi.fn((i) => `/sys/class/net/${i}`),
   checkScripts: vi.fn().mockResolvedValue(true),

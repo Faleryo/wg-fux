@@ -2,10 +2,9 @@
 # --- : Remove Client ---
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+set -euo pipefail
 # shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
-
-set -euo pipefail
 
 check_root
 load_config
@@ -33,6 +32,7 @@ if [ -f "$CLIENT_DIR/public.key" ]; then
  fi
 fi
 
+[[ "$CLIENT_DIR" == /etc/wireguard/clients/* ]] || exit 1
 rm -rf "$CLIENT_DIR"
 log_info "Client directory $CLIENT_DIR deleted."
 

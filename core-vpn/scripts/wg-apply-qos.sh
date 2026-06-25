@@ -45,24 +45,24 @@ fi
 STATE_FILE="/etc/wireguard/qos.state"
 compute_desired_state() {
  # Format: "<container>/<name>:<classid>:<ipv4>:<ipv6>:<limit>" sorted
- find /etc/wireguard/clients -name "upload_limit" 2>/dev/null | while read -r limit_file; do
- local LIMIT
- LIMIT=$(cat "$limit_file" 2>/dev/null || echo "")
- [[ "$LIMIT" =~ ^[0-9]+$ ]] && [ "$LIMIT" -gt 0 ] || continue
- local CLIENT_DIR NAME CONTAINER CONF_FILE ADDRESS_LINE IPV4 IPV6 ID CLASSID
- CLIENT_DIR=$(dirname "$limit_file")
- NAME=$(basename "$CLIENT_DIR")
- CONTAINER=$(basename "$(dirname "$CLIENT_DIR")")
- CONF_FILE="$CLIENT_DIR/$NAME.conf"
- [ -f "$CONF_FILE" ] || continue
- ADDRESS_LINE=$(grep '^Address' "$CONF_FILE" | cut -d= -f2)
- IPV4=$(echo "$ADDRESS_LINE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
- IPV6=$(echo "$ADDRESS_LINE" | grep -oE '[a-fA-F0-9:]+:[a-fA-F0-9:]+' | head -1)
- [ -n "$IPV4" ] || continue
- ID=$(echo "$IPV4" | awk -F. '{print ($3 * 256) + $4}')
- CLASSID=$(printf "1:%x" "$ID")
- echo "$CONTAINER/$NAME:$CLASSID:$IPV4:$IPV6:$LIMIT"
- done | LC_ALL=C sort
+  find /etc/wireguard/clients -name "upload_limit" -print0 2>/dev/null | while IFS= read -r -d '' limit_file; do
+   LIMIT=$(tr -d '[:space:]' < "$limit_file" 2>/dev/null || echo "")
+  [[ "$LIMIT" =~ ^[0-9]+$ ]] && [ "$LIMIT" -gt 0 ] || continue
+  CLIENT_DIR=$(dirname "$limit_file")
+  NAME=$(basename "$CLIENT_DIR")
+  CONTAINER=$(basename "$(dirname "$CLIENT_DIR")")
+  CONF_FILE="$CLIENT_DIR/$NAME.conf"
+  [ -f "$CONF_FILE" ] || continue
+  ADDRESS_LINE=$(grep '^Address' "$CONF_FILE" | cut -d= -f2)
+  IPV4=$(echo "$ADDRESS_LINE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+  IPV6=$(echo "$ADDRESS_LINE" | grep -oE '[a-fA-F0-9:]+:[a-fA-F0-9:]+' | head -1)
+  [ -n "$IPV4" ] || continue
+  ID=$(echo "$IPV4" | awk -F. '{print ($3 * 256) + $4}')
+  CLASSID=$(printf "1:%x" "$ID")
+  echo "$CONTAINER/$NAME:$CLASSID:$IPV4:$IPV6:$LIMIT"
+  done | LC_ALL=C sort
+  # Ensure the pipeline always returns success even if find finds nothing
+  return 0
 }
 
 PROFILE_HASH=""
@@ -119,9 +119,9 @@ fi
 # 2. Ingress (Upload pour le client: Client -> Server)
 "$TC" qdisc add dev "$WG_INTERFACE" handle ffff: ingress
 
-find /etc/wireguard/clients -name "upload_limit" 2>/dev/null | while read -r limit_file; do
- LIMIT=$(cat "$limit_file")
- # Check if limit is valid integer > 0
+find /etc/wireguard/clients -name "upload_limit" -print0 2>/dev/null | while IFS= read -r -d '' limit_file; do
+  LIMIT=$(tr -d '[:space:]' < "$limit_file")
+  # Check if limit is valid integer > 0
  if [[ "$LIMIT" =~ ^[0-9]+$ ]] && [ "$LIMIT" -gt 0 ]; then
  CLIENT_DIR=$(dirname "$limit_file")
  CONF_FILE=$(find "$CLIENT_DIR" -maxdepth 1 -name "*.conf" | head -n 1)

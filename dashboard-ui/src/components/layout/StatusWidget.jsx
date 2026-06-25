@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Cpu, RefreshCw, Sun, Moon, Ghost } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn, COLOR_MAP } from '../../lib/utils';
 import { axiosInstance } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 
@@ -92,7 +92,7 @@ const StatusWidget = ({
               </div>
               <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-tight">
                 <span>{t('uptime')}</span>
-                <span className={cn('font-mono', `text-${theme}-500`)}>{uptime || '...'}</span>
+                <span className={'font-mono'} style={{ color: COLOR_MAP[theme]?.[500] || '#6366f1' }}>{uptime || '...'}</span>
               </div>
             </div>
 

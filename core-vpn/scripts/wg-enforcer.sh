@@ -43,19 +43,23 @@ fi
 # 1. Update Peer Cache
 CACHE_FILE="/var/run/wg-peer-cache.json"
 {
- echo "{"
- FIRST=1
- while IFS= read -r keyfile; do
- PUBKEY=$(tr -d '[:space:]' < "$keyfile")
- CLIENT_DIR=$(dirname "$keyfile")
- CLIENT_NAME=$(basename "$CLIENT_DIR")
- CONTAINER_NAME=$(basename "$(dirname "$CLIENT_DIR")")
- if [ "$FIRST" -eq 1 ]; then FIRST=0; else printf ",\n"; fi
- printf ' "%s": {"name": "%s", "container": "%s", "path": "%s"}' \
- "$PUBKEY" "$CLIENT_NAME" "$CONTAINER_NAME" "$CLIENT_DIR"
- done < <(find "$CLIENTS_DIR" -name "public.key" 2>/dev/null)
- echo ""
- echo "}"
+  echo "{"
+  FIRST=1
+  while IFS= read -r keyfile; do
+  PUBKEY=$(tr -d '[:space:]' < "$keyfile")
+  CLIENT_DIR=$(dirname "$keyfile")
+  CLIENT_NAME=$(basename "$CLIENT_DIR")
+  CONTAINER_NAME=$(basename "$(dirname "$CLIENT_DIR")")
+  if [ "$FIRST" -eq 1 ]; then FIRST=0; else printf ",\n"; fi
+  # Escape special characters for JSON using printf %s and sed
+  printf ' "%s": {"name": "%s", "container": "%s", "path": "%s"}' \
+  "$PUBKEY" \
+  "$(printf "%s" "$CLIENT_NAME" | sed 's/["\]/\\&/g')" \
+  "$(printf "%s" "$CONTAINER_NAME" | sed 's/["\]/\\&/g')" \
+  "$(printf "%s" "$CLIENT_DIR" | sed 's/["\]/\\&/g')"
+  done < <(find "$CLIENTS_DIR" -name "public.key" 2>/dev/null)
+  echo ""
+  echo "}"
 } > "$CACHE_FILE"
 
 # 2. Enforce Limits
@@ -76,8 +80,8 @@ find "$CLIENTS_DIR" -name "public.key" -print0 2>/dev/null | while IFS= read -r 
  fi
 
  if [ -f "$CLIENT_DIR/quota" ]; then
- QUOTA_GB=$(cat "$CLIENT_DIR/quota")
- if [ -n "$QUOTA_GB" ] && [ "$QUOTA_GB" -gt 0 ]; then
+  QUOTA_GB=$(cat "$CLIENT_DIR/quota")
+  if [[ "$QUOTA_GB" =~ ^[0-9]+$ ]] && [ "$QUOTA_GB" -gt 0 ]; then
  if ! is_valid_wg_key "$PUBKEY"; then
  log_warn "Skipping invalid public key in $CLIENT_DIR"
  continue
@@ -123,4 +127,4 @@ find "$CLIENTS_DIR" -name "public.key" -print0 2>/dev/null | while IFS= read -r 
  test -x "$SCRIPT_DIR/wg-apply-qos.sh" && "$SCRIPT_DIR/wg-apply-qos.sh" 2>/dev/null || true
  send_telegram_msg "Access revoked for $CLIENT_NAME (Quota exceeded)." "WARN"
  fi
-done || true
+done

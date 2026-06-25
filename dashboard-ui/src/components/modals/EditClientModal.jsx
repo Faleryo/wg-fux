@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Edit, RefreshCw, Database, Gauge, Clock, Save, Shield } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
-import { cn } from '../../lib/utils';
+import { cn, COLOR_MAP } from '../../lib/utils';
 import { axiosInstance } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 
@@ -62,16 +62,11 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Peer Identity Card */}
         <div
-          className={cn(
-            'flex items-center gap-4 p-5 rounded-2xl border',
-            `bg-${color}-500/5 border-${color}-500/20`
-          )}
+          className={'flex items-center gap-4 p-5 rounded-2xl border bg-white/5 border-white/10'}
         >
           <div
-            className={cn(
-              'w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-xl',
-              `bg-${color}-600`
-            )}
+          className={'w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-xl'}
+          style={{ backgroundColor: COLOR_MAP[color]?.[600] || '#4f46e5' }}
           >
             {client?.name?.charAt(0).toUpperCase()}
           </div>
@@ -81,17 +76,19 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span
-                className={cn(
-                  'text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest',
-                  `bg-${color}-500/10 text-${color}-400 border-${color}-500/20`
-                )}
+                className={'text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest'}
+               style={{
+                 backgroundColor: `${COLOR_MAP[color]?.[500] || '#6366f1'}20`,
+                 color: COLOR_MAP[color]?.[400] || '#818cf8',
+                 borderColor: `${COLOR_MAP[color]?.[500] || '#6366f1'}40`,
+               }}
               >
                 {client?.container}
               </span>
               <span className="text-[10px] font-mono text-slate-500">{client?.ip}</span>
             </div>
           </div>
-          <Shield size={20} className={cn('flex-shrink-0', `text-${color}-500/40`)} />
+          <Shield size={20} style={{ color: `${COLOR_MAP[color]?.[500] || '#6366f1'}80` }} className={'flex-shrink-0'} />
         </div>
 
         {/* Quota */}
@@ -100,7 +97,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <Database size={14} /> Quota de Données
             </label>
-            <span className={cn('text-sm font-black font-mono', `text-${theme}-400`)}>
+            <span className={'text-sm font-black font-mono'} style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}>
               {quota > 0 ? `${quota} GB` : '∞ Illimité'}
             </span>
           </div>
@@ -129,7 +126,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <Gauge size={14} /> Bande Passante Max
             </label>
-            <span className={cn('text-sm font-black font-mono', `text-${theme}-400`)}>
+            <span className={'text-sm font-black font-mono'} style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}>
               {uploadLimit > 0 ? `${uploadLimit} Mbps` : '∞ Illimité'}
             </span>
           </div>
@@ -207,10 +204,13 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
           <button
             type="submit"
             disabled={loading}
-            className={cn(
-              'flex-[2] py-4 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30',
-              `bg-${theme}-600 hover:bg-${theme}-500 shadow-${theme}-600/30`
-            )}
+            className={'flex-[2] py-4 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30'}
+            style={{
+              backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
+              boxShadow: `0 10px 20px -5px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}4D`,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[500] || '#6366f1'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[600] || '#4f46e5'; }}
           >
             {loading ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
             Sauvegarder

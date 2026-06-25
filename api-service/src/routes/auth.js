@@ -14,6 +14,9 @@ const { runSystemCommand } = require('../services/shell');
 const { getScriptPath } = require('../services/config');
 const { asyncWrap, createError } = require('../utils/errors');
 
+let lastLoginAlertTime = 0;
+const LOGIN_ALERT_COOLDOWN = 300000; // 5 minutes
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -21,13 +24,17 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res, next, options) => {
-    const ip = req.ip;
-    runSystemCommand(getScriptPath('wg-send-msg.sh'), [
-      `⚠️ ALERTE SÉCURITÉ: Trop de tentatives de connexion échouées depuis l'IP ${ip}`,
-    ]);
+    const now = Date.now();
+    if (now - lastLoginAlertTime > LOGIN_ALERT_COOLDOWN) {
+      lastLoginAlertTime = now;
+      const ip = req.ip;
+      runSystemCommand(getScriptPath('wg-send-msg.sh'), [
+        `⚠️ ALERTE SÉCURITÉ: Trop de tentatives de connexion échouées depuis l'IP ${ip}`,
+      ]);
+    }
     res
       .status(options.statusCode)
-      .json(createError(options.message, 'Rate limit exceeded', 'AUTH_RATE_LIMIT', req.path));
+      .json(createError(options.message.error, 'Rate limit exceeded', 'AUTH_RATE_LIMIT', req.path));
   },
 });
 
@@ -108,35 +115,10 @@ router.post(
 
       await logLoginAttempt(username, clientIp, userAgent, true);
 
-      // SECURITY-ALERT: Notify admin of successful login ( sentinel) with Geo-IP
+      // SECURITY-ALERT: Notify admin of successful login
       if (user.role === 'admin') {
-        const notifyAdmin = async () => {
-          let location = 'Localisation inconnue';
-          // SRE-PRIVACY: skip external Geo-IP for local/private IPs
-          const isPrivate = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(clientIp);
-
-          if (!isPrivate && clientIp !== '::1') {
-            try {
-              // SECURITY: Use HTTPS for Geo-IP lookup
-              const geo = await axios.get(
-                `https://ip-api.com/json/${clientIp}?fields=city,country`
-              );
-              if (geo.data && geo.data.city) {
-                location = `${geo.data.city}, ${geo.data.country}`;
-              }
-            } catch (e) {
-              /* ignore geo error */
-            }
-          }
-
-          const message = `🔐 CONNEXION RÉUSSIE: Administrateur '${username}' connecté depuis ${location} (${clientIp})`;
-          const { runSystemCommand } = require('../services/shell');
-          const { getScriptPath } = require('../services/config');
-          runSystemCommand(getScriptPath('wg-send-msg.sh'), [message]).catch(() => {});
-        };
-        // Fire-and-forget — `.catch` guards against any sync/async throw
-        // (geo-IP lookup, Telegram outage) so we don't get UnhandledRejection.
-        notifyAdmin().catch(() => {});
+        const message = `🔐 CONNEXION RÉUSSIE: Administrateur '${username}' connecté depuis ${clientIp}`;
+        runSystemCommand(getScriptPath('wg-send-msg.sh'), [message]).catch(() => {});
       }
 
       const token = jwt.sign({ username: user.username, role: user.role }, process.env.JWT_SECRET, {
@@ -147,18 +129,16 @@ router.post(
       await logLoginAttempt(username, clientIp, userAgent, false);
 
       // SRE-HARDENING: Progressive delay to combat distributed brute-force
-      const attempts = await db
-        .select({ count: schema.logs.id })
-        .from(schema.logs)
-        .where(
-          and(
-            eq(schema.logs.name, username),
-            eq(schema.logs.status, 'failure'),
-            gt(schema.logs.timestamp, new Date(Date.now() - 15 * 60 * 1000))
-          )
-        );
+      const attempts = await db.$count(
+        schema.logs,
+        and(
+          eq(schema.logs.name, username),
+          eq(schema.logs.status, 'failure'),
+          gt(schema.logs.timestamp, new Date(Date.now() - 15 * 60 * 1000))
+        )
+      );
 
-      const delay = Math.min(10000, 500 * Math.pow(2, attempts.length));
+      const delay = Math.min(10000, 500 * Math.pow(2, Math.min(attempts, 4)));
       setTimeout(
         () => {
           // Client may have disconnected during the throttle delay — guard so
@@ -230,10 +210,19 @@ router.get(
   })
 );
 
+const twoFaLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Trop de requêtes 2FA. Veuillez patienter.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 router.post(
   '/2fa/generate',
   auth,
   requireManager,
+  twoFaLimiter,
   asyncWrap(async (req, res) => {
     const [user] = await db
       .select()
@@ -255,6 +244,26 @@ router.post(
   requireManager,
   asyncWrap(async (req, res) => {
     const { token, secret } = req.body;
+
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.username, req.user.username))
+      .limit(1);
+    if (!user) return res.status(404).json(createError('User not found', null, 'NOT_FOUND'));
+
+    if (user.twoFactorSecret) {
+      return res
+        .status(400)
+        .json(
+          createError(
+            '2FA already enabled. Disable it first to change secret.',
+            null,
+            '2FA_ALREADY_ENABLED'
+          )
+        );
+    }
+
     if (!authenticator.check(token, secret)) {
       return res.status(400).json(createError('Invalid token', null, 'INVALID_TOKEN'));
     }

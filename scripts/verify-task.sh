@@ -29,8 +29,8 @@ if [ -d "core-vpn" ]; then
 fi
 
 # 3. Environment - Check Configuration
-if [ ! -f "api-service/.env.example" ]; then
- echo -e "${RED}[FAIL] : Missing .env.example in api-service${NC}"
+if [ ! -f ".env.example" ]; then
+ echo -e "${RED}[FAIL] : Missing .env.example at project root${NC}"
  exit 1
 fi
 

@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Gauge,
-  Gamepad2,
-  Film,
-  BarChart3,
-} from 'lucide-react';
+import { Gauge, Gamepad2, Film, BarChart3 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
 import { cn } from '../../../lib/utils';
@@ -164,7 +159,7 @@ const OptimizationSection = ({ systemStats }) => {
                       : 'bg-slate-500 border-slate-400'
                   )}
                 />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest uppercase tracking-widest">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
                   Real-time Spectrum
                 </span>
               </div>

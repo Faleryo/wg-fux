@@ -3,6 +3,7 @@
 # NOTE: Pas de set -euo pipefail — ce watchdog doit survivre aux erreurs transitoires.
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 # shellcheck disable=SC1091
 # shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
@@ -72,14 +73,14 @@ check_system() {
  log_error "[Sentinel] API unreachable. Verifying container state..."
 
  if _should_restart "api"; then
- if ! sudo docker ps --format '{{.Names}}' | grep -q "wg-fux-api"; then
- log_error "[Sentinel] API Container is DOWN. Attempting RESTART..."
- send_telegram_msg "CRITICAL: API Container is DOWN. Attempting automatic recovery..." "ERROR"
- sudo docker compose restart api 2>/dev/null || log_error "Failed to restart API container."
- else
- log_warn "[Sentinel] API is unreachable but container is running (Overload/Ghost). Force Restarting..."
- sudo docker compose restart api 2>/dev/null
- fi
+  if ! docker ps --format '{{.Names}}' | grep -q "wg-fux-api"; then
+  log_error "[Sentinel] API Container is DOWN. Attempting RESTART..."
+  send_telegram_msg "CRITICAL: API Container is DOWN. Attempting automatic recovery..." "ERROR"
+  docker compose -f "$PROJECT_ROOT/docker-compose.yml" restart api 2>/dev/null || log_error "Failed to restart API container."
+  else
+  log_warn "[Sentinel] API is unreachable but container is running (Overload/Ghost). Force Restarting..."
+  docker compose -f "$PROJECT_ROOT/docker-compose.yml" restart api 2>/dev/null
+  fi
  fi
  send_heartbeat "recovering"
  return 1
@@ -93,39 +94,38 @@ check_system() {
 
  # 3. Full Infrastructure Scan (Docker Health)
  local unhealthy_containers
- unhealthy_containers=$(sudo docker ps --filter "health=unhealthy" --format "{{.Names}}")
+ unhealthy_containers=$(docker ps --filter "health=unhealthy" --format "{{.Names}}")
 
- if [ -n "$unhealthy_containers" ]; then
- for container in $unhealthy_containers; do
- if _should_restart "$container"; then
- log_sre "Unhealthy service detected: $container. Triggering auto-healing..."
- send_telegram_msg "AUTONOMIC HEALING: Service $container is unhealthy. Restarting..." "WARN"
- sudo docker restart "$container" 2>/dev/null
- fi
- done
- fi
+  if [ -n "$unhealthy_containers" ]; then
+  for container in $unhealthy_containers; do
+  if _should_restart "$container"; then
+  log_sre "Unhealthy service detected: $container. Triggering auto-healing..."
+  send_telegram_msg "AUTONOMIC HEALING: Service $container is unhealthy. Restarting..." "WARN"
+  docker restart "$container" 2>/dev/null
+  fi
+  done
+  fi
 
  # 4. Critical Service Presence Cloud-Check (Nginx/DNS/UI)
- for service in "wg-sentinel-proxy" "wg-fux-dashboard" "wg-fux-dns"; do
- if ! sudo docker ps --format '{{.Names}}' | grep -q "^$service$"; then
- if ! _should_restart "$service"; then continue; fi
- log_error "[Sentinel] $service is MISSING. Recovery initiated..."
- send_telegram_msg "CRITICAL: Service $service is DOWN. Reviving..." "ERROR"
- # Extraction du nom de service compose depuis le nom du conteneur (ex: wg-fux-dns -> dns, wg-sentinel-proxy -> nginx)
- case "$service" in
- "wg-sentinel-proxy") COMPOSE_SVC="nginx" ;;
- "wg-fux-dashboard") COMPOSE_SVC="ui" ;;
- "wg-fux-dns") COMPOSE_SVC="adguard" ;;
- *) COMPOSE_SVC="" ;;
- esac
- if [ -n "$COMPOSE_SVC" ]; then
- sudo docker compose up -d "$COMPOSE_SVC" 2>/dev/null || \
- sudo docker compose up -d 2>/dev/null || true
- else
- sudo docker compose up -d 2>/dev/null || true
- fi
- fi
- done
+  for service in "wg-sentinel-proxy" "wg-fux-dashboard" "wg-fux-dns"; do
+  if ! docker ps --format '{{.Names}}' | grep -q "^$service$"; then
+  if ! _should_restart "$service"; then continue; fi
+  log_error "[Sentinel] $service is MISSING. Recovery initiated..."
+  send_telegram_msg "CRITICAL: Service $service is DOWN. Reviving..." "ERROR"
+  case "$service" in
+  "wg-sentinel-proxy") COMPOSE_SVC="nginx" ;;
+  "wg-fux-dashboard") COMPOSE_SVC="ui" ;;
+  "wg-fux-dns") COMPOSE_SVC="adguard" ;;
+  *) COMPOSE_SVC="" ;;
+  esac
+  if [ -n "$COMPOSE_SVC" ]; then
+  docker compose -f "$PROJECT_ROOT/docker-compose.yml" up -d "$COMPOSE_SVC" 2>/dev/null || \
+  docker compose -f "$PROJECT_ROOT/docker-compose.yml" up -d 2>/dev/null || true
+  else
+  docker compose -f "$PROJECT_ROOT/docker-compose.yml" up -d 2>/dev/null || true
+  fi
+  fi
+  done
 
  # 5. SSL Certificate & Nginx Reload Check
  local ssl_cert="$SCRIPT_DIR/../../infra/ssl/server.crt"
@@ -133,7 +133,7 @@ check_system() {
  local current_mtime; current_mtime=$(stat -c %Y "$ssl_cert")
  if [ "${PREV_SSL_MTIME:-0}" -ne "$current_mtime" ] && [ "${PREV_SSL_MTIME:-0}" -ne 0 ]; then
  log_sre "SSL Certificate change detected. Reloading Nginx..."
- sudo docker exec wg-sentinel-proxy nginx -s reload 2>/dev/null
+  docker exec wg-sentinel-proxy nginx -s reload 2>/dev/null
  fi
  PREV_SSL_MTIME="$current_mtime"
  fi

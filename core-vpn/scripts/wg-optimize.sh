@@ -77,7 +77,7 @@ apply_sysctl() {
  # 2. Apply to persistent file
  if touch "$SYSCTL_CONF" 2>/dev/null; then
  if grep -q "^$key=" "$SYSCTL_CONF" 2>/dev/null; then
- sed -i "s|^$key=.*|$key=$val|" "$SYSCTL_CONF"
+  sed -i "/^$key=/c\\$key=$val" "$SYSCTL_CONF"
  else
  echo "$key=$val" >> "$SYSCTL_CONF"
  fi
@@ -168,12 +168,12 @@ if [ "$PROFILE" = "gaming" ]; then
  log "⚠ BBR indisponible → cubic"
  fi
 
- # FQ (Fair Queue) + pacing : élimine les bursts de paquets → jitter réduit
- if grep -q "fq" /proc/sys/net/core/default_qdisc 2>/dev/null || \
- grep -rq "fq" /proc/net/psched 2>/dev/null; then
- apply_sysctl net.core.default_qdisc fq
- log "✓ FQ qdisc activé (pacing anti-jitter)"
- fi
+  # FQ (Fair Queue) + pacing : élimine les bursts de paquets → jitter réduit
+  if tc qdisc show dev "$INTERFACE" 2>/dev/null | grep -qw "fq" || \
+  grep -qw "fq" /proc/sys/net/core/default_qdisc 2>/dev/null; then
+  apply_sysctl net.core.default_qdisc fq
+  log "✓ FQ qdisc activé (pacing anti-jitter)"
+  fi
 
  # ----------------------------------------------------------
  # 5. WireGuard INTERFACE TUNING
@@ -205,7 +205,7 @@ if [ "$PROFILE" = "gaming" ]; then
  # RPS = Receive Packet Steering : distribue l'interruption NIC sur tous les CPU
  # Critical sur serveur multi-core : évite le bottleneck sur CPU0
  NUM_CPUS=$(nproc 2>/dev/null || echo 1)
- CPU_MASK=$(printf '%x' $((2**NUM_CPUS - 1)))
+ if [ "$NUM_CPUS" -gt 31 ]; then CPU_MASK="ffffffff"; else CPU_MASK=$(printf '%x' $((2**NUM_CPUS - 1))); fi
  for rps_file in /sys/class/net/*/queues/rx-*/rps_cpus; do
  apply_sysfs "$rps_file" "$CPU_MASK"
  done

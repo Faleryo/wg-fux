@@ -62,11 +62,12 @@ if [ "$USE_JSON" -eq 1 ]; then
  fi
 
  # DIAMOND STABILIZATION: Force default 0 for numeric fields to avoid printf errors
- # Escape JSON-string fields (\, ", newline)
- pub_s=$(sed 's/[\"\\]/\\&/g' <<<"$pub")
- endpoint_s=$(sed 's/[\"\\]/\\&/g' <<<"${endpoint:-}")
- allowed_s=$(sed 's/[\"\\]/\\&/g' <<<"$allowed_ips")
- keepalive_s=$(sed 's/[\"\\]/\\&/g' <<<"${keepalive:-0}")
+  # Escape JSON-string fields (control chars, \, ")
+  json_escape() { printf '%s' "$1" | sed 's/[[:cntrl:]"\\]/\\&/g'; }
+  pub_s=$(json_escape "$pub")
+  endpoint_s=$(json_escape "${endpoint:-}")
+  allowed_s=$(json_escape "$allowed_ips")
+  keepalive_s=$(json_escape "${keepalive:-0}")
 
  printf ' {
   "publicKey": "%s",

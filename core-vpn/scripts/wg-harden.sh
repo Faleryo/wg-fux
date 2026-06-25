@@ -16,7 +16,7 @@ apply_sysctl_harden() {
  sysctl -w "$key=$val" > /dev/null 2>&1 || true
  # Apply to file (idempotent)
  if grep -q "^$key=" "$SYSCTL_CONF"; then
- sed -i "s|^$key=.*|$key=$val|" "$SYSCTL_CONF"
+ sed -i "/^$key=/c\\$key=$val" "$SYSCTL_CONF"
  else
  echo "$key=$val" >> "$SYSCTL_CONF"
  fi

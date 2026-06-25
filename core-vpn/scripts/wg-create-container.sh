@@ -18,8 +18,10 @@ if [ -d "$TARGET_DIR" ]; then
 fi
 
 mkdir -p "$TARGET_DIR"
-# Use UID 1001 (wg-api) explicitly for Docker compatibility
-chown 1001:1001 "$TARGET_DIR"
+# Use UID of wg-api user for Docker compatibility
+_WG_API_UID=$(id -u wg-api 2>/dev/null || echo 1001)
+_WG_API_GID=$(id -g wg-api 2>/dev/null || echo 1001)
+chown "$_WG_API_UID:$_WG_API_GID" "$TARGET_DIR"
 chmod 775 "$TARGET_DIR"
 
 # BLAST-RADIUS: Define resource limits metadata for the SRE engine

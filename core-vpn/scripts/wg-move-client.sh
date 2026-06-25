@@ -41,5 +41,4 @@ chown root:wg-api "$DEST/public.key"
 chmod 640 "$DEST/public.key"
 chown root:root "$DEST/private.key" "$DEST/preshared.key" 2>/dev/null || true
 chmod 600 "$DEST/private.key" "$DEST/preshared.key" 2>/dev/null || true
-sync
-echo "Client moved"
+echo "Client moved successfully"

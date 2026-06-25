@@ -1,18 +1,17 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /**
  * SRE Hook: useWebSocket
  * Provides resilient real-time connectivity with exponential backoff strategy.
  */
 export const useWebSocket = (url, options = {}) => {
-  const authToken = options.token || null;
+  const authTokenRef = useRef(options.token || null);
   const [data, setData] = useState(null);
   const [status, setStatus] = useState('CONNECTING');
   const ws = useRef(null);
   const reconnectCount = useRef(0);
   const maxReconnectDelay = 30000;
   const timeoutRef = useRef(null);
-  // Store callbacks in refs to avoid re-creating connect() on every render
   const onMessageRef = useRef(options.onMessage);
   const onOpenRef = useRef(options.onOpen);
   useEffect(() => {
@@ -21,6 +20,9 @@ export const useWebSocket = (url, options = {}) => {
   useEffect(() => {
     onOpenRef.current = options.onOpen;
   }, [options.onOpen]);
+  useEffect(() => {
+    authTokenRef.current = options.token || null;
+  }, [options.token]);
 
   useEffect(() => {
     let active = true;
@@ -28,12 +30,18 @@ export const useWebSocket = (url, options = {}) => {
     const connect = () => {
       if (!url || !active) return;
 
-      // Clean up any existing connection or timeout
-      if (ws.current) ws.current.close();
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
+      // Nullify old onclose to prevent it from closing the new connection
+      if (ws.current) {
+        ws.current.onclose = null;
+        ws.current.onerror = null;
+        ws.current.close();
+      }
+
       try {
-        const protocols = authToken ? [authToken] : undefined;
+        const token = authTokenRef.current;
+        const protocols = token ? [token] : undefined;
         ws.current = new WebSocket(url, protocols);
         setStatus('CONNECTING');
 
@@ -50,7 +58,7 @@ export const useWebSocket = (url, options = {}) => {
           try {
             message = JSON.parse(event.data);
           } catch (e) {
-            message = event.data; // Handle raw logs/strings
+            message = event.data;
           }
           setData(message);
           if (onMessageRef.current) onMessageRef.current(message);
@@ -64,7 +72,6 @@ export const useWebSocket = (url, options = {}) => {
             clearTimeout(timeoutRef.current);
           }
 
-          // Exponential backoff strategy
           const delay = Math.min(1000 * Math.pow(2, reconnectCount.current), maxReconnectDelay);
           reconnectCount.current += 1;
 
@@ -87,17 +94,18 @@ export const useWebSocket = (url, options = {}) => {
       active = false;
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       if (ws.current) {
-        ws.current.onclose = null; // Prevent reconnect on manual unmount
+        ws.current.onclose = null;
+        ws.current.onerror = null;
         ws.current.close();
       }
     };
-  }, [url]); // Only reconnect if URL changes
+  }, [url]);
 
-  const send = useCallback((message) => {
+  const send = (message) => {
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(typeof message === 'string' ? message : JSON.stringify(message));
     }
-  }, []);
+  };
 
   return { data, status, send };
 };

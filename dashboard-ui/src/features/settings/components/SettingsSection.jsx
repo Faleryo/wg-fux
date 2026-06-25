@@ -7,10 +7,11 @@ import {
   RefreshCw,
   Save,
   ChevronRight,
+  Server,
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
-import { cn } from '../../../lib/utils';
+import { cn, COLOR_MAP } from '../../../lib/utils';
 import { axiosInstance } from '../../../lib/api';
 import { AnimatePresence } from 'framer-motion';
 import GeneralSettings from './GeneralSettings';
@@ -76,7 +77,7 @@ const SettingsSection = () => {
         )}
       >
         <div className="flex items-center gap-6">
-          <div className={cn('p-5 rounded-[2rem] bg-white/5 shadow-2xl', `text-${theme}-400`)}>
+          <div className='p-5 rounded-[2rem] bg-white/5 shadow-2xl' style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}>
             <Settings size={36} />
           </div>
           <div>
@@ -98,10 +99,11 @@ const SettingsSection = () => {
           <button
             onClick={handleSave}
             disabled={loading}
-            className={cn(
-              'flex-1 lg:flex-none flex items-center justify-center gap-3 px-10 py-5 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-95 disabled:opacity-30',
-              `bg-${theme}-600 hover:bg-${theme}-500 shadow-${theme}-600/30`
-            )}
+            className='flex-1 lg:flex-none flex items-center justify-center gap-3 px-10 py-5 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-95 disabled:opacity-30'
+            style={{
+              backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
+              boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}4d`,
+            }}
           >
             {loading ? <RefreshCw className="animate-spin" size={20} /> : <Save size={20} />}{' '}
             Appliquer Mission
@@ -119,7 +121,7 @@ const SettingsSection = () => {
               className={cn(
                 'w-full flex items-center gap-4 px-6 py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest transition-all duration-300',
                 activeTab === tab.id
-                  ? `bg-${theme}-600 text-white shadow-2xl shadow-${theme}-600/20`
+                  ? 'text-white shadow-2xl'
                   : cn(
                       'text-slate-500',
                       isDark
@@ -127,6 +129,10 @@ const SettingsSection = () => {
                         : 'hover:text-slate-900 hover:bg-slate-100'
                     )
               )}
+              style={activeTab === tab.id ? {
+                backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
+                boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}33`,
+              } : undefined}
             >
               <tab.icon size={18} /> {tab.label}
               {activeTab === tab.id && <ChevronRight className="ml-auto" size={14} />}
@@ -171,18 +177,10 @@ const SettingsSection = () => {
               />
             )}
             {activeTab === 'security' && (
-              <SecuritySettings
-                addToast={addToast}
-                isDark={isDark}
-                theme={theme}
-              />
+              <SecuritySettings addToast={addToast} isDark={isDark} theme={theme} />
             )}
             {activeTab === 'maintenance' && (
-              <MaintenanceSettings
-                handleBackup={handleBackup}
-                isDark={isDark}
-                theme={theme}
-              />
+              <MaintenanceSettings handleBackup={handleBackup} isDark={isDark} theme={theme} />
             )}
           </AnimatePresence>
         </div>

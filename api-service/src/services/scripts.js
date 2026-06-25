@@ -28,7 +28,7 @@ const executeScript = async (scriptName, args = [], options = { json: false }) =
     } catch (e) {
       log.error('bridge', `Malformed JSON from ${scriptName}`, {
         error: e.message,
-        stdout: result.stdout.substring(0, 500),
+        stdout: result.stdout.substring(0, 200),
       });
       return {
         success: false,

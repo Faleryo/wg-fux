@@ -1,7 +1,7 @@
 import React from 'react';
 import { Info } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
-import { cn } from '../../../lib/utils';
+import { cn, COLOR_MAP } from '../../../lib/utils';
 
 const GlassInput = ({ label, value, onChange, badge, tooltip }) => {
   const { theme, isDark } = useTheme();
@@ -35,10 +35,8 @@ const GlassInput = ({ label, value, onChange, badge, tooltip }) => {
       </div>
       <div className="relative group/field">
         <div
-          className={cn(
-            'absolute -inset-0.5 rounded-2xl blur opacity-0 group-focus-within/field:opacity-40 transition-opacity',
-            `bg-${theme}-500/20`
-          )}
+          className='absolute -inset-0.5 rounded-2xl blur opacity-0 group-focus-within/field:opacity-40 transition-opacity'
+          style={{ backgroundColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '33' : '#6366f133' }}
         />
         <input
           type="text"

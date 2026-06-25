@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
-import { cn } from '../../../lib/utils';
+import { cn, COLOR_MAP } from '../../../lib/utils';
 import { axiosInstance as axios } from '../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -54,7 +54,7 @@ const AuditSection = () => {
         )}
       >
         <div className="flex items-center gap-6">
-          <div className={cn('p-5 rounded-[2rem] bg-white/5 shadow-2xl', `text-${theme}-400`)}>
+          <div className='p-5 rounded-[2rem] bg-white/5 shadow-2xl' style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}>
             <ShieldCheck size={36} />
           </div>
           <div>
@@ -346,8 +346,9 @@ const AuditSection = () => {
                 animate={{ width: data?.disk || '0%' }}
                 className={cn(
                   'h-full transition-all duration-1000',
-                  parseInt(data?.disk || 0) > 80 ? 'bg-rose-500' : `bg-${theme}-600`
+                  parseInt(data?.disk || 0) > 80 ? 'bg-rose-500' : ''
                 )}
+                style={parseInt(data?.disk || 0) <= 80 ? { backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5' } : undefined}
               />
             </div>
           </div>

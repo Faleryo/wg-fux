@@ -1,7 +1,7 @@
 import React from 'react';
 import { Server, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn } from '../../../lib/utils';
+import { cn, COLOR_MAP } from '../../../lib/utils';
 import GlassInput from './GlassInput';
 
 const GeneralSettings = ({ config, setConfig, isDark, theme }) => {
@@ -20,7 +20,7 @@ const GeneralSettings = ({ config, setConfig, isDark, theme }) => {
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
-          <Server size={20} className={cn(`text-${theme}-400`)} /> Main-Core
+          <Server size={20} style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }} /> Main-Core
         </h3>
         <GlassInput
           label="Distant UDP Port"

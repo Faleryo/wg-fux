@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Activity, Plus, Minus, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
-import { cn } from '../../../lib/utils';
+import { cn, COLOR_MAP } from '../../../lib/utils';
 import MapSvg from './MapSvg';
 
 const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
@@ -93,7 +93,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
   );
 
   const handleNodeClick = (client) => {
-    // Gérer l'affichage des tooltips persistants sur mobile
+    // Single click = select/highlight, double-click (within 250ms) = navigate
     if (selectedNodeId === client.id) {
       setSelectedNodeId(null);
     } else {
@@ -103,9 +103,10 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
     if (clickTimeoutRef.current) {
       clearTimeout(clickTimeoutRef.current);
       clickTimeoutRef.current = null;
+      // Second click within the delay = double-click → navigate
+      if (onSelectClient) onSelectClient(client);
     } else {
       clickTimeoutRef.current = setTimeout(() => {
-        if (onSelectClient) onSelectClient(client);
         clickTimeoutRef.current = null;
       }, 250);
     }
@@ -166,7 +167,8 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
           )}
         >
           <div
-            className={cn('p-3 rounded-2xl shadow-2xl animate-pulse', `bg-${theme}-600 text-white`)}
+            className='p-3 rounded-2xl shadow-2xl animate-pulse text-white'
+            style={{ backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5' }}
           >
             <Activity size={24} />
           </div>
@@ -180,10 +182,8 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
               Tactical Radar
             </h3>
             <p
-              className={cn(
-                'text-[10px] font-black tracking-widest uppercase opacity-60',
-                `text-${theme}-400`
-              )}
+              className='text-[10px] font-black tracking-widest uppercase opacity-60'
+              style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
             >
               Deep Space Network Monitoring
             </p>
@@ -249,10 +249,11 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
             return (
               <div key={c} className="flex items-center gap-3">
                 <span
-                  className={cn(
-                    'w-2 h-2 rounded-full',
-                    `bg-${color.name}-500 shadow-[0_0_8px_currentColor]`
-                  )}
+                  className='w-2 h-2 rounded-full'
+                  style={{
+                    backgroundColor: COLOR_MAP[color.name]?.[500] || '#6366f1',
+                    boxShadow: `0 0 8px ${COLOR_MAP[color.name]?.[500] || '#6366f1'}`,
+                  }}
                 ></span>
                 <span className="text-[9px] font-bold text-slate-400 font-mono uppercase truncate max-w-[80px]">
                   {c}

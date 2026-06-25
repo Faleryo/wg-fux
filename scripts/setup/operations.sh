@@ -87,7 +87,6 @@ cmd_user() {
     require_root
     local script="$WG_SCRIPTS/wg-users"
     [ -x "$script" ] || { log_error "wg-users not found."; exit 1; }
-    shift
     exec bash "$script" "$@"
 }
 

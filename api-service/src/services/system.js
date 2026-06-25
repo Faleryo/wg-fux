@@ -65,8 +65,8 @@ const getSystemStats = async () => {
   }
 };
 
-const parseWireGuardDump = (data) => {
-  return Array.isArray(data) ? data : [];
+const parseWireGuardDump = (peers) => {
+  return Array.isArray(peers) ? peers : [];
 };
 
 const getWireGuardStats = async (iface) => {
@@ -80,7 +80,8 @@ const getWireGuardStats = async (iface) => {
       json: true,
     });
     return result.success ? result.data || [] : [];
-  } catch {
+  } catch (e) {
+    log.error('system', 'getWireGuardStats failed', { error: e.message });
     return [];
   }
 };
@@ -186,7 +187,8 @@ const getTelemetry = async (iface) => {
       p95: log.getP95Latency ? log.getP95Latency() : 0,
       timestamp: new Date().toISOString(),
     };
-  } catch {
+  } catch (e) {
+    log.error('system', 'getTelemetry failed', { error: e.message });
     return {
       cpu: '0.0',
       memory: '0.0',
@@ -240,7 +242,8 @@ const getInterfaces = async () => {
         };
       })
     );
-  } catch {
+  } catch (e) {
+    log.error('system', 'getInterfaces failed', { error: e.message });
     return [{ name: 'wg0', type: 'WireGuard', status: 'unknown', mtu: '1420' }];
   }
 };

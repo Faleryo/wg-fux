@@ -1,4 +1,5 @@
 const { sqliteTable, text, integer, index, uniqueIndex } = require('drizzle-orm/sqlite-core');
+const { sql } = require('drizzle-orm');
 
 const users = sqliteTable(
   'users',
@@ -22,7 +23,9 @@ const containers = sqliteTable(
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name').notNull().unique(),
     interface: text('interface').default('wg0'), // Mapping to WireGuard interface (wg0, wg1, etc.)
-    createdAt: integer('createdAt', { mode: 'timestamp' }).default(new Date()),
+    createdAt: integer('createdAt', { mode: 'timestamp' }).default(
+      sql`(cast(strftime('%s','now') as int))`
+    ),
   },
   (table) => ({
     containerNameIdx: uniqueIndex('container_name_idx').on(table.name),
@@ -40,7 +43,9 @@ const clients = sqliteTable(
     expiry: text('expiry'),
     quota: integer('quota').default(0),
     uploadLimit: integer('uploadLimit').default(0),
-    createdAt: integer('createdAt', { mode: 'timestamp' }).default(new Date()),
+    createdAt: integer('createdAt', { mode: 'timestamp' }).default(
+      sql`(cast(strftime('%s','now') as int))`
+    ),
     enabled: integer('enabled', { mode: 'boolean' }).default(true),
   },
   (table) => ({
@@ -69,7 +74,9 @@ const logs = sqliteTable(
   'logs',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    timestamp: integer('timestamp', { mode: 'timestamp' }).default(new Date()),
+    timestamp: integer('timestamp', { mode: 'timestamp' }).default(
+      sql`(cast(strftime('%s','now') as int))`
+    ),
     type: text('type').default('snapshot'), // 'snapshot', 'auth', 'system', 'maintenance'
     status: text('status'),
     container: text('container'),
@@ -91,7 +98,9 @@ const auditLogs = sqliteTable(
   'auditLogs',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    timestamp: integer('timestamp', { mode: 'timestamp' }).default(new Date()),
+    timestamp: integer('timestamp', { mode: 'timestamp' }).default(
+      sql`(cast(strftime('%s','now') as int))`
+    ),
     actor: text('actor').notNull(),
     action: text('action').notNull(),
     targetType: text('targetType').notNull(),

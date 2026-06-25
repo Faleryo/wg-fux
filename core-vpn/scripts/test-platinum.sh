@@ -5,11 +5,12 @@
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
 check_step() {
- if eval "$1"; then
+ if bash -c "$1"; then
  echo -e "${GREEN}[OK] $2${NC}"
  else
  echo -e "${RED}[FAIL] $2${NC}"
@@ -35,7 +36,7 @@ check_step "[ -f core-vpn/scripts/sentinel.service ]" "Unité Systemd Sentinel p
 
 # 5. Vérification API Health (si accessible)
 if curl -s --max-time 1 http://localhost:3000/api/health > /dev/null; then
- check_step "curl -s http://localhost:3000/api/health | grep -q ''" "Endpoint Health API opérationnel (v3.1-)"
+ check_step "curl -s http://localhost:3000/api/health | grep -q 'ok'" "Endpoint Health API opérationnel (v3.1-)"
 else
  echo -e "${YELLOW}[SKIP] API non lancée localement (attendu en environnement de test)${NC}"
 fi

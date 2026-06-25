@@ -157,7 +157,7 @@ const DnsEditor = () => {
       <DnsConfigForm
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        config={config}
+        config={config || {}}
         setConfig={setConfig}
         filtering={filtering}
         handleRemoveFilter={handleRemoveFilter}

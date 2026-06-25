@@ -10,7 +10,7 @@ import {
   ArrowUp,
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
-import { cn } from '../../../lib/utils';
+import { cn, COLOR_MAP } from '../../../lib/utils';
 import { StatBlock } from './StatCards';
 import GlassCard from '../../../components/ui/Card';
 import InterfaceSelector from '../../../components/SRE/InterfaceSelector';
@@ -40,8 +40,9 @@ const DashboardHero = ({
           <div>
             <div className="flex items-center gap-3 mb-2">
               <Shield
-                className={cn('fill-current opacity-80', `text-${theme}-500`)}
+                className='fill-current opacity-80'
                 size={28}
+                style={{ color: COLOR_MAP[theme]?.[500] || '#6366f1' }}
               />
               <h2
                 className={cn(

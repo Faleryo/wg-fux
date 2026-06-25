@@ -13,7 +13,7 @@ import {
   Globe,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn } from '../../lib/utils';
+import { cn, COLOR_MAP } from '../../lib/utils';
 
 const NavItems = ({
   activeSection,
@@ -67,11 +67,12 @@ const NavItems = ({
                 'group relative w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300',
                 collapsed ? 'md:justify-center md:px-0' : '',
                 isActive
-                  ? `bg-${theme}-600 text-white shadow-lg shadow-${theme}-600/20`
+                  ? 'text-white shadow-lg'
                   : isDark
                     ? 'text-slate-500 hover:bg-white/5 hover:text-slate-200'
                     : 'text-slate-500 hover:bg-black/5 hover:text-slate-900'
               )}
+              style={isActive ? { backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5', boxShadow: `0 4px 14px -4px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}66` } : undefined}
             >
               {isActive && (
                 <motion.div

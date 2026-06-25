@@ -28,6 +28,58 @@ import { useTheme } from '../../../context/ThemeContext';
 import { cn, formatBytes } from '../../../lib/utils';
 import { axiosInstance } from '../../../lib/api';
 
+const bgColorMap = {
+  emerald: 'bg-emerald-500/10 text-emerald-400',
+  indigo: 'bg-indigo-500/10 text-indigo-400',
+  cyan: 'bg-cyan-500/10 text-cyan-400',
+  rose: 'bg-rose-500/10 text-rose-400',
+  amber: 'bg-amber-500/10 text-amber-400',
+};
+
+const txtColorMap = {
+  emerald: 'text-emerald-400',
+  indigo: 'text-indigo-400',
+  cyan: 'text-cyan-400',
+  rose: 'text-rose-400',
+  amber: 'text-amber-400',
+};
+
+const btnBgMap = {
+  indigo: 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:border-indigo-500/20 shadow-indigo-500/5',
+  amber: 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/20 shadow-amber-500/5',
+  emerald: 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/20 shadow-emerald-500/5',
+  cyan: 'bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 hover:border-cyan-500/20 shadow-cyan-500/5',
+  rose: 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/20 shadow-rose-500/5',
+};
+
+const themeBgMap = {
+  indigo: 'bg-indigo-600 text-white shadow-indigo-600/30',
+  cyan: 'bg-cyan-600 text-white shadow-cyan-600/30',
+  rose: 'bg-rose-600 text-white shadow-rose-600/30',
+  emerald: 'bg-emerald-600 text-white shadow-emerald-600/30',
+  amber: 'bg-amber-600 text-white shadow-amber-600/30',
+};
+
+const toggleActiveMap = {
+  indigo: 'bg-indigo-600 text-white shadow-2xl',
+  cyan: 'bg-cyan-600 text-white shadow-2xl',
+  rose: 'bg-rose-600 text-white shadow-2xl',
+  emerald: 'bg-emerald-600 text-white shadow-2xl',
+  amber: 'bg-amber-600 text-white shadow-2xl',
+};
+
+const INLINE_ICON_MAP = {
+  Activity: Activity,
+  Database: Database,
+  ArrowDown: ArrowDown,
+  ArrowUp: ArrowUp,
+  Edit: Edit,
+  Pause: Pause,
+  Play: Play,
+  QrCode: QrCode,
+  Trash2: Trash2,
+};
+
 const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) => {
   const { theme } = useTheme();
   const [history, setHistory] = useState([]);
@@ -73,7 +125,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
       .then((res) => setHistory(res.data))
       .catch(console.error)
       .finally(() => setLoadingHistory(false));
-  }, [client.id]);
+  }, [client.id, client.container, client.name]);
 
   // Load 72h history
   useEffect(() => {
@@ -99,7 +151,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
         })
         .catch(() => {});
     }
-  }, [viewMode, client.id]);
+  }, [viewMode, client.id, client.container, client.name]);
 
   const lastActivity = client.lastHandshake
     ? new Date(client.lastHandshake * 1000).toLocaleString('fr-FR', {
@@ -164,8 +216,8 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
           >
             <div
               className={cn(
-                `p-4 rounded-2xl shadow-2xl`,
-                `bg-${stat.color}-500/10 text-${stat.color}-400`
+                'p-4 rounded-2xl shadow-2xl',
+                bgColorMap[stat.color] || 'bg-indigo-500/10 text-indigo-400'
               )}
             >
               <stat.icon size={24} />
@@ -194,7 +246,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
               <div
                 className={cn(
                   'p-4 rounded-[1.5rem] shadow-2xl',
-                  `bg-${theme}-600 text-white shadow-${theme}-600/30`
+                  themeBgMap[theme] || 'bg-indigo-600 text-white shadow-indigo-600/30'
                 )}
               >
                 <Info size={32} />
@@ -204,7 +256,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                   {client.name}
                 </h2>
                 <div className="flex items-center gap-3">
-                  <span className={cn('text-sm font-mono font-bold', `text-${theme}-400`)}>
+                  <span className={cn('text-sm font-mono font-bold', txtColorMap[theme] || 'text-indigo-400')}>
                     {client.ip}
                   </span>
                   <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
@@ -244,7 +296,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                 onClick={btn.onClick}
                 className={cn(
                   'p-5 rounded-2xl transition-all duration-300 hover:scale-110 active:scale-95 shadow-xl border border-white/5',
-                  `bg-${btn.color}-500/10 text-${btn.color}-400 hover:bg-${btn.color}-500/20 hover:border-${btn.color}-500/20 shadow-${btn.color}-500/5`
+                  btnBgMap[btn.color] || 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:border-indigo-500/20 shadow-indigo-500/5'
                 )}
                 title={btn.label}
               >
@@ -260,7 +312,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
         <div className="xl:col-span-2 bg-slate-950/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 shadow-2xl">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
             <h3 className="text-xl font-black text-white flex items-center gap-4 uppercase tracking-tighter">
-              <Activity size={24} className={cn(`text-${theme}-400`)} /> Spectre Réseau
+              <Activity size={24} className={cn(txtColorMap[theme] || 'text-indigo-400')} /> Spectre Réseau
             </h3>
             <div className="flex bg-slate-900/60 p-2 rounded-2xl border border-white/5 shadow-inner">
               {[
@@ -273,7 +325,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                   className={cn(
                     'px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500',
                     viewMode === opt.id
-                      ? `bg-${theme}-600 text-white shadow-2xl`
+                      ? (toggleActiveMap[theme] || 'bg-indigo-600 text-white shadow-2xl')
                       : 'text-slate-500 hover:text-white'
                   )}
                 >
@@ -355,7 +407,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
         {/* Tactical History */}
         <div className="bg-slate-950/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 shadow-2xl flex flex-col">
           <h3 className="text-xl font-black text-white mb-8 flex items-center gap-4 uppercase tracking-tighter">
-            <List size={24} className={cn(`text-${theme}-400`)} /> Blackbox Log
+            <List size={24} className={cn(txtColorMap[theme] || 'text-indigo-400')} /> Blackbox Log
           </h3>
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
             {loadingHistory ? (
@@ -380,7 +432,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-[10px] font-mono font-bold text-slate-400 group-hover:text-white transition-colors">
-                      {new Date(entry.time).toLocaleString()}
+                      {new Date(entry.timestamp).toLocaleString()}
                     </span>
                     <span
                       className={cn(

@@ -131,6 +131,7 @@ process.on('unhandledRejection', (reason) => {
     reason: reason instanceof Error ? reason.message : String(reason),
     stack: reason instanceof Error ? (reason.stack || '').split('\n')?.[1]?.trim() : undefined,
   });
+  setTimeout(() => process.exit(1), 1000);
 });
 
 const logger = {

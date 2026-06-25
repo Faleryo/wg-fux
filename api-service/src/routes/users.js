@@ -43,9 +43,6 @@ router.post(
     }
 
     const { username, password, role, expiry } = result.data;
-    if (!password) {
-      return res.status(400).json(createError('Password required', null, 'INVALID_INPUT'));
-    }
 
     const [existing] = await db
       .select()

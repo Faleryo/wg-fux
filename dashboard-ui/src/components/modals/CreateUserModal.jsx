@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Users, Key, Shield, Eye, EyeOff, RefreshCw, Plus } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
-import { cn } from '../../lib/utils';
+import { cn, COLOR_MAP } from '../../lib/utils';
 
 const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
   const { theme } = useTheme();

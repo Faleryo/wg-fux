@@ -13,7 +13,7 @@ safe_math() {
 # 1. Mesure de latence (toujours effectuée comme base)
 log_info "Starting basic latency test..."
 LATENCY=$(ping -c 4 -W 2 1.1.1.1 2>/dev/null | tail -1 | awk -F'/' '{print $5}' || echo "0")
-: "${LATENCY:=0}"
+LATENCY="${LATENCY:-0}"
 
 # 2. Test de débit (speedtest-cli)
 log_info "Detecting speedtest-cli..."

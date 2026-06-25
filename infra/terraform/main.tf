@@ -24,7 +24,7 @@ resource "digitalocean_droplet" "wg_fux_prod" {
   user_data = <<-EOF
               #!/bin/bash
               apt-get update
-              apt-get install -y docker.io docker-compose-v2 wireguard
+              apt-get install -y docker.io docker-compose-plugin wireguard-tools
               mkdir -p /opt/wg-fux
               cd /opt/wg-fux
               # The rest would be handled by your CI/CD or a manual git clone

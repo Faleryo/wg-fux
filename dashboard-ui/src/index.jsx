@@ -1,18 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
-if (window.trustedTypes && window.trustedTypes.createPolicy && !window.trustedTypes.defaultPolicy) {
-  try {
-    window.trustedTypes.createPolicy('default', {
-      createHTML: (string) => string,
-      createScriptURL: (string) => string,
-      createScript: (string) => string,
-    });
-    console.log('[Security] Trusted Types "default" policy initialized.');
-  } catch (e) {
-    console.error('[Security] Failed to initialize Trusted Types policy:', e);
-  }
-}
+// Trusted Types are intentionally not configured with a default pass-through policy.
+// A pass-through default policy defeats the purpose of Trusted Types by accepting
+// any string. Instead, we rely on React's built-in XSS protection and let
+// applications opt-in with specific policies where needed.
 
 import * as Sentry from '@sentry/react';
 

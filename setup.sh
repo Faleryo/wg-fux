@@ -193,7 +193,7 @@ configure_interactive() {
     echo "── Network ──"
     local detected_ip; detected_ip=$(detect_public_ip)
     SERVER_IP=$(ask "Public IP / domain (WireGuard endpoint)" "$detected_ip" '^[a-zA-Z0-9.:\-]+$')
-    SERVER_PORT=$(ask "WireGuard UDP port" "51820" '^[0-9]{2,5}$')
+    SERVER_PORT=$(ask "WireGuard UDP port" "51820" '^(0[0-9]{0,4}|[1-9][0-9]{0,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$')
     DOMAIN=$(ask "Domain name (empty = IP-only)" "")
     if [ -n "$DOMAIN" ]; then
         EMAIL=$(ask "Let's Encrypt email (empty = no email)" "")
@@ -564,12 +564,17 @@ cmd_upgrade() {
             ask_yes_no "Hard-reset and overwrite local changes?" "n" || \
                 { log_info "Upgrade aborted."; exit 0; }
         fi
-        git stash push -m "wg-fux setup.sh autostash $(date +%s)" 2>/dev/null || true
+        git stash push --include-untracked -m "wg-fux setup.sh autostash $(date +%s)" 2>/dev/null || true
     fi
 
     git fetch --all --prune
     local branch; branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
-    git reset --hard "origin/$branch"
+    if git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
+        git reset --hard "origin/$branch"
+    else
+        log_warn "Branch '$branch' has no remote tracking. Skipping hard reset."
+        git reset --hard HEAD
+    fi
     log_success "Code updated (branch=$branch)."
     cmd_update
 }

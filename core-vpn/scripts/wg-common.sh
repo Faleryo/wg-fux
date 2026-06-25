@@ -137,8 +137,9 @@ detect_public_ip() {
 
 # --- Core SRE Functions ---
 check_root() {
- if [ "$EUID" -ne 0 ]; then
- log_error "This script must be run with root (EUID: 0). Current: $EUID"
+ local _euid="${EUID:-$(id -u 2>/dev/null || echo 0)}"
+ if [ "$_euid" -ne 0 ]; then
+ log_error "This script must be run with root (EUID: 0). Current: $_euid"
  exit 1
  fi
 }
@@ -177,21 +178,23 @@ send_telegram_msg() {
  # shellcheck disable=SC1090
  source "$conf_file"
 
- if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
- local icon="⚠️"
- if [ "$level" == "ERROR" ]; then icon="🚨"; fi
- if [ "$level" == "SUCCESS" ]; then icon="✅"; fi
+  if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+  local icon="⚠️"
+  if [ "$level" == "ERROR" ]; then icon="🚨"; fi
+  if [ "$level" == "SUCCESS" ]; then icon="✅"; fi
 
- # SRE SECURITY: Use a temporary file for the message body to avoid shell evaluation/injection
- local tmp_msg_file; tmp_msg_file=$(mktemp)
- printf "%b ALERTE WG-FUX (%s)\n\n%s" "$icon" "$VERSION" "$message" > "$tmp_msg_file"
+  # SRE SECURITY: Use a temporary file for the message body to avoid shell evaluation/injection
+  local tmp_msg_file; tmp_msg_file=$(mktemp "${TMPDIR:-/tmp}/wg-telegram-XXXXXXXX")
+  printf "%b ALERTE WG-FUX (%s)\n\n%s" "$icon" "$VERSION" "$message" > "$tmp_msg_file"
 
- curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
- --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
- --data-urlencode "text@$tmp_msg_file" \
- > /dev/null
-
- rm -f "$tmp_msg_file"
- fi
+  (
+    trap 'rm -f "$tmp_msg_file"' EXIT INT TERM
+    curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+    --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+    --data-urlencode "text@$tmp_msg_file" \
+    > /dev/null
+    rm -f "$tmp_msg_file"
+  )
+  fi
  fi
 }

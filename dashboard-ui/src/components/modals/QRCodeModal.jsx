@@ -3,7 +3,7 @@ import { X, Copy, Check, Download, QrCode, FileText, Smartphone } from 'lucide-r
 import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
-import { cn } from '../../lib/utils';
+import { cn, COLOR_MAP } from '../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
@@ -67,10 +67,8 @@ const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
               <div
-                className={cn(
-                  'p-3 rounded-2xl',
-                  `bg-${theme}-600 text-white shadow-2xl shadow-${theme}-600/30`
-                )}
+                className='p-3 rounded-2xl text-white shadow-2xl'
+                style={{ backgroundColor: COLOR_MAP[theme]?.[600] || '#6366f1', boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[600] || '#6366f1'}4d` }}
               >
                 <FileText size={24} />
               </div>
@@ -79,10 +77,8 @@ const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
                   {client.name}
                 </h3>
                 <span
-                  className={cn(
-                    'text-[10px] font-mono font-bold tracking-widest',
-                    `text-${theme}-400`
-                  )}
+                  className='text-[10px] font-mono font-bold tracking-widest'
+                  style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
                 >
                   {client.name.toLowerCase()}.conf
                 </span>
@@ -93,20 +89,16 @@ const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
           <div className="relative flex-1 bg-black/40 rounded-[2rem] border border-white/5 p-6 group overflow-hidden shadow-inner">
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none opacity-20"></div>
             <pre
-              className={cn(
-                'font-mono text-[10px] leading-relaxed md:text-xs overflow-auto h-64 md:h-80 custom-scrollbar whitespace-pre-wrap pr-4',
-                `text-${theme}-300/80`
-              )}
+              className='font-mono text-[10px] leading-relaxed md:text-xs overflow-auto h-64 md:h-80 custom-scrollbar whitespace-pre-wrap pr-4'
+              style={{ color: COLOR_MAP[theme]?.[300] ? COLOR_MAP[theme][300] + 'cc' : '#a5b4fccc' }}
             >
               {client.config}
             </pre>
 
             <button
               onClick={handleCopy}
-              className={cn(
-                'absolute top-6 right-6 p-4 backdrop-blur-3xl text-white rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl border border-white/10 hover:scale-110 active:scale-95',
-                `bg-${theme}-600/80 hover:bg-${theme}-600`
-              )}
+              className='absolute top-6 right-6 p-4 backdrop-blur-3xl text-white rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl border border-white/10 hover:scale-110 active:scale-95'
+              style={{ backgroundColor: COLOR_MAP[theme]?.[600] ? COLOR_MAP[theme][600] + 'cc' : '#4f46e5cc' }}
             >
               <AnimatePresence mode="wait">
                 {copied ? (
@@ -125,10 +117,8 @@ const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
           <div className="mt-10 flex flex-col sm:flex-row gap-4">
             <button
               onClick={() => onDownload(client.name, client.config)}
-              className={cn(
-                'flex-1 py-4 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 hover:scale-105',
-                `bg-${theme}-600 hover:bg-${theme}-500 shadow-${theme}-600/30`
-              )}
+              className='flex-1 py-4 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 hover:scale-105'
+              style={{ backgroundColor: COLOR_MAP[theme]?.[600] || '#6366f1', boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[600] || '#6366f1'}4d` }}
             >
               <Download size={20} /> Télécharger .conf
             </button>

@@ -74,7 +74,7 @@ if (isProd && (!rawOrigins || rawOrigins.trim() === '*' || rawOrigins.trim() ===
 }
 const corsOrigin = rawOrigins
   ? rawOrigins.split(',').map((o) => o.trim())
-  : process.env.NODE_ENV === 'production'
+  : isProd
     ? false
     : ['http://localhost:5173', 'http://localhost:3000'];
 app.use(
@@ -108,7 +108,7 @@ const globalLimiter = rateLimit({
 app.use('/api/', globalLimiter);
 
 // --- Public Routes ---
-app.get('/api/install/status', (req, res) => res.json({ installed: true, version: '3.1.0' }));
+app.get('/api/install/status', (req, res) => res.json({ installed: true }));
 app.get('/api/health', async (req, res) => {
   const scriptsOk = await checkScripts();
   res.json({
@@ -225,7 +225,7 @@ app.get('/api/metrics', auth, requireAdmin, async (req, res) => {
     output += '# TYPE wg_fux_clients_total gauge\n';
     output += `wg_fux_clients_total ${clients.length}\n`;
 
-    const onlineCount = clients.filter((c) => c.enabled).length; // Approximative, enabled clients
+    const onlineCount = clients.filter((c) => c.enabled).length; // enabled clients (approximate, not real-time handshake check)
     output += '\n# HELP wg_fux_clients_enabled_total Total number of enabled VPN clients\n';
     output += '# TYPE wg_fux_clients_enabled_total gauge\n';
     output += `wg_fux_clients_enabled_total ${onlineCount}\n`;
@@ -257,8 +257,7 @@ if (process.env.SENTRY_DSN) {
   app.use(Sentry.Handlers.errorHandler());
 }
 
-// BUG-FIX: 404 handler for all non-API and unknown /api/* routes
-// Prevents ghost 404s in logs for /favicon.ico or / if wrongly routed to API.
+// BUG-FIX: 404 handler
 app.use((req, res) => {
   log.warn('http', 'Route not found in API container', {
     path: req.originalUrl,
@@ -270,10 +269,6 @@ app.use((req, res) => {
     path: req.originalUrl,
   });
 });
-
-// --- Security & Metadata Middleware (must be before routes, applied via header hook) ---
-// NOTE: These headers are set early in the pipeline. helmet() above handles most of them;
-// we add custom headers here for all non-upgrade requests.
 
 app.use((err, req, res, _next) => {
   const isProd = process.env.NODE_ENV === 'production';
@@ -310,12 +305,22 @@ app.use((err, req, res, _next) => {
 });
 
 // --- Startup ---
+// --- Startup Validation ---
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET not set. Authentication is required.');
+  process.exit(1);
+}
+if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 16) {
+  console.error('FATAL: JWT_SECRET is too short (minimum 16 characters).');
+  process.exit(1);
+}
+
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   (async () => {
     try {
       console.log('----------------------------------------------------');
-      console.log('📡 Initializing WG-FUX API Services...');
+      console.log('Initializing WG-FUX API Services...');
 
       await initializeDatabase();
       await initializeDNS();
@@ -333,5 +338,22 @@ if (require.main === module) {
     }
   })();
 }
+
+// Graceful shutdown — clean up WebSocket, intervals, and DB
+const gracefulShutdown = async (signal) => {
+  console.log(`\n⚠️ Received ${signal}. Shutting down gracefully...`);
+  wsService.shutdown();
+  server.close(() => {
+    console.log('✅ HTTP server closed.');
+    process.exit(0);
+  });
+  setTimeout(() => {
+    console.error('❌ Forced exit after timeout.');
+    process.exit(1);
+  }, 10000).unref();
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 module.exports = { app, server };

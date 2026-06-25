@@ -5,6 +5,7 @@ const { spawn } = require('child_process');
 const { existsSync } = require('fs');
 const log = require('./logger');
 const { getWireGuardStats } = require('./system');
+const { runSystemCommand } = require('./shell');
 
 class WebSocketService {
   constructor() {
@@ -65,10 +66,10 @@ class WebSocketService {
           }
           this.activeTailProcesses++;
           const proc = spawn('tail', ['-f', '-n', '50', logFile]);
-          proc.stdout.on('data', (data) => {
-            if (ws.readyState === ws.OPEN) ws.send(data.toString());
-          });
+          let tailCleaned = false;
           const cleanup = () => {
+            if (tailCleaned) return;
+            tailCleaned = true;
             this.activeTailProcesses = Math.max(0, this.activeTailProcesses - 1);
             try {
               proc.kill('SIGTERM');
@@ -76,28 +77,29 @@ class WebSocketService {
               /* Process might already be dead */
             }
           };
-          ws.on('close', cleanup);
-          ws.on('error', (_err) => {
+          proc.on('error', (err) => {
+            log.error('ws', 'Failed to spawn tail process', { error: err.message });
             cleanup();
           });
+          proc.stdout.on('data', (data) => {
+            if (ws.readyState === ws.OPEN) ws.send(data.toString());
+          });
+          proc.on('exit', cleanup);
+          ws.on('close', cleanup);
+          ws.on('error', cleanup);
         } else {
           if (ws.readyState === ws.OPEN)
-            ws.send('[INFO] journalctl not available in container. Streaming wg show output...');
+            ws.send('[INFO] Log files not available in container. Streaming wg show output...');
           const interval = setInterval(async () => {
             if (ws.readyState !== ws.OPEN) {
               clearInterval(interval);
               return;
             }
-            const { success, output } = await new Promise((resolve) => {
-              const p = spawn('wg', ['show', WG_INTERFACE]);
-              let out = '';
-              p.stdout.on('data', (d) => {
-                out += d.toString();
-              });
-              p.on('close', (code) => resolve({ success: code === 0, output: out }));
-              p.on('error', () => resolve({ success: false, output: '' }));
-            });
-            if (success && output) ws.send(output);
+            const result = await runSystemCommand('wg', ['show', WG_INTERFACE]).catch(() => ({
+              success: false,
+              stdout: '',
+            }));
+            if (result.success && result.stdout) ws.send(result.stdout);
           }, 5000);
           ws.on('close', () => clearInterval(interval));
           ws.on('error', () => clearInterval(interval));
@@ -105,6 +107,13 @@ class WebSocketService {
         return;
       }
       ws.close();
+    });
+
+    this.wssStatus.on('connection', (ws) => {
+      ws.isAlive = true;
+      ws.on('pong', () => {
+        ws.isAlive = true;
+      });
     });
 
     this.wssLogs.on('error', (err) => log.error('ws', 'WSS Logs error', { err: err.message }));
@@ -116,20 +125,28 @@ class WebSocketService {
       const parsed = url.parse(request.url, true);
       const pathname = parsed.pathname;
       const wsProtocol = request.headers['sec-websocket-protocol'];
-      const token = request.headers['x-api-token'] || parsed.query.token || wsProtocol;
+      const token = request.headers['x-api-token'] || wsProtocol;
 
       if (!token) {
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
         return;
       }
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        request.user = decoded; // Attach user to request for handleUpgrade
-      } catch (e) {
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-        socket.destroy();
-        return;
+
+      // 🛡️ Sentinel Watchdog bypass (internal agent)
+      const sentinelToken = (process.env.SENTINEL_TOKEN || '').replace(/['"]/g, '').trim();
+      const receivedToken = (token || '').replace(/['"]/g, '').trim();
+      if (sentinelToken && receivedToken === sentinelToken) {
+        request.user = { id: 0, role: 'admin', username: 'sentinel-watchdog', internal: true };
+      } else {
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          request.user = decoded;
+        } catch (e) {
+          socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+          socket.destroy();
+          return;
+        }
       }
 
       if (pathname.startsWith('/api/logs-ws/')) {
@@ -149,13 +166,28 @@ class WebSocketService {
 
   startHeartbeat() {
     this.wsInterval = setInterval(() => {
-      [this.wssLogs, this.wssStatus].forEach((wss) => {
-        wss.clients.forEach((ws) => {
-          if (ws.isAlive === false) return ws.terminate();
-          ws.isAlive = false;
-          ws.ping();
+      try {
+        [this.wssLogs, this.wssStatus].forEach((wss) => {
+          wss.clients.forEach((ws) => {
+            if (ws.isAlive === false) {
+              try {
+                ws.terminate();
+              } catch (e) {
+                /* ignore */
+              }
+              return;
+            }
+            ws.isAlive = false;
+            try {
+              ws.ping();
+            } catch (e) {
+              /* ignore */
+            }
+          });
         });
-      });
+      } catch (e) {
+        log.error('ws', 'Heartbeat error', { err: e.message });
+      }
     }, 30000);
   }
 
@@ -176,10 +208,15 @@ class WebSocketService {
 
   sendToUser(username, type, payload) {
     const message = JSON.stringify({ type, ...payload });
+    if (!username) return;
     [this.wssLogs, this.wssStatus].forEach((wss) => {
       wss.clients.forEach((client) => {
         if (client.readyState === 1 && client.username === username) {
-          client.send(message);
+          try {
+            client.send(message);
+          } catch (e) {
+            /* ignore */
+          }
         }
       });
     });

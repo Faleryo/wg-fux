@@ -5,9 +5,12 @@
 
 # Login to get token
 echo "Logging in to get auth token..."
-TOKEN_RESP=$(curl -s -X POST http://localhost:3000/api/auth/login \
+USERNAME="${TEST_USERNAME:-admin}"
+PASSWORD="${TEST_PASSWORD:-admin123}"
+API_URL="${API_URL:-http://localhost:3000}"
+TOKEN_RESP=$(curl -s -X POST "$API_URL/api/auth/login" \
  -H "Content-Type: application/json" \
- -d '{"username":"admin","password":"admin123"}')
+ -d "{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}")
 
 echo "Raw Response: $TOKEN_RESP"
 TOKEN=$(echo "$TOKEN_RESP" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')

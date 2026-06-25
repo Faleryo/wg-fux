@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users, Plus, Shield, Search, Trash2, UserCheck, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
-import { cn } from '../../../lib/utils';
+import { cn, COLOR_MAP } from '../../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlassCard from '../../../components/ui/Card';
 import VibeButton from '../../../components/ui/Button';
@@ -29,9 +29,13 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
         <div className="flex items-center gap-6">
           <div
             className={cn(
-              'w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl',
-              `bg-${theme}-600/20 text-${theme}-400 border border-${theme}-500/20`
+              'w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl border'
             )}
+            style={{
+              backgroundColor: COLOR_MAP[theme]?.[600] ? COLOR_MAP[theme][600] + '33' : '#4f46e533',
+              color: COLOR_MAP[theme]?.[400] || '#818cf8',
+              borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '33' : '#6366f133'
+            }}
           >
             <Users size={32} />
           </div>
@@ -99,8 +103,9 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                           className={cn(
                             'w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-white text-lg transition-all group-hover:scale-110 group-hover:bg-slate-700 shadow-xl',
                             user.role === 'admin'
-                              ? `border border-${theme}-500/30`
-                              : 'border border-white/5'
+                              ? 'border'
+                              : 'border border-white/5',
+                          style={user.role === 'admin' ? { borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '4d' : '#6366f14d' } : undefined}
                           )}
                         >
                           {String(user?.username || '?')
@@ -111,7 +116,7 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                           <div className="text-sm font-black text-white uppercase tracking-tight flex items-center gap-2">
                             {user.username || 'Inconnu'}
                             {user.role === 'admin' && (
-                              <Shield size={14} className={cn(`text-${theme}-400`)} />
+                              <Shield size={14} style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }} />
                             )}
                           </div>
                           <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
@@ -125,8 +130,13 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                         className={cn(
                           'text-[10px] font-black px-4 py-1.5 rounded-xl border uppercase tracking-widest inline-block',
                           user.role === 'admin'
-                            ? `bg-${theme}-500/10 text-${theme}-400 border-${theme}-500/20`
-                            : 'bg-white/5 text-slate-400 border-white/5'
+                            ? ''
+                            : 'bg-white/5 text-slate-400 border-white/5',
+                          style={user.role === 'admin' ? {
+                            backgroundColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '1a' : '#6366f11a',
+                            color: COLOR_MAP[theme]?.[400] || '#818cf8',
+                            borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '33' : '#6366f133'
+                          } : undefined}
                         )}
                       >
                         {user.role}

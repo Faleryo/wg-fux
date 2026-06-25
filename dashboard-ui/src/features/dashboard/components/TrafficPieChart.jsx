@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { PieChart as PieIcon } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
-import { cn, formatBytes } from '../../../lib/utils';
+import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import GlassCard from '../../../components/ui/Card';
 
@@ -29,7 +29,7 @@ const TrafficPieChart = ({ clients }) => {
   return (
     <GlassCard className="p-6 group flex-1" hover={true}>
       <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 flex items-center gap-3">
-        <PieIcon size={13} className={cn(`text-${theme}-400`)} /> Répartition Tactique
+        <PieIcon size={13} style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }} /> Répartition Tactique
       </h3>
       <div className="h-44 w-full">
         {pieData.length > 0 ? (

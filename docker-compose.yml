@@ -8,6 +8,7 @@ services:
       - "443:443"
     environment:
       - DOMAIN=${DOMAIN}
+      - VPN_SUBNET=${VPN_SUBNET:-10.0.0.0/24}
     volumes:
       - ./infra/nginx/default.conf:/etc/nginx/templates/default.conf.template:ro
       - ./infra/ssl:/etc/nginx/ssl:ro
@@ -24,7 +25,7 @@ services:
     networks:
       - vpn-internal
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:80/"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -44,7 +45,7 @@ services:
       - certbot_certs:/etc/letsencrypt
       - certbot_www:/var/www/certbot
     # Renouvellement automatique : vérifie toutes les 12h
-    entrypoint: "/bin/sh -c 'trap exit TERM; sleep 20; while :; do certbot renew; sleep 12h & wait $${!}; done'"
+    entrypoint: "/bin/sh -c 'trap exit TERM; sleep 20; while :; do certbot renew; sleep 12h & wait $$!; done'"
     networks:
       - vpn-internal
     healthcheck:
@@ -66,7 +67,6 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
-      - SYS_ADMIN
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1

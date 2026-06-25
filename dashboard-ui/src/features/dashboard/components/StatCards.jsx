@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '../../../context/ThemeContext';
-import { cn } from '../../../lib/utils';
+import { cn, COLOR_MAP } from '../../../lib/utils';
 import { motion } from 'framer-motion';
 
 export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
@@ -17,14 +17,14 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
         className={cn(
           'absolute -inset-1 bg-gradient-to-r from-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-1000',
           isDark ? 'via-white/5' : 'via-black/5',
-          `group-hover:via-${theme}-500/10`
+          'group-hover:via-white/10'
         )}
       ></div>
 
       <div
         className={cn(
           'absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12 group-hover:rotate-0',
-          isDark ? `text-${theme}-500` : 'text-slate-900'
+          isDark ? 'text-white' : 'text-slate-900'
         )}
       >
         {Icon && <Icon size={120} />}
@@ -37,10 +37,12 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
           </p>
           {Icon && (
             <div
-              className={cn(
-                'p-2.5 rounded-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-lg shadow-black/20',
-                `bg-${theme}-500/10 text-${theme}-400 border border-${theme}-500/10`
-              )}
+              className='p-2.5 rounded-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-lg shadow-black/20'
+              style={{
+                backgroundColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '1a' : '#6366f11a',
+                color: COLOR_MAP[theme]?.[400] || '#818cf8',
+                borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '1a' : '#6366f11a',
+              }}
             >
               <Icon size={18} />
             </div>
@@ -59,16 +61,15 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
             )}
           >
             <span
-              className={cn(
-                'h-1.5 w-1.5 rounded-full animate-pulse',
-                `bg-${theme}-500 shadow-[0_0_8px_currentColor]`
-              )}
+              className='h-1.5 w-1.5 rounded-full animate-pulse'
+              style={{
+                backgroundColor: COLOR_MAP[theme]?.[500] || '#6366f1',
+                boxShadow: `0 0 8px ${COLOR_MAP[theme]?.[500] || '#6366f1'}`,
+              }}
             ></span>
             <span
-              className={cn(
-                'text-[10px] font-black uppercase tracking-widest opacity-60',
-                `text-${theme}-400`
-              )}
+              className='text-[10px] font-black uppercase tracking-widest opacity-60'
+              style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
             >
               {sub}
             </span>

@@ -16,10 +16,8 @@ const logLoginAttempt = async (username, clientIp, userAgent, success) => {
       status: success ? 'success' : 'failure',
       name: username,
       realIp: clientIp,
-      // FIX: ne plus stocker userAgent dans virtualIp (champ sémantiquement incorrect)
-      // On stocke l'IP réelle dans realIp et l'agent dans container pour le log
-      virtualIp: '',
-      container: userAgent ? userAgent.substring(0, 100) : 'unknown',
+      virtualIp: userAgent ? userAgent.substring(0, 100) : 'unknown',
+      container: 'auth',
     });
   } catch (e) {
     log.error('auth', 'Error logging login attempt', { err: e.message });

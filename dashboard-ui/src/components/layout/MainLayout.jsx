@@ -160,11 +160,13 @@ const MainLayout = ({ session, onLogout }) => {
   const handleDownloadConfig = (name, configText) => {
     const element = document.createElement('a');
     const file = new Blob([configText], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
+    const url = URL.createObjectURL(file);
+    element.href = url;
     element.download = `${name}.conf`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    URL.revokeObjectURL(url);
   };
 
   const handleDeleteClient = (client) =>
@@ -638,7 +640,9 @@ const MainLayout = ({ session, onLogout }) => {
           title={
             confirmModal.type === 'delete-container'
               ? 'Supprimer le conteneur'
-              : 'Supprimer le client'
+              : confirmModal.type === 'delete-user'
+                ? "Supprimer l'opérateur"
+                : 'Supprimer le client'
           }
           message={
             confirmModal.type === 'delete-container' ? (
@@ -676,7 +680,9 @@ const MainLayout = ({ session, onLogout }) => {
           confirmLabel="Supprimer définitivement"
           intent="danger"
           onConfirm={executeDeleteClient}
-          onCancel={() => setConfirmModal({ open: false, client: null, container: null })}
+          onCancel={() =>
+            setConfirmModal({ open: false, client: null, container: null, user: null })
+          }
         />
       </ErrorBoundary>
     </div>

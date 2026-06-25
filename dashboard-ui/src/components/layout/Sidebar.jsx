@@ -3,7 +3,7 @@ import { ShieldCheck, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import { useLang } from '../../context/LanguageContext';
-import { cn } from '../../lib/utils';
+import { cn, COLOR_MAP } from '../../lib/utils';
 import NavItems from './NavItems';
 import StatusWidget from './StatusWidget';
 
@@ -67,9 +67,12 @@ const Sidebar = ({
               <div
                 className={cn(
                   'relative p-3 rounded-2xl shadow-2xl border transition-all duration-500',
-                  `bg-${theme}-600 shadow-${theme}-600/20`,
                   isDark ? 'border-white/10' : 'border-white/20'
                 )}
+                style={{
+                  backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
+                  boxShadow: `0 10px 30px -10px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}66`,
+                }}
               >
                 <ShieldCheck className="text-white" size={collapsed ? 20 : 28} strokeWidth={2.5} />
               </div>
@@ -85,10 +88,8 @@ const Sidebar = ({
               </h1>
               <div className="flex items-center gap-1.5">
                 <p
-                  className={cn(
-                    'text-[8px] font-extrabold tracking-[0.2em] uppercase opacity-70',
-                    `text-${theme}-500`
-                  )}
+                className={'text-[8px] font-extrabold tracking-[0.2em] uppercase opacity-70'}
+                style={{ color: COLOR_MAP[theme]?.[500] || '#6366f1' }}
                 >
                   PLATINUM CORE
                 </p>
@@ -103,9 +104,9 @@ const Sidebar = ({
               <div
                 className={cn(
                   'p-2.5 rounded-2xl shadow-xl border',
-                  `bg-${theme}-600`,
                   isDark ? 'border-white/10' : 'border-white/20'
                 )}
+                style={{ backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5' }}
               >
                 <ShieldCheck className="text-white" size={20} strokeWidth={2.5} />
               </div>
