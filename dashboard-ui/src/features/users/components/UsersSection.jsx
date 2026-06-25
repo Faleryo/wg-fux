@@ -99,14 +99,14 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                   >
                     <td className="px-10 py-6">
                       <div className="flex items-center gap-5">
-                        <div
-                          className={cn(
-                            'w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-white text-lg transition-all group-hover:scale-110 group-hover:bg-slate-700 shadow-xl',
-                            user.role === 'admin'
-                              ? 'border'
-                              : 'border border-white/5',
-                          style={user.role === 'admin' ? { borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '4d' : '#6366f14d' } : undefined}
-                          )}
+                          <div
+                            className={cn(
+                              'w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-white text-lg transition-all group-hover:scale-110 group-hover:bg-slate-700 shadow-xl',
+                              user.role === 'admin'
+                                ? 'border'
+                                : 'border border-white/5',
+                            )}
+                            style={user.role === 'admin' ? { borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '4d' : '#6366f14d' } : undefined}
                         >
                           {String(user?.username || '?')
                             .charAt(0)
