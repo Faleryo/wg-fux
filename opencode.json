@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "hermes-improver",
+  "agent": {
+    "hermes-improver": {
+      "description": "Agent auto-améliorant inspiré par Hermes Agent. Utilisez pour le refactoring continu, la création de skills, et l'amélioration itérative du code."
+    }
+  },
+  "skills": {
+    "paths": [
+      ".opencode/skills",
+      "~/.config/opencode/anthropic-skills/skills",
+      "~/.config/opencode/hermes-agent/skills",
+      "~/.config/opencode/hermes-agent/optional-skills"
+    ]
+  }
+}

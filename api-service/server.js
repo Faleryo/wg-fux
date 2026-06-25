@@ -183,7 +183,6 @@ app.get('/api/debug/logs', auth, requireAdmin, (req, res) => {
 // --- P12 : Observability Metrics (Prometheus Style) ---
 app.get('/api/metrics', auth, requireAdmin, async (req, res) => {
   const os = require('os');
-  const { db, schema } = require('./db');
   const counters = log.getCounters();
   const p95 = log.getP95Latency ? log.getP95Latency() : 0;
 
@@ -225,10 +224,10 @@ app.get('/api/metrics', auth, requireAdmin, async (req, res) => {
     output += '# TYPE wg_fux_clients_total gauge\n';
     output += `wg_fux_clients_total ${clients.length}\n`;
 
-    const onlineCount = clients.filter((c) => c.enabled).length; // enabled clients (approximate, not real-time handshake check)
+    const enabledCount = clients.filter((c) => c.enabled).length;
     output += '\n# HELP wg_fux_clients_enabled_total Total number of enabled VPN clients\n';
     output += '# TYPE wg_fux_clients_enabled_total gauge\n';
-    output += `wg_fux_clients_enabled_total ${onlineCount}\n`;
+    output += `wg_fux_clients_enabled_total ${enabledCount}\n`;
   } catch (e) {
     log.error('metrics', 'Failed to fetch client metrics', { error: e.message });
   }

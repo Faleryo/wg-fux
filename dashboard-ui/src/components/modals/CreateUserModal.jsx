@@ -135,10 +135,14 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
                 onClick={() => setRole(r.id)}
                 className={cn(
                   'flex flex-col items-center gap-2 py-4 rounded-2xl border transition-all duration-300 text-center',
-                  role === r.id
-                    ? `bg-${r.color}-500/10 border-${r.color}-500/40 text-${r.color}-400 shadow-lg shadow-${r.color}-500/10`
-                    : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10 hover:text-slate-300'
+                  role === r.id ? '' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10 hover:text-slate-300'
                 )}
+                style={role === r.id ? {
+                  backgroundColor: `${COLOR_MAP[r.color]?.[500] || '#64748b'}1a`,
+                  borderColor: `${COLOR_MAP[r.color]?.[500] || '#64748b'}66`,
+                  color: COLOR_MAP[r.color]?.[400] || '#94a3b8',
+                  boxShadow: `0 10px 15px -3px ${COLOR_MAP[r.color]?.[500] || '#64748b'}1a`,
+                } : undefined}
               >
                 <Shield size={20} />
                 <div>
@@ -170,9 +174,14 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
             type="submit"
             disabled={loading || !username || !password || !confirmPassword}
             className={cn(
-              'flex-[2] py-4 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30',
-              `bg-${theme}-600 hover:bg-${theme}-500 shadow-${theme}-600/30`
+              'flex-[2] py-4 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30'
             )}
+            style={{
+              backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
+              boxShadow: `0 10px 15px -3px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}4d`,
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[500] || '#6366f1'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[600] || '#4f46e5'}
           >
             {loading ? (
               <RefreshCw className="animate-spin" size={18} />

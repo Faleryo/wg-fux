@@ -77,9 +77,8 @@ if [ "$USE_JSON" -eq 1 ]; then
   "rx": %d,
   "tx": %d,
   "isOnline": %s,
-  "keepalive": "%s",
-  "lastSeen": %d
- }' "$pub_s" "$endpoint_s" "$allowed_s" "${actual_handshake:-0}" "${rx:-0}" "${tx:-0}" "$is_online" "$keepalive_s" "${actual_handshake:-0}"
+  "keepalive": "%s"
+ }' "$pub_s" "$endpoint_s" "$allowed_s" "${actual_handshake:-0}" "${rx:-0}" "${tx:-0}" "$is_online" "$keepalive_s"
 
  FIRST=0
  done <<< "$DUMP"

@@ -102,8 +102,6 @@ mkdir -p /var/lock 2>/dev/null || true
   PSK=$(tr -d '[:space:]' < "$CLIENT_DIR/preshared.key")
   SERVER_PUBKEY=$(cat /etc/wireguard/server-public.key)
 
-  CLIENT_IP="${VPN_SUBNET%.*}.$IP_SUFFIX"
-
   if [ -n "${VPN_SUBNET_V6:-}" ]; then
    NET_PREFIX="${VPN_SUBNET_V6%/*}"
    NET_PREFIX="${NET_PREFIX%:}"

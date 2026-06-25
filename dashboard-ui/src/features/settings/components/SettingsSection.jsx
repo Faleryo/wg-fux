@@ -53,7 +53,7 @@ const SettingsSection = () => {
 
   const handleBackup = async () => {
     try {
-      const response = await axiosInstance.post('/system/backup', {});
+      await axiosInstance.post('/system/backup', {});
       addToast('Sauvegarde créée avec succès', 'success');
     } catch (error) {
       addToast('Erreur lors du backup', 'error');

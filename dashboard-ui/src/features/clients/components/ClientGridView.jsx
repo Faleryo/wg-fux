@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Users, Activity } from 'lucide-react';
-import { cn, formatBytes } from '../../../lib/utils';
+import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import GlassCard from '../../../components/ui/Card';
 import ClientCard from './ClientCard';
 import { isOnlineClient } from './ClientListHelpers';
@@ -33,11 +33,11 @@ const ClientGridView = ({
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={cn(
-              'flex flex-col md:flex-row items-start md:items-center gap-6 p-6 rounded-[2rem] border relative overflow-hidden group',
-              selectedColor === 'indigo' ? 'bg-indigo-500/10 border-indigo-500/20' :
-              `bg-${selectedColor}-500/10 border-${selectedColor}-500/20`
-            )}
+            className="flex flex-col md:flex-row items-start md:items-center gap-6 p-6 rounded-[2rem] border relative overflow-hidden group"
+            style={{
+              backgroundColor: `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}1a`,
+              borderColor: `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}33`,
+            }}
           >
             <div
               className={cn(
@@ -45,10 +45,11 @@ const ClientGridView = ({
               )}
             />
             <div
-              className={cn(
-                'p-4 rounded-2xl shadow-2xl',
-                `bg-${selectedColor}-500/10 text-${selectedColor}-400`
-              )}
+              className="p-4 rounded-2xl shadow-2xl"
+              style={{
+                backgroundColor: `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}1a`,
+                color: COLOR_MAP[selectedColor]?.[400] || '#818cf8',
+              }}
             >
               <Package size={24} />
             </div>

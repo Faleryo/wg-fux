@@ -33,10 +33,11 @@ const LogsSection = () => {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      let endpoint;
-      if (activeTab === 'access') endpoint = '/system/logs';
-      else if (activeTab === 'security') endpoint = '/system/security-logs';
-      else if (activeTab === 'system') endpoint = '/system/container-logs';
+      const endpoint =
+        activeTab === 'access' ? '/system/logs'
+        : activeTab === 'security' ? '/system/security-logs'
+        : activeTab === 'system' ? '/system/container-logs'
+        : '/system/logs';
 
       const res = await axios.get(endpoint);
       const rawData = res.data || [];

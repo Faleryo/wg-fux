@@ -4,6 +4,9 @@ import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import GlassCard from '../../../components/ui/Card';
 import { isOnlineClient } from './ClientListHelpers';
 
+const BASE_COLOR = '#6366f1';
+const getHex = (c, shade) => COLOR_MAP[c]?.[shade] || BASE_COLOR;
+
 const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }) => {
   const activeCount = clients.filter(isOnlineClient).length;
   const totalDl = clients.reduce((a, c) => a + (c.downloadRate || 0), 0);
@@ -27,18 +30,30 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
         className="p-0 overflow-hidden cursor-pointer group relative border-white/5 hover:border-white/10"
       >
         <div
-          className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-700 bg-gradient-to-br from-indigo-500 to-transparent"
+          className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-700"
+          style={{
+            background: `linear-gradient(to bottom right, ${getHex(color, 500)}, transparent)`,
+          }}
         />
 
         <div
-          className="h-1.5 w-full transition-all duration-700 group-hover:h-2 opacity-80 bg-indigo-500 shadow-md shadow-indigo-500/50"
+          className="h-1.5 w-full transition-all duration-700 group-hover:h-2 opacity-80"
+          style={{
+            backgroundColor: getHex(color, 500),
+            boxShadow: `0 4px 12px ${getHex(color, 500)}80`,
+          }}
         />
 
         <div className="p-6 space-y-6 relative z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div
-                className="p-3 rounded-2xl border transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                className="p-3 rounded-2xl border transition-all duration-500 group-hover:scale-110 group-hover:rotate-6"
+                style={{
+                  backgroundColor: `${getHex(color, 500)}1a`,
+                  color: getHex(color, 400),
+                  borderColor: `${getHex(color, 500)}33`,
+                }}
               >
                 <Package size={24} />
               </div>
@@ -75,7 +90,11 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
                 </button>
               )}
               <div
-                className="w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 group-hover:bg-white/10 text-indigo-400 border-indigo-500/10"
+                className="w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 group-hover:bg-white/10"
+                style={{
+                  color: getHex(color, 400),
+                  borderColor: `${getHex(color, 500)}1a`,
+                }}
               >
                 <ChevronRight
                   size={16}
@@ -118,10 +137,12 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
                     key={i}
                     className={cn(
                       'w-6 h-6 rounded-lg border-2 border-slate-950 flex items-center justify-center text-[8px] font-black text-white',
-                      isOnlineClient(c)
-                        ? 'bg-indigo-500 shadow-lg shadow-indigo-500/20'
-                        : 'bg-slate-800'
+                      isOnlineClient(c) ? '' : 'bg-slate-800'
                     )}
+                    style={isOnlineClient(c) ? {
+                      backgroundColor: getHex(color, 500),
+                      boxShadow: `0 4px 12px ${getHex(color, 500)}33`,
+                    } : undefined}
                   >
                     {c.name.charAt(0)}
                   </div>

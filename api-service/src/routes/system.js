@@ -332,10 +332,7 @@ router.post(
     }
 
     const wgIface = process.env.WG_INTERFACE || 'wg0';
-    if (port)
-      await runSystemCommand(WG_BIN, ['set', wgIface, 'listen-port', port]).catch(
-        () => {}
-      );
+    if (port) await runSystemCommand(WG_BIN, ['set', wgIface, 'listen-port', port]).catch(() => {});
 
     await auditLog({
       actor: req.user.username,
