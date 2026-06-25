@@ -1,4 +1,4 @@
-name: WG-FUX CI ()
+name: WG-FUX CI
 
 on:
  push:
@@ -72,7 +72,7 @@ jobs:
  working-directory: api-service
  run: |
  npm ci
- node --check ../server.js
+  node --check server.js
 
  e2e-tests:
  name: Playwright E2E Tests
