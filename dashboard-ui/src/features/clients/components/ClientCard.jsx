@@ -1,0 +1,164 @@
+import { Edit, Trash2, Pause, Play, ChevronRight, QrCode } from 'lucide-react';
+import { cn, formatBytes } from '../../../lib/utils';
+import GlassCard from '../../../components/ui/Card';
+import { isOnlineClient, isExpired, isExpiringSoon } from './ClientListHelpers';
+
+const ClientCard = ({ client, color, onSelect, onToggle, onEdit, onQRCode, onDelete }) => {
+  const online = isOnlineClient(client);
+  const expired = isExpired(client.expiry);
+  const expiring = isExpiringSoon(client.expiry);
+  const quotaPct =
+    client.quota > 0
+      ? Math.min(100, (client.usageTotal / (client.quota * 1024 * 1024 * 1024)) * 100)
+      : 0;
+
+  return (
+    <GlassCard
+      onClick={() => onSelect(client)}
+      className="p-5 group cursor-pointer border-white/5 hover:border-white/20 transition-all duration-300"
+    >
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-4">
+          <div
+            className={cn(
+              'w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black text-white shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6',
+              online ? `bg-${color}-500 shadow-${color}-500/30` : 'bg-slate-800 text-slate-500'
+            )}
+          >
+            {client.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h4 className="text-sm font-black text-white uppercase tracking-tight truncate">
+              {client.name}
+            </h4>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span
+                className={cn(
+                  'w-1.5 h-1.5 rounded-full',
+                  online ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'
+                )}
+              />
+              <span className="text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest">
+                {online ? 'Actif' : 'Offline'}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="block text-[10px] font-mono font-bold text-white/40 mb-0.5">
+            {client.ip}
+          </span>
+          {(expired || expiring) && (
+            <span
+              className={cn(
+                'text-[8px] font-extrabold px-2 py-0.5 rounded-lg border uppercase tracking-tighter',
+                expired
+                  ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+              )}
+            >
+              {expired ? 'Expiré' : 'Bientôt'}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-4 mb-5">
+        <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5">
+          <div className="space-y-0.5">
+            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">
+              Download
+            </span>
+            <span className="text-xs font-mono font-black text-emerald-400">
+              {formatBytes(client.downloadRate)}/s
+            </span>
+          </div>
+          <div className="h-6 w-px bg-white/10" />
+          <div className="space-y-0.5 text-right">
+            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">
+              Upload
+            </span>
+            <span className="text-xs font-mono font-black text-indigo-400">
+              {formatBytes(client.uploadRate)}/s
+            </span>
+          </div>
+        </div>
+
+        {client.quota > 0 && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-[9px] font-black uppercase text-slate-500">
+              <span>Quota Usage</span>
+              <span className={quotaPct > 80 ? 'text-rose-400' : 'text-white'}>
+                {quotaPct.toFixed(1)}%
+              </span>
+            </div>
+            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  'h-full rounded-full',
+                  quotaPct > 80 ? 'bg-rose-500' : `bg-${color}-500`
+                )}
+                style={{ width: `${quotaPct}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between pt-4 border-t border-white/5">
+        <div className="flex gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(client);
+            }}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+            title="Modifier"
+          >
+            <Edit size={14} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(client.container, client.name, !client.enabled);
+            }}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-all"
+            title={client.enabled ? 'Désactiver' : 'Activer'}
+          >
+            {client.enabled ? <Pause size={14} /> : <Play size={14} />}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onQRCode(client);
+            }}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400 transition-all"
+            title="Configuration / QR Code"
+          >
+            <QrCode size={14} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(client);
+            }}
+            className="p-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all"
+            title="Supprimer"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+        <div
+          className={cn(
+            'p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300',
+            `bg-${color}-500/10 text-${color}-400`
+          )}
+        >
+          <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+        </div>
+      </div>
+    </GlassCard>
+  );
+};
+
+export default ClientCard;

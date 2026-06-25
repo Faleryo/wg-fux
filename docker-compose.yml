@@ -1,0 +1,184 @@
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: wg-sentinel-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./infra/nginx/default.conf:/etc/nginx/templates/default.conf.template:ro
+      - ./infra/ssl:/etc/nginx/ssl:ro
+      # CRITICAL-2 : Let's Encrypt — Certificats réels en production
+      # En développement local : monter ./infra/ssl pour les certs auto-signés
+      # En production VPS : les certificats sont gérés par le service certbot ci-dessous
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      ui:
+        condition: service_healthy
+    networks:
+      - vpn-internal
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 32M
+
+  # CRITICAL-2 : Let's Encrypt Certbot (renouvellement automatique)
+  # Usage : docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d VOTRE_DOMAINE
+  certbot:
+    image: certbot/certbot:v2.7.0
+    container_name: wg-fux-certbot
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    # Renouvellement automatique : vérifie toutes les 12h
+    entrypoint: "/bin/sh -c 'trap exit TERM; sleep 20; while :; do certbot renew; sleep 12h & wait $${!}; done'"
+    networks:
+      - vpn-internal
+    healthcheck:
+      # SRE: Is healthy if live certs exist OR if the service is just waiting (Bootstrap phase)
+      test: ["CMD-SHELL", "[ -d /etc/letsencrypt/live ] || [ -d /etc/letsencrypt/accounts ]"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    restart: always
+
+  api:
+    build:
+      context: .
+      dockerfile: api-service/Dockerfile
+    container_name: wg-fux-api
+    restart: always
+    # BUG-FIX: Suppression de "privileged: true" redondant avec cap_add
+    # privileged donne TOUS les caps — utiliser les caps ciblés est plus sécurisé
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv6.conf.all.forwarding=1
+    env_file:
+      - ./api-service/.env
+    environment:
+      - AGH_USER=${AGH_USER:-admin}
+    volumes:
+      - wg_fux_data:/app/data
+      - ./core-vpn:/app/core-vpn:ro
+
+      - /etc/wireguard:/etc/wireguard
+      - /lib/modules:/lib/modules:ro
+    tmpfs:
+      - /tmp:size=100M
+      - /var/log:size=10M
+      - /etc/sysctl.d:size=1M
+    read_only: true
+    ports:
+      - "${SERVER_PORT:-51820}:${SERVER_PORT:-51820}/udp"
+      - "127.0.0.1:3000:3000"
+    stop_grace_period: 1m
+    networks:
+      - vpn-internal
+    healthcheck:
+      test: ["CMD", "curl", "-L", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+
+  ui:
+    build:
+      context: .
+      dockerfile: dashboard-ui/Dockerfile
+    container_name: wg-fux-dashboard
+    restart: always
+    # Port 80 est interne au réseau vpn-internal
+    depends_on:
+      - api
+    networks:
+      - vpn-internal
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 32M
+
+  adguard:
+    image: adguard/adguardhome:v0.107.52
+    container_name: wg-fux-dns
+    restart: always
+    ports:
+      - "127.0.0.1:3002:3000/tcp"
+      # PORT-CONFLICT-GUARD: Port 53 is NOT exposed to host to avoid conflict with systemd-resolved.
+      # DNS is served internally on 172.20.0.100 for WireGuard clients.
+    volumes:
+      - wg_fux_adguard_data:/opt/adguardhome/work
+      - wg_fux_adguard_conf:/opt/adguardhome/conf
+    networks:
+      vpn-internal:
+        ipv4_address: 172.20.0.100
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+
+
+networks:
+  vpn-internal:
+    driver: bridge
+    # WARN: internal:true blocked certbot (Let's Encrypt), AdGuard (DNS upstreams), API (Telegram/webhooks)
+    # Egress is allowed so these services can reach external endpoints.
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# BUG-FIX: Volume nommé Docker pour la persistance DB
+# Évite les erreurs si docker compose est lancé depuis un répertoire différent
+volumes:
+  wg_fux_data:
+    driver: local
+  wg_fux_adguard_data:
+    driver: local
+  wg_fux_adguard_conf:
+    driver: local
+  # CRITICAL-2 : Volumes Let's Encrypt (persistance des certificats SSL)
+  certbot_certs:
+    driver: local
+  certbot_www:
+    driver: local

@@ -1,0 +1,18 @@
+#!/bin/bash
+set -e
+
+# SRE: Hardening permissions for WireGuard
+chmod 600 /etc/wireguard/*.conf 2>/dev/null || true
+
+# Ensure system logs belong to wg-api
+chown wg-api:wg-api /var/log/wg-*.log 2>/dev/null || true
+
+# Ensure system permissions for wg-api data
+mkdir -p /app/data /etc/wireguard/clients
+# SRE: Ensure parent directories allow traversal
+chmod 755 /etc/wireguard
+chown -R wg-api:wg-api /app/data /etc/wireguard/clients
+chmod -R 755 /app/data /etc/wireguard/clients
+
+echo "[BOOT] Starting API Server as wg-api..."
+exec sudo -u wg-api node /app/server.js

@@ -1,0 +1,34 @@
+bind_host: 0.0.0.0
+bind_port: 3000
+users: []
+http:
+  web_prefix: "/dns"
+dns:
+  bind_hosts:
+    - 0.0.0.0
+  port: 53
+  upstream_dns:
+    - 1.1.1.1
+    - 8.8.8.8
+  bootstrap_dns:
+    - 9.9.9.9
+  protection_enabled: true
+  filtering_enabled: true
+  upstream_timeout: 10s
+filters:
+  - enabled: true
+    id: 1
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
+    name: AdGuard DNS filter
+  - enabled: true
+    id: 10
+    url: https://hagezi.github.io/dns-blocklists/adblock/gaming.txt
+    name: HaGeZi - Gaming & Telemetry
+  - enabled: true
+    id: 20
+    url: https://hagezi.github.io/dns-blocklists/adblock/pro.txt
+    name: HaGeZi - Multi Pro (SmartTV & Mobile)
+  - enabled: true
+    id: 30
+    url: https://big.oisd.nl/
+    name: OISD - Full Protection

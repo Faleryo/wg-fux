@@ -1,0 +1,158 @@
+import React from 'react';
+import {
+  Home,
+  Package,
+  Users,
+  FileText,
+  Activity,
+  Gauge,
+  ShieldCheck,
+  Settings,
+  LogOut,
+  ChevronRight,
+  Globe,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { cn } from '../../lib/utils';
+
+const NavItems = ({
+  activeSection,
+  setActiveSection,
+  onClose,
+  collapsed,
+  isDark,
+  theme,
+  onLogout,
+  t,
+  userRole,
+}) => {
+  const isAdmin = userRole === 'admin';
+  const navItems = [
+    { id: 'dashboard', icon: <Home size={20} />, label: t('dashboard') },
+    { id: 'containers', icon: <Package size={20} />, label: t('containers') },
+    {
+      id: 'users',
+      icon: <Users size={20} />,
+      label: t('users_manage'),
+      hidden: !isAdmin,
+    },
+    { id: 'logs', icon: <FileText size={20} />, label: t('logs') },
+    { id: 'topology', icon: <Activity size={20} />, label: t('topology') },
+    { id: 'dns', icon: <Globe size={20} />, label: 'DNS Editor' },
+    { id: 'optimization', icon: <Gauge size={20} />, label: t('optimization') },
+    { id: 'audit', icon: <ShieldCheck size={20} />, label: 'Audit' },
+    {
+      id: 'settings',
+      icon: <Settings size={20} />,
+      label: t('settings'),
+      hidden: !isAdmin,
+    },
+  ];
+
+  return (
+    <nav className="flex-1 px-3 space-y-1.5 overflow-y-auto custom-scrollbar">
+      {navItems
+        .filter((i) => !i.hidden)
+        .map((item) => {
+          const isActive = activeSection === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveSection(item.id);
+                onClose();
+              }}
+              title={collapsed ? item.label : undefined}
+              className={cn(
+                'group relative w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300',
+                collapsed ? 'md:justify-center md:px-0' : '',
+                isActive
+                  ? `bg-${theme}-600 text-white shadow-lg shadow-${theme}-600/20`
+                  : isDark
+                    ? 'text-slate-500 hover:bg-white/5 hover:text-slate-200'
+                    : 'text-slate-500 hover:bg-black/5 hover:text-slate-900'
+              )}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="activeNav"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-white rounded-r-full shadow-[0_0_15px_white]"
+                />
+              )}
+              <div
+                className={cn(
+                  'transition-transform duration-300 flex-shrink-0',
+                  !isActive && 'group-hover:scale-110 group-hover:rotate-3'
+                )}
+              >
+                {React.cloneElement(item.icon, {
+                  size: 18,
+                  className: isActive
+                    ? 'text-white'
+                    : cn(
+                        'transition-colors',
+                        isDark ? 'group-hover:text-white' : 'group-hover:text-slate-900'
+                      ),
+                })}
+              </div>
+              <span
+                className={cn(
+                  'font-bold text-xs tracking-wide uppercase whitespace-nowrap transition-all duration-300 overflow-hidden',
+                  collapsed ? 'md:w-0 md:opacity-0' : 'w-auto opacity-100',
+                  isActive
+                    ? 'text-white'
+                    : cn(
+                        'transition-colors',
+                        isDark
+                          ? 'text-slate-500 group-hover:text-white'
+                          : 'text-slate-400 group-hover:text-slate-900'
+                      )
+                )}
+              >
+                {item.label}
+              </span>
+              {!collapsed && isActive && (
+                <motion.div
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="ml-auto"
+                >
+                  <ChevronRight size={14} />
+                </motion.div>
+              )}
+            </button>
+          );
+        })}
+
+      <button
+        onClick={() => {
+          onLogout();
+          onClose();
+        }}
+        className={cn(
+          'group w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300 mt-6',
+          isDark
+            ? 'text-slate-500 hover:bg-red-500/10 hover:text-red-400'
+            : 'text-slate-400 hover:bg-red-50 hover:text-red-600',
+          collapsed && 'md:justify-center md:px-0'
+        )}
+        title={collapsed ? 'Déconnexion' : undefined}
+      >
+        <LogOut
+          size={18}
+          className="group-hover:scale-110 group-hover:rotate-3 transition-transform flex-shrink-0"
+        />
+        <span
+          className={cn(
+            'font-bold text-xs tracking-wide uppercase transition-all duration-300 overflow-hidden text-slate-500 group-hover:text-red-400',
+            collapsed ? 'md:w-0 md:opacity-0' : 'w-auto opacity-100'
+          )}
+        >
+          {t('logout')}
+        </span>
+      </button>
+    </nav>
+  );
+};
+
+export default NavItems;
