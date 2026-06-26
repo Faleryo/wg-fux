@@ -69,6 +69,9 @@ const auth = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({ error: 'User no longer exists' });
     }
+    if (user.expiry && new Date(user.expiry) < new Date()) {
+      return res.status(401).json({ error: 'Account expired' });
+    }
 
     userCache.set(decoded.username, { role: user.role, ts: Date.now() });
     req.user = { ...decoded, role: user.role };

@@ -38,7 +38,7 @@ class NotificationService {
     if (process.env.WEBHOOK_URL) {
       const axios = require('axios');
       axios
-        .post(process.env.WEBHOOK_URL, { type, message, metadata, ts: new Date() })
+        .post(process.env.WEBHOOK_URL, { type, message, metadata, ts: new Date() }, { timeout: 5000 })
         .catch((e) => log.warn('notify', 'Webhook notification failed', { error: e.message }));
     }
   }

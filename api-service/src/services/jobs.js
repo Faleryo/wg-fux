@@ -84,8 +84,11 @@ const updateUsage = async () => {
       const pubKey = peer.publicKey;
       if (!pubKey) continue;
 
+      // On first sight, record as baseline only — avoids counting all
+      // historical WireGuard traffic as a spike on the first poll run.
+      const isFirstSeen = !Object.prototype.hasOwnProperty.call(lastSeenStats, pubKey);
       const lastSession = lastSeenStats[pubKey] || 0;
-      const delta = currentTotal >= lastSession ? currentTotal - lastSession : currentTotal;
+      const delta = isFirstSeen ? 0 : (currentTotal >= lastSession ? currentTotal - lastSession : currentTotal);
       lastSeenStats[pubKey] = currentTotal;
 
       if (delta > 0) {

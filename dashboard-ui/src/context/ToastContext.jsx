@@ -14,8 +14,9 @@ export const ToastProvider = ({ children }) => {
 
   const addToast = (message, type = 'info') => {
     const id = `t-${Date.now()}-${++toastSeq}`;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 5000);
+    // Keep at most 3 toasts visible — evict the oldest when the stack overflows.
+    setToasts((prev) => [...prev.slice(-2), { id, message, type }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
   };
 
   const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));

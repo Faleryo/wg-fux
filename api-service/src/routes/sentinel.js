@@ -35,12 +35,16 @@ router.post(
   })
 );
 
-// Getter for the UI
+// Getter for the UI — admins get full data, others get redacted logs
 router.get(
   '/status',
   auth,
   asyncWrap(async (req, res) => {
-    res.json(sentinelStatus);
+    if (req.user.role === 'admin') {
+      return res.json(sentinelStatus);
+    }
+    const { logs: _logs, ...safeStatus } = sentinelStatus;
+    res.json(safeStatus);
   })
 );
 

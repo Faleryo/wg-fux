@@ -62,7 +62,7 @@ router.post(
       role: role || 'viewer',
       expiry: expiry || null,
     });
-    res.json({ success: true });
+    res.status(201).json({ success: true });
   })
 );
 
@@ -113,6 +113,12 @@ router.delete(
         .json(createError('Cannot delete root administrator', null, 'FORBIDDEN_PROTECTED_USER'));
     }
 
+    // Orphan containers owned by this user so they remain accessible to admins
+    // rather than becoming stuck with a non-existent owner.
+    await db
+      .update(schema.containers)
+      .set({ owner: null })
+      .where(eq(schema.containers.owner, username));
     await db.delete(schema.users).where(eq(schema.users.username, username));
     invalidateUserCache(username);
     res.json({ success: true });
