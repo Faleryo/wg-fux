@@ -40,7 +40,8 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
   const commandStr = `${cmd} ${sanitizedArgs.join(' ')}`;
 
   // Safe because spawn() never invokes a shell (args go directly to execvp).
-  const SAFE_ARG = /^[\p{L}\p{N}\s\-_.,:@+/=~!'()%&#[\]=*?]*$/u;
+  // \p{So} covers emoji (Symbol, Other) — safe since no shell metachar lives in that Unicode category.
+  const SAFE_ARG = /^[\p{L}\p{N}\p{So}\s\-_.,:@+/=~!'()%&#[\]=*?]*$/u;
   for (const arg of sanitizedArgs) {
     if (arg && !SAFE_ARG.test(arg)) {
       if (log && typeof log.error === 'function') {
