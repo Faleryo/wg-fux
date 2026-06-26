@@ -9,14 +9,11 @@ services:
     environment:
       - DOMAIN=${DOMAIN}
       - VPN_SUBNET=${VPN_SUBNET:-10.0.0.0/24}
+      # Seulement ces variables sont substituées par envsubst — préserve $host, $uri, etc.
+      - ENVSUBST_VARS=$DOMAIN,$VPN_SUBNET
     volumes:
       - ./infra/nginx/default.conf:/etc/nginx/templates/default.conf.template:ro
       - ./infra/ssl:/etc/nginx/ssl:ro
-      # CRITICAL-2 : Let's Encrypt — Certificats réels en production
-      # En développement local : monter ./infra/ssl pour les certs auto-signés
-      # En production VPS : les certificats sont gérés par le service certbot ci-dessous
-      - certbot_certs:/etc/letsencrypt:ro
-      - certbot_www:/var/www/certbot:ro
     depends_on:
       api:
         condition: service_healthy

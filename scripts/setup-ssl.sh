@@ -69,6 +69,36 @@ log_info "[SSL v5.0] Lancement de la gestion SSL à deux phases..."
 log_info "Domaine cible : $DOMAIN"
 
 # ─────────────────────────────────────────────────
+# PHASE PRE-FLIGHT : Ouverture des ports firewall
+# ─────────────────────────────────────────────────
+
+_configure_firewall() {
+	if command -v ufw &>/dev/null; then
+		for port in 22 80 443; do
+			if ! ufw status | grep -qw "$port/tcp"; then
+				log_info "Ouverture du port $port/tcp..."
+				ufw allow "$port/tcp"
+			fi
+		done
+		if ! ufw status | grep -qw active; then
+			log_info "Activation de ufw..."
+			ufw --force enable
+		fi
+		log_success "Ports 22, 80 et 443 ouverts dans ufw."
+	elif command -v firewall-cmd &>/dev/null; then
+		for port in 80 443; do
+			firewall-cmd --add-port="$port/tcp" --permanent
+		done
+		firewall-cmd --reload
+		log_success "Ports 80 et 443 ouverts dans firewalld."
+	else
+		log_warn "Ni ufw ni firewalld trouvés. Vérifie manuellement que les ports 80/443 sont ouverts."
+	fi
+}
+
+_configure_firewall
+
+# ─────────────────────────────────────────────────
 # PHASE 1 : S'assurer que Nginx peut démarrer
 # Nginx est configuré par défaut avec le cert auto-signé dans default.conf
 # (ssl_certificate /etc/nginx/ssl/server.crt)
@@ -114,7 +144,7 @@ fi
 log_info "Test de connectivité port 80..."
 if ! curl -sf --max-time 5 "http://$DOMAIN/" &>/dev/null; then
  log_warn "Port 80 inaccessible depuis l'extérieur pour $DOMAIN."
- log_warn "Vérifiez : DNS vpn.faleryo.site → $DOMAIN pointé vers cette IP ?"
+  log_warn "Vérifiez : le DNS de $DOMAIN pointe bien vers cette IP ?"
  log_warn "Vérifiez : port 80 ouvert dans le firewall ?"
 fi
 
@@ -152,7 +182,7 @@ if docker compose run --rm --entrypoint sh certbot -c "$CERTBOT_CMD"; then
 else
  log_error "Certbot a échoué (voir erreur ci-dessus)."
  log_warn "Causes fréquentes :"
- log_warn " 1. DNS vpn.faleryo.site ne pointe pas encore vers $(curl -4 -s --max-time 3 ifconfig.me 2>/dev/null || echo 'cette IP')"
+  log_warn " 1. DNS $DOMAIN ne pointe pas encore vers $(curl -4 -s --max-time 3 ifconfig.me 2>/dev/null || echo 'cette IP')"
  log_warn " 2. Port 80 bloqué par le firewall ou le provider VPS"
  log_warn " 3. Rate limit Let's Encrypt (5 tentatives/heure/domaine)"
  log_warn "Nginx reste actif avec le certificat auto-signé. HTTPS fonctionne avec avertissement navigateur."
