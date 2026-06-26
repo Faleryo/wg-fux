@@ -404,11 +404,21 @@ router.post(
       }
     }
 
+    // Extract the client's assigned IP from its config file (wg-create-client.sh
+    // writes it there but doesn't output it to stdout/stderr in a parseable way).
+    let clientIp = null;
+    try {
+      const configPath = path.join(getClientDir(container, name), `${name}.conf`);
+      const confText = await fsPromises.readFile(configPath, 'utf8');
+      const addrMatch = confText.match(/^\s*Address\s*=\s*([0-9]{1,3}(?:\.[0-9]{1,3}){3})/m);
+      if (addrMatch) clientIp = addrMatch[1];
+    } catch { /* non-blocking — ip stays null */ }
+
     let newClient;
     try {
       [newClient] = await db
         .insert(schema.clients)
-        .values({ container, name, publicKey, expiry, quota, uploadLimit, enabled: true })
+        .values({ container, name, publicKey, ip: clientIp, expiry: expiry || null, quota, uploadLimit, enabled: true })
         .returning();
     } catch (dbErr) {
       if (
