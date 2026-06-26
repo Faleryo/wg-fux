@@ -314,6 +314,23 @@ router.post(
       }
     }
 
+    // Early duplicate check — avoids running the WG script unnecessarily and
+    // gives a clear French error message instead of a raw SQLITE_CONSTRAINT later.
+    const [existingClient] = await db
+      .select({ id: schema.clients.id })
+      .from(schema.clients)
+      .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
+      .limit(1);
+    if (existingClient) {
+      return res.status(409).json(
+        createError(
+          `Un client nommé '${name}' existe déjà dans le conteneur '${container}'`,
+          'Client already exists',
+          'CONFLICT'
+        )
+      );
+    }
+
     // Auto-create container on filesystem+DB if missing (idempotent)
     const clientsBaseDir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
     const containerDir = path.join(clientsBaseDir, container);
@@ -425,15 +442,15 @@ router.post(
         dbErr.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
         dbErr.message?.includes('UNIQUE constraint')
       ) {
-        return res
-          .status(409)
-          .json(
-            createError(
-              `Client '${name}' already exists in database`,
-              'Duplicate client entry',
-              'CONFLICT'
-            )
-          );
+        // Race condition: two concurrent requests passed the early check simultaneously.
+        // Return a clear French message — the client was created by the first request.
+        return res.status(409).json(
+          createError(
+            `Un client nommé '${name}' existe déjà dans le conteneur '${container}'`,
+            'Client already exists',
+            'CONFLICT'
+          )
+        );
       }
       throw dbErr;
     }
