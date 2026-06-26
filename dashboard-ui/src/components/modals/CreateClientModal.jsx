@@ -88,9 +88,13 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
         }
 
         await onCreate(name, targetContainer, expiry, quota, uploadLimit);
+        addToast(`Peer ${name} créé avec succès`, 'success');
         onClose();
       } catch (error) {
-        console.error('[CreateClientModal]', error);
+        addToast(
+          error?.response?.data?.error || 'Erreur lors de la création du client',
+          'error'
+        );
       } finally {
         setLoading(false);
         submittingRef.current = false;

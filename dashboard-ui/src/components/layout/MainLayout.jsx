@@ -129,15 +129,9 @@ const MainLayout = ({ session, onLogout }) => {
 
   // ── Client CRUD handlers ──────────────────────────────────────────────────
   const handleCreateClient = async (name, container, expiry, quota, uploadLimit) => {
-    try {
-      await axiosInstance.post('/clients', { name, container, expiry, quota, uploadLimit });
-      fetchData();
-      addToast(`Peer ${name} créé avec succès`, 'success');
-      // 📊 SaaS Tracking
-      window.posthog?.capture('client_created', { container, name });
-    } catch (e) {
-      addToast(e.response?.data?.error || 'Erreur lors de la création du client', 'error');
-    }
+    await axiosInstance.post('/clients', { name, container, expiry, quota, uploadLimit });
+    fetchData();
+    window.posthog?.capture('client_created', { container, name });
   };
 
   const handleCreateContainer = async (name) => {
