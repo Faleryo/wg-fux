@@ -22,6 +22,7 @@ const containers = sqliteTable(
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name').notNull().unique(),
+    owner: text('owner').default('admin'), // The user who owns this container (for resellers)
     interface: text('interface').default('wg0'), // Mapping to WireGuard interface (wg0, wg1, etc.)
     createdAt: integer('createdAt', { mode: 'timestamp' }).default(
       sql`(cast(strftime('%s','now') as int))`

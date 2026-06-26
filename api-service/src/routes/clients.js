@@ -14,7 +14,7 @@ const {
   containerSchema,
   paginationSchema,
 } = require('../../db/validation');
-const { auth, requireManager } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const { runSystemCommand, writeFileAsRoot, unlinkAsRoot } = require('../services/shell');
 const { getWireGuardStats, getClientDir, parseWireGuardDump } = require('../services/system');
 const { getScriptPath } = require('../services/config');
@@ -36,11 +36,19 @@ const creationLimiter = rateLimit({
 });
 const identifierRegex = /^[a-zA-Z0-9_-]+$/;
 
-// 🛡️ OBSIDIAN-HARDENING: Global parameter validation
-router.param('container', (req, res, next, val) => {
+// 🛡️ OBSIDIAN-HARDENING: Global parameter validation and RBAC
+router.param('container', async (req, res, next, val) => {
   if (!identifierRegex.test(val))
     return res.status(400).json(createError('Invalid container identifier'));
-  next();
+  
+  try {
+    if (!(await verifyOwnership(req, val))) {
+      return res.status(403).json(createError('Forbidden: Vous ne possédez pas ce conteneur.'));
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 router.param('name', (req, res, next, val) => {
   if (!identifierRegex.test(val))
@@ -50,15 +58,35 @@ router.param('name', (req, res, next, val) => {
 
 // --- Container Routes ---
 
+async function verifyOwnership(req, containerName) {
+  if (req.user.role === 'admin' || req.user.role === 'manager') return true;
+  const [container] = await db
+    .select()
+    .from(schema.containers)
+    .where(eq(schema.containers.name, containerName))
+    .limit(1);
+  return container && container.owner === req.user.username;
+}
+
 router.get(
   '/containers',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const dir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
     try {
       const entries = await fsPromises.readdir(dir, { withFileTypes: true });
-      const containers = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+      let containers = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+      
+      if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+        // Filter by ownership for viewers (resellers)
+        const userContainers = await db
+          .select({ name: schema.containers.name })
+          .from(schema.containers)
+          .where(eq(schema.containers.owner, req.user.username));
+        const ownedNames = new Set(userContainers.map((c) => c.name));
+        containers = containers.filter((name) => ownedNames.has(name));
+      }
+      
       res.json(containers);
     } catch (error) {
       if (error.code === 'ENOENT') return res.json([]);
@@ -70,7 +98,6 @@ router.get(
 router.post(
   '/containers',
   auth,
-  requireManager,
   creationLimiter,
   asyncWrap(async (req, res) => {
     const parsed = containerSchema.safeParse(req.body);
@@ -86,7 +113,11 @@ router.post(
     }
 
     // 🛡️ Sync DB
-    await db.insert(schema.containers).values({ name, interface: 'wg0' }).onConflictDoNothing();
+    await db.insert(schema.containers).values({ 
+      name, 
+      owner: req.user.username,
+      interface: 'wg0' 
+    }).onConflictDoNothing();
 
     await auditLog({
       actor: req.user.username,
@@ -101,9 +132,13 @@ router.post(
 router.delete(
   '/containers/:name',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const { name } = req.params;
+    
+    if (!(await verifyOwnership(req, name))) {
+      return res.status(403).json(createError('Forbidden: Vous ne possédez pas ce conteneur.'));
+    }
+
     const { success, error } = await runSystemCommand(getScriptPath('wg-remove-container.sh'), [
       name,
     ]);
@@ -129,7 +164,6 @@ router.delete(
 router.get(
   '/',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const { getInterfaces } = require('../services/system');
     const allInterfaces = await getInterfaces();
@@ -204,7 +238,6 @@ router.get(
 router.get(
   '/export',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const format = req.query.format === 'json' ? 'json' : 'csv';
     const allClients = await db.select().from(schema.clients);
@@ -240,7 +273,6 @@ router.get(
 router.post(
   '/',
   auth,
-  requireManager,
   creationLimiter,
   asyncWrap(async (req, res) => {
     const result = clientSchema.safeParse(req.body);
@@ -249,6 +281,19 @@ router.post(
     }
 
     const { container, name, expiry, quota, uploadLimit } = result.data;
+
+    // Check ownership before proceeding
+    const [existingContainer] = await db
+      .select()
+      .from(schema.containers)
+      .where(eq(schema.containers.name, container))
+      .limit(1);
+
+    if (existingContainer) {
+      if (req.user.role !== 'admin' && req.user.role !== 'manager' && existingContainer.owner !== req.user.username) {
+        return res.status(403).json(createError('Forbidden: Vous ne possédez pas ce conteneur.'));
+      }
+    }
 
     // Auto-create container on filesystem+DB if missing (idempotent)
     const clientsBaseDir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
@@ -274,7 +319,11 @@ router.post(
     }
     await db
       .insert(schema.containers)
-      .values({ name: container, interface: 'wg0' })
+      .values({ 
+        name: container, 
+        owner: req.user.username,
+        interface: 'wg0' 
+      })
       .onConflictDoNothing();
 
     const { success, error, code, stdout } = await runSystemCommand(
@@ -376,7 +425,6 @@ router.post(
 router.post(
   '/:container/:name/toggle',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const parsed = toggleSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -463,7 +511,6 @@ router.post(
 router.delete(
   '/:container/:name',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
     const { success, error } = await runSystemCommand(getScriptPath('wg-remove-client.sh'), [
@@ -496,7 +543,6 @@ router.delete(
 router.patch(
   '/:container/:name',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
     const parsed = clientPatchSchema.safeParse(req.body);
@@ -577,13 +623,20 @@ router.patch(
 router.post(
   '/bulk-update',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const parsed = bulkUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json(createError(parsed.error, 'Validation failed'));
     }
-    const { clients, update } = parsed.data;
+    let { clients, update } = parsed.data;
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+      const ownedContainers = new Set(
+        (await db.select({ name: schema.containers.name }).from(schema.containers).where(eq(schema.containers.owner, req.user.username)))
+        .map(c => c.name)
+      );
+      clients = clients.filter(c => ownedContainers.has(c.container));
+      if (clients.length === 0) return res.json({ success: 0, failed: 0 });
+    }
     let successCount = 0,
       failedCount = 0;
     const dbPatch = {};
@@ -662,13 +715,20 @@ router.post(
 router.post(
   '/bulk-delete',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const parsed = bulkDeleteSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json(createError(parsed.error, 'Validation failed'));
     }
-    const { clients } = parsed.data;
+    let { clients } = parsed.data;
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+      const ownedContainers = new Set(
+        (await db.select({ name: schema.containers.name }).from(schema.containers).where(eq(schema.containers.owner, req.user.username)))
+        .map(c => c.name)
+      );
+      clients = clients.filter(c => ownedContainers.has(c.container));
+      if (clients.length === 0) return res.json({ success: 0, failed: 0 });
+    }
     let successCount = 0,
       failedCount = 0;
     for (const client of clients) {
@@ -714,12 +774,14 @@ router.post(
 router.post(
   '/move',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const parsed = moveClientSchema.safeParse(req.body);
     if (!parsed.success)
       return res.status(400).json(createError(parsed.error, 'Validation failed'));
     const { container, name, newContainer } = parsed.data;
+    if (!(await verifyOwnership(req, container)) || !(await verifyOwnership(req, newContainer))) {
+      return res.status(403).json(createError('Forbidden: Vous ne possédez pas ces conteneurs.'));
+    }
     const { success, error } = await runSystemCommand(getScriptPath('wg-move-client.sh'), [
       container,
       name,
@@ -747,7 +809,6 @@ router.post(
 router.get(
   '/:container/:name/history',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
     const parsed = paginationSchema.safeParse(req.query);
@@ -775,7 +836,6 @@ router.get(
 router.get(
   '/:container/:name/history-hours',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
     const [client] = await db
@@ -799,7 +859,6 @@ router.get(
 router.get(
   '/:container/:name/config',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
     const [client] = await db

@@ -27,6 +27,7 @@ async function initializeDatabase() {
  CREATE TABLE IF NOT EXISTS containers (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  name TEXT NOT NULL UNIQUE,
+ owner TEXT DEFAULT 'admin',
  interface TEXT DEFAULT 'wg0',
  createdAt INTEGER DEFAULT (strftime('%s', 'now'))
  );
@@ -89,6 +90,16 @@ async function initializeDatabase() {
     try {
       sqlite.exec("ALTER TABLE containers ADD COLUMN interface TEXT DEFAULT 'wg0'");
       logger.info('db', '➕ Added "interface" column to containers table.');
+    } catch (e) {
+      if (!e.message.includes('duplicate column name')) {
+        logger.warn('db', `Migration notice: ${e.message}`);
+      }
+    }
+
+    // 2.1. Migration Phase 5 : Add owner column to containers for resellers
+    try {
+      sqlite.exec("ALTER TABLE containers ADD COLUMN owner TEXT DEFAULT 'admin'");
+      logger.info('db', '➕ Added "owner" column to containers table.');
     } catch (e) {
       if (!e.message.includes('duplicate column name')) {
         logger.warn('db', `Migration notice: ${e.message}`);

@@ -13,7 +13,6 @@ RUN echo "server { \
     add_header X-Content-Type-Options nosniff always; \
     add_header Referrer-Policy strict-origin-when-cross-origin always; \
     add_header Permissions-Policy \"camera=(), microphone=(), geolocation=()\" always; \
-    add_header Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://eu.posthog.com ws: wss:; img-src 'self' data:; frame-ancestors 'none';\" always; \
     location / { \
     root /usr/share/nginx/html; \
     index index.html; \
