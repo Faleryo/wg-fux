@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, X, Trash2, ShieldAlert } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -29,6 +29,13 @@ const ConfirmModal = ({
   const { mode } = useTheme();
   const isDark = mode === 'dark';
   const confirmRef = useRef(null);
+  // Guard contre le double-clic : désactive le bouton dès le 1er appel
+  const [confirmed, setConfirmed] = useState(false);
+
+  // Réinitialise le guard à chaque ouverture/fermeture du modal
+  useEffect(() => {
+    if (isOpen) setConfirmed(false);
+  }, [isOpen]);
 
   // Focus trap sur le bouton Confirmer
   useEffect(() => {
@@ -162,9 +169,14 @@ const ConfirmModal = ({
               </button>
               <button
                 ref={confirmRef}
-                onClick={onConfirm}
+                onClick={() => {
+                  if (confirmed) return;
+                  setConfirmed(true);
+                  onConfirm();
+                }}
+                disabled={confirmed}
                 className={cn(
-                  'flex-1 py-3 rounded-2xl text-white text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2',
+                  'flex-1 py-3 rounded-2xl text-white text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed',
                   isDanger
                     ? 'bg-red-600 hover:bg-red-500 shadow-red-600/30'
                     : 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/30'

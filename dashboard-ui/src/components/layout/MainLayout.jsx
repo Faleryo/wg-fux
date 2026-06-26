@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, Search } from 'lucide-react';
 import { axiosInstance } from '../../lib/api';
@@ -67,6 +67,8 @@ const MainLayout = ({ session, onLogout }) => {
   const [selectedClientForEdit, setSelectedClientForEdit] = useState(null);
   const [selectedClientForModal, setSelectedClientForModal] = useState(null);
   const [confirmModal, setConfirmModal] = useState({ open: false, client: null });
+  // Guard anti-double-appel pour executeDeleteClient (filet de sécurité supplémentaire)
+  const isDeletingRef = useRef(false);
 
   // ── All data comes from the dedicated hook ────────────────────────────────
   const {
@@ -182,42 +184,51 @@ const MainLayout = ({ session, onLogout }) => {
   };
 
   const executeDeleteClient = async () => {
+    // Protection absolue contre le double-appel (modal, WS, StrictMode...)
+    if (isDeletingRef.current) return;
+    isDeletingRef.current = true;
+
     const { type, client, container, user } = confirmModal;
     setConfirmModal({ open: false, client: null, container: null, user: null });
     // Bloque les toasts WebSocket (peer_disconnected) pendant 3s pour éviter le doublon
     suppressWsToast();
 
-    if (type === 'delete-user' && user) {
-      try {
-        await axiosInstance.delete(`/users/${user.username}`);
-        addToast(`Opérateur ${user.username} supprimé`, 'success');
-        fetchData();
-      } catch (err) {
-        addToast(err.response?.data?.error || 'Erreur suppression', 'error');
+    try {
+      if (type === 'delete-user' && user) {
+        try {
+          await axiosInstance.delete(`/users/${user.username}`);
+          addToast(`Opérateur ${user.username} supprimé`, 'success');
+          fetchData();
+        } catch (err) {
+          addToast(err.response?.data?.error || 'Erreur suppression', 'error');
+        }
+        return;
       }
-      return;
-    }
 
-    if (type === 'delete-container' && container) {
+      if (type === 'delete-container' && container) {
+        try {
+          await axiosInstance.delete(`/clients/containers/${container}`);
+          addToast('Conteneur supprimé avec succès', 'success');
+          fetchData();
+        } catch (err) {
+          addToast(err.response?.data?.error || 'Erreur lors de la suppression', 'error');
+        }
+        return;
+      }
+
+      if (!client) return;
       try {
-        await axiosInstance.delete(`/clients/containers/${container}`);
-        addToast('Conteneur supprimé avec succès', 'success');
+        await axiosInstance.delete(`/clients/${client.container}/${client.name}`);
+        addToast('Client supprimé', 'success');
         fetchData();
+        // 📊 SaaS Tracking
+        window.posthog?.capture('client_deleted', { container: client.container, name: client.name });
+        if (topologySelectedClient?.id === client.id) setTopologySelectedClient(null);
       } catch (err) {
         addToast(err.response?.data?.error || 'Erreur lors de la suppression', 'error');
       }
-      return;
-    }
-    if (!client) return;
-    try {
-      await axiosInstance.delete(`/clients/${client.container}/${client.name}`);
-      addToast('Client supprimé', 'success');
-      fetchData();
-      // 📊 SaaS Tracking
-      window.posthog?.capture('client_deleted', { container: client.container, name: client.name });
-      if (topologySelectedClient?.id === client.id) setTopologySelectedClient(null);
-    } catch (err) {
-      addToast(err.response?.data?.error || 'Erreur lors de la suppression', 'error');
+    } finally {
+      isDeletingRef.current = false;
     }
   };
 
