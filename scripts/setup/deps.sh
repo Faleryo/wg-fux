@@ -33,7 +33,7 @@ install_deps() {
     fi
     sudo apt-get update
     sudo apt-get install -y \
-        docker.io docker-compose-plugin \
+        docker.io docker-compose-v2 \
         wireguard-tools openssl curl \
         python3 nodejs
     sudo systemctl enable --now docker
