@@ -18,6 +18,11 @@ const HEAVY_SECTIONS = new Set(['dashboard', 'containers', 'topology']);
 const useDashboardData = (session, activeSection = 'dashboard') => {
   const { addToast } = useToast();
   const prevDataRef = useRef({ clients: [], timestamp: null });
+  // Supprime les toasts WebSocket pendant 3s après une action manuelle (ex: suppression)
+  const suppressWsUntilRef = useRef(0);
+  const suppressWsToast = useCallback(() => {
+    suppressWsUntilRef.current = Date.now() + 3000;
+  }, []);
 
   const [clients, setClients] = useState([]);
   const [activeInterface, setActiveInterface] = useState('wg0');
@@ -65,15 +70,20 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
         data.type === 'peer_connected' ||
         data.type === 'peer_disconnected';
       if (isPeerEvent) {
-        const name = data.name || data.client?.name || 'Peer';
-        const container = data.container || data.client?.container || '';
-        const connected =
-          data.type !== 'peer_disconnected' &&
-          (data.event === 'connected' || data.type === 'peer_connected');
-        addToast(
-          `${name}${container ? ' (' + container + ')' : ''} ${connected ? 'connecté' : 'déconnecté'}`,
-          connected ? 'success' : 'info'
-        );
+        // Ne pas afficher de toast WebSocket pendant la fenêtre de suppression manuelle
+        // (évite le doublon : toast DELETE + toast WS peer_disconnected)
+        const isSuppressed = Date.now() < suppressWsUntilRef.current;
+        if (!isSuppressed) {
+          const name = data.name || data.client?.name || 'Peer';
+          const container = data.container || data.client?.container || '';
+          const connected =
+            data.type !== 'peer_disconnected' &&
+            (data.event === 'connected' || data.type === 'peer_connected');
+          addToast(
+            `${name}${container ? ' (' + container + ')' : ''} ${connected ? 'connecté' : 'déconnecté'}`,
+            connected ? 'success' : 'info'
+          );
+        }
         fetchData();
       }
     },
@@ -322,6 +332,7 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
       fetchData,
       fetchSentinel,
       handleRunSpeedtest,
+      suppressWsToast,
       setUsers,
       activeInterface,
       setActiveInterface,
@@ -346,6 +357,7 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
       fetchData,
       fetchSentinel,
       handleRunSpeedtest,
+      suppressWsToast,
       setUsers,
       activeInterface,
       setActiveInterface,

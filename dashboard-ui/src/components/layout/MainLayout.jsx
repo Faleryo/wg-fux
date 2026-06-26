@@ -86,6 +86,7 @@ const MainLayout = ({ session, onLogout }) => {
     onlinePeers,
     fetchData,
     handleRunSpeedtest,
+    suppressWsToast,
     activeInterface,
     setActiveInterface,
     interfaces,
@@ -183,6 +184,8 @@ const MainLayout = ({ session, onLogout }) => {
   const executeDeleteClient = async () => {
     const { type, client, container, user } = confirmModal;
     setConfirmModal({ open: false, client: null, container: null, user: null });
+    // Bloque les toasts WebSocket (peer_disconnected) pendant 3s pour éviter le doublon
+    suppressWsToast();
 
     if (type === 'delete-user' && user) {
       try {
