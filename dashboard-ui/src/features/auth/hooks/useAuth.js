@@ -9,8 +9,8 @@ const STORAGE_KEYS = {
 
 const readSession = () => ({
   token: localStorage.getItem(STORAGE_KEYS.token) || sessionStorage.getItem(STORAGE_KEYS.token),
-  role: localStorage.getItem(STORAGE_KEYS.role),
-  username: localStorage.getItem(STORAGE_KEYS.username),
+  role: localStorage.getItem(STORAGE_KEYS.role) || sessionStorage.getItem(STORAGE_KEYS.role),
+  username: localStorage.getItem(STORAGE_KEYS.username) || sessionStorage.getItem(STORAGE_KEYS.username),
 });
 
 const clearStorage = () => {
