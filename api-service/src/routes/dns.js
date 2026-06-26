@@ -8,18 +8,21 @@ const { dnsConfigSchema, dnsFilterSchema, dnsRemoveSchema } = require('../../db/
 
 // AdGuard Home internal URL (Docker DNS)
 const AGH_BASE_URL = process.env.AGH_BASE_URL || 'http://adguard:3000';
-const AGH_USER = (process.env.AGH_USER || '').trim();
-const AGH_PASS = (process.env.AGH_PASSWORD || '').trim();
-if (!AGH_USER || !AGH_PASS) {
-  log.error('dns', 'AGH_USER / AGH_PASSWORD not configured — DNS routes will fail');
-}
-const AGH_AUTH = {
-  headers: {
-    Authorization: `Basic ${Buffer.from(`${AGH_USER}:${AGH_PASS}`).toString('base64')}`,
-    Accept: '*/*',
-    'User-Agent': 'wg-fux-api',
-  },
-  timeout: 5000,
+
+const getAghAuth = () => {
+  const user = (process.env.AGH_USER || '').trim();
+  const pass = (process.env.AGH_PASSWORD || '').trim();
+  if (!user || !pass) {
+    log.error('dns', 'AGH_USER / AGH_PASSWORD not configured — DNS routes will fail');
+  }
+  return {
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
+      Accept: '*/*',
+      'User-Agent': 'wg-fux-api',
+    },
+    timeout: 5000,
+  };
 };
 
 /**
@@ -37,11 +40,11 @@ router.get(
       parental = { data: {} };
     if (process.env.VITEST !== 'true') {
       const results = await Promise.allSettled([
-        axios.get(`${AGH_BASE_URL}/control/dns_info`, AGH_AUTH),
-        axios.get(`${AGH_BASE_URL}/control/filtering/status`, AGH_AUTH),
-        axios.get(`${AGH_BASE_URL}/control/safesearch/status`, AGH_AUTH),
-        axios.get(`${AGH_BASE_URL}/control/safebrowsing/status`, AGH_AUTH),
-        axios.get(`${AGH_BASE_URL}/control/parental/status`, AGH_AUTH),
+        axios.get(`${AGH_BASE_URL}/control/dns_info`, getAghAuth()),
+        axios.get(`${AGH_BASE_URL}/control/filtering/status`, getAghAuth()),
+        axios.get(`${AGH_BASE_URL}/control/safesearch/status`, getAghAuth()),
+        axios.get(`${AGH_BASE_URL}/control/safebrowsing/status`, getAghAuth()),
+        axios.get(`${AGH_BASE_URL}/control/parental/status`, getAghAuth()),
       ]);
       [dnsInfo, filtering, safeSearch, safeBrowsing, parental] = results.map((r) =>
         r.status === 'fulfilled' ? r.value : { data: {} }
@@ -88,7 +91,7 @@ router.post(
 
     const requests = [];
     if (Object.keys(dnsConfig).length > 0) {
-      requests.push(axios.post(`${AGH_BASE_URL}/control/dns_config`, dnsConfig, AGH_AUTH));
+      requests.push(axios.post(`${AGH_BASE_URL}/control/dns_config`, dnsConfig, getAghAuth()));
     }
 
     if (filtering_enabled !== undefined) {
@@ -96,7 +99,7 @@ router.post(
         axios.post(
           `${AGH_BASE_URL}/control/filtering/config`,
           { enabled: !!filtering_enabled },
-          AGH_AUTH
+          getAghAuth()
         )
       );
     }
@@ -106,19 +109,19 @@ router.post(
         axios.put(
           `${AGH_BASE_URL}/control/safesearch/settings`,
           { enabled: !!safesearch_enabled },
-          AGH_AUTH
+          getAghAuth()
         )
       );
     }
 
     if (safebrowsing_enabled !== undefined) {
       const mode = safebrowsing_enabled ? 'enable' : 'disable';
-      requests.push(axios.post(`${AGH_BASE_URL}/control/safebrowsing/${mode}`, {}, AGH_AUTH));
+      requests.push(axios.post(`${AGH_BASE_URL}/control/safebrowsing/${mode}`, {}, getAghAuth()));
     }
 
     if (parental_enabled !== undefined) {
       const mode = parental_enabled ? 'enable' : 'disable';
-      requests.push(axios.post(`${AGH_BASE_URL}/control/parental/${mode}`, {}, AGH_AUTH));
+      requests.push(axios.post(`${AGH_BASE_URL}/control/parental/${mode}`, {}, getAghAuth()));
     }
 
     if (requests.length > 0) {
@@ -142,7 +145,7 @@ router.get(
     let response = { data: {} };
     if (process.env.VITEST !== 'true') {
       response = await axios.get(`${AGH_BASE_URL}/control/stats`, {
-        ...AGH_AUTH,
+        ...getAghAuth(),
         maxRedirects: 0,
       });
     }
@@ -160,7 +163,7 @@ router.get(
   asyncWrap(async (req, res) => {
     try {
       const response = await axios.get(`${AGH_BASE_URL}/control/status`, {
-        ...AGH_AUTH,
+        ...getAghAuth(),
         timeout: 2000,
         maxRedirects: 0,
       });
@@ -186,7 +189,7 @@ router.get(
     let response = { data: {} };
     if (process.env.VITEST !== 'true') {
       response = await axios.get(`${AGH_BASE_URL}/control/filtering/status`, {
-        ...AGH_AUTH,
+        ...getAghAuth(),
         maxRedirects: 0,
       });
     }
@@ -212,7 +215,7 @@ router.post(
       const response = await axios.post(
         `${AGH_BASE_URL}/control/filtering/add_url`,
         { name, url, whitelist: false },
-        { ...AGH_AUTH, maxRedirects: 0 }
+        { ...getAghAuth(), maxRedirects: 0 }
       );
       return res.json({ success: true, data: response.data });
     }
@@ -238,7 +241,7 @@ router.post(
       const response = await axios.post(
         `${AGH_BASE_URL}/control/filtering/remove_url`,
         { url },
-        { ...AGH_AUTH, maxRedirects: 0 }
+        { ...getAghAuth(), maxRedirects: 0 }
       );
       return res.json({ success: true, data: response.data });
     }

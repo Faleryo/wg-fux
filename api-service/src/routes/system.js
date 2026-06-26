@@ -486,10 +486,10 @@ router.get(
     const { level } = parsed.data;
     const limit = Math.min(500, Math.max(1, parseInt(parsed.data.limit) || 100));
 
-    let query = db.select().from(schema.logs).where(eq(schema.logs.type, 'auth'));
+    let query = db.select().from(schema.logs);
 
     if (level) {
-      query = query.where(eq(schema.logs.status, level));
+      query = query.where(eq(schema.logs.type, level.toLowerCase()));
     }
 
     const history = await query.orderBy(desc(schema.logs.timestamp)).limit(limit);

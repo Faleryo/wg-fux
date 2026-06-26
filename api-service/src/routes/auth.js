@@ -6,7 +6,7 @@ const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
 const { rateLimit } = require('express-rate-limit');
 const { db, schema } = require('../../db');
-const { eq, desc, and, gt } = require('drizzle-orm');
+const { eq, desc, and, gt, count } = require('drizzle-orm');
 const { loginSchema } = require('../../db/validation');
 const { auth, requireAdmin, requireManager } = require('../middleware/auth');
 const { verifyPassword, logLoginAttempt } = require('../services/auth');
@@ -129,14 +129,17 @@ router.post(
       await logLoginAttempt(username, clientIp, userAgent, false);
 
       // SRE-HARDENING: Progressive delay to combat distributed brute-force
-      const attempts = await db.$count(
-        schema.logs,
-        and(
-          eq(schema.logs.name, username),
-          eq(schema.logs.status, 'failure'),
-          gt(schema.logs.timestamp, new Date(Date.now() - 15 * 60 * 1000))
-        )
-      );
+      const [result] = await db
+        .select({ value: count() })
+        .from(schema.logs)
+        .where(
+          and(
+            eq(schema.logs.name, username),
+            eq(schema.logs.status, 'failure'),
+            gt(schema.logs.timestamp, new Date(Date.now() - 15 * 60 * 1000))
+          )
+        );
+      const attempts = result.value;
 
       const delay = Math.min(10000, 500 * Math.pow(2, Math.min(attempts, 4)));
       setTimeout(
