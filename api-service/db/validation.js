@@ -203,7 +203,7 @@ const restartSchema = z.object({
 });
 
 const logsQuerySchema = paginationSchema.extend({
-  level: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR', 'AUDIT']).optional(),
+  level: z.enum(['auth', 'snapshot', 'system', 'maintenance']).optional(),
 });
 
 module.exports = {

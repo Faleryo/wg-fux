@@ -1,5 +1,6 @@
 const fsPromises = require('fs').promises;
 const path = require('path');
+const os = require('os');
 const { runCommand } = require('./shell');
 const { executeScript } = require('./scripts');
 const log = require('./logger');
@@ -175,7 +176,6 @@ const getTelemetry = async (iface) => {
     else if (jitter > 3) bloatGrade = 'B';
     else if (jitter > 1) bloatGrade = 'A';
 
-    const os = require('os');
     return {
       interface: targetIface,
       cpu: stats.cpu,

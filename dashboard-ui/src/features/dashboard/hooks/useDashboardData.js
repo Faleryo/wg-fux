@@ -290,7 +290,7 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
   }, [fetchData, fetchSentinel, fetchAdguard]);
 
   // ── Actions ───────────────────────────────────────────────────────────────
-  const handleRunSpeedtest = async () => {
+  const handleRunSpeedtest = useCallback(async () => {
     setSpeedtest({ loading: true, data: null });
     try {
       const res = await axiosInstance.post('/system/speedtest');
@@ -300,7 +300,7 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
       setSpeedtest({ loading: false, data: null });
       addToast('Erreur Speedtest', 'error');
     }
-  };
+  }, [addToast]);
 
   return useMemo(
     () => ({

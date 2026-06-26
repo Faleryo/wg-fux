@@ -4,7 +4,7 @@ import { cn } from '../../../lib/utils';
 
 const NetworkEdge = ({ clients, centerX, centerY, radius, isDark, getContainerColor }) => {
   return (
-    <svg className="absolute inset-0 w-full h-full pointer-events-none drop-shadow-2xl">
+    <svg xmlns="http://www.w3.org/2000/svg" className="absolute inset-0 w-full h-full pointer-events-none drop-shadow-2xl">
       {clients.map((client, i) => {
         const angle = (i * (2 * Math.PI)) / clients.length - Math.PI / 2;
         const x = centerX + radius * Math.cos(angle);

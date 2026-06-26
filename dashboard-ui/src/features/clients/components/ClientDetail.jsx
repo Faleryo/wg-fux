@@ -115,7 +115,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
         upload: client.uploadRate || 0,
       },
     ]);
-  }, [client]);
+  }, [client.downloadRate, client.uploadRate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load connection history
   useEffect(() => {

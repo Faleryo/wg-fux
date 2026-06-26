@@ -15,7 +15,7 @@ const DnsFilteringPanel = ({ stats, status }) => {
           label: 'Bloqués',
           value: stats?.num_blocked_filtering || 0,
           icon: <Shield className="text-rose-500" />,
-          sub: `${((stats?.num_blocked_filtering / stats?.num_dns_queries) * 100 || 0).toFixed(1)}%`,
+          sub: `${stats?.num_dns_queries ? ((stats.num_blocked_filtering / stats.num_dns_queries) * 100).toFixed(1) : 0}%`,
         },
         {
           label: 'Latence',

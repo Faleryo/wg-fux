@@ -32,7 +32,7 @@ if [ ! -d "$SRC" ]; then log_error "Source client not found"; exit 1; fi
 if [ ! -d "$DEST_PARENT" ]; then log_error "Destination container not found"; exit 1; fi
 if [ -d "$DEST" ]; then log_error "Client already exists in destination"; exit 1; fi
 
-mv "$SRC" "$DEST"
+mv "$SRC" "$DEST" || { log_error "Failed to move client directory"; exit 1; }
 chown root:wg-api "$DEST"
 chmod 750 "$DEST"
 chown root:wg-api "$DEST/$NAME.conf"

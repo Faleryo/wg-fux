@@ -31,7 +31,7 @@ trap 'rm -rf "$TEMP_DIR"' EXIT INT TERM
 # 1. Database Backup (Safe copy for SQLite WAL)
 if [ -f "$DB_FILE" ]; then
  echo "📦 Backing up SQLite database..."
- sqlite3 "$DB_FILE" ".backup '$TEMP_DIR/database.sqlite'"
+  sqlite3 "$DB_FILE" ".backup ${TEMP_DIR}/database.sqlite"
 fi
 
 # 2. WireGuard Configs

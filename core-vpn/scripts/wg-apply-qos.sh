@@ -143,7 +143,7 @@ find /etc/wireguard/clients -name "upload_limit" -print0 2>/dev/null | while IFS
 
  if [ -n "$ID" ]; then
  # Class ID formatted as hex for better tc compatibility
- CLASSID=$(printf "1:%x" $ID)
+  CLASSID=$(printf "1:%x" "$ID")
 
  # --- DOWNLOAD LIMIT (Egress) ---
  # Create class for this client (ignore if already exists, then just set rate)

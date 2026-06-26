@@ -181,7 +181,7 @@ if [ "$PROFILE" = "gaming" ]; then
  if ip link show "$INTERFACE" > /dev/null 2>&1; then
 	# MTU depuis manager.conf (défaut 1420). Les peers gaming peuvent
 	# réduire leur propre MTU côté client si nécessaire (ex: 1280 sur 4G).
-	local target_mtu="${SERVER_MTU:-1420}"
+	target_mtu="${SERVER_MTU:-1420}"
 	ip link set dev "$INTERFACE" mtu "$target_mtu" 2>/dev/null && log "✓ MTU $INTERFACE = $target_mtu (depuis manager.conf)" || log "⚠ failed to set MTU on $INTERFACE"
 
  # txqueuelen élevé = moins de drops sous burst

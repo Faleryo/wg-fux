@@ -125,7 +125,8 @@ class WebSocketService {
       const parsed = url.parse(request.url, true);
       const pathname = parsed.pathname;
       const wsProtocol = request.headers['sec-websocket-protocol'];
-      const token = request.headers['x-api-token'] || wsProtocol;
+      const token =
+        request.headers['x-api-token'] || (Array.isArray(wsProtocol) ? wsProtocol[0] : wsProtocol);
 
       if (!token) {
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
@@ -135,12 +136,14 @@ class WebSocketService {
 
       // 🛡️ Sentinel Watchdog bypass (internal agent)
       const sentinelToken = (process.env.SENTINEL_TOKEN || '').replace(/['"]/g, '').trim();
-      const receivedToken = (token || '').replace(/['"]/g, '').trim();
+      const receivedToken = String(token || '')
+        .replace(/['"]/g, '')
+        .trim();
       if (sentinelToken && receivedToken === sentinelToken) {
         request.user = { id: 0, role: 'admin', username: 'sentinel-watchdog', internal: true };
       } else {
         try {
-          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          const decoded = jwt.verify(String(token), process.env.JWT_SECRET);
           request.user = decoded;
         } catch (e) {
           socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');

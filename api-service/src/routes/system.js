@@ -447,7 +447,7 @@ router.post(
         stdout: cmdResult.stdout,
         code: cmdResult.code,
       });
-      throw createError(cmdResult.error, `Optimization failed: ${cmdResult.error}`, 'SYSTEM_ERROR');
+      throw createError(null, `Optimization failed: ${cmdResult.error}`, 'SYSTEM_ERROR');
     }
     res.json({ success: true, profile, message: `Profile ${profile} applied` });
   })

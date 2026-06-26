@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
@@ -30,7 +29,7 @@ const loginLimiter = rateLimit({
       const ip = req.ip;
       runSystemCommand(getScriptPath('wg-send-msg.sh'), [
         `⚠️ ALERTE SÉCURITÉ: Trop de tentatives de connexion échouées depuis l'IP ${ip}`,
-      ]);
+      ]).catch(() => {});
     }
     res
       .status(options.statusCode)

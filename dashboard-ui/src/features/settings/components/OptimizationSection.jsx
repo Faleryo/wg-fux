@@ -27,13 +27,22 @@ const OptimizationSection = ({ systemStats }) => {
   const [telemetry, setTelemetry] = useState({ jitter: '...', mtu: '...', bufferbloat: '...' });
 
   useEffect(() => {
-    fetchActiveProfile();
+    let cancelled = false;
+
+    fetchActiveProfile().then(() => {
+      if (cancelled) return;
+    });
 
     // Télémétrie — polling 5s (réduit de 1Hz pour éviter la surcharge VPS en production)
-    const telInterval = setInterval(fetchTelemetry, 5000);
+    const telInterval = setInterval(() => {
+      if (!cancelled) fetchTelemetry();
+    }, 5000);
     fetchTelemetry(); // Premier fetch immédiat
-    return () => clearInterval(telInterval);
-  }, []);
+    return () => {
+      cancelled = true;
+      clearInterval(telInterval);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchActiveProfile = async () => {
     try {
