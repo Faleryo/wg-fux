@@ -465,6 +465,7 @@ bring_up_services() {
     echo "$build_log" | grep -iE "error|failed|warn" || true
 
     log_info "🚀 Starting containers…"
+    sudo docker compose stop 2>/dev/null || true
     sudo docker compose up -d
 
     wait_for_healthy 180
