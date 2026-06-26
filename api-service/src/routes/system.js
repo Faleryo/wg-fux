@@ -488,6 +488,7 @@ router.get(
     }
     const { level } = parsed.data;
     const limit = Math.min(500, Math.max(1, parseInt(parsed.data.limit) || 100));
+    const offset = Math.max(0, parseInt(parsed.data.offset) || 0);
 
     let query = db.select().from(schema.logs);
 
@@ -495,7 +496,7 @@ router.get(
       query = query.where(eq(schema.logs.type, level.toLowerCase()));
     }
 
-    const history = await query.orderBy(desc(schema.logs.timestamp)).limit(limit);
+    const history = await query.orderBy(desc(schema.logs.timestamp)).limit(limit).offset(offset);
     res.json(
       history.map((h) => ({
         time: h.timestamp,

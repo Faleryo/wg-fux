@@ -178,7 +178,17 @@ router.get(
       });
     }
 
-    const dbClients = await db.select().from(schema.clients);
+    let dbClients = await db.select().from(schema.clients);
+
+    // Restrict viewer (reseller) role to their own containers only
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+      const ownedContainers = await db
+        .select({ name: schema.containers.name })
+        .from(schema.containers)
+        .where(eq(schema.containers.owner, req.user.username));
+      const ownedNames = new Set(ownedContainers.map((c) => c.name));
+      dbClients = dbClients.filter((c) => ownedNames.has(c.container));
+    }
 
     const clients = dbClients.map((c) => {
       const stat = wgStats[c.publicKey];
@@ -186,7 +196,7 @@ router.get(
         ...c,
         id: c.id,
         interface: stat ? stat.interface : 'wg0',
-        lastHandshake: stat ? stat.lastSeen : 0,
+        lastHandshake: stat ? stat.lastHandshake : 0,
         downloadBytes: stat ? stat.tx : 0,
         uploadBytes: stat ? stat.rx : 0,
         isOnline: stat ? stat.isOnline : false,

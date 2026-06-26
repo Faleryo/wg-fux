@@ -203,6 +203,7 @@ const getTelemetry = async (iface) => {
 const { getScriptPath } = require('./config');
 
 const checkScripts = async () => {
+  const { constants: fsConstants } = require('fs');
   const criticalScripts = [
     'wg-create-client.sh',
     'wg-remove-client.sh',
@@ -211,7 +212,7 @@ const checkScripts = async () => {
   ];
   for (const script of criticalScripts) {
     try {
-      await fsPromises.access(getScriptPath(script), fsPromises.constants.X_OK);
+      await fsPromises.access(getScriptPath(script), fsConstants.X_OK);
     } catch {
       return false;
     }

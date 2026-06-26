@@ -265,7 +265,7 @@ const interfaceWatchdog = async () => {
       `🚨 ALERTE SRE: Interface ${interfaceName} détectée DOWN. Tentative d'auto-réparation en cours...`,
     ]).catch(() => {});
 
-    const repair = await runSystemCommand('wg-quick', ['up', interfaceName]);
+    const repair = await runSystemCommand(process.env.WG_QUICK_BIN || 'wg-quick', ['up', interfaceName]);
     const healed = repair.success;
     const error = repair.error;
 

@@ -53,6 +53,10 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
   useEffect(() => {
     if (isOpen) {
       setName('');
+      setQuota(0);
+      setUploadLimit(0);
+      setExpiryDuration({ value: 30, unit: 'days' });
+      setIsUnlimited(true);
       if (targetContainer) {
         generateSuggestion(targetContainer);
       }

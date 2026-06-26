@@ -143,10 +143,25 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                       </span>
                     </td>
                     <td className="px-8 py-6">
-                      <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-black uppercase tracking-widest bg-emerald-500/5 px-4 py-1.5 rounded-xl border border-emerald-500/10 w-fit">
-                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
-                        {user.expiry && new Date(user.expiry) < new Date() ? 'Expiré' : 'Actif'}
-                      </div>
+                      {(() => {
+                        const isExpired = user.expiry && new Date(user.expiry) < new Date();
+                        return (
+                          <div className={cn(
+                            'flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-xl border w-fit',
+                            isExpired
+                              ? 'text-red-400 bg-red-500/5 border-red-500/10'
+                              : 'text-emerald-400 bg-emerald-500/5 border-emerald-500/10'
+                          )}>
+                            <div className={cn(
+                              'h-1.5 w-1.5 rounded-full',
+                              isExpired
+                                ? 'bg-red-500 shadow-[0_0_8px_#ef4444]'
+                                : 'bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]'
+                            )} />
+                            {isExpired ? 'Expiré' : 'Actif'}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-6 text-right">
                       <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform lg:translate-x-2 lg:group-hover:translate-x-0">
