@@ -140,20 +140,13 @@ router.post(
         );
       const attempts = result.value;
 
-      const delay = Math.min(10000, 500 * Math.pow(2, Math.min(attempts, 4)));
-      setTimeout(
-        () => {
-          // Client may have disconnected during the throttle delay — guard so
-          // `res.json` on a closed socket doesn't crash the process.
-          if (res.headersSent || res.writableEnded) return;
-          try {
-            res.status(401).json(createError('Invalid credentials', null, 'INVALID_AUTH'));
-          } catch (_err) {
-            /* socket closed during throttled response */
-          }
-        },
-        delay + Math.random() * 500
-      );
+      // Respond immediately to avoid holding connections open under brute-force.
+      // Signal the suggested wait via Retry-After so legitimate clients can back off.
+      const delayMs = Math.min(10000, 500 * Math.pow(2, Math.min(attempts, 4)));
+      res
+        .status(401)
+        .set('Retry-After', Math.ceil(delayMs / 1000))
+        .json(createError('Invalid credentials', null, 'INVALID_AUTH'));
     }
   })
 );

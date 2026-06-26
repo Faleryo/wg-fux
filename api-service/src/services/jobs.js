@@ -190,6 +190,17 @@ const logTrafficHistory = async () => {
       .delete(schema.logs)
       .where(and(eq(schema.logs.type, 'auth'), lt(schema.logs.timestamp, thirtyDaysAgo)))
       .catch(() => {});
+
+    // Prune system/maintenance logs older than 90 days (previously never cleaned up)
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    await db
+      .delete(schema.logs)
+      .where(and(eq(schema.logs.type, 'system'), lt(schema.logs.timestamp, ninetyDaysAgo)))
+      .catch(() => {});
+    await db
+      .delete(schema.logs)
+      .where(and(eq(schema.logs.type, 'maintenance'), lt(schema.logs.timestamp, ninetyDaysAgo)))
+      .catch(() => {});
   } catch (e) {
     log.error('jobs', 'Traffic Log Error', { err: e.message });
   } finally {
@@ -329,6 +340,34 @@ const adguardWatchdog = async () => {
   }
 };
 
+// Reconcile containers table with filesystem to prevent drift between the two
+// sources of truth (filesystem + SQLite). Runs daily. Logs warnings and
+// auto-inserts missing DB rows; it does NOT delete DB rows for missing dirs
+// (those are handled by explicit container delete operations).
+const reconcileContainers = async () => {
+  try {
+    const dir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
+    const entries = await fsPromises.readdir(dir, { withFileTypes: true }).catch(() => []);
+    const fsContainers = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+
+    const dbRows = await db.select({ name: schema.containers.name }).from(schema.containers);
+    const dbNames = new Set(dbRows.map((c) => c.name));
+
+    for (const name of fsContainers) {
+      if (!dbNames.has(name)) {
+        log.warn('reconcile', `Container '${name}' on filesystem but missing from DB — auto-inserting`);
+        await db
+          .insert(schema.containers)
+          .values({ name, owner: 'admin', interface: process.env.WG_INTERFACE || 'wg0' })
+          .onConflictDoNothing()
+          .catch((e) => log.error('reconcile', 'Auto-insert failed', { name, err: e.message }));
+      }
+    }
+  } catch (e) {
+    log.error('reconcile', 'Container reconciliation error', { err: e.message });
+  }
+};
+
 const startJobs = () => {
   if (process.env.VITEST === 'true' || process.env.NODE_ENV === 'test') return;
   loadSchedules();
@@ -338,6 +377,8 @@ const startJobs = () => {
   setInterval(adguardWatchdog, 60000);
   setInterval(rotateEnforcerLogs, 3600000);
   setInterval(vacuumDatabase, 86400000 * 7); // Weekly maintenance
+  setInterval(reconcileContainers, 86400000); // Daily filesystem↔DB reconciliation
+  reconcileContainers(); // Run once at startup
   scheduleAutomaticBackup();
 };
 

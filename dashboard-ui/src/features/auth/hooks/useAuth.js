@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { axiosInstance } from '../../../lib/api';
 
 const STORAGE_KEYS = {
   token: 'wg-api-token',
@@ -58,6 +59,30 @@ const useAuth = () => {
     clearStorage();
     setSession({ token: null, role: null, username: null });
   }, []);
+
+  // On mount, verify the stored token against the server and refresh role/username.
+  // This prevents a tampered or stale role in storage from influencing the UI.
+  useEffect(() => {
+    const { token } = readSession();
+    if (!token) return;
+    axiosInstance
+      .get('/auth/check')
+      .then((res) => {
+        const { role, username } = res.data;
+        setSession((prev) => {
+          if (prev.role === role && prev.username === username) return prev;
+          // Update storage in whichever store holds the token
+          const store = localStorage.getItem(STORAGE_KEYS.token) ? localStorage : sessionStorage;
+          store.setItem(STORAGE_KEYS.role, role);
+          store.setItem(STORAGE_KEYS.username, username);
+          return { ...prev, role, username };
+        });
+      })
+      .catch(() => {
+        clearStorage();
+        setSession({ token: null, role: null, username: null });
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onExpired = () => {

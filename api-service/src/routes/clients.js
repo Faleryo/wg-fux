@@ -250,7 +250,16 @@ router.get(
   auth,
   asyncWrap(async (req, res) => {
     const format = req.query.format === 'json' ? 'json' : 'csv';
-    const allClients = await db.select().from(schema.clients);
+    let allClients = await db.select().from(schema.clients);
+
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+      const ownedContainers = await db
+        .select({ name: schema.containers.name })
+        .from(schema.containers)
+        .where(eq(schema.containers.owner, req.user.username));
+      const ownedNames = new Set(ownedContainers.map((c) => c.name));
+      allClients = allClients.filter((c) => ownedNames.has(c.container));
+    }
 
     if (format === 'json') {
       res.setHeader('Content-Type', 'application/json');
@@ -647,6 +656,23 @@ router.post(
       clients = clients.filter(c => ownedContainers.has(c.container));
       if (clients.length === 0) return res.json({ success: 0, failed: 0 });
     }
+    // Snapshot original filesystem state before any writes so the rollback
+    // can restore the exact previous value (not just delete the file).
+    const origStates = {};
+    for (const client of clients) {
+      const clientDir = getClientDir(client.container, client.name);
+      const key = `${client.container}/${client.name}`;
+      origStates[key] = {};
+      if (update.expiry !== undefined) {
+        try { origStates[key].expiry = await fsPromises.readFile(path.join(clientDir, 'expiry'), 'utf8'); }
+        catch { origStates[key].expiry = null; }
+      }
+      if (update.quota !== undefined) {
+        try { origStates[key].quota = await fsPromises.readFile(path.join(clientDir, 'quota'), 'utf8'); }
+        catch { origStates[key].quota = null; }
+      }
+    }
+
     let successCount = 0,
       failedCount = 0;
     const dbPatch = {};
@@ -689,15 +715,18 @@ router.post(
         log.error('clients', 'Bulk DB update failed, rolling back filesystem changes', {
           err: e.message,
         });
-        // Rollback filesystem changes to avoid desync
+        // Rollback: restore exact original file state (not just delete)
         for (const client of clients) {
           try {
             const clientDir = getClientDir(client.container, client.name);
+            const orig = origStates[`${client.container}/${client.name}`] || {};
             if (update.expiry !== undefined) {
-              await unlinkAsRoot(path.join(clientDir, 'expiry')).catch(() => {});
+              if (orig.expiry != null) await writeFileAsRoot(path.join(clientDir, 'expiry'), orig.expiry);
+              else await unlinkAsRoot(path.join(clientDir, 'expiry')).catch(() => {});
             }
             if (update.quota !== undefined) {
-              await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
+              if (orig.quota != null) await writeFileAsRoot(path.join(clientDir, 'quota'), orig.quota);
+              else await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
             }
           } catch (_) {
             // ignore cleanup errors during rollback
@@ -882,6 +911,13 @@ router.get(
     const configPath = path.join(clientDir, `${name}.conf`);
     try {
       const configText = await fsPromises.readFile(configPath, 'utf8');
+      await auditLog({
+        actor: req.user.username,
+        action: 'download_config',
+        targetType: 'client',
+        targetName: `${container}/${name}`,
+        ip: req.ip,
+      });
       res.json({ config: configText });
     } catch (err) {
       if (err.code === 'ENOENT') {

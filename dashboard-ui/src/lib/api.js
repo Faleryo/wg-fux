@@ -2,9 +2,9 @@ import axios from 'axios';
 
 // Détection dynamique de l'URL de l'API
 const getApiUrl = () => {
-  const { hostname, protocol, port } = window.location;
-  // Si on est en développement (Vite sur 5173 ou API directe sur 3000)
-  if (port === '3000' || port === '5173') {
+  // Use Vite's DEV flag — port-based heuristic breaks on non-standard ports
+  if (import.meta.env.DEV) {
+    const { hostname, protocol } = window.location;
     return `${protocol}//${hostname}:3000/api`;
   }
   // En production, on passe par le proxy Nginx du dashboard
@@ -25,10 +25,9 @@ const getToken = () =>
 
 export const getWsUri = (type) => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const { hostname, port, host } = window.location;
+  const { hostname, host } = window.location;
 
-  // Mode Développement
-  if (port === '3000' || port === '5173') {
+  if (import.meta.env.DEV) {
     const wsBase = `${protocol}//${hostname}:3000/api/logs-ws`;
     if (type === 'logs-api') return `${wsBase}/api`;
     if (type === 'logs-wg') return `${wsBase}/wireguard`;

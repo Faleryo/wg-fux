@@ -1,6 +1,7 @@
 const { WebSocketServer } = require('ws');
 const url = require('url');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { spawn } = require('child_process');
 const { existsSync } = require('fs');
 const log = require('./logger');
@@ -134,12 +135,21 @@ class WebSocketService {
         return;
       }
 
-      // 🛡️ Sentinel Watchdog bypass (internal agent)
+      // 🛡️ Sentinel Watchdog bypass (internal agent) — timing-safe comparison
       const sentinelToken = (process.env.SENTINEL_TOKEN || '').replace(/['"]/g, '').trim();
       const receivedToken = String(token || '')
         .replace(/['"]/g, '')
         .trim();
-      if (sentinelToken && receivedToken === sentinelToken) {
+      let isSentinel = false;
+      if (sentinelToken && receivedToken) {
+        const sBuf = Buffer.from(sentinelToken);
+        const rBuf = Buffer.from(receivedToken);
+        const maxLen = Math.max(sBuf.length, rBuf.length);
+        const paddedS = Buffer.concat([sBuf, Buffer.alloc(maxLen)]).slice(0, maxLen);
+        const paddedR = Buffer.concat([rBuf, Buffer.alloc(maxLen)]).slice(0, maxLen);
+        isSentinel = crypto.timingSafeEqual(paddedS, paddedR);
+      }
+      if (isSentinel) {
         request.user = { id: 0, role: 'admin', username: 'sentinel-watchdog', internal: true };
       } else {
         try {
