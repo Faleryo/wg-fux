@@ -113,7 +113,10 @@ axiosInstance.interceptors.response.use(
     if (
       !isLoginAttempt &&
       (status === 401 ||
-        (status === 403 && (data?.error === 'ACCOUNT_EXPIRED' || errMsg === 'Account expired')))
+        // BUG-FIX: The backend stores the machine-readable error code in `.code`, not `.error`.
+        // `.error` holds the French human-readable message (e.g., 'Compte expiré. Contactez...')
+        // so the previous check `data?.error === 'ACCOUNT_EXPIRED'` never matched.
+        (status === 403 && (data?.code === 'ACCOUNT_EXPIRED' || errMsg === 'Account expired')))
     ) {
       logOut();
     }

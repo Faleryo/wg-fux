@@ -101,7 +101,13 @@ router.delete(
   requireAdmin,
   asyncWrap(async (req, res) => {
     const { username } = req.params;
-    if (username === 'admin' || username === process.env.ADMIN_USER) {
+    // BUG-FIX: process.env.ADMIN_USER can be undefined if the env var is not set.
+    // `someString === undefined` is always false, which silently bypasses the protection.
+    // We now only include the ADMIN_USER check when the variable is actually configured.
+    const adminUser = process.env.ADMIN_USER;
+    const isProtectedAdmin =
+      username === 'admin' || (adminUser && username === adminUser);
+    if (isProtectedAdmin) {
       return res
         .status(400)
         .json(createError('Cannot delete root administrator', null, 'FORBIDDEN_PROTECTED_USER'));

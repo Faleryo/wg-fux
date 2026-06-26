@@ -23,6 +23,10 @@ const log = require('../services/logger');
 const { asyncWrap, createError } = require('../utils/errors');
 const { rateLimit } = require('express-rate-limit');
 
+// BUG-FIX: Use the WG_BIN env var so the binary is configurable and consistent
+// with how system.js resolves it. Avoids hardcoding 'wg' as a relative name.
+const WG_BIN = process.env.WG_BIN || 'wg';
+
 const creationLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
@@ -313,7 +317,7 @@ router.post(
           const privMatch = config.match(/PrivateKey\s*=\s*([a-zA-Z0-9+/=]{44})/);
           if (privMatch) {
             // Derive public key from private key using wg pubkey via stdin
-            const { stdout: derivedPk } = await runSystemCommand('wg', ['pubkey'], privMatch[1]);
+            const { stdout: derivedPk } = await runSystemCommand(WG_BIN, ['pubkey'], privMatch[1]);
             if (derivedPk && derivedPk.trim().length === 44) {
               publicKey = derivedPk.trim();
             }

@@ -102,7 +102,9 @@ const MainLayout = ({ session, onLogout }) => {
       const fresh = clients.find((c) => c.publicKey === topologySelectedClient.publicKey);
       if (fresh) setTopologySelectedClient(fresh);
     }
-  }, [clients]);
+    // BUG-FIX: topologySelectedClient must be in deps so the closure captures the current value.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients, topologySelectedClient?.publicKey]);
 
   // ── Global Ctrl+K shortcut ────────────────────────────────────────────────
   useEffect(() => {

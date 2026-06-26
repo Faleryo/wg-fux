@@ -170,6 +170,9 @@ const logTrafficHistory = async () => {
           status: 'captured',
           name: peer.publicKey,
           realIp: peer.endpoint || null,
+          // BUG-FIX: In WireGuard, rx = bytes received by the SERVER (client upload),
+          //           tx = bytes transmitted by the SERVER (client download).
+          // usageDaily stores the latest rx snapshot; usageTotal stores the tx snapshot.
           usageDaily: peer.rx || 0,
           usageTotal: peer.tx || 0,
         })

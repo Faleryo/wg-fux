@@ -239,7 +239,7 @@ app.get('/api/metrics', auth, requireAdmin, async (req, res) => {
   output += `wg_fux_memory_usage_bytes{type="heap_total"} ${mem.heapTotal}\n`;
   output += `wg_fux_memory_usage_bytes{type="heap_used"} ${mem.heapUsed}\n`;
 
-  res.set('Content-Type', 'text/plain');
+  res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
   res.send(output);
 });
 
@@ -270,7 +270,6 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, _next) => {
-  const isProd = process.env.NODE_ENV === 'production';
   const statusCode = err.status || err.statusCode || 500;
   const errorCode = err.code || 'INTERNAL_ERROR';
 

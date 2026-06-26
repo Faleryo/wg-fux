@@ -33,7 +33,8 @@ const WG_BIN = process.env.WG_BIN || 'wg';
 const WG_QUICK_BIN = process.env.WG_QUICK_BIN || 'wg-quick';
 
 // --- AdGuard Status Check ---
-const AGH_BASE_URL = 'http://adguard:3000';
+// BUG-FIX: Use env var with fallback (consistent with dns.js) instead of hardcoded URL.
+const AGH_BASE_URL = process.env.AGH_BASE_URL || 'http://adguard:3000';
 const AGH_USER = (process.env.AGH_USER || '').trim();
 const AGH_PASS = (process.env.AGH_PASSWORD || '').trim();
 

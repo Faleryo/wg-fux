@@ -180,14 +180,19 @@ async function initializeDatabase() {
  * This ensures that the DNS menu works without manual setup.
  */
 async function initializeDNS() {
-  const AGH_BASE_URL = 'http://adguard:3000';
+  const AGH_BASE_URL = process.env.AGH_BASE_URL || 'http://adguard:3000';
   const username = process.env.AGH_USER || 'admin';
   const password = process.env.AGH_PASSWORD;
 
   if (!password || password === 'password' || password === 'CHANGE_ME') {
     if (process.env.NODE_ENV === 'production') {
-      logger.error('dns', '❌ FATAL: AGH_PASSWORD is not set or is insecure in production.');
-      throw new Error('Insecure AGH_PASSWORD');
+      // BUG-FIX: AdGuard is an optional feature. A missing/insecure password should
+      // not crash the entire API at startup. Log the error and skip DNS init gracefully.
+      logger.error(
+        'dns',
+        '❌ AGH_PASSWORD is not set or is insecure. Skipping AdGuard initialization.'
+      );
+      return;
     }
     logger.warn('dns', '⚠️ Using insecure default password for AdGuard (Non-production only)');
   }
