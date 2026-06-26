@@ -54,8 +54,8 @@ const app = express();
 app.set('trust proxy', 1); // Trust first-hop proxy (Nginx) for rate-limiting
 
 const server = http.createServer(app);
-server.timeout = 30000; // 30 second timeout for all requests
-server.headersTimeout = 31000; // Slightly above timeout to allow proper response
+server.timeout = 300000; // 5 minute timeout for long running tasks (like speedtest)
+server.headersTimeout = 301000;
 
 // --- Swagger Documentation ---
 const { swaggerUi, specs } = require('./src/utils/swagger');

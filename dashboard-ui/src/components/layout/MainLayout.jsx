@@ -228,7 +228,9 @@ const MainLayout = ({ session, onLogout }) => {
         addToast(err.response?.data?.error || 'Erreur lors de la suppression', 'error');
       }
     } finally {
-      isDeletingRef.current = false;
+      setTimeout(() => {
+        isDeletingRef.current = false;
+      }, 500);
     }
   };
 
