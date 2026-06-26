@@ -9,21 +9,18 @@ const { dnsConfigSchema, dnsFilterSchema, dnsRemoveSchema } = require('../../db/
 // AdGuard Home internal URL (Docker DNS)
 const AGH_BASE_URL = process.env.AGH_BASE_URL || 'http://adguard:3000';
 
-const getAghAuth = () => {
-  const user = (process.env.AGH_USER || '').trim();
-  const pass = (process.env.AGH_PASSWORD || '').trim();
-  if (!user || !pass) {
-    log.error('dns', 'AGH_USER / AGH_PASSWORD not configured — DNS routes will fail');
-  }
-  return {
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
-      Accept: '*/*',
-      'User-Agent': 'wg-fux-api',
-    },
-    timeout: 5000,
-  };
-};
+if (!process.env.AGH_USER || !process.env.AGH_PASSWORD) {
+  log.error('dns', 'AGH_USER / AGH_PASSWORD not configured — DNS routes will fail');
+}
+
+const getAghAuth = () => ({
+  headers: {
+    Authorization: `Basic ${Buffer.from(`${(process.env.AGH_USER || '').trim()}:${(process.env.AGH_PASSWORD || '').trim()}`).toString('base64')}`,
+    Accept: '*/*',
+    'User-Agent': 'wg-fux-api',
+  },
+  timeout: 5000,
+});
 
 /**
  * GET /api/dns/config
