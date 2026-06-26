@@ -22,7 +22,7 @@ services:
     networks:
       - vpn-internal
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
+      test: ["CMD", "wget", "--no-check-certificate", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -84,6 +84,7 @@ services:
       - /var/log:size=10M
       - /var/lock:size=1M
       - /etc/sysctl.d:size=1M
+      - /run:size=10M
     read_only: true
     ports:
       - "${SERVER_PORT:-51820}:${SERVER_PORT:-51820}/udp"

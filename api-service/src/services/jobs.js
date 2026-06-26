@@ -3,7 +3,7 @@ const fsPromises = require('fs').promises;
 const schedule = require('node-schedule');
 const { db, schema, sqlite } = require('../../db');
 const { eq, and, lt } = require('drizzle-orm');
-const { runSystemCommand, appendFileAsRoot } = require('./shell');
+const { runCommand, runSystemCommand, appendFileAsRoot } = require('./shell');
 const { getWireGuardStats } = require('./system');
 const log = require('./logger');
 const { getScriptPath } = require('./config');
@@ -226,7 +226,7 @@ const interfaceWatchdog = async () => {
     if (_watchdogState.alertedKernel) {
       const backoffExpired = now - _watchdogState.alertedAt > ALERT_BACKOFF_MS;
       if (!backoffExpired) return;
-      const modCheck = await runSystemCommand('sh', ['-c', 'lsmod | grep -q ^wireguard']);
+      const modCheck = await runCommand('grep', ['-q', 'wireguard', '/proc/modules']);
       if (modCheck.success) {
         log.info('sre', 'WireGuard kernel module now available. Resuming watchdog.');
         _watchdogState.alertedKernel = false;
@@ -239,7 +239,7 @@ const interfaceWatchdog = async () => {
 
     // Warn once and give up if kernel module is missing
     if (!_watchdogState.alertedKernel) {
-      const modCheck = await runSystemCommand('sh', ['-c', 'lsmod | grep -q ^wireguard']);
+      const modCheck = await runCommand('grep', ['-q', 'wireguard', '/proc/modules']);
       if (!modCheck.success) {
         log.warn(
           'sre',
