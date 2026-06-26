@@ -297,6 +297,7 @@ router.get(
       dns: config.CLIENT_DNS || '1.1.1.1, 8.8.8.8',
       subnet: config.VPN_SUBNET || '10.0.0.0/24',
       keepalive: parseInt(config.PERSISTENT_KEEPALIVE) || 0,
+      wg_endpoint: config.SERVER_DOMAIN || config.SERVER_IP || '',
     });
   })
 );
@@ -310,7 +311,7 @@ router.post(
     if (!result.success) {
       return res.status(400).json(createError(result.error, 'Validation failed'));
     }
-    const { port, mtu, dns, subnet, keepalive } = result.data;
+    const { port, mtu, dns, subnet, keepalive, wg_endpoint } = result.data;
 
     let conf = await fsPromises.readFile('/etc/wireguard/manager.conf', 'utf8').catch(() => '');
     const updateKey = (key, val) => {
@@ -323,6 +324,7 @@ router.post(
     if (dns) updateKey('CLIENT_DNS', dns);
     if (subnet) updateKey('VPN_SUBNET', subnet);
     if (keepalive !== undefined) updateKey('PERSISTENT_KEEPALIVE', keepalive);
+    if (wg_endpoint !== undefined) updateKey('SERVER_DOMAIN', wg_endpoint);
 
     const { success: writeOk, error: writeErr } = await writeFileAsRoot(
       '/etc/wireguard/manager.conf',

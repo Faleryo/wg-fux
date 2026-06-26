@@ -30,6 +30,7 @@ const SettingsSection = () => {
     dns: '1.1.1.1, 8.8.8.8',
     subnet: '10.0.0.0/24',
     keepalive: '25',
+    wg_endpoint: '',
   });
 
   useEffect(() => {

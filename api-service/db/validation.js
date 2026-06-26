@@ -140,6 +140,13 @@ const systemConfigSchema = z.object({
     })
     .refine((n) => n >= 0 && n <= 120, 'Keepalive doit être entre 0 et 120s')
     .optional(),
+  wg_endpoint: z
+    .string()
+    .regex(
+      /^([a-zA-Z0-9.-]+|\d{1,3}(\.\d{1,3}){3}|\[[:a-fA-F0-9:]+\])$/,
+      'Format endpoint invalide (domaine ou IP)'
+    )
+    .optional(),
 });
 
 const dnsConfigSchema = z.object({
