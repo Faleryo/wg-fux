@@ -5,8 +5,8 @@ const identifierRegex = /^[a-zA-Z0-9_-]+$/;
 const dateRegex = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
 const loginSchema = z.object({
-  username: z.string().min(1, 'Username requis'),
-  password: z.string().min(1, 'Mot de passe requis'),
+  username: z.string().min(1, 'Username requis').max(64, 'Username trop long').regex(identifierRegex, 'Format invalide'),
+  password: z.string().min(1, 'Mot de passe requis').max(128, 'Mot de passe trop long'),
   token: z.string().optional(),
 });
 
@@ -21,12 +21,12 @@ const clientSchema = z
       .optional(),
     quota: z
       .union([z.number(), z.string()])
-      .transform((v) => parseInt(v) || 0)
+      .transform((v) => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; })
       .refine((n) => n >= 0, 'Quota doit être positif')
       .optional(),
     uploadLimit: z
       .union([z.number(), z.string()])
-      .transform((v) => parseInt(v) || 0)
+      .transform((v) => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; })
       .refine((n) => n >= 0, 'Limite doit être positive')
       .optional(),
   })
@@ -38,12 +38,12 @@ const clientPatchSchema = z
     expiry: z.string().regex(dateRegex).or(z.literal('')).or(z.null()).optional(),
     quota: z
       .union([z.number(), z.string()])
-      .transform((v) => parseInt(v) || 0)
+      .transform((v) => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; })
       .refine((n) => n >= 0, 'Quota doit être positif')
       .optional(),
     uploadLimit: z
       .union([z.number(), z.string()])
-      .transform((v) => parseInt(v) || 0)
+      .transform((v) => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; })
       .refine((n) => n >= 0, 'Limite doit être positive')
       .optional(),
   })
@@ -68,7 +68,7 @@ const bulkUpdateSchema = z.object({
     expiry: z.string().regex(dateRegex).or(z.literal('')).or(z.null()).optional(),
     quota: z
       .union([z.number(), z.string()])
-      .transform((v) => parseInt(v) || 0)
+      .transform((v) => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; })
       .refine((n) => n >= 0, 'Quota doit être positif')
       .optional(),
   }),
@@ -180,13 +180,19 @@ const paginationSchema = z.object({
 const dnsFilterSchema = z
   .object({
     name: z.string().min(1, 'Nom requis').regex(identifierRegex, 'Format de nom invalide'),
-    url: z.string().url('URL invalide'),
+    url: z
+      .string()
+      .url('URL invalide')
+      .refine((u) => { try { const p = new URL(u); return p.protocol === 'http:' || p.protocol === 'https:'; } catch { return false; } }, 'Seuls les protocoles http/https sont acceptés'),
   })
   .strict();
 
 const dnsRemoveSchema = z
   .object({
-    url: z.string().url('URL invalide'),
+    url: z
+      .string()
+      .url('URL invalide')
+      .refine((u) => { try { const p = new URL(u); return p.protocol === 'http:' || p.protocol === 'https:'; } catch { return false; } }, 'Seuls les protocoles http/https sont acceptés'),
   })
   .strict();
 

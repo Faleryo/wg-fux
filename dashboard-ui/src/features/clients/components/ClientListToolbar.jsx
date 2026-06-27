@@ -39,7 +39,7 @@ const ClientListToolbar = ({
       download: `wg-fux-peers-${new Date().toISOString().split('T')[0]}.csv`,
     });
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   };
 
   return (

@@ -82,9 +82,12 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
           const date = new Date();
           if (expiryDuration.unit === 'days')
             date.setDate(date.getDate() + duration);
-          if (expiryDuration.unit === 'hours')
+          if (expiryDuration.unit === 'hours') {
             date.setHours(date.getHours() + duration);
-          expiry = date.toISOString().split('T')[0];
+            expiry = date.toISOString();
+          } else {
+            expiry = date.toISOString().split('T')[0];
+          }
         }
 
         await onCreate(name, targetContainer, expiry, quota, uploadLimit);

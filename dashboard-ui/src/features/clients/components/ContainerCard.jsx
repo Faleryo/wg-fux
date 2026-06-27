@@ -144,7 +144,7 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
                       boxShadow: `0 4px 12px ${getHex(color, 500)}33`,
                     } : undefined}
                   >
-                    {c.name.charAt(0)}
+                    {(c.name || '?').charAt(0)}
                   </div>
                 ))}
               </div>

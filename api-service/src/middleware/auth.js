@@ -31,16 +31,13 @@ const auth = async (req, res, next) => {
   const sentinelToken = process.env.SENTINEL_TOKEN || '';
   const tokenStr = typeof token === 'string' ? token : '';
 
-  if (sentinelToken && tokenStr) {
+  if (sentinelToken && sentinelToken.length >= 32 && tokenStr) {
     const sentinelBuf = Buffer.from(sentinelToken);
     const tokenBuf = Buffer.from(tokenStr);
-    // Always call timingSafeEqual with same-length buffers to prevent timing side-channel.
-    // BUG-FIX: Buffer.alloc(len, buf) only repeats buf's FIRST byte — not a copy of buf.
-    // Correct approach: pad shorter buffer with zeros then compare fixed-length slices.
-    const maxLen = Math.max(sentinelBuf.length, tokenBuf.length);
-    const paddedSentinel = Buffer.concat([sentinelBuf, Buffer.alloc(maxLen)]).slice(0, maxLen);
-    const paddedToken = Buffer.concat([tokenBuf, Buffer.alloc(maxLen)]).slice(0, maxLen);
-    if (crypto.timingSafeEqual(paddedSentinel, paddedToken)) {
+    if (
+      sentinelBuf.length === tokenBuf.length &&
+      crypto.timingSafeEqual(sentinelBuf, tokenBuf)
+    ) {
       log.info('auth', 'Sentinel auth', { username: 'sentinel-watchdog', ip: req.ip });
       req.user = { id: 0, role: 'admin', username: 'sentinel-watchdog', internal: true };
       return next();
@@ -57,6 +54,10 @@ const auth = async (req, res, next) => {
 
     const cached = userCache.get(decoded.username);
     if (cached && Date.now() - cached.ts < USER_CACHE_TTL) {
+      if (cached.expiry && new Date(cached.expiry) < new Date()) {
+        userCache.delete(decoded.username);
+        return res.status(401).json({ error: 'Account expired' });
+      }
       req.user = { ...decoded, role: cached.role };
       return next();
     }
@@ -73,11 +74,19 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ error: 'Account expired' });
     }
 
-    userCache.set(decoded.username, { role: user.role, ts: Date.now() });
+    userCache.set(decoded.username, { role: user.role, expiry: user.expiry || null, ts: Date.now() });
     req.user = { ...decoded, role: user.role };
     next();
   } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
+    if (
+      error.name === 'JsonWebTokenError' ||
+      error.name === 'TokenExpiredError' ||
+      error.name === 'NotBeforeError'
+    ) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    log.error('auth', 'Unexpected error during auth', { err: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 

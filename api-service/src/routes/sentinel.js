@@ -43,7 +43,7 @@ router.get(
     if (req.user.role === 'admin') {
       return res.json(sentinelStatus);
     }
-    const { logs: _logs, ...safeStatus } = sentinelStatus;
+    const { logs: _logs, stats: _stats, ...safeStatus } = sentinelStatus;
     res.json(safeStatus);
   })
 );

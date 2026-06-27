@@ -108,7 +108,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
               max="200"
               step="5"
               value={quota}
-              onChange={(e) => setQuota(e.target.value)}
+              onChange={(e) => setQuota(Number(e.target.value))}
               className="w-full accent-indigo-500"
             />
           </div>
@@ -137,7 +137,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
               max="1000"
               step="10"
               value={uploadLimit}
-              onChange={(e) => setUploadLimit(e.target.value)}
+              onChange={(e) => setUploadLimit(Number(e.target.value))}
               className="w-full accent-indigo-500"
             />
           </div>

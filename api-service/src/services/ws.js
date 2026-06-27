@@ -1,5 +1,4 @@
 const { WebSocketServer } = require('ws');
-const url = require('url');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
@@ -28,7 +27,7 @@ class WebSocketService {
 
   setupHandlers() {
     this.wssLogs.on('connection', (ws, req) => {
-      const type = url.parse(req.url).pathname.split('/')?.[3];
+      const type = new URL(req.url, 'http://localhost').pathname.split('/')?.[3];
       const WG_INTERFACE = process.env.WG_INTERFACE || 'wg0';
 
       ws.isAlive = true;
@@ -66,7 +65,7 @@ class WebSocketService {
             return;
           }
           this.activeTailProcesses++;
-          const proc = spawn('tail', ['-f', '-n', '50', logFile]);
+          const proc = spawn('/usr/bin/tail', ['-f', '-n', '50', logFile]);
           let tailCleaned = false;
           const cleanup = () => {
             if (tailCleaned) return;
@@ -123,8 +122,7 @@ class WebSocketService {
 
   setupUpgrade(server) {
     server.on('upgrade', (request, socket, head) => {
-      const parsed = url.parse(request.url, true);
-      const pathname = parsed.pathname;
+      const pathname = new URL(request.url, 'http://localhost').pathname;
       const wsProtocol = request.headers['sec-websocket-protocol'];
       const token =
         request.headers['x-api-token'] || (Array.isArray(wsProtocol) ? wsProtocol[0] : wsProtocol);
@@ -163,9 +161,10 @@ class WebSocketService {
       }
 
       if (pathname.startsWith('/api/logs-ws/')) {
-        this.wssLogs.handleUpgrade(request, socket, head, (ws) =>
-          this.wssLogs.emit('connection', ws, request)
-        );
+        this.wssLogs.handleUpgrade(request, socket, head, (ws) => {
+          ws.username = request.user?.username;
+          this.wssLogs.emit('connection', ws, request);
+        });
       } else if (pathname === '/api/status-ws') {
         this.wssStatus.handleUpgrade(request, socket, head, (ws) => {
           ws.username = request.user?.username; // Store identity

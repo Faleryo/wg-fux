@@ -97,13 +97,14 @@ check_system() {
  unhealthy_containers=$(docker ps --filter "health=unhealthy" --format "{{.Names}}")
 
   if [ -n "$unhealthy_containers" ]; then
-  for container in $unhealthy_containers; do
-  if _should_restart "$container"; then
-  log_sre "Unhealthy service detected: $container. Triggering auto-healing..."
-  send_telegram_msg "AUTONOMIC HEALING: Service $container is unhealthy. Restarting..." "WARN"
-  docker restart "$container" 2>/dev/null
-  fi
-  done
+  while IFS= read -r container; do
+    [ -z "$container" ] && continue
+    if _should_restart "$container"; then
+      log_sre "Unhealthy service detected: $container. Triggering auto-healing..."
+      send_telegram_msg "AUTONOMIC HEALING: Service $container is unhealthy. Restarting..." "WARN"
+      docker restart "$container" 2>/dev/null
+    fi
+  done <<< "$unhealthy_containers"
   fi
 
  # 4. Critical Service Presence Cloud-Check (Nginx/DNS/UI)

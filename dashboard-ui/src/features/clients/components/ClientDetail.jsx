@@ -88,20 +88,23 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
   const [history72h, setHistory72h] = useState([]);
   const [viewMode, setViewMode] = useState('realtime');
 
-  // Real-time traffic simulation/buffer
+  // Initialize the traffic buffer when the client identity changes
   useEffect(() => {
-    if (trafficHistory60.length === 0) {
-      const initial = Array.from({ length: 60 }, (_, i) => ({
-        time: new Date(Date.now() - (60 - i) * 5000).toLocaleTimeString('fr-FR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        }),
-        download: 0,
-        upload: 0,
-      }));
-      setTrafficHistory60(initial);
-    }
+    const initial = Array.from({ length: 60 }, (_, i) => ({
+      time: new Date(Date.now() - (60 - i) * 5000).toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+      download: 0,
+      upload: 0,
+    }));
+    setTrafficHistory60(initial);
+  }, [client.id || client.name]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Append a new data point whenever the live rates change
+  useEffect(() => {
+    if (trafficHistory60.length === 0) return;
     const now = new Date().toLocaleTimeString('fr-FR', {
       hour: '2-digit',
       minute: '2-digit',
@@ -119,41 +122,44 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
 
   // Load connection history
   useEffect(() => {
+    const controller = new AbortController();
     setLoadingHistory(true);
     axiosInstance
-      .get(`/clients/${client.container}/${client.name}/history`)
+      .get(`/clients/${client.container}/${client.name}/history`, { signal: controller.signal })
       .then((res) => setHistory(res.data))
-      .catch(console.error)
+      .catch((err) => { if (err.name !== 'CanceledError') console.error(err); })
       .finally(() => setLoadingHistory(false));
+    return () => controller.abort();
   }, [client.id, client.container, client.name]);
 
   // Load 72h history
   useEffect(() => {
-    if (viewMode === 'history') {
-      axiosInstance
-        .get(`/clients/${client.container}/${client.name}/history-hours`)
-        .then((res) => {
-          const data = res.data.map((h, i) => {
-            const prev = res.data[i - 1] || h;
-            const rxDiff = i === 0 ? 0 : Math.max(0, h.rx - prev.rx);
-            const txDiff = i === 0 ? 0 : Math.max(0, h.tx - prev.tx);
-            return {
-              time: new Date(h.time).toLocaleString('fr-FR', {
-                day: 'numeric',
-                month: 'short',
-                hour: '2-digit',
-              }),
-              download: rxDiff,
-              upload: txDiff,
-            };
-          });
-          setHistory72h(data);
-        })
-        .catch(() => {});
-    }
+    if (viewMode !== 'history') return;
+    const controller = new AbortController();
+    axiosInstance
+      .get(`/clients/${client.container}/${client.name}/history-hours`, { signal: controller.signal })
+      .then((res) => {
+        const data = res.data.map((h, i) => {
+          const prev = res.data[i - 1] || h;
+          const rxDiff = i === 0 ? 0 : Math.max(0, h.rx - prev.rx);
+          const txDiff = i === 0 ? 0 : Math.max(0, h.tx - prev.tx);
+          return {
+            time: new Date(h.time).toLocaleString('fr-FR', {
+              day: 'numeric',
+              month: 'short',
+              hour: '2-digit',
+            }),
+            download: rxDiff,
+            upload: txDiff,
+          };
+        });
+        setHistory72h(data);
+      })
+      .catch(() => {});
+    return () => controller.abort();
   }, [viewMode, client.id, client.container, client.name]);
 
-  const lastActivity = client.lastHandshake
+  const lastActivity = client.lastHandshake && client.lastHandshake > 0
     ? new Date(client.lastHandshake * 1000).toLocaleString('fr-FR', {
         day: '2-digit',
         month: '2-digit',

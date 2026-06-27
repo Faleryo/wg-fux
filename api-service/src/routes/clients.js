@@ -134,7 +134,11 @@ router.delete(
   auth,
   asyncWrap(async (req, res) => {
     const { name } = req.params;
-    
+
+    // BUG-4 FIX: Validate the container name parameter
+    if (!identifierRegex.test(name))
+      return res.status(400).json(createError('Invalid container identifier'));
+
     if (!(await verifyOwnership(req, name))) {
       return res.status(403).json(createError('Forbidden: Vous ne possédez pas ce conteneur.'));
     }
@@ -539,7 +543,7 @@ router.post(
     await db
       .update(schema.clients)
       .set({ enabled: !!enabled })
-      .where(eq(schema.clients.publicKey, publicKey));
+      .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)));
 
     await auditLog({
       actor: req.user.username,
@@ -559,29 +563,33 @@ router.delete(
   auth,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
+
+    // BUG-1 FIX: Check DB first, return 404 if absent, then run the script
+    const [client] = await db
+      .select()
+      .from(schema.clients)
+      .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
+      .limit(1);
+    if (!client) {
+      return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
+    }
+
     const { success, error } = await runSystemCommand(getScriptPath('wg-remove-client.sh'), [
       container,
       name,
     ]);
     if (!success) throw createError(error, 'Removal failed', 'SYSTEM_ERROR');
 
-    const [client] = await db
-      .select()
-      .from(schema.clients)
-      .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
-      .limit(1);
-    if (client) {
-      await db.delete(schema.usage).where(eq(schema.usage.publicKey, client.publicKey));
-      await db.delete(schema.clients).where(eq(schema.clients.publicKey, client.publicKey));
+    await db.delete(schema.usage).where(eq(schema.usage.publicKey, client.publicKey));
+    await db.delete(schema.clients).where(eq(schema.clients.publicKey, client.publicKey));
 
-      await auditLog({
-        actor: req.user.username,
-        action: 'delete',
-        targetType: 'client',
-        targetName: `${container}/${name}`,
-        ip: req.ip,
-      });
-    }
+    await auditLog({
+      actor: req.user.username,
+      action: 'delete',
+      targetType: 'client',
+      targetName: `${container}/${name}`,
+      ip: req.ip,
+    });
     res.json({ success: true });
   })
 );
@@ -619,7 +627,8 @@ router.patch(
     if (quota !== undefined) {
       updateData.quota = Math.max(0, parseInt(quota, 10) || 0);
       if (updateData.quota > 0) {
-        const { success } = await writeFileAsRoot(path.join(clientDir, 'quota'), String(quota));
+        // BUG-5 FIX: Write the parsed value (updateData.quota) not the raw input (quota)
+        const { success } = await writeFileAsRoot(path.join(clientDir, 'quota'), String(updateData.quota));
         if (!success) throw createError('Failed to write quota flag', null, 'SYSTEM_ERROR');
       } else {
         await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
@@ -630,7 +639,7 @@ router.patch(
       if (updateData.uploadLimit > 0) {
         const { success } = await writeFileAsRoot(
           path.join(clientDir, 'upload_limit'),
-          String(uploadLimit)
+          String(updateData.uploadLimit)
         );
         if (!success) throw createError('Failed to write upload_limit flag', null, 'SYSTEM_ERROR');
       } else {
@@ -646,7 +655,7 @@ router.patch(
     await db
       .update(schema.clients)
       .set(updateData)
-      .where(eq(schema.clients.publicKey, client.publicKey));
+      .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)));
     const { success: enfSuccess, error: enfError } = await runSystemCommand(
       getScriptPath('wg-enforcer.sh'),
       []
@@ -705,6 +714,8 @@ router.post(
     const dbPatch = {};
     if (update.expiry !== undefined) dbPatch.expiry = update.expiry || null;
     if (update.quota !== undefined) dbPatch.quota = update.quota;
+    // BUG-2 FIX: Track which clients succeeded on FS so DB only updates those
+    const succeededClients = [];
     for (const client of clients) {
       try {
         const clientDir = getClientDir(client.container, client.name);
@@ -718,15 +729,16 @@ router.post(
           else await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
         }
 
+        succeededClients.push(client);
         successCount++;
       } catch (e) {
         failedCount++;
       }
     }
-    if (Object.keys(dbPatch).length > 0 && successCount > 0) {
+    if (Object.keys(dbPatch).length > 0 && succeededClients.length > 0) {
       try {
         await db.transaction(async (tx) => {
-          for (const client of clients) {
+          for (const client of succeededClients) {
             await tx
               .update(schema.clients)
               .set(dbPatch)
@@ -743,7 +755,7 @@ router.post(
           err: e.message,
         });
         // Rollback: restore exact original file state (not just delete)
-        for (const client of clients) {
+        for (const client of succeededClients) {
           try {
             const clientDir = getClientDir(client.container, client.name);
             const orig = origStates[`${client.container}/${client.name}`] || {};
@@ -813,9 +825,12 @@ router.post(
           client.container,
           client.name,
         ]);
-        if (success && dbClient) {
-          await db.delete(schema.usage).where(eq(schema.usage.publicKey, dbClient.publicKey));
-          await db.delete(schema.clients).where(eq(schema.clients.publicKey, dbClient.publicKey));
+        // BUG-3 FIX: Count as success if script succeeded, regardless of dbClient
+        if (success) {
+          if (dbClient) {
+            await db.delete(schema.usage).where(eq(schema.usage.publicKey, dbClient.publicKey));
+            await db.delete(schema.clients).where(eq(schema.clients.publicKey, dbClient.publicKey));
+          }
           successCount++;
         } else {
           failedCount++;

@@ -99,7 +99,7 @@ export const useWebSocket = (url, options = {}) => {
         ws.current.close();
       }
     };
-  }, [url]);
+  }, [url, options.token]);
 
   const send = (message) => {
     if (ws.current?.readyState === WebSocket.OPEN) {

@@ -116,7 +116,8 @@ services:
     restart: always
     # Port 80 est interne au réseau vpn-internal
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     networks:
       - vpn-internal
     healthcheck:

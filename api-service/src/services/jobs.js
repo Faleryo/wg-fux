@@ -44,11 +44,15 @@ const loadSchedules = async () => {
       rule.minute = minute;
 
       const job = schedule.scheduleJob(rule, () => {
-        runSystemCommand(getScriptPath('wg-optimize.sh'), [task.profile || 'default']).catch((e) =>
+        const rawProfile = task.profile || '';
+        const safeProfile =
+          /^[a-zA-Z0-9_-]{1,64}$/.test(rawProfile) ? rawProfile : 'default';
+        runSystemCommand(getScriptPath('wg-optimize.sh'), [safeProfile]).catch((e) =>
           log.error('jobs', 'Scheduled optimization failed', { err: e.message })
         );
       });
-      scheduledJobs[task.id] = job;
+      const safeId = String(task.id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+      if (safeId) scheduledJobs[safeId] = job;
     });
   } catch (e) {
     if (e.code !== 'ENOENT') log.error('jobs', 'Error loading schedules', { err: e.message });
@@ -396,8 +400,8 @@ const rotateEnforcerLogs = async () => {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const backupFile = `${logFile}.${timestamp}.bak`;
 
-      await fsPromises.copyFile(logFile, backupFile);
-      await fsPromises.truncate(logFile, 0);
+      await fsPromises.rename(logFile, backupFile);
+      await fsPromises.writeFile(logFile, '');
 
       await runSystemCommand('gzip', [backupFile]).catch(() => {});
 

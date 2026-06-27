@@ -98,7 +98,7 @@ const LogsSection = () => {
     doFetch();
 
     const connectWs = () => {
-      const type = activeTab === 'security' ? 'logs-wg' : 'logs-api';
+      const type = activeTab === 'security' ? 'logs-wg' : activeTab === 'system' ? 'logs-system' : 'logs-api';
       const wsUrl = getWsUri(type);
       if (!wsUrl) return;
 
@@ -177,9 +177,11 @@ const LogsSection = () => {
       .join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    const blobUrl = URL.createObjectURL(blob);
+    a.href = blobUrl;
     a.download = `wg-fux-logs-${activeTab}-${new Date().toISOString().split('T')[0]}.log`;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
   };
 
   return (

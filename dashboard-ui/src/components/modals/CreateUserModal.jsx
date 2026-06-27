@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Users, Key, Shield, Eye, EyeOff, RefreshCw, Plus } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
@@ -13,9 +13,20 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const submittingRef = useRef(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setUsername('');
+    setPassword('');
+    setConfirmPassword('');
+    setRole('viewer');
+    setError('');
+  }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError('');
 
     if (!username.trim()) {
@@ -31,6 +42,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
     try {
       await onCreate(username.trim(), password, role);
@@ -43,6 +55,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
       setError(err?.response?.data?.error || 'Erreur lors de la création');
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 

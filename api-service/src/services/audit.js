@@ -43,22 +43,26 @@ async function auditLog({ actor, action, targetType, targetName, details = {}, i
 
 /**
  * Mental Garbage Collection: Purge logs older than X days
- * @param {number} days - Retain logs for this many days (default 30)
+ * @param {number} auditDays - Retain audit_logs for this many days (default 90)
+ * @param {number} logsDays - Retain schema.logs for this many days (default 30)
  */
-async function gcAuditLogs(days = 30) {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
+async function gcAuditLogs(auditDays = 90, logsDays = 30) {
+  const auditCutoff = new Date();
+  auditCutoff.setDate(auditCutoff.getDate() - auditDays);
+
+  const logsCutoff = new Date();
+  logsCutoff.setDate(logsCutoff.getDate() - logsDays);
 
   try {
     // 1. Purge Audit Logs
     const auditResult = await db
       .delete(schema.auditLogs)
-      .where(lt(schema.auditLogs.timestamp, cutoff));
-    log.info('audit', `GC: Purged audit logs older than ${days} days.`);
+      .where(lt(schema.auditLogs.timestamp, auditCutoff));
+    log.info('audit', `GC: Purged audit logs older than ${auditDays} days.`);
 
     // 2. Purge System Logs (Heavy data)
-    const logsResult = await db.delete(schema.logs).where(lt(schema.logs.timestamp, cutoff));
-    log.info('audit', `GC: Purged system snapshot logs older than ${days} days.`);
+    const logsResult = await db.delete(schema.logs).where(lt(schema.logs.timestamp, logsCutoff));
+    log.info('audit', `GC: Purged system snapshot logs older than ${logsDays} days.`);
 
     return { auditResult, logsResult };
   } catch (error) {

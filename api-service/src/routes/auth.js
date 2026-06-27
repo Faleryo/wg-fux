@@ -108,6 +108,7 @@ router.post(
             .json(createError('2FA Required', 'MFA secondary factor missing', '2FA_REQUIRED'));
         }
         if (!authenticator.check(totpToken, user.twoFactorSecret)) {
+          await logLoginAttempt(username, clientIp, userAgent, false);
           return res.status(401).json(createError('Code 2FA invalide', null, 'INVALID_2FA'));
         }
       }
@@ -237,8 +238,16 @@ router.post(
   '/2fa/enable',
   auth,
   requireManager,
+  twoFaLimiter,
   asyncWrap(async (req, res) => {
     const { token, secret } = req.body;
+
+    if (!token || typeof token !== 'string' || token.length < 6) {
+      return res.status(400).json(createError('Token TOTP invalide', null, 'BAD_REQUEST'));
+    }
+    if (!secret || typeof secret !== 'string' || secret.length < 16) {
+      return res.status(400).json(createError('Secret 2FA invalide', null, 'BAD_REQUEST'));
+    }
 
     const [user] = await db
       .select()

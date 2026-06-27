@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Copy, Check, Download, QrCode, FileText, Smartphone } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../ui/Modal';
@@ -9,6 +9,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
   const { theme } = useTheme();
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
 
   if (!client) return null;
 
@@ -29,7 +32,8 @@ const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
         document.body.removeChild(textArea);
       }
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCopied(false), 2000);
     };
     copyText().catch(console.error);
   };

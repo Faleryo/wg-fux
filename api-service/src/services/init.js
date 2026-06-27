@@ -79,7 +79,7 @@ async function initializeDatabase() {
  timestamp INTEGER DEFAULT (strftime('%s', 'now')),
  actor TEXT NOT NULL,
  action TEXT NOT NULL,
- targetType TEXT,
+ targetType TEXT NOT NULL,
  targetName TEXT,
  details TEXT,
  ip TEXT
@@ -167,11 +167,16 @@ async function initializeDatabase() {
       const entries = await fs.readdir(clientsDir, { withFileTypes: true });
       const diskContainers = entries.filter((e) => e.isDirectory()).map((e) => e.name);
 
+      const VALID_CONTAINER_NAME = /^[a-zA-Z0-9_-]{1,64}$/;
       for (const name of diskContainers) {
+        if (!VALID_CONTAINER_NAME.test(name)) {
+          logger.warn('db', `⚠️ Skipping invalid container name from filesystem: ${name}`);
+          continue;
+        }
         const existing = sqlite.prepare('SELECT id FROM containers WHERE name = ?').get(name);
         if (!existing) {
           logger.info('db', `📦 Syncing container from disk: ${name}`);
-          await db.insert(schema.containers).values({ name, interface: 'wg0' });
+          await db.insert(schema.containers).values({ name, owner: 'admin', interface: 'wg0' });
         }
       }
       logger.info('db', '✅ Container synchronization complete.');
@@ -195,7 +200,8 @@ async function initializeDNS() {
   const username = process.env.AGH_USER || 'admin';
   const password = process.env.AGH_PASSWORD;
 
-  if (!password || password === 'password' || password === 'CHANGE_ME') {
+  const WEAK_PASSWORDS = new Set(['password', 'CHANGE_ME', 'admin', 'admin123', '12345678', 'changeme', 'wireguard', 'wgpass']);
+  if (!password || WEAK_PASSWORDS.has(password)) {
     if (process.env.NODE_ENV === 'production') {
       // BUG-FIX: AdGuard is an optional feature. A missing/insecure password should
       // not crash the entire API at startup. Log the error and skip DNS init gracefully.

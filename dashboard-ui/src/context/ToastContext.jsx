@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -11,6 +11,10 @@ let toastSeq = 0;
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const timeoutRefs = useRef({});
+
+  // Cleanup all pending timeouts on unmount
+  useEffect(() => () => Object.values(timeoutRefs.current).forEach(clearTimeout), []);
 
   const addToast = (message, type = 'info') => {
     const id = `t-${Date.now()}-${++toastSeq}`;
@@ -22,10 +26,17 @@ export const ToastProvider = ({ children }) => {
       // Keep at most 3 toasts visible — evict the oldest when the stack overflows.
       return [...prev.slice(-2), { id, message, type }];
     });
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
+    timeoutRefs.current[id] = setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+      delete timeoutRefs.current[id];
+    }, 3000);
   };
 
-  const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
+  const removeToast = (id) => {
+    clearTimeout(timeoutRefs.current[id]);
+    delete timeoutRefs.current[id];
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   return (
     <ToastContext.Provider value={{ addToast }}>

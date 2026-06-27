@@ -147,6 +147,12 @@ check_root() {
 load_config() {
  local conf="/etc/wireguard/manager.conf"
  if [ -f "$conf" ]; then
+ # BUG-1 FIX: Reject config file if it contains dangerous shell characters
+ # to prevent code execution when sourcing as root.
+ if grep -qP '[`$;|&<>()\{\}]' "$conf" 2>/dev/null; then
+  log_error "Caractères dangereux dans $conf. Abandon."
+  exit 1
+ fi
  # shellcheck disable=SC1090
  source "$conf"
  # Export for subprocesses

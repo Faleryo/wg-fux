@@ -78,6 +78,16 @@ router.patch(
     }
 
     const { password, role, expiry } = result.data;
+
+    const [existing] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.username, username))
+      .limit(1);
+    if (!existing) {
+      return res.status(404).json(createError('User not found', null, 'NOT_FOUND'));
+    }
+
     const updateData = {};
     if (password) {
       const { hash, salt } = await hashPassword(password);
@@ -87,10 +97,11 @@ router.patch(
     if (role) updateData.role = role;
     if (expiry !== undefined) updateData.expiry = expiry;
 
-    if (Object.keys(updateData).length > 0) {
-      await db.update(schema.users).set(updateData).where(eq(schema.users.username, username));
-      invalidateUserCache(username);
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json(createError('No fields to update', null, 'BAD_REQUEST'));
     }
+    await db.update(schema.users).set(updateData).where(eq(schema.users.username, username));
+    invalidateUserCache(username);
     res.json({ success: true });
   })
 );
@@ -104,6 +115,11 @@ router.delete(
     // BUG-FIX: process.env.ADMIN_USER can be undefined if the env var is not set.
     // `someString === undefined` is always false, which silently bypasses the protection.
     // We now only include the ADMIN_USER check when the variable is actually configured.
+    if (username === req.user.username) {
+      return res
+        .status(400)
+        .json(createError('Cannot delete your own account', null, 'SELF_DELETE_FORBIDDEN'));
+    }
     const adminUser = process.env.ADMIN_USER;
     const isProtectedAdmin =
       username === 'admin' || (adminUser && username === adminUser);
@@ -117,7 +133,7 @@ router.delete(
     // rather than becoming stuck with a non-existent owner.
     await db
       .update(schema.containers)
-      .set({ owner: null })
+      .set({ owner: 'admin' })
       .where(eq(schema.containers.owner, username));
     await db.delete(schema.users).where(eq(schema.users.username, username));
     invalidateUserCache(username);

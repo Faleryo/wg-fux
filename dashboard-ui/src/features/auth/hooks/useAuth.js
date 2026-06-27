@@ -65,23 +65,25 @@ const useAuth = () => {
   useEffect(() => {
     const { token } = readSession();
     if (!token) return;
+    const controller = new AbortController();
     axiosInstance
-      .get('/auth/check')
+      .get('/auth/check', { signal: controller.signal })
       .then((res) => {
         const { role, username } = res.data;
         setSession((prev) => {
           if (prev.role === role && prev.username === username) return prev;
-          // Update storage in whichever store holds the token
           const store = localStorage.getItem(STORAGE_KEYS.token) ? localStorage : sessionStorage;
           store.setItem(STORAGE_KEYS.role, role);
           store.setItem(STORAGE_KEYS.username, username);
           return { ...prev, role, username };
         });
       })
-      .catch(() => {
+      .catch((err) => {
+        if (err.name === 'CanceledError') return;
         clearStorage();
         setSession({ token: null, role: null, username: null });
       });
+    return () => controller.abort();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

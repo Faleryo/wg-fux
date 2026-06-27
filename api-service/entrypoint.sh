@@ -12,7 +12,10 @@ mkdir -p /app/data /etc/wireguard/clients
 # SRE: Ensure parent directories allow traversal
 chmod 755 /etc/wireguard
 chown -R wg-api:wg-api /app/data /etc/wireguard/clients
-chmod -R 755 /app/data /etc/wireguard/clients
+chmod 750 /app/data /etc/wireguard/clients
+find /app/data -type f -exec chmod 640 {} \; 2>/dev/null || true
+touch /var/log/wg-speedtest.log /var/log/wg-enforcer.log
+chown wg-api:wg-api /var/log/wg-speedtest.log /var/log/wg-enforcer.log
 
 echo "[BOOT] Starting API Server as wg-api..."
 exec sudo -E -u wg-api node /app/server.js

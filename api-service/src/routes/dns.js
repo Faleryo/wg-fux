@@ -123,7 +123,18 @@ router.post(
 
     if (requests.length > 0) {
       if (process.env.VITEST !== 'true') {
-        await Promise.all(requests);
+        // BUG-7 FIX: Use allSettled so partial AdGuard failures are reported, not silently ignored
+        const results = await Promise.allSettled(requests);
+        const failed = results.filter((r) => r.status === 'rejected');
+        if (failed.length > 0) {
+          log.warn('dns', 'Some AdGuard config requests failed', {
+            failed: failed.map((f) => f.reason?.message),
+          });
+          return res.json({
+            success: true,
+            warning: `${failed.length} of ${results.length} AdGuard request(s) failed — configuration may be partially applied`,
+          });
+        }
       }
     }
 
@@ -139,14 +150,20 @@ router.get(
   auth,
   requireManager,
   asyncWrap(async (req, res) => {
-    let response = { data: {} };
-    if (process.env.VITEST !== 'true') {
-      response = await axios.get(`${AGH_BASE_URL}/control/stats`, {
-        ...getAghAuth(),
-        maxRedirects: 0,
-      });
+    // BUG-6 FIX: Wrap in try/catch so an unavailable AdGuard doesn't throw uncaught
+    try {
+      let response = { data: {} };
+      if (process.env.VITEST !== 'true') {
+        response = await axios.get(`${AGH_BASE_URL}/control/stats`, {
+          ...getAghAuth(),
+          maxRedirects: 0,
+        });
+      }
+      res.json(response.data);
+    } catch (err) {
+      log.warn('dns', 'AdGuard stats unavailable', { err: err.message });
+      res.json({});
     }
-    res.json(response.data);
   })
 );
 

@@ -52,7 +52,7 @@ const createError = (error, message, code = 'INTERNAL_ERROR', path = null) => {
   // Error.prototype.message is non-enumerable — redefine so JSON.stringify
   // exposes it to clients consuming `res.json(createError(...))`.
   Object.defineProperty(errObj, 'message', { value: errMsg, enumerable: true, writable: true });
-  errObj.error = typeof error === 'string' ? error : error?.message || 'Unknown Error';
+  errObj.error = typeof error === 'string' ? error : 'An error occurred';
   errObj.code = code;
   errObj.path = path || null;
   errObj.details = details;

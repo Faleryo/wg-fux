@@ -18,7 +18,12 @@ if (!DB_PATH) {
 if (DB_PATH !== ':memory:') {
   const dbDir = path.dirname(DB_PATH);
   if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
+    try {
+      fs.mkdirSync(dbDir, { recursive: true });
+    } catch (err) {
+      console.error(`[db] Fatal: cannot create database directory "${dbDir}": ${err.message}`);
+      process.exit(1);
+    }
   }
 }
 

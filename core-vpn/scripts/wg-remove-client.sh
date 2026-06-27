@@ -17,6 +17,7 @@ validate_id "$CONTAINER"
 validate_id "$NAME"
 
 CLIENT_DIR="/etc/wireguard/clients/$CONTAINER/$NAME"
+[[ "$CLIENT_DIR" == /etc/wireguard/clients/* ]] || { log_error "Chemin invalide: $CLIENT_DIR"; exit 1; }
 
 if [ ! -d "$CLIENT_DIR" ]; then
  log_warn "Client '$NAME' in container '$CONTAINER' does not exist. Already removed?"
@@ -32,7 +33,6 @@ if [ -f "$CLIENT_DIR/public.key" ]; then
  fi
 fi
 
-[[ "$CLIENT_DIR" == /etc/wireguard/clients/* ]] || exit 1
 rm -rf "$CLIENT_DIR"
 log_info "Client directory $CLIENT_DIR deleted."
 

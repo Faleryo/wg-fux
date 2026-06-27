@@ -67,9 +67,11 @@ export const LiveTelemetryChart = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchData = async () => {
       try {
         const res = await axios.get('/system/traffic-history');
+        if (cancelled) return;
         const formatted = (res.data || []).map((h) => ({
           name: h.time.split('T')[1]?.slice(0, 5) || h.time,
           down: h.rx / (1024 * 1024),
@@ -78,13 +80,17 @@ export const LiveTelemetryChart = () => {
         setData(formatted);
         setLoading(false);
       } catch (e) {
+        if (cancelled) return;
         console.error('Failed to fetch telemetry:', e);
         setLoading(false);
       }
     };
     fetchData();
     const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   if (loading)

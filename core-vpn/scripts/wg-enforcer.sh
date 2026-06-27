@@ -67,20 +67,28 @@ find "$CLIENTS_DIR" -name "public.key" -print0 2>/dev/null | while IFS= read -r 
  PUBKEY=$(tr -d '[:space:]' < "$keyfile")
  CLIENT_DIR=$(dirname "$keyfile")
  CLIENT_NAME=$(basename "$CLIENT_DIR")
+ CONTAINER_NAME=$(basename "$(dirname "$CLIENT_DIR")")
+
+ if [[ ! "$CLIENT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]] || [[ ! "$CONTAINER_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+   log_warn "Nom invalide ignoré: $CLIENT_DIR"
+   continue
+ fi
 
  IS_EXPIRED=0
  IS_QUOTA_EXCEEDED=0
 
  if [ -f "$CLIENT_DIR/expiry" ]; then
- EXP_DATE=$(cat "$CLIENT_DIR/expiry")
- if [ -n "$EXP_DATE" ]; then
+ EXP_DATE=$(cat "$CLIENT_DIR/expiry" | tr -d '[:space:]')
+ if [[ "$EXP_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
  EXP_TS=$(date -d "$EXP_DATE" +%s 2>/dev/null || echo "")
  if [ -n "$EXP_TS" ] && [ "$NOW" -ge "$EXP_TS" ]; then IS_EXPIRED=1; fi
+ elif [ -n "$EXP_DATE" ]; then
+ log_warn "Format de date invalide dans $CLIENT_DIR/expiry: $EXP_DATE"
  fi
  fi
 
  if [ -f "$CLIENT_DIR/quota" ]; then
-  QUOTA_GB=$(cat "$CLIENT_DIR/quota")
+  QUOTA_GB=$(cat "$CLIENT_DIR/quota" | tr -d '[:space:]')
   if [[ "$QUOTA_GB" =~ ^[0-9]+$ ]] && [ "$QUOTA_GB" -gt 0 ]; then
  if ! is_valid_wg_key "$PUBKEY"; then
  log_warn "Skipping invalid public key in $CLIENT_DIR"

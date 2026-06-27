@@ -181,7 +181,12 @@ if [ "$PROFILE" = "gaming" ]; then
  if ip link show "$INTERFACE" > /dev/null 2>&1; then
 	# MTU depuis manager.conf (défaut 1420). Les peers gaming peuvent
 	# réduire leur propre MTU côté client si nécessaire (ex: 1280 sur 4G).
-	target_mtu="${SERVER_MTU:-1420}"
+	_raw_mtu="${SERVER_MTU:-}"
+	if [[ "$_raw_mtu" =~ ^[0-9]+$ ]] && [ "$_raw_mtu" -ge 576 ] && [ "$_raw_mtu" -le 9000 ]; then
+		target_mtu="$_raw_mtu"
+	else
+		target_mtu=1420
+	fi
 	ip link set dev "$INTERFACE" mtu "$target_mtu" 2>/dev/null && log "✓ MTU $INTERFACE = $target_mtu (depuis manager.conf)" || log "⚠ failed to set MTU on $INTERFACE"
 
  # txqueuelen élevé = moins de drops sous burst
@@ -322,8 +327,10 @@ elif [ "$PROFILE" = "restore" ] || [ "$PROFILE" = "default" ] || [ "$PROFILE" = 
  # Si non défini, on repasse sur le standard 1420
  TARGET_MTU=1420
  if [ -f "/etc/wireguard/manager.conf" ]; then
- CONF_MTU=$(grep "SERVER_MTU" /etc/wireguard/manager.conf | cut -d'=' -f2 | tr -d '"')
- TARGET_MTU=${CONF_MTU:-1420}
+ CONF_MTU=$(grep "^SERVER_MTU=" /etc/wireguard/manager.conf | cut -d'=' -f2 | tr -d '"' | tr -d "'" | tr -d '[:space:]')
+ if [[ "$CONF_MTU" =~ ^[0-9]+$ ]] && [ "$CONF_MTU" -ge 576 ] && [ "$CONF_MTU" -le 9000 ]; then
+  TARGET_MTU="$CONF_MTU"
+ fi
  fi
 
  if ip link show "$INTERFACE" > /dev/null 2>&1; then

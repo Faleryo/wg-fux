@@ -123,7 +123,7 @@ const DnsConfigForm = ({
               dns.cloudflare.com).
             </p>
             <textarea
-              value={config?.bootstrap_dns?.join('\n')}
+              value={config?.bootstrap_dns?.join('\n') ?? ''}
               onChange={(e) =>
                 setConfig({
                   ...config,

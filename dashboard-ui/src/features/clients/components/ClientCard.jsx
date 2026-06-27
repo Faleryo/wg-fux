@@ -26,7 +26,7 @@ const ClientCard = ({ client, color, onSelect, onToggle, onEdit, onQRCode, onDel
             )}
             style={online ? { backgroundColor: COLOR_MAP[color]?.[500] || '#6366f1', boxShadow: `0 8px 32px -8px ${COLOR_MAP[color]?.[500] || '#6366f1'}4d` } : undefined}
           >
-            {client.name.charAt(0).toUpperCase()}
+            {(client.name || '?').charAt(0).toUpperCase()}
           </div>
           <div>
             <h4 className="text-sm font-black text-white uppercase tracking-tight truncate">

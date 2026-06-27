@@ -99,7 +99,7 @@ const getInterfacePath = (iface) => {
   return `/sys/class/net/${iface || process.env.WG_INTERFACE || 'wg0'}`;
 };
 
-const isValidName = (str) => /^[a-zA-Z0-9_-]+$/.test(str || '');
+const isValidName = (str) => /^[a-zA-Z0-9_-]{1,15}$/.test(str || '');
 const isValidExpiry = (str) => !str || /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(str);
 const isValidNumber = (str) => !str || /^[0-9]+$/.test(String(str));
 

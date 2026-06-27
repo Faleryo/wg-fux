@@ -9,6 +9,15 @@ MEM_LIMIT="${3:-}"
 if [ -z "$CONTAINER" ]; then echo "Error: Container name required"; exit 1; fi
 if [[ ! "$CONTAINER" =~ ^[a-zA-Z0-9_\-]+$ ]]; then echo "Error: Invalid container name"; exit 1; fi
 
+# BUG-4 FIX: Validate CPU_LIMIT and MEM_LIMIT format before writing to limits.conf
+# to prevent arbitrary content injection in the config file.
+if [[ -n "$CPU_LIMIT" && ! "$CPU_LIMIT" =~ ^[0-9]+(%|m)?$|^unlimited$ ]]; then
+ echo "Error: Invalid CPU_LIMIT format"; exit 1
+fi
+if [[ -n "$MEM_LIMIT" && ! "$MEM_LIMIT" =~ ^[0-9]+(m|g|M|G)?$|^unlimited$ ]]; then
+ echo "Error: Invalid MEM_LIMIT format"; exit 1
+fi
+
 BASE_DIR="/etc/wireguard/clients"
 TARGET_DIR="$BASE_DIR/$CONTAINER"
 

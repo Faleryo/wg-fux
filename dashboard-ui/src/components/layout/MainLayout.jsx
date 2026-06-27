@@ -703,6 +703,14 @@ const MainLayout = ({ session, onLogout }) => {
                 </strong>{' '}
                 ?
               </span>
+            ) : confirmModal.type === 'delete-user' && confirmModal.user ? (
+              <span>
+                Supprimer l'opérateur{' '}
+                <strong className={cn('font-mono', isDark ? 'text-white' : 'text-slate-900')}>
+                  {confirmModal.user.username}
+                </strong>{' '}
+                ? Cette action révoquera immédiatement ses accès système.
+              </span>
             ) : confirmModal.client ? (
               <span>
                 Supprimer{' '}
@@ -714,14 +722,6 @@ const MainLayout = ({ session, onLogout }) => {
                   {confirmModal.client.container}
                 </strong>{' '}
                 ?
-              </span>
-            ) : confirmModal.type === 'delete-user' && confirmModal.user ? (
-              <span>
-                Supprimer l'opérateur{' '}
-                <strong className={cn('font-mono', isDark ? 'text-white' : 'text-slate-900')}>
-                  {confirmModal.user.username}
-                </strong>{' '}
-                ? Cette action révoquera immédiatement ses accès système.
               </span>
             ) : (
               'Cette action est irréversible.'

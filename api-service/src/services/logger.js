@@ -80,9 +80,10 @@ const getSafeIp = (req) => {
     const xff = req.headers['x-forwarded-for'];
     let ip = '';
     if (typeof xff === 'string') {
-      ip = xff.split(',')?.[0];
+      const parts = xff.split(',');
+      ip = parts[parts.length - 1].trim();
     } else if (Array.isArray(xff) && xff.length > 0) {
-      ip = String(xff?.[0]).split(',')?.[0];
+      ip = String(xff[xff.length - 1]).trim();
     }
     return (ip || req.socket?.remoteAddress || '-').trim();
   } catch {
@@ -123,7 +124,7 @@ process.on('uncaughtException', (err) => {
     err: err.message,
     stack: (err.stack || '').split('\n')?.[1]?.trim(),
   });
-  setTimeout(() => process.exit(1), 1000);
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
@@ -131,7 +132,7 @@ process.on('unhandledRejection', (reason) => {
     reason: reason instanceof Error ? reason.message : String(reason),
     stack: reason instanceof Error ? (reason.stack || '').split('\n')?.[1]?.trim() : undefined,
   });
-  setTimeout(() => process.exit(1), 1000);
+  process.exit(1);
 });
 
 const logger = {

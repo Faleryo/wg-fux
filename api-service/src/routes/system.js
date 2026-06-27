@@ -149,6 +149,7 @@ router.get(
 router.get(
   '/services',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const services = [
       { id: 'wireguard', name: 'WireGuard Core', unit: `wg-quick@${process.env.WG_INTERFACE}` },
@@ -481,6 +482,7 @@ router.get(
 router.get(
   '/logs',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const parsed = logsQuerySchema.safeParse(req.query);
     if (!parsed.success) {
@@ -657,9 +659,9 @@ router.post(
   auth,
   requireAdmin,
   asyncWrap(async (req, res) => {
-    const result = await gcAuditLogs(0);
+    const result = await gcAuditLogs(0, 0);
     try {
-      await fsPromises.writeFile('/var/log/wg-enforcer.log', '');
+      await writeFileAsRoot('/var/log/wg-enforcer.log', '');
     } catch (_) {
       log.warn('system', 'Failed to clear enforcer log');
     }
@@ -670,6 +672,7 @@ router.post(
 router.get(
   '/health',
   auth,
+  requireManager,
   asyncWrap(async (req, res) => {
     const iface = process.env.WG_INTERFACE || 'wg0';
     const interfaceExists = fs.existsSync(getInterfacePath(iface));

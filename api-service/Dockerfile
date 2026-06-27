@@ -28,7 +28,31 @@ RUN useradd -m -s /bin/bash wg-api
 # Setup sudoers - Allow wg-api to run ONLY specific scripts and network binaries
 # SECURITY: Bare binaries (rm, ls, tee, test) are STRICTLY removed to prevent privilege escalation.
 # I/O operations are handled through wg-file-proxy.sh
-RUN echo "wg-api ALL=(ALL) SETENV:NOPASSWD: /usr/local/bin/*.sh, /app/core-vpn/scripts/*.sh, /usr/bin/wg, /usr/bin/wg-quick, /usr/sbin/ufw, /usr/sbin/sysctl, /sbin/ip" > /etc/sudoers.d/wg-api && \
+RUN printf '%s\n' \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-apply-qos.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-backup.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-check-expiry.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-create-client.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-create-container.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-enforcer.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-file-proxy.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-harden.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-health.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-move-client.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-optimize.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-postdown.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-postup.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-remove-client.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-remove-container.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-speedtest.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-stats.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-toggle.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /usr/bin/wg" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /usr/bin/wg-quick" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /usr/sbin/ufw" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /usr/sbin/sysctl" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /sbin/ip" \
+    > /etc/sudoers.d/wg-api && \
     chmod 0440 /etc/sudoers.d/wg-api
 
 

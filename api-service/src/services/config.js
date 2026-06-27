@@ -19,9 +19,19 @@ const SCRIPT_DIR = (() => {
 /**
  * Standardized Script Path Resolver
  */
+const ALLOWED_SCRIPT_PREFIXES = ['/usr/local/bin', '/app/core-vpn/scripts'];
+
 const getScriptPath = (scriptName) => {
-  // Si le script commence déjà par /usr/local/bin ou /app/, on ne le modifie pas
-  if (scriptName.startsWith('/') || scriptName.startsWith('./')) return scriptName;
+  // Si le script commence déjà par un chemin absolu, valider qu'il pointe
+  // vers un répertoire autorisé pour éviter l'injection de chemins arbitraires.
+  if (scriptName.startsWith('/')) {
+    const allowed = ALLOWED_SCRIPT_PREFIXES.some((prefix) => scriptName.startsWith(prefix + '/') || scriptName === prefix);
+    if (!allowed) {
+      throw new Error(`Forbidden script path: ${scriptName}. Must be under ${ALLOWED_SCRIPT_PREFIXES.join(' or ')}.`);
+    }
+    return scriptName;
+  }
+  if (scriptName.startsWith('./')) return scriptName;
   return path.join(SCRIPT_DIR, scriptName);
 };
 
