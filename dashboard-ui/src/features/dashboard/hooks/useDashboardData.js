@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { axiosInstance, getWsUri, getWsToken } from '../../../lib/api';
 import { useWebSocket } from '../../../lib/useWebSocket';
 import { useToast } from '../../../context/ToastContext';
+import { formatBytes } from '../../../lib/utils';
 
 const CACHE_KEY = 'wg-fux-cache';
 const CACHE_TTL = 30000; // 30s
@@ -47,14 +48,20 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
   const [onlinePeers, setOnlinePeers] = useState([]);
 
   // ── AdGuard ───────────────────────────────────────────────────────────────
+  // /system/adguard-status exige manager+ : on n'appelle pas pour un viewer.
+  const isManagerRole = session?.role === 'admin' || session?.role === 'manager';
   const fetchAdguard = useCallback(async () => {
+    if (!isManagerRole) {
+      setAdguardStatus({ status: 'unknown' });
+      return;
+    }
     try {
       const res = await axiosInstance.get('/system/adguard-status');
       setAdguardStatus(res.data);
     } catch {
       setAdguardStatus({ status: 'inactive' });
     }
-  }, []);
+  }, [isManagerRole]);
 
   // ── WebSocket ─────────────────────────────────────────────────────────────
   useWebSocket(getWsUri('status'), {
@@ -118,6 +125,10 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
     try {
       const role = sessionRoleRef.current;
       const isAdmin = role === 'admin';
+      // Les endpoints /system/* (stats, interfaces, telemetry…) exigent le rôle
+      // manager+. Pour un viewer (revendeur) on NE les appelle pas : ça évite
+      // les 403 en boucle ET la fuite de métriques globales inter-tenants.
+      const isManager = role === 'admin' || role === 'manager';
       const section = activeSectionRef.current;
       const needsHeavy = HEAVY_SECTIONS.has(section);
       const iface = activeInterfaceRef.current;
@@ -132,13 +143,17 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
         usersRes,
       ] = await Promise.all([
         needsHeavy ? axiosInstance.get('/clients') : Promise.resolve({ data: clientsRef.current }),
-        axiosInstance.get(`/system/stats?interface=${iface}`).catch(() => ({ data: {} })),
+        isManager
+          ? axiosInstance.get(`/system/stats?interface=${iface}`).catch(() => ({ data: {} }))
+          : Promise.resolve({ data: {} }),
         axiosInstance.get('/system/health').catch(() => ({ data: { status: 'unhealthy' } })),
         axiosInstance.get('/ready').catch(() => ({ data: { status: 'not ready' } })),
         needsHeavy
           ? axiosInstance.get('/clients/containers').catch(() => ({ data: [] }))
           : Promise.resolve({ data: containersRef.current }),
-        axiosInstance.get('/system/interfaces').catch(() => ({ data: [] })),
+        isManager
+          ? axiosInstance.get('/system/interfaces').catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] }),
         isAdmin
           ? axiosInstance.get('/users').catch(() => ({ data: [] }))
           : Promise.resolve({ data: [] }),
@@ -172,9 +187,23 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
       setClients(clientsWithRates);
       prevDataRef.current = { clients: fetchedClients, timestamp: now };
 
-      const networkStats = statsRes.data?.network || {};
+      // Viewer : pas d'accès à /system/stats → on calcule des stats RÉSEAU
+      // scopées à ses propres clients (déjà filtrés côté serveur par ownership).
+      let networkStats;
+      if (isManager) {
+        networkStats = statsRes.data?.network || {};
+        setSystemStats(statsRes.data?.system || { cpu: 0, memory: 0, disk: 0 });
+      } else {
+        const totalRx = fetchedClients.reduce((a, c) => a + (Number(c.downloadBytes) || 0), 0);
+        const totalTx = fetchedClients.reduce((a, c) => a + (Number(c.uploadBytes) || 0), 0);
+        networkStats = {
+          totalDownload: formatBytes(totalRx),
+          totalUpload: formatBytes(totalTx),
+          connectedClients: fetchedClients.filter((c) => c.isOnline).length,
+        };
+        setSystemStats({ cpu: 0, memory: 0, disk: 0 });
+      }
       setStats(networkStats);
-      setSystemStats(statsRes.data?.system || { cpu: 0, memory: 0, disk: 0 });
       setHealth({
         ...(healthRes.data || { status: 'unknown' }),
         ready: readyCheckRes.data?.status === 'ready',
@@ -254,11 +283,14 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
       .get('/system/uptime')
       .then((r) => setUptime(r.data.uptime))
       .catch(() => {});
-    axiosInstance
-      .get('/system/config')
-      .then((r) => setConfig(r.data))
-      .catch(() => {});
-  }, []);
+    // GET /system/config exige le rôle admin → on évite le 403 pour les autres.
+    if (session?.role === 'admin') {
+      axiosInstance
+        .get('/system/config')
+        .then((r) => setConfig(r.data))
+        .catch(() => {});
+    }
+  }, [session?.role]);
 
   // ── Bootstrap + Polling ───────────────────────────────────────────────────
   useEffect(() => {

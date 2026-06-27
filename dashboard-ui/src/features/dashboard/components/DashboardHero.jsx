@@ -21,6 +21,7 @@ const DashboardHero = ({
   health,
   activeInterface,
   setActiveInterface,
+  isManager = true,
 }) => {
   const { theme, isDark } = useTheme();
 
@@ -58,7 +59,10 @@ const DashboardHero = ({
             </p>
           </div>
           <div className="flex items-center gap-4 flex-wrap">
-            <InterfaceSelector onSelect={setActiveInterface} current={activeInterface} />
+            {/* InterfaceSelector appelle /system/interfaces (manager+) */}
+            {isManager && (
+              <InterfaceSelector onSelect={setActiveInterface} current={activeInterface} />
+            )}
             <div
               className={cn(
                 'px-4 py-2 rounded-full text-[10px] font-black tracking-[0.2em] border whitespace-nowrap transition-all duration-500',

@@ -62,6 +62,12 @@ const track = (event, props) => {
 const MainLayout = ({ session, onLogout }) => {
   const { theme, mode } = useTheme();
   const { addToast } = useToast();
+  // Un viewer (revendeur) n'a pas les droits manager : on masque les sections
+  // et widgets qui appellent /system/* (sinon 403 + fuite de métriques globales).
+  const isManager = session?.role === 'admin' || session?.role === 'manager';
+  const isAdmin = session?.role === 'admin';
+  const MANAGER_ONLY_SECTIONS = new Set(['logs', 'dns', 'optimization', 'audit']);
+  const ADMIN_ONLY_SECTIONS = new Set(['users', 'settings']);
   const [activeSection, setActiveSection] = useState(
     localStorage.getItem('active-tab') || 'dashboard'
   );
@@ -277,7 +283,14 @@ const MainLayout = ({ session, onLogout }) => {
         />
       );
     }
-    switch (activeSection) {
+    // Garde-fou : un utilisateur qui atteindrait une section au-dessus de ses
+    // droits (recherche globale, tab persisté en localStorage…) est renvoyé sur
+    // son dashboard — sinon la section déclencherait des 403 en boucle.
+    const forbidden =
+      (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
+      (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection));
+    const section = forbidden ? 'dashboard' : activeSection;
+    switch (section) {
       case 'dashboard':
         return (
           <DashboardSection
@@ -296,6 +309,7 @@ const MainLayout = ({ session, onLogout }) => {
             activeInterface={activeInterface}
             setActiveInterface={setActiveInterface}
             interfaces={interfaces}
+            isManager={isManager}
           />
         );
       case 'containers':
@@ -585,9 +599,11 @@ const MainLayout = ({ session, onLogout }) => {
         </div>
       </main>
 
-      <div className="fixed bottom-6 right-6 z-40 hidden xl:block animate-in fade-in slide-in-from-right-10 duration-1000">
-        <PerformanceMonitor />
-      </div>
+      {isManager && (
+        <div className="fixed bottom-6 right-6 z-40 hidden xl:block animate-in fade-in slide-in-from-right-10 duration-1000">
+          <PerformanceMonitor />
+        </div>
+      )}
 
       <ErrorBoundary sectionName="Modals">
         <GlobalSearch

@@ -46,6 +46,7 @@ const DashboardSection = ({
   activeInterface,
   setActiveInterface,
   interfaces,
+  isManager = true,
 }) => {
   return (
     <motion.div
@@ -64,6 +65,7 @@ const DashboardSection = ({
             health={health}
             activeInterface={activeInterface}
             setActiveInterface={setActiveInterface}
+            isManager={isManager}
           />
         </motion.div>
 
@@ -80,7 +82,8 @@ const DashboardSection = ({
         </motion.div>
       </div>
 
-      {interfaces && interfaces.length > 0 && (
+      {/* EdgeNodeHeatmap (interfaces) réservé aux managers : /system/interfaces */}
+      {isManager && interfaces && interfaces.length > 0 && (
         <motion.div variants={itemVariants}>
           <GlassCard className="p-6 md:p-8">
             <EdgeNodeHeatmap interfaces={interfaces} />
@@ -92,16 +95,21 @@ const DashboardSection = ({
         variants={itemVariants}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-12 gap-6 lg:gap-8"
       >
-        <div className="md:col-span-2 lg:col-span-2 2xl:col-span-8">
-          <LiveTelemetryChart />
-        </div>
+        {/* LiveTelemetryChart appelle /system/traffic-history (manager+) */}
+        {isManager && (
+          <div className="md:col-span-2 lg:col-span-2 2xl:col-span-8">
+            <LiveTelemetryChart />
+          </div>
+        )}
 
         <motion.div
           variants={itemVariants}
           className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6"
         >
           <TrafficPieChart clients={clients} />
-          <SpeedtestSection speedtest={speedtest} onRunSpeedtest={onRunSpeedtest} />
+          {isManager && (
+            <SpeedtestSection speedtest={speedtest} onRunSpeedtest={onRunSpeedtest} />
+          )}
         </motion.div>
       </motion.div>
     </motion.div>

@@ -27,6 +27,10 @@ const NavItems = ({
   userRole,
 }) => {
   const isAdmin = userRole === 'admin';
+  // Un viewer (revendeur) n'a pas accès aux endpoints manager/admin : on masque
+  // les sections qui ne feraient que produire des 403 (logs, dns, optimisation,
+  // audit). Il ne lui reste que son dashboard scopé, ses conteneurs, la topologie.
+  const isManager = userRole === 'admin' || userRole === 'manager';
   const navItems = [
     { id: 'dashboard', icon: <Home size={20} />, label: t('dashboard') },
     { id: 'containers', icon: <Package size={20} />, label: t('containers') },
@@ -36,11 +40,11 @@ const NavItems = ({
       label: t('users_manage'),
       hidden: !isAdmin,
     },
-    { id: 'logs', icon: <FileText size={20} />, label: t('logs') },
+    { id: 'logs', icon: <FileText size={20} />, label: t('logs'), hidden: !isManager },
     { id: 'topology', icon: <Activity size={20} />, label: t('topology') },
-    { id: 'dns', icon: <Globe size={20} />, label: 'DNS Editor' },
-    { id: 'optimization', icon: <Gauge size={20} />, label: t('optimization') },
-    { id: 'audit', icon: <ShieldCheck size={20} />, label: 'Audit' },
+    { id: 'dns', icon: <Globe size={20} />, label: 'DNS Editor', hidden: !isManager },
+    { id: 'optimization', icon: <Gauge size={20} />, label: t('optimization'), hidden: !isManager },
+    { id: 'audit', icon: <ShieldCheck size={20} />, label: 'Audit', hidden: !isManager },
     {
       id: 'settings',
       icon: <Settings size={20} />,
