@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Users,
   Key,
   Shield,
   Eye,
   EyeOff,
   RefreshCw,
   Save,
-  Trash2,
-  AlertTriangle,
+  Calendar,
 } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
@@ -16,19 +14,21 @@ import { cn, COLOR_MAP } from '../../lib/utils';
 import VibeButton from '../ui/Button';
 
 const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
-  const { theme, mode } = useTheme();
-  const isDark = mode === 'dark';
+  const { theme } = useTheme();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('viewer');
+  const [expiry, setExpiry] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (user) {
       setRole(user.role || 'viewer');
+      setExpiry(user.expiry ? new Date(user.expiry).toISOString().split('T')[0] : '');
       setPassword('');
       setConfirmPassword('');
       setError('');
@@ -50,19 +50,22 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
     try {
-      await onSave(user.username, {
-        password: password || undefined,
-        role: role !== user.role ? role : undefined,
-      });
+      const updateData = {};
+      if (password) updateData.password = password;
+      if (role !== user.role) updateData.role = role;
+      const currentExpiry = user.expiry ? new Date(user.expiry).toISOString().split('T')[0] : '';
+      if (expiry !== currentExpiry) updateData.expiry = expiry || null;
+
+      await onSave(user.username, updateData);
       setPassword('');
       setConfirmPassword('');
       onClose();
     } catch (err) {
       setError(err?.response?.data?.error || 'Erreur lors de la mise à jour');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -74,7 +77,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
     )
       return;
 
-    setLoading(true);
+    setResetting(true);
     setError('');
     try {
       await onReset2FA(user.username);
@@ -82,14 +85,14 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
     } catch (err) {
       setError(err?.response?.data?.error || 'Erreur reset 2FA');
     } finally {
-      setLoading(false);
+      setResetting(false);
     }
   };
 
   const roles = [
-    { id: 'viewer', label: 'Viewer', desc: 'Lecture seule', color: 'slate' },
-    { id: 'manager', label: 'Manager', desc: 'Gestion Clients', color: 'indigo' },
-    { id: 'admin', label: 'Admin', desc: 'Accès complet', color: 'indigo' },
+    { id: 'viewer', label: 'Viewer', desc: 'Lecture seule' },
+    { id: 'manager', label: 'Manager', desc: 'Gestion Clients' },
+    { id: 'admin', label: 'Admin', desc: 'Accès complet' },
   ];
 
   if (!user) return null;
@@ -98,7 +101,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Éditer Opérateur: ${user.username}`}
+      title={`Éditer: ${user.username}`}
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -106,7 +109,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
         <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4">
           <div
             className='w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black'
-              style={{ backgroundColor: COLOR_MAP[theme]?.[600] || '#6366f1' }}
+            style={{ backgroundColor: COLOR_MAP[theme]?.[600] || '#6366f1' }}
           >
             {user.username.charAt(0).toUpperCase()}
           </div>
@@ -143,6 +146,33 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Expiry Date */}
+        <div>
+          <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+            Date d'Expiration
+            <span className="ml-2 text-emerald-500/60">Optionnel</span>
+          </label>
+          <div className="relative group">
+            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <input
+              type="date"
+              value={expiry}
+              onChange={(e) => setExpiry(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono text-sm text-white"
+            />
+          </div>
+          {expiry && (
+            <button
+              type="button"
+              onClick={() => setExpiry('')}
+              className="mt-1 text-[9px] text-red-400/70 hover:text-red-400 uppercase tracking-widest"
+            >
+              Supprimer l'expiration
+            </button>
+          )}
         </div>
 
         {/* Change Password (Optional) */}
@@ -185,16 +215,16 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
           )}
         </div>
 
-        {/* 2FA Helper */}
+        {/* 2FA Reset */}
         <div className="pt-2">
           <button
             type="button"
             onClick={handleReset2FA}
-            disabled={loading}
-            className="w-full py-3 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+            disabled={resetting || saving}
+            className="w-full py-3 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-40"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Réinitialiser 2FA (TOTP)
+            <RefreshCw size={14} className={resetting ? 'animate-spin' : ''} />
+            {resetting ? 'Réinitialisation...' : 'Réinitialiser 2FA (TOTP)'}
           </button>
         </div>
 
@@ -222,7 +252,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
           <VibeButton
             type="submit"
             variant="primary"
-            loading={loading}
+            loading={saving}
             icon={Save}
             className="flex-[2] py-4"
           >

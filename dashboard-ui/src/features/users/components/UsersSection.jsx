@@ -6,7 +6,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import GlassCard from '../../../components/ui/Card';
 import VibeButton from '../../../components/ui/Button';
 
-const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDelete }) => {
+const ROLE_CONFIG = {
+  admin:   { label: 'Root Access',     badge: 'Admin',   variant: 'theme' },
+  manager: { label: 'Manager Access',  badge: 'Manager', variant: 'indigo' },
+  viewer:  { label: 'Operator Access', badge: 'Viewer',  variant: 'slate' },
+};
+
+const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDelete, onRefresh }) => {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -63,6 +69,16 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
               className="pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/20 focus:bg-white/10 text-sm text-white w-full md:w-80 transition-all font-mono"
             />
           </div>
+          {onRefresh && (
+            <VibeButton
+              variant="secondary"
+              icon={RefreshCw}
+              className="w-full md:w-auto"
+              onClick={onRefresh}
+            >
+              Actualiser
+            </VibeButton>
+          )}
           <VibeButton
             variant="primary"
             icon={Plus}
@@ -98,49 +114,60 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                     className="group hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     <td className="px-10 py-6">
-                      <div className="flex items-center gap-5">
-                          <div
-                            className={cn(
-                              'w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-white text-lg transition-all group-hover:scale-110 group-hover:bg-slate-700 shadow-xl',
-                              user.role === 'admin'
-                                ? 'border'
-                                : 'border border-white/5',
-                            )}
-                            style={user.role === 'admin' ? { borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '4d' : '#6366f14d' } : undefined}
-                        >
-                          {String(user?.username || '?')
-                            .charAt(0)
-                            .toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="text-sm font-black text-white uppercase tracking-tight flex items-center gap-2">
-                            {user.username || 'Inconnu'}
-                            {user.role === 'admin' && (
-                              <Shield size={14} style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }} />
-                            )}
+                      {(() => {
+                        const rc = ROLE_CONFIG[user.role] || ROLE_CONFIG.viewer;
+                        const isElevated = user.role === 'admin' || user.role === 'manager';
+                        const accentColor = user.role === 'admin'
+                          ? COLOR_MAP[theme]?.[500] || '#6366f1'
+                          : user.role === 'manager'
+                          ? '#6366f1'
+                          : null;
+                        return (
+                          <div className="flex items-center gap-5">
+                            <div
+                              className={cn(
+                                'w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-white text-lg transition-all group-hover:scale-110 group-hover:bg-slate-700 shadow-xl border',
+                              )}
+                              style={isElevated && accentColor ? { borderColor: accentColor + '4d' } : { borderColor: 'rgba(255,255,255,0.05)' }}
+                            >
+                              {String(user?.username || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="text-sm font-black text-white uppercase tracking-tight flex items-center gap-2">
+                                {user.username || 'Inconnu'}
+                                {isElevated && (
+                                  <Shield size={14} style={{ color: accentColor + 'cc' }} />
+                                )}
+                              </div>
+                              <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                                {rc.label}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                            {user.role === 'admin' ? 'Root Access' : 'Operator Access'}
-                          </div>
-                        </div>
-                      </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-8 py-6">
-                      <span
-                        className={cn(
-                          'text-[10px] font-black px-4 py-1.5 rounded-xl border uppercase tracking-widest inline-block',
-                          user.role === 'admin'
-                            ? ''
-                            : 'bg-white/5 text-slate-400 border-white/5',
-                        )}
-                        style={user.role === 'admin' ? {
-                          backgroundColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '1a' : '#6366f11a',
-                          color: COLOR_MAP[theme]?.[400] || '#818cf8',
-                          borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '33' : '#6366f133'
-                        } : undefined}
-                      >
-                        {user.role}
-                      </span>
+                      {(() => {
+                        const rc = ROLE_CONFIG[user.role] || ROLE_CONFIG.viewer;
+                        const accentColor = user.role === 'admin'
+                          ? COLOR_MAP[theme]?.[500] || '#6366f1'
+                          : user.role === 'manager'
+                          ? '#6366f1'
+                          : null;
+                        return (
+                          <span
+                            className="text-[10px] font-black px-4 py-1.5 rounded-xl border uppercase tracking-widest inline-block"
+                            style={accentColor ? {
+                              backgroundColor: accentColor + '1a',
+                              color: accentColor,
+                              borderColor: accentColor + '33',
+                            } : { background: 'rgba(255,255,255,0.05)', color: '#94a3b8', borderColor: 'rgba(255,255,255,0.05)' }}
+                          >
+                            {rc.badge}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-8 py-6">
                       {(() => {

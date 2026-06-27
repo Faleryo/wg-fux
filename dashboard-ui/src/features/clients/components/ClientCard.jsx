@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { Edit, Trash2, Pause, Play, ChevronRight, QrCode } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import GlassCard from '../../../components/ui/Card';
 import { isOnlineClient, isExpired, isExpiringSoon } from './ClientListHelpers';
 
-const ClientCard = ({ client, color, onSelect, onToggle, onEdit, onQRCode, onDelete }) => {
-  const online = isOnlineClient(client);
+const ClientCard = ({ client, color, isOnlineOverride = false, onSelect, onToggle, onEdit, onQRCode, onDelete }) => {
+  const online = isOnlineOverride || isOnlineClient(client);
   const expired = isExpired(client.expiry);
   const expiring = isExpiringSoon(client.expiry);
   const quotaPct =
@@ -165,4 +166,4 @@ const ClientCard = ({ client, color, onSelect, onToggle, onEdit, onQRCode, onDel
   );
 };
 
-export default ClientCard;
+export default memo(ClientCard);

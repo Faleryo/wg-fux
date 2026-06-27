@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Users, Activity } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
@@ -10,6 +11,7 @@ const ClientGridView = ({
   containerGroups,
   selectedColor,
   containerClients,
+  onlinePeers = [],
   search,
   onSelect,
   onToggle,
@@ -17,6 +19,8 @@ const ClientGridView = ({
   onQRCode,
   onDelete,
 }) => {
+  const onlinePeersSet = useMemo(() => new Set(onlinePeers), [onlinePeers]);
+
   return (
     <motion.div
       key={`container-${activeContainer}`}
@@ -28,7 +32,7 @@ const ClientGridView = ({
     >
       {(() => {
         const cc = containerGroups[activeContainer] || [];
-        const active = cc.filter(isOnlineClient).length;
+        const active = cc.filter((c) => isOnlineClient(c) || onlinePeersSet.has(c.publicKey)).length;
         return (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -115,11 +119,12 @@ const ClientGridView = ({
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: idx * 0.04, duration: 0.3 }}
+                transition={{ delay: Math.min(idx * 0.03, 0.3), duration: 0.25 }}
               >
                 <ClientCard
                   client={client}
                   color={selectedColor}
+                  isOnlineOverride={onlinePeersSet.has(client.publicKey)}
                   onSelect={onSelect}
                   onToggle={onToggle}
                   onEdit={onEdit}
@@ -135,4 +140,4 @@ const ClientGridView = ({
   );
 };
 
-export default ClientGridView;
+export default memo(ClientGridView);

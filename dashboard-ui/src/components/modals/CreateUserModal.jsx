@@ -61,6 +61,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
 
   const roles = [
     { id: 'viewer', label: 'Viewer', desc: 'Lecture seule', color: 'slate' },
+    { id: 'manager', label: 'Manager', desc: 'Gestion Clients', color: 'indigo' },
     { id: 'admin', label: 'Admin', desc: 'Accès complet', color: theme },
   ];
 
@@ -140,7 +141,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
           <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest">
             Rôle Système
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {roles.map((r) => (
               <button
                 key={r.id}

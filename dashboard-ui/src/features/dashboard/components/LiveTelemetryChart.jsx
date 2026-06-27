@@ -61,37 +61,47 @@ const CustomTooltip = ({ active, payload, label, isDark }) => {
   );
 };
 
-export const LiveTelemetryChart = () => {
+export const LiveTelemetryChart = ({ realtimeData = [] }) => {
   const { isDark } = useTheme();
-  const [data, setData] = useState([]);
+  const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [usingRealtime, setUsingRealtime] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    const fetchData = async () => {
+    const fetchHistory = async () => {
       try {
         const res = await axios.get('/system/traffic-history');
         if (cancelled) return;
         const formatted = (res.data || []).map((h) => ({
           name: h.time.split('T')[1]?.slice(0, 5) || h.time,
-          down: h.rx / (1024 * 1024),
-          up: h.tx / (1024 * 1024),
+          down: (h.rx || 0) / (1024 * 1024),
+          up: (h.tx || 0) / (1024 * 1024),
         }));
-        setData(formatted);
+        setHistoryData(formatted);
         setLoading(false);
-      } catch (e) {
-        if (cancelled) return;
-        console.error('Failed to fetch telemetry:', e);
-        setLoading(false);
+      } catch {
+        if (!cancelled) setLoading(false);
       }
     };
-    fetchData();
-    const interval = setInterval(fetchData, 10000);
+    fetchHistory();
+    const interval = setInterval(fetchHistory, 30000);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
   }, []);
+
+  // Prefer realtime data (polling) when history is empty
+  const data = historyData.length > 0 ? historyData : realtimeData.map((d) => ({
+    name: d.time,
+    down: (d.download || 0) / (1024 * 1024),
+    up: (d.upload || 0) / (1024 * 1024),
+  }));
+
+  useEffect(() => {
+    setUsingRealtime(historyData.length === 0 && realtimeData.length > 0);
+  }, [historyData.length, realtimeData.length]);
 
   if (loading)
     return (
@@ -251,7 +261,7 @@ export const LiveTelemetryChart = () => {
         <div className="flex items-center gap-3">
           <Activity size={18} className="text-indigo-500 animate-pulse" />
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            Mise à jour en temps réel via Drizzle/SQLite
+            {usingRealtime ? 'Polling temps réel (5s)' : 'Historique 24h · SQLite'}
           </span>
         </div>
         <div
@@ -260,8 +270,10 @@ export const LiveTelemetryChart = () => {
             isDark ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'
           )}
         >
-          <span className="text-[10px] font-black text-slate-400">STATUS:</span>
-          <span className="text-[10px] font-black text-emerald-500 tracking-widest">OPTIMAL</span>
+          <span className="text-[10px] font-black text-slate-400">SOURCE:</span>
+          <span className={cn('text-[10px] font-black tracking-widest', usingRealtime ? 'text-amber-400' : 'text-emerald-500')}>
+            {usingRealtime ? 'LIVE' : 'DB'}
+          </span>
         </div>
       </div>
     </motion.div>

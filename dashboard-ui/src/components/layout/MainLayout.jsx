@@ -74,7 +74,10 @@ const MainLayout = ({ session, onLogout }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [topologySelectedClient, setTopologySelectedClient] = useState(null);
-  const [activeContainer, setActiveContainer] = useState(null);
+  const [activeContainer, setActiveContainer] = useState(() => {
+    const savedTab = localStorage.getItem('active-tab');
+    return savedTab === 'containers' ? (localStorage.getItem('active-container') || null) : null;
+  });
 
   const isDark = mode === 'dark';
 
@@ -117,10 +120,20 @@ const MainLayout = ({ session, onLogout }) => {
     interfaces,
   } = useDashboardData(session, activeSection);
 
-  // ── Persist active tab ────────────────────────────────────────────────────
+  // ── Persist active tab + container ───────────────────────────────────────
   useEffect(() => {
     localStorage.setItem('active-tab', activeSection);
   }, [activeSection]);
+
+  useEffect(() => {
+    if (activeSection === 'containers') {
+      if (activeContainer) {
+        localStorage.setItem('active-container', activeContainer);
+      } else {
+        localStorage.removeItem('active-container');
+      }
+    }
+  }, [activeContainer, activeSection]);
 
   // Update topologySelectedClient with fresh data when clients refresh
   useEffect(() => {
@@ -152,13 +165,18 @@ const MainLayout = ({ session, onLogout }) => {
 
   // ── Client CRUD handlers ──────────────────────────────────────────────────
   const handleCreateClient = async (name, container, expiry, quota, uploadLimit) => {
-    // Bloque les toasts WebSocket (peer_connected) pendant la création pour
-    // éviter le doublon : toast "créé avec succès" + toast WS "connecté".
     suppressWsToast();
     await axiosInstance.post('/clients', { name, container, expiry, quota, uploadLimit });
-    // Effets de bord post-succès : ne doivent jamais faire échouer la création.
     fetchData();
     track('client_created', { container, name });
+    // Affiche immédiatement la config après création
+    try {
+      const res = await axiosInstance.get(`/clients/${container}/${name}/config`);
+      setSelectedClientForModal({ name, config: res.data.config || '' });
+      setShowQRModal(true);
+    } catch {
+      // Non bloquant : la config peut être lue plus tard via le bouton QR
+    }
   };
 
   const handleCreateContainer = async (name) => {
@@ -320,6 +338,7 @@ const MainLayout = ({ session, onLogout }) => {
             loading={loading}
             activeContainer={activeContainer}
             setActiveContainer={setActiveContainer}
+            onlinePeers={onlinePeers}
             onSelect={setTopologySelectedClient}
             onQRCode={async (client) => {
               try {

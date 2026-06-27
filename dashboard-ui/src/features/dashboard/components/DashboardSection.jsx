@@ -34,6 +34,7 @@ const itemVariants = {
 
 const DashboardSection = ({
   stats,
+  trafficData,
   systemStats,
   clients,
   health,
@@ -98,7 +99,7 @@ const DashboardSection = ({
         {/* LiveTelemetryChart appelle /system/traffic-history (manager+) */}
         {isManager && (
           <div className="md:col-span-2 lg:col-span-2 2xl:col-span-8">
-            <LiveTelemetryChart />
+            <LiveTelemetryChart realtimeData={trafficData} />
           </div>
         )}
 

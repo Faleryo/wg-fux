@@ -11,6 +11,7 @@ export const ClientList = ({
   allContainers = [],
   activeContainer = null,
   setActiveContainer,
+  onlinePeers = [],
   onSelect,
   onToggle,
   onEdit,
@@ -83,6 +84,7 @@ export const ClientList = ({
             containerGroups={containerGroups}
             selectedColor={selectedColor}
             containerClients={containerClients}
+            onlinePeers={onlinePeers}
             search={search}
             onSelect={onSelect}
             onToggle={onToggle}
