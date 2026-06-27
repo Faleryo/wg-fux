@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  const [colorTheme, setColorTheme] = useState(localStorage.getItem('theme-color') || 'indigo');
+  const [colorTheme, setColorTheme] = useState(localStorage.getItem('theme-color') || 'rose');
 
   // Logic: Check URL param first, then localStorage, then default to 'light'
   const getInitialMode = () => {
@@ -11,7 +11,7 @@ export const ThemeProvider = ({ children }) => {
     const themeParam = params.get('theme');
     if (themeParam === 'light' || themeParam === 'dark' || themeParam === 'spectre')
       return themeParam;
-    return localStorage.getItem('theme-mode') || 'light';
+    return localStorage.getItem('theme-mode') || 'dark';
   };
 
   const [mode, setMode] = useState(getInitialMode());
