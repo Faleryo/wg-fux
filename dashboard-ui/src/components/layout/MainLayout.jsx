@@ -38,6 +38,23 @@ import AuditSection from '../../features/monitoring/components/AuditSection';
 import DnsSection from '../../features/dns/components/DnsEditor';
 
 /**
+ * Analytics non-bloquant. PostHog tourne avec un token placeholder et son
+ * script peut être bloqué (CSP / bloqueur de pub), laissant `window.posthog`
+ * dans un état où `.capture` lève une exception. L'optional chaining
+ * `window.posthog?.capture(...)` ne protège QUE contre posthog null — pas
+ * contre capture() qui throw. Un throw ici transformait une création réussie
+ * (HTTP 200) en fausse erreur UI puis un 409 au retry. On isole donc toute
+ * la télémétrie : elle ne doit JAMAIS casser une action métier.
+ */
+const track = (event, props) => {
+  try {
+    window.posthog?.capture?.(event, props);
+  } catch {
+    /* télémétrie non-bloquante */
+  }
+};
+
+/**
  * Feature: Main Layout
  * Extracted from App.jsx. Handles UI shell (sidebar, search, modals)
  * and delegates all data fetching to useDashboardData.
@@ -133,8 +150,9 @@ const MainLayout = ({ session, onLogout }) => {
     // éviter le doublon : toast "créé avec succès" + toast WS "connecté".
     suppressWsToast();
     await axiosInstance.post('/clients', { name, container, expiry, quota, uploadLimit });
+    // Effets de bord post-succès : ne doivent jamais faire échouer la création.
     fetchData();
-    window.posthog?.capture('client_created', { container, name });
+    track('client_created', { container, name });
   };
 
   const handleCreateContainer = async (name) => {
@@ -218,8 +236,9 @@ const MainLayout = ({ session, onLogout }) => {
         await axiosInstance.delete(`/clients/${client.container}/${client.name}`);
         addToast('Client supprimé', 'success');
         fetchData();
-        // 📊 SaaS Tracking
-        window.posthog?.capture('client_deleted', { container: client.container, name: client.name });
+        // 📊 SaaS Tracking (non-bloquant : un throw ici déclenchait le catch
+        // → toast d'erreur EN PLUS du toast de succès = le "double toast")
+        track('client_deleted', { container: client.container, name: client.name });
         if (topologySelectedClient?.id === client.id) setTopologySelectedClient(null);
       } catch (err) {
         addToast(err.response?.data?.error || 'Erreur lors de la suppression', 'error');
