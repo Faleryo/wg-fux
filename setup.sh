@@ -192,9 +192,9 @@ configure_interactive() {
     echo
     echo "── Network ──"
     local detected_ip; detected_ip=$(detect_public_ip)
-    SERVER_IP=$(ask "Public IP du serveur (détection auto)" "$detected_ip" '^[a-zA-Z0-9.:\-]+$')
+    SERVER_IP="$detected_ip"
+    WG_ENDPOINT=$(ask "Endpoint WireGuard (IP ou domaine)" "$detected_ip" '^[a-zA-Z0-9.:\-]+$')
     SERVER_PORT=$(ask "WireGuard UDP port" "51820" '^(0[0-9]{0,4}|[1-9][0-9]{0,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$')
-    WG_ENDPOINT=$(ask "Domaine WireGuard endpoint (laisser vide = utiliser IP)" "" '^[a-zA-Z0-9.-]*$')
     DOMAIN=$(ask "Domaine du dashboard HTTPS (laisser vide = IP-only)" "")
     if [ -n "$DOMAIN" ]; then
         EMAIL=$(ask "Let's Encrypt email (laisser vide = pas d'email)" "")
@@ -249,7 +249,7 @@ configure_from_env() {
     # Non-interactive install — every secret must come from env.
     SERVER_IP="${WGFUX_SERVER_IP:-$(detect_public_ip)}"
     SERVER_PORT="${WGFUX_SERVER_PORT:-51820}"
-    WG_ENDPOINT="${WGFUX_WG_ENDPOINT:-}"
+    WG_ENDPOINT="${WGFUX_WG_ENDPOINT:-$SERVER_IP}"
     DOMAIN="${WGFUX_DOMAIN:-}"
     EMAIL="${WGFUX_EMAIL:-}"
     ADMIN_USER="${WGFUX_ADMIN_USER:-admin}"
@@ -350,8 +350,7 @@ UPSTREAM_BANDWIDTH=10gbit
 # Set to true to drop peer-to-peer traffic inside the tunnel (peer isolation).
 PEER_ISOLATION=false
 EOF
-    [ -n "${WG_ENDPOINT:-}" ] && echo "SERVER_DOMAIN=${WG_ENDPOINT}" | sudo tee -a "$WG_DIR/manager.conf" > /dev/null
-    [ -z "${WG_ENDPOINT:-}" ] && [ -n "$DOMAIN" ] && echo "SERVER_DOMAIN=$DOMAIN" | sudo tee -a "$WG_DIR/manager.conf" > /dev/null || true
+    echo "SERVER_DOMAIN=${WG_ENDPOINT}" | sudo tee -a "$WG_DIR/manager.conf" > /dev/null
 
     # Stash sensitive vars from the live env so they don't leak into subprocesses.
     unset ADMIN_PASS admin_hash salt jwt sentinel backup_pass
