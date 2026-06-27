@@ -249,7 +249,8 @@ configure_from_env() {
     # Non-interactive install — every secret must come from env.
     SERVER_IP="${WGFUX_SERVER_IP:-$(detect_public_ip)}"
     SERVER_PORT="${WGFUX_SERVER_PORT:-51820}"
-    WG_ENDPOINT="${WGFUX_WG_ENDPOINT:-$SERVER_IP}"
+    WG_ENDPOINT="${WGFUX_WG_ENDPOINT:-${WGFUX_DOMAIN:-$SERVER_IP}}"
+    [[ "$WG_ENDPOINT" =~ ^[a-zA-Z0-9.:\-]+$ ]] || { log_error "WGFUX_WG_ENDPOINT valeur invalide (^[a-zA-Z0-9.:-]+$ requis)."; exit 2; }
     DOMAIN="${WGFUX_DOMAIN:-}"
     EMAIL="${WGFUX_EMAIL:-}"
     ADMIN_USER="${WGFUX_ADMIN_USER:-admin}"
@@ -350,7 +351,7 @@ UPSTREAM_BANDWIDTH=10gbit
 # Set to true to drop peer-to-peer traffic inside the tunnel (peer isolation).
 PEER_ISOLATION=false
 EOF
-    echo "SERVER_DOMAIN=${WG_ENDPOINT}" | sudo tee -a "$WG_DIR/manager.conf" > /dev/null
+    echo "SERVER_DOMAIN=\"${WG_ENDPOINT}\"" | sudo tee -a "$WG_DIR/manager.conf" > /dev/null
 
     # Stash sensitive vars from the live env so they don't leak into subprocesses.
     unset ADMIN_PASS admin_hash salt jwt sentinel backup_pass

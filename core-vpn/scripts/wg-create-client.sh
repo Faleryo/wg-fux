@@ -122,6 +122,7 @@ mkdir -p /var/lock 2>/dev/null || true
 
   if [ -n "${SERVER_DOMAIN:-}" ]; then
    ACTUAL_ENDPOINT="$SERVER_DOMAIN:$SERVER_PORT"
+   [[ "$SERVER_DOMAIN" =~ : ]] && ACTUAL_ENDPOINT="[$SERVER_DOMAIN]:$SERVER_PORT"
   else
    ACTUAL_ENDPOINT="$SERVER_IP:$SERVER_PORT"
    [[ "$SERVER_IP" =~ : ]] && ACTUAL_ENDPOINT="[$SERVER_IP]:$SERVER_PORT"
