@@ -10,7 +10,7 @@ const Modal = ({ isOpen, onClose, title, children, className, maxWidth = 'max-w-
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div className="fixed inset-0 z-[100] overflow-y-auto">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -18,11 +18,13 @@ const Modal = ({ isOpen, onClose, title, children, className, maxWidth = 'max-w-
             exit={{ opacity: 0 }}
             onClick={onClose}
             className={cn(
-              'absolute inset-0 backdrop-blur-sm',
+              'fixed inset-0 backdrop-blur-sm',
               isDark ? 'bg-slate-950/70' : 'bg-indigo-50/95'
             )}
           />
 
+          {/* Centering wrapper — min-h-full keeps items centered even when content is taller than viewport */}
+          <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
           {/* Modal Content */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -30,7 +32,7 @@ const Modal = ({ isOpen, onClose, title, children, className, maxWidth = 'max-w-
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className={cn(
-              'relative w-full my-4 sm:my-0 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl overflow-y-auto max-h-[calc(100dvh-2rem)] p-8 md:p-10',
+              'relative w-full backdrop-blur-3xl rounded-[2.5rem] shadow-2xl overflow-hidden p-8 md:p-10',
               isDark
                 ? 'bg-slate-900/80 border border-white/10 shadow-black/50'
                 : 'bg-white border border-slate-200/80 shadow-slate-200/60',
@@ -70,6 +72,7 @@ const Modal = ({ isOpen, onClose, title, children, className, maxWidth = 'max-w-
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-rose-500/10 blur-[100px] rounded-full pointer-events-none" />
           </motion.div>
+          </div>
         </div>
       )}
     </AnimatePresence>
