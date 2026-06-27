@@ -129,6 +129,9 @@ const MainLayout = ({ session, onLogout }) => {
 
   // ── Client CRUD handlers ──────────────────────────────────────────────────
   const handleCreateClient = async (name, container, expiry, quota, uploadLimit) => {
+    // Bloque les toasts WebSocket (peer_connected) pendant la création pour
+    // éviter le doublon : toast "créé avec succès" + toast WS "connecté".
+    suppressWsToast();
     await axiosInstance.post('/clients', { name, container, expiry, quota, uploadLimit });
     fetchData();
     window.posthog?.capture('client_created', { container, name });

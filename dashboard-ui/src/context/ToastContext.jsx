@@ -14,8 +14,14 @@ export const ToastProvider = ({ children }) => {
 
   const addToast = (message, type = 'info') => {
     const id = `t-${Date.now()}-${++toastSeq}`;
-    // Keep at most 3 toasts visible — evict the oldest when the stack overflows.
-    setToasts((prev) => [...prev.slice(-2), { id, message, type }]);
+    // De-dup: if an identical toast (same message + type) is already on screen,
+    // don't stack a second copy — this kills the "double toast" caused by a
+    // retried request or two near-simultaneous events firing the same message.
+    setToasts((prev) => {
+      if (prev.some((t) => t.message === message && t.type === type)) return prev;
+      // Keep at most 3 toasts visible — evict the oldest when the stack overflows.
+      return [...prev.slice(-2), { id, message, type }];
+    });
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
   };
 

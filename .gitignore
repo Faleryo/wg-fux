@@ -50,6 +50,9 @@ infra/ssl/*
 # Note: les chemins /etc/wireguard sont gérés hors du dépôt git
 # Les fichiers .conf sont exclus via *.key et *.conf globs ci-dessous
 *.conf
+# Exception : la conf nginx du dashboard est du code applicatif, pas un secret WG
+!dashboard-ui/nginx.conf
+!infra/nginx/default.conf
 *.key
 *.psk
 

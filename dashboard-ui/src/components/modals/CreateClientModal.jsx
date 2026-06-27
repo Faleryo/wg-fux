@@ -91,10 +91,17 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
         addToast(`Peer ${name} créé avec succès`, 'success');
         onClose();
       } catch (error) {
-        addToast(
-          error?.response?.data?.error || 'Erreur lors de la création du client',
-          'error'
-        );
+        const status = error?.response?.status;
+        const serverMsg = error?.response?.data?.error;
+        // 409 = ce nom existe déjà (souvent : la requête précédente a en fait
+        // réussi côté serveur, ou le nom est pris). On affiche le message réel
+        // et on régénère un nom libre pour débloquer la création immédiatement.
+        if (status === 409) {
+          addToast(serverMsg || `Le nom '${name}' est déjà utilisé`, 'error');
+          generateSuggestion(targetContainer);
+        } else {
+          addToast(serverMsg || 'Erreur lors de la création du client', 'error');
+        }
       } finally {
         setLoading(false);
         submittingRef.current = false;
