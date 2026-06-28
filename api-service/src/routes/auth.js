@@ -7,7 +7,7 @@ const { rateLimit } = require('express-rate-limit');
 const { db, schema } = require('../../db');
 const { eq, desc, and, gt, count } = require('drizzle-orm');
 const { loginSchema } = require('../../db/validation');
-const { auth, requireAdmin, requireManager } = require('../middleware/auth');
+const { auth, requireAdmin, requireManager, blacklistToken } = require('../middleware/auth');
 const { verifyPassword, logLoginAttempt } = require('../services/auth');
 const { runSystemCommand } = require('../services/shell');
 const { getScriptPath } = require('../services/config');
@@ -103,6 +103,13 @@ router.post(
     const userAgent = req.headers['user-agent'] || 'Unknown';
 
     if (isValid) {
+      // Check account suspension
+      if (user.enabled === false) {
+        await logLoginAttempt(username, clientIp, userAgent, false);
+        return res
+          .status(401)
+          .json(createError('Compte suspendu. Contactez un administrateur.', null, 'ACCOUNT_DISABLED'));
+      }
       // Check account expiry
       if (user.expiry && new Date(user.expiry) < new Date()) {
         await logLoginAttempt(username, clientIp, userAgent, false);
@@ -189,6 +196,15 @@ router.get(
       .limit(1);
     if (!user) return res.status(401).json(createError('User not found', null, 'NOT_FOUND'));
     res.json({ valid: true, username: user.username, role: user.role, twoFactorEnabled: !!user.twoFactorSecret });
+  })
+);
+
+router.post(
+  '/logout',
+  auth,
+  asyncWrap(async (req, res) => {
+    blacklistToken(req.user);
+    res.json({ success: true });
   })
 );
 

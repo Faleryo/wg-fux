@@ -163,6 +163,7 @@ const userUpdateSchema = z
     password: z.string().min(6).optional(),
     role: z.enum(['admin', 'manager', 'viewer']).optional(),
     expiry: z.string().regex(dateRegex).or(z.null()).optional(),
+    enabled: z.boolean().optional(),
   })
   .strict();
 

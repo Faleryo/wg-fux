@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Save,
   Calendar,
+  Power,
 } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
@@ -19,6 +20,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('viewer');
   const [expiry, setExpiry] = useState('');
+  const [enabled, setEnabled] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -29,6 +31,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
     if (user) {
       setRole(user.role || 'viewer');
       setExpiry(user.expiry ? new Date(user.expiry).toISOString().split('T')[0] : '');
+      setEnabled(user.enabled !== false);
       setPassword('');
       setConfirmPassword('');
       setError('');
@@ -57,6 +60,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
       if (role !== user.role) updateData.role = role;
       const currentExpiry = user.expiry ? new Date(user.expiry).toISOString().split('T')[0] : '';
       if (expiry !== currentExpiry) updateData.expiry = expiry || null;
+      if (enabled !== (user.enabled !== false)) updateData.enabled = enabled;
 
       await onSave(user.username, updateData);
       setPassword('');
@@ -172,6 +176,42 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
             >
               Supprimer l'expiration
             </button>
+          )}
+        </div>
+
+        {/* Account Status Toggle */}
+        <div>
+          <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest">
+            Statut du Compte
+          </label>
+          <button
+            type="button"
+            onClick={() => setEnabled((v) => !v)}
+            className={cn(
+              'w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 font-black text-xs uppercase tracking-widest',
+              enabled
+                ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400'
+                : 'bg-orange-500/5 border-orange-500/20 text-orange-400'
+            )}
+          >
+            <span className="flex items-center gap-3">
+              <Power size={16} />
+              {enabled ? 'Compte Actif' : 'Compte Suspendu'}
+            </span>
+            <span className={cn(
+              'w-10 h-5 rounded-full relative transition-colors duration-300',
+              enabled ? 'bg-emerald-500' : 'bg-slate-700'
+            )}>
+              <span className={cn(
+                'absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-300',
+                enabled ? 'translate-x-5' : 'translate-x-0.5'
+              )} />
+            </span>
+          </button>
+          {!enabled && (
+            <p className="mt-2 text-[9px] text-orange-400/70 uppercase tracking-widest">
+              L'utilisateur ne pourra plus se connecter jusqu'à réactivation.
+            </p>
           )}
         </div>
 

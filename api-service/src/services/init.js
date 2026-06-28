@@ -86,24 +86,41 @@ async function initializeDatabase() {
  );
  `);
 
-    // 2. Migration Phase 4 : Add interface column to containers if missing
-    try {
-      sqlite.exec("ALTER TABLE containers ADD COLUMN interface TEXT DEFAULT 'wg0'");
-      logger.info('db', '➕ Added "interface" column to containers table.');
-    } catch (e) {
-      if (!e.message.includes('duplicate column name')) {
-        logger.warn('db', `Migration notice: ${e.message}`);
-      }
-    }
+    // ── Versioned migration system ─────────────────────────────────────────
+    // Each migration runs exactly once, tracked in schema_version.
+    // New columns / indexes go here — never touch the CREATE TABLE blocks above.
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS schema_version (
+        version INTEGER PRIMARY KEY,
+        applied_at INTEGER DEFAULT (strftime('%s','now'))
+      );
+    `);
 
-    // 2.1. Migration Phase 5 : Add owner column to containers for resellers
-    try {
-      sqlite.exec("ALTER TABLE containers ADD COLUMN owner TEXT DEFAULT 'admin'");
-      logger.info('db', '➕ Added "owner" column to containers table.');
-    } catch (e) {
-      if (!e.message.includes('duplicate column name')) {
-        logger.warn('db', `Migration notice: ${e.message}`);
+    const appliedVersions = new Set(
+      sqlite.prepare('SELECT version FROM schema_version').all().map((r) => r.version)
+    );
+
+    const migrations = [
+      // Phase 4 (legacy — already applied inline above, registered here for completeness)
+      { version: 4, sql: "ALTER TABLE containers ADD COLUMN interface TEXT DEFAULT 'wg0'", label: 'containers.interface' },
+      // Phase 5
+      { version: 5, sql: "ALTER TABLE containers ADD COLUMN owner TEXT DEFAULT 'admin'", label: 'containers.owner' },
+      // Phase 6
+      { version: 6, sql: 'ALTER TABLE users ADD COLUMN enabled INTEGER DEFAULT 1', label: 'users.enabled' },
+    ];
+
+    for (const m of migrations) {
+      if (appliedVersions.has(m.version)) continue;
+      try {
+        sqlite.exec(m.sql);
+        logger.info('db', `✅ Migration v${m.version} applied: ${m.label}`);
+      } catch (e) {
+        // Column already exists from the old inline path — harmless
+        if (!e.message.includes('duplicate column name')) {
+          logger.warn('db', `Migration v${m.version} notice: ${e.message}`);
+        }
       }
+      sqlite.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(m.version);
     }
 
     // 3. Create Indexes if they don't exist

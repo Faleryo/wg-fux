@@ -94,6 +94,8 @@ const useAuth = () => {
 
   const logout = useCallback(() => {
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    // Blacklist the current token server-side (fire-and-forget — UI clears immediately)
+    axiosInstance.post('/auth/logout').catch(() => {});
     clearStorage();
     setSession({ token: null, role: null, username: null });
   }, []);

@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // Prevent Vite from trying to read root-owned .env file at startup
+  envFile: false,
   test: {
     globals: true,
     environment: 'node',

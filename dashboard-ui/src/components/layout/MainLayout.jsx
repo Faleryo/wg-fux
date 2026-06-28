@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, Search, ShieldAlert, X as XIcon } from 'lucide-react';
-import { axiosInstance } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
@@ -25,6 +24,9 @@ import UserReportModal from '../modals/UserReportModal';
 
 // Feature: Dashboard
 import useDashboardData from '../../features/dashboard/hooks/useDashboardData';
+import useClientActions from './hooks/useClientActions';
+import useDeleteActions from './hooks/useDeleteActions';
+import useUserActions from './hooks/useUserActions';
 
 // Features Components
 import DashboardSection from '../../features/dashboard/components/DashboardSection';
@@ -40,22 +42,6 @@ const OptimizationSection = lazy(() => import('../../features/settings/component
 const AuditSection = lazy(() => import('../../features/monitoring/components/AuditSection'));
 const DnsSection = lazy(() => import('../../features/dns/components/DnsEditor'));
 
-/**
- * Analytics non-bloquant. PostHog tourne avec un token placeholder et son
- * script peut être bloqué (CSP / bloqueur de pub), laissant `window.posthog`
- * dans un état où `.capture` lève une exception. L'optional chaining
- * `window.posthog?.capture(...)` ne protège QUE contre posthog null — pas
- * contre capture() qui throw. Un throw ici transformait une création réussie
- * (HTTP 200) en fausse erreur UI puis un 409 au retry. On isole donc toute
- * la télémétrie : elle ne doit JAMAIS casser une action métier.
- */
-const track = (event, props) => {
-  try {
-    window.posthog?.capture?.(event, props);
-  } catch {
-    /* télémétrie non-bloquante */
-  }
-};
 
 const TWOFА_BANNER_KEY = '2fa-banner-v1-dismissed';
 
@@ -127,9 +113,7 @@ const MainLayout = ({ session, onLogout }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedClientForEdit, setSelectedClientForEdit] = useState(null);
   const [selectedClientForModal, setSelectedClientForModal] = useState(null);
-  const [confirmModal, setConfirmModal] = useState({ open: false, client: null });
-  // Guard anti-double-appel pour executeDeleteClient (filet de sécurité supplémentaire)
-  const isDeletingRef = useRef(false);
+  // ── Modal state for QR + create/edit (owned here; delete modal owned by useDeleteActions) ─
 
   // ── All data comes from the dedicated hook ────────────────────────────────
   const {
@@ -260,141 +244,26 @@ const MainLayout = ({ session, onLogout }) => {
     setSidebarOpen(false);
   };
 
-  // ── Client CRUD handlers ──────────────────────────────────────────────────
-  const handleCreateClient = async (name, container, expiry, quota, uploadLimit) => {
-    suppressWsToast();
-    await axiosInstance.post('/clients', { name, container, expiry, quota, uploadLimit });
-    fetchData();
-    track('client_created', { container, name });
-    // Affiche immédiatement la config après création
-    try {
-      const res = await axiosInstance.get(`/clients/${container}/${name}/config`);
-      setSelectedClientForModal({ name, config: res.data.config || '' });
-      setShowQRModal(true);
-    } catch {
-      // Non bloquant : la config peut être lue plus tard via le bouton QR
-    }
-  };
+  // ── Extracted CRUD hooks ──────────────────────────────────────────────────
+  const {
+    handleCreateClient,
+    handleCreateContainer,
+    handleToggleClient,
+    handleShowQRCode,
+    handleDownloadConfig,
+  } = useClientActions({ fetchData, addToast, suppressWsToast, setShowQRModal, setSelectedClientForModal });
 
-  const handleCreateContainer = async (name) => {
-    try {
-      await axiosInstance.post('/clients/containers', { name });
-      addToast(`Conteneur ${name} créé.`, 'success');
-      fetchData();
-    } catch (e) {
-      addToast(
-        e.response?.data?.error || `Erreur lors de la création du conteneur ${name}`,
-        'error'
-      );
-    }
-  };
+  const {
+    confirmModal,
+    setConfirmModal,
+    handleDeleteClient,
+    handleDeleteContainerPrompt,
+    handleBulkDelete,
+    handleDeleteUser,
+    executeDelete,
+  } = useDeleteActions({ fetchData, addToast, suppressWsToast, topologySelectedClient, setTopologySelectedClient });
 
-  const handleToggleClient = async (container, name, enabled) => {
-    try {
-      await axiosInstance.post(`/clients/${container}/${name}/toggle`, { enabled });
-      fetchData();
-    } catch {
-      addToast('Erreur toggle client', 'error');
-    }
-  };
-
-  const handleDownloadConfig = (name, configText) => {
-    const element = document.createElement('a');
-    const file = new Blob([configText], { type: 'text/plain' });
-    const url = URL.createObjectURL(file);
-    element.href = url;
-    element.download = `${name}.conf`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleDeleteClient = (client) =>
-    setConfirmModal({ open: true, type: 'delete-client', client });
-  const handleDeleteContainerPrompt = (containerName) =>
-    setConfirmModal({ open: true, type: 'delete-container', container: containerName });
-
-  const handleBulkDelete = async (selectedClients, clearSelection) => {
-    if (!selectedClients?.length) return;
-    setConfirmModal({
-      open: true,
-      type: 'bulk-delete',
-      clients: selectedClients,
-      clearSelection,
-    });
-  };
-
-  const handleDeleteUser = (user) => {
-    setConfirmModal({ open: true, type: 'delete-user', user });
-  };
-
-  const executeDeleteClient = async () => {
-    // Protection absolue contre le double-appel (modal, WS, StrictMode...)
-    if (isDeletingRef.current) return;
-    isDeletingRef.current = true;
-
-    const { type, client, container, user, clients: bulkClients, clearSelection } = confirmModal;
-    setConfirmModal({ open: false, client: null, container: null, user: null, clients: null });
-    // Bloque les toasts WebSocket (peer_disconnected) pendant 3s pour éviter le doublon
-    suppressWsToast();
-
-    try {
-      if (type === 'bulk-delete' && bulkClients?.length) {
-        try {
-          suppressWsToast();
-          const clientList = bulkClients.map((c) => ({ container: c.container, name: c.name }));
-          const res = await axiosInstance.post('/clients/bulk-delete', { clients: clientList });
-          const n = res.data.success;
-          addToast(`${n} peer${n > 1 ? 's' : ''} supprimé${n > 1 ? 's' : ''}`, 'success');
-          clearSelection?.();
-          fetchData();
-        } catch (err) {
-          addToast(err.response?.data?.error || 'Erreur lors de la suppression groupée', 'error');
-        }
-        return;
-      }
-
-      if (type === 'delete-user' && user) {
-        try {
-          await axiosInstance.delete(`/users/${user.username}`);
-          addToast(`Opérateur ${user.username} supprimé`, 'success');
-          fetchData();
-        } catch (err) {
-          addToast(err.response?.data?.error || 'Erreur suppression', 'error');
-        }
-        return;
-      }
-
-      if (type === 'delete-container' && container) {
-        try {
-          await axiosInstance.delete(`/clients/containers/${container}`);
-          addToast('Conteneur supprimé avec succès', 'success');
-          fetchData();
-        } catch (err) {
-          addToast(err.response?.data?.error || 'Erreur lors de la suppression', 'error');
-        }
-        return;
-      }
-
-      if (!client) return;
-      try {
-        await axiosInstance.delete(`/clients/${client.container}/${client.name}`);
-        addToast('Client supprimé', 'success');
-        fetchData();
-        // 📊 SaaS Tracking (non-bloquant : un throw ici déclenchait le catch
-        // → toast d'erreur EN PLUS du toast de succès = le "double toast")
-        track('client_deleted', { container: client.container, name: client.name });
-        if (topologySelectedClient?.id === client.id) setTopologySelectedClient(null);
-      } catch (err) {
-        addToast(err.response?.data?.error || 'Erreur lors de la suppression', 'error');
-      }
-    } finally {
-      setTimeout(() => {
-        isDeletingRef.current = false;
-      }, 500);
-    }
-  };
+  const { handleCreateUser, handleSaveUser, handleReset2FA } = useUserActions({ fetchData, addToast });
 
   // ── Section Renderer ──────────────────────────────────────────────────────
   const renderSection = () => {
@@ -405,17 +274,7 @@ const MainLayout = ({ session, onLogout }) => {
           onBack={() => setTopologySelectedClient(null)}
           onToggle={handleToggleClient}
           onDelete={() => handleDeleteClient(topologySelectedClient)}
-          onQRCode={async (client) => {
-            try {
-              const res = await axiosInstance.get(
-                `/clients/${client.container}/${client.name}/config`
-              );
-              setSelectedClientForModal({ name: client.name, config: res.data.config || '' });
-              setShowQRModal(true);
-            } catch {
-              addToast('Erreur chargement configuration', 'error');
-            }
-          }}
+          onQRCode={handleShowQRCode}
           onEdit={() => {
             setSelectedClientForEdit(topologySelectedClient);
             setShowEditModal(true);
@@ -463,17 +322,7 @@ const MainLayout = ({ session, onLogout }) => {
             setActiveContainer={setActiveContainer}
             onlinePeers={onlinePeers}
             onSelect={setTopologySelectedClient}
-            onQRCode={async (client) => {
-              try {
-                const res = await axiosInstance.get(
-                  `/clients/${client.container}/${client.name}/config`
-                );
-                setSelectedClientForModal({ name: client.name, config: res.data.config || '' });
-                setShowQRModal(true);
-              } catch {
-                addToast('Erreur de configuration', 'error');
-              }
-            }}
+            onQRCode={handleShowQRCode}
             onToggle={handleToggleClient}
             onDelete={handleDeleteClient}
             onDeleteContainer={handleDeleteContainerPrompt}
@@ -788,11 +637,7 @@ const MainLayout = ({ session, onLogout }) => {
           <CreateUserModal
             isOpen={showCreateUserModal}
             onClose={() => setShowCreateUserModal(false)}
-            onCreate={async (username, password, role) => {
-              await axiosInstance.post('/users', { username, password, role });
-              addToast(`Opérateur ${username} créé avec succès`, 'success');
-              fetchData();
-            }}
+            onCreate={handleCreateUser}
           />
         )}
         {showEditModal && selectedClientForEdit && (
@@ -824,14 +669,8 @@ const MainLayout = ({ session, onLogout }) => {
               setSelectedUserForEdit(null);
             }}
             user={selectedUserForEdit}
-            onSave={async (username, updateData) => {
-              await axiosInstance.patch(`/users/${username}`, updateData);
-              fetchData();
-            }}
-            onReset2FA={async (username) => {
-              await axiosInstance.post(`/users/${username}/reset-2fa`);
-              fetchData();
-            }}
+            onSave={handleSaveUser}
+            onReset2FA={handleReset2FA}
           />
         )}
 
@@ -889,7 +728,7 @@ const MainLayout = ({ session, onLogout }) => {
           }
           confirmLabel="Supprimer définitivement"
           intent="danger"
-          onConfirm={executeDeleteClient}
+          onConfirm={executeDelete}
           onCancel={() =>
             setConfirmModal({ open: false, client: null, container: null, user: null, clients: null })
           }

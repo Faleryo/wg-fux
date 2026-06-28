@@ -11,6 +11,7 @@ const users = sqliteTable(
     role: text('role').default('viewer'),
     twoFactorSecret: text('twoFactorSecret'),
     expiry: text('expiry'),
+    enabled: integer('enabled', { mode: 'boolean' }).default(true),
   },
   (table) => ({
     usernameIdx: uniqueIndex('username_idx').on(table.username),

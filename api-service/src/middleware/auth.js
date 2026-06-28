@@ -13,6 +13,30 @@ setInterval(() => {
   }
 }, 30000);
 
+// In-memory JWT blacklist keyed by "username:iat". Entries expire after the
+// longest possible token TTL (24h for viewers) so the Set stays bounded.
+const tokenBlacklist = new Set();
+const TOKEN_MAX_TTL_MS = 24 * 60 * 60 * 1000;
+// Pairs stored as "username:iat:expireAt" — we embed expiry to allow cleanup
+const blacklistExpiry = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, expireAt] of blacklistExpiry) {
+    if (now > expireAt) {
+      tokenBlacklist.delete(key);
+      blacklistExpiry.delete(key);
+    }
+  }
+}, 60 * 60 * 1000); // sweep every hour
+
+const blacklistToken = (decoded) => {
+  if (!decoded?.username || decoded.iat == null) return;
+  const key = `${decoded.username}:${decoded.iat}`;
+  tokenBlacklist.add(key);
+  const expireAt = Date.now() + TOKEN_MAX_TTL_MS;
+  blacklistExpiry.set(key, expireAt);
+};
+
 const auth = async (req, res, next) => {
   const token = req.headers['x-api-token'];
   if (!token) return res.status(401).json({ error: 'Auth required' });
@@ -54,9 +78,16 @@ const auth = async (req, res, next) => {
 
     const cached = userCache.get(decoded.username);
     if (cached && Date.now() - cached.ts < USER_CACHE_TTL) {
+      if (cached.enabled === false) {
+        userCache.delete(decoded.username);
+        return res.status(401).json({ error: 'Account disabled' });
+      }
       if (cached.expiry && new Date(cached.expiry) < new Date()) {
         userCache.delete(decoded.username);
         return res.status(401).json({ error: 'Account expired' });
+      }
+      if (tokenBlacklist.has(`${decoded.username}:${decoded.iat}`)) {
+        return res.status(401).json({ error: 'Token revoked' });
       }
       req.user = { ...decoded, role: cached.role };
       return next();
@@ -70,11 +101,17 @@ const auth = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({ error: 'User no longer exists' });
     }
+    if (user.enabled === false) {
+      return res.status(401).json({ error: 'Account disabled' });
+    }
     if (user.expiry && new Date(user.expiry) < new Date()) {
       return res.status(401).json({ error: 'Account expired' });
     }
+    if (tokenBlacklist.has(`${decoded.username}:${decoded.iat}`)) {
+      return res.status(401).json({ error: 'Token revoked' });
+    }
 
-    userCache.set(decoded.username, { role: user.role, expiry: user.expiry || null, ts: Date.now() });
+    userCache.set(decoded.username, { role: user.role, expiry: user.expiry || null, enabled: user.enabled !== false, ts: Date.now() });
     req.user = { ...decoded, role: user.role };
     next();
   } catch (error) {
@@ -119,4 +156,5 @@ module.exports = {
   requireManager,
   requireViewer,
   invalidateUserCache,
+  blacklistToken,
 };

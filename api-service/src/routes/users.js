@@ -26,6 +26,7 @@ router.get(
         username: schema.users.username,
         role: schema.users.role,
         expiry: schema.users.expiry,
+        enabled: schema.users.enabled,
       })
       .from(schema.users);
     res.json(users);
@@ -77,7 +78,7 @@ router.patch(
       return res.status(400).json(createError(result.error, 'Validation failed'));
     }
 
-    const { password, role, expiry } = result.data;
+    const { password, role, expiry, enabled } = result.data;
 
     const [existing] = await db
       .select()
@@ -96,6 +97,7 @@ router.patch(
     }
     if (role) updateData.role = role;
     if (expiry !== undefined) updateData.expiry = expiry;
+    if (enabled !== undefined) updateData.enabled = enabled;
 
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json(createError('No fields to update', null, 'BAD_REQUEST'));
