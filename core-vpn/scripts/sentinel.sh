@@ -58,6 +58,10 @@ send_heartbeat() {
  mem=$(LC_ALL=C free -m | awk '/Mem:/ {print int($3/$2 * 100)}')
  disk=$(LC_ALL=C df / | awk 'NR==2 {print $5}' | sed 's/%//')
 
+ cpu=${cpu:-0}; [[ "$cpu" =~ ^[0-9.]+$ ]] || cpu=0
+ mem=${mem:-0}; [[ "$mem" =~ ^[0-9]+$ ]] || mem=0
+ disk=${disk:-0}; [[ "$disk" =~ ^[0-9]+$ ]] || disk=0
+
  local payload
  payload=$(printf '{"status":"%s","stats":{"cpu":"%s","mem":"%s","disk":"%s"},"timestamp":"%s"}' \
  "$status" "$cpu" "$mem" "$disk" "$(date -Is)")

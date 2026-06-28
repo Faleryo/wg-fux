@@ -181,6 +181,10 @@ send_telegram_msg() {
  local conf_file="/etc/wireguard/sentinel.conf"
 
  if [ -f "$conf_file" ]; then
+ if grep -v '^\s*#' "$conf_file" | grep -qP '[`$;|&<>()\{\}]' 2>/dev/null; then
+  log_error "Caractères dangereux dans $conf_file. Abandon."
+  return 1
+ fi
  # shellcheck disable=SC1090
  source "$conf_file"
 

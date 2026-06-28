@@ -93,14 +93,14 @@ mkdir -p /var/lock 2>/dev/null || true
   CLIENT_IP="${VPN_SUBNET%.*}.$IP_SUFFIX"
   mkdir -p "$CLIENT_DIR"
   echo "$CLIENT_IP" > "$CLIENT_DIR/.ip_reserved"
-  # Key Gen (still inside lock)
-  wg genkey | tee "$CLIENT_DIR/private.key" | wg pubkey > "$CLIENT_DIR/public.key"
-  wg genpsk > "$CLIENT_DIR/preshared.key"
+  # Key Gen (still inside lock) — umask 077 prevents world/group read before chmod below
+  (umask 077; wg genkey > "$CLIENT_DIR/private.key"; wg pubkey < "$CLIENT_DIR/private.key" > "$CLIENT_DIR/public.key")
+  (umask 077; wg genpsk > "$CLIENT_DIR/preshared.key")
 
   PUBKEY=$(tr -d '[:space:]' < "$CLIENT_DIR/public.key")
   PRIVKEY=$(tr -d '[:space:]' < "$CLIENT_DIR/private.key")
   PSK=$(tr -d '[:space:]' < "$CLIENT_DIR/preshared.key")
-  SERVER_PUBKEY=$(cat /etc/wireguard/server-public.key)
+  SERVER_PUBKEY=$(tr -d '[:space:]' < /etc/wireguard/server-public.key)
 
   if [ -n "${VPN_SUBNET_V6:-}" ]; then
    NET_PREFIX="${VPN_SUBNET_V6%/*}"

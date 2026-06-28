@@ -76,7 +76,7 @@ apply_sysctl() {
 
  # 2. Apply to persistent file
  if touch "$SYSCTL_CONF" 2>/dev/null; then
- if grep -q "^$key=" "$SYSCTL_CONF" 2>/dev/null; then
+ if grep -qF "$key=" "$SYSCTL_CONF" 2>/dev/null; then
   sed -i "/^$key=/c\\$key=$val" "$SYSCTL_CONF"
  else
  echo "$key=$val" >> "$SYSCTL_CONF"

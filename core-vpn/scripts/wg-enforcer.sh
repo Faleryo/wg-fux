@@ -9,9 +9,7 @@ source "$SCRIPT_DIR/wg-common.sh"
 check_dependency "sqlite3"
 check_dependency "wg"
 
-if [ -f /etc/wireguard/manager.conf ]; then
- source /etc/wireguard/manager.conf
-fi
+load_config
 
 WG_INTERFACE="${WG_INTERFACE:-wg0}"
 WG_DATA_DIR="${API_DATA_DIR:-/app/data}"
@@ -105,7 +103,8 @@ find "$CLIENTS_DIR" -name "public.key" -print0 2>/dev/null | while IFS= read -r 
   if [ -f "$CLIENT_DIR/disabled" ]; then
   REASON=$(cat "$CLIENT_DIR/disabled")
   if { [[ "$REASON" == "Expired" && "$IS_EXPIRED" -eq 0 ]] || \
-  [[ "$REASON" == "Quota exceeded" && "$IS_QUOTA_EXCEEDED" -eq 0 ]]; }; then
+  [[ "$REASON" == "Quota exceeded" && "$IS_QUOTA_EXCEEDED" -eq 0 ]]; } && \
+  [ "$IS_EXPIRED" -eq 0 ] && [ "$IS_QUOTA_EXCEEDED" -eq 0 ]; then
    log_info "Réactivation automatique : $CLIENT_NAME (Raison: $REASON résolue)"
    rm -f "$CLIENT_DIR/disabled"
    ALLOWED_IPS=$(cat "$CLIENT_DIR/allowed_ips.txt" 2>/dev/null || echo "")

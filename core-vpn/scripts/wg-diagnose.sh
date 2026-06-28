@@ -372,7 +372,7 @@ info "Warnings API dernière heure: $WARN_COUNT"
 
 # Auth failures
 AUTH_FAILURES=$(docker exec wg-fux-api sqlite3 "$DB_FILE" \
- "SELECT COUNT(*) FROM logs WHERE status='failure' AND timestamp > datetime('now','-1 hour');" 2>/dev/null || echo 0)
+ "SELECT COUNT(*) FROM logs WHERE status='failure' AND timestamp > (strftime('%s','now') - 3600) * 1000;" 2>/dev/null || echo 0)
 if [ "$AUTH_FAILURES" -gt 20 ]; then
  warn "$AUTH_FAILURES échecs d'authentification (1h) — potentiel brute force"
 elif [ "$AUTH_FAILURES" -gt 0 ]; then

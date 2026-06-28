@@ -8,7 +8,7 @@ source "$SCRIPT_DIR/wg-common.sh"
 
 INTERFACE="${1:-wg0}"
 IPTABLES_BIN=$(command -v iptables || echo "/usr/sbin/iptables")
-IP6TABLES_BIN=$(command -v ip6tables || echo "/usr/sbin/ip6tables")
+IP6TABLES_BIN=$(command -v ip6tables 2>/dev/null || true)
 SERVER_INTERFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
 
 _add_rule() {
