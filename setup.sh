@@ -653,17 +653,9 @@ interactive_menu() {
     echo "  │  4) Restart nginx proxy                     │"
     echo "  │  5) (Re)run SSL / Let's Encrypt             │"
     echo "  │  6) Uninstall                               │"
-    echo "  │  7) Preflight check only                    │"
-    echo "  │  8) Backup (encrypted)                      │"
-    echo "  │  9) Restore from backup                     │"
-    echo "  │ 10) Full diagnostic                         │"
-    echo "  │ 11) Speed test                              │"
-    echo "  │ 12) Health check                            │"
-    echo "  │ 13) Status dashboard                        │"
-    echo "  │ 14) Follow logs (api|nginx|adguard)         │"
-    echo "  │ 15) Apply network optimize profile          │"
-    echo "  │ 16) Reset admin password                    │"
-    echo "  │ 17) Install cron jobs                       │"
+    echo "  │  7) Backup (encrypted)                      │"
+    echo "  │  8) Reset admin password                    │"
+    echo "  │  9) Install cron jobs                       │"
     echo "  │  q) Quit                                    │"
     echo "  └─────────────────────────────────────────────┘"
     local choice; read -rp "Choose: " choice
@@ -674,17 +666,9 @@ interactive_menu() {
         4) cmd_restart ;;
         5) cmd_ssl ;;
         6) cmd_uninstall ;;
-        7) cmd_check ;;
-        8) cmd_backup ;;
-        9) echo; read -rp "Backup file path: " f; cmd_restore "$f" ;;
-        10) cmd_diagnose ;;
-        11) cmd_speedtest ;;
-        12) cmd_health ;;
-        13) cmd_status ;;
-        14) echo; read -rp "Service (api|nginx|adguard) [all]: " s; cmd_logs "$s" ;;
-        15) echo; read -rp "Profile (gaming|streaming|auto) [gaming]: " p; cmd_optimize "${p:-gaming}" ;;
-        16) cmd_reset_password ;;
-        17) cmd_cron ;;
+        7) cmd_backup ;;
+        8) cmd_reset_password ;;
+        9) cmd_cron ;;
         q|Q|"") log_info "Bye."; exit 0 ;;
         *) log_error "Invalid choice."; exit 1 ;;
     esac
