@@ -59,8 +59,8 @@ compute_desired_state() {
   CONF_FILE="$CLIENT_DIR/$NAME.conf"
   [ -f "$CONF_FILE" ] || continue
   ADDRESS_LINE=$(grep '^Address' "$CONF_FILE" | cut -d= -f2)
-  IPV4=$(echo "$ADDRESS_LINE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-  IPV6=$(echo "$ADDRESS_LINE" | grep -oE '[a-fA-F0-9:]+:[a-fA-F0-9:]+' | head -1)
+  IPV4=$(echo "$ADDRESS_LINE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
+  IPV6=$(echo "$ADDRESS_LINE" | grep -oE '[a-fA-F0-9:]+:[a-fA-F0-9:]+' | head -1 || true)
   [ -n "$IPV4" ] || continue
   ID=$(echo "$IPV4" | awk -F. '{print ($3 * 256) + $4}')
   CLASSID=$(printf "1:%x" "$ID")
@@ -136,10 +136,10 @@ find /etc/wireguard/clients -name "upload_limit" -print0 2>/dev/null | while IFS
  ADDRESS_LINE=$(grep "^Address" "$CONF_FILE" | cut -d= -f2)
 
  # Extract IPv4 (First match of x.x.x.x)
- IPV4=$(echo "$ADDRESS_LINE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+ IPV4=$(echo "$ADDRESS_LINE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
 
  # Extract IPv6 (First match containing colons)
- IPV6=$(echo "$ADDRESS_LINE" | grep -oE '[a-fA-F0-9:]+:[a-fA-F0-9:]+' | head -1)
+ IPV6=$(echo "$ADDRESS_LINE" | grep -oE '[a-fA-F0-9:]+:[a-fA-F0-9:]+' | head -1 || true)
 
  if [ -n "$IPV4" ]; then
  # Use both 3rd and 4th octet to prevent collision across subnets

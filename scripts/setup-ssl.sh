@@ -22,25 +22,34 @@ NGINX_CONF="infra/nginx/default.conf"
 _apply_le_cert() {
 	log_info "Application du certificat Let's Encrypt dans Nginx..."
 
+	local cert_from="ssl_certificate /etc/nginx/ssl/server.crt;"
+	local cert_to="ssl_certificate /etc/letsencrypt/live/$DOMAIN_DIR/fullchain.pem;"
+	local key_from="ssl_certificate_key /etc/nginx/ssl/server.key;"
+	local key_to="ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;"
+
+	# On patche DEUX endroits :
+	#  1. Le template hôte ($NGINX_CONF) → l'entrypoint nginx:alpine re-rend le
+	#     template à CHAQUE démarrage du conteneur ; sans ça le patch saute au
+	#     premier reboot/restart et on retombe sur le cert auto-signé.
+	#  2. Le conf.d live dans le conteneur → effet immédiat via reload (0 downtime).
+	cp "$NGINX_CONF" "$NGINX_CONF.bak" 2>/dev/null || true
+	sed -i "s|$cert_from|$cert_to|g; s|$key_from|$key_to|g" "$NGINX_CONF"
 	docker compose exec -T nginx sed -i \
-		"s|ssl_certificate /etc/nginx/ssl/server.crt;|ssl_certificate /etc/letsencrypt/live/$DOMAIN_DIR/fullchain.pem;|g" \
-		/etc/nginx/conf.d/default.conf
-	docker compose exec -T nginx sed -i \
-		"s|ssl_certificate_key /etc/nginx/ssl/server.key;|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;|g" \
+		"s|$cert_from|$cert_to|g; s|$key_from|$key_to|g" \
 		/etc/nginx/conf.d/default.conf
 
 	log_info "Validation de la nouvelle config Nginx..."
 	if docker compose exec -T nginx nginx -t 2>/dev/null; then
 	log_info "Rechargement de Nginx pour activer le certificat Let's Encrypt..."
 	docker compose exec -T nginx nginx -s reload 2>/dev/null || docker compose restart nginx 2>/dev/null || true
-	log_success "✅ SSL Let's Encrypt actif sur https://$DOMAIN"
+	rm -f "$NGINX_CONF.bak"
+	log_success "✅ SSL Let's Encrypt actif sur https://$DOMAIN (persistant)"
 	else
 	log_error "Config Nginx invalide après patch LE. Rollback vers cert auto-signé..."
+	# Restaure le template hôte depuis le backup
+	[ -f "$NGINX_CONF.bak" ] && mv "$NGINX_CONF.bak" "$NGINX_CONF"
 	docker compose exec -T nginx sed -i \
-		"s|ssl_certificate /etc/letsencrypt/live/$DOMAIN_DIR/fullchain.pem;|ssl_certificate /etc/nginx/ssl/server.crt;|g" \
-		/etc/nginx/conf.d/default.conf
-	docker compose exec -T nginx sed -i \
-		"s|ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_DIR/privkey.pem;|ssl_certificate_key /etc/nginx/ssl/server.key;|g" \
+		"s|$cert_to|$cert_from|g; s|$key_to|$key_from|g" \
 		/etc/nginx/conf.d/default.conf
 	docker compose exec -T nginx nginx -s reload 2>/dev/null || docker compose restart nginx 2>/dev/null || true
 	log_warn "Rollback effectué. HTTPS actif avec cert auto-signé."
@@ -67,6 +76,12 @@ fi
 
 log_info "[SSL v5.0] Lancement de la gestion SSL à deux phases..."
 log_info "Domaine cible : $DOMAIN"
+
+# Regex pour matcher EXACTEMENT le répertoire cert de ce domaine (et ses
+# variantes -NNNN générées par certbot). Les points sont échappés et le motif
+# est ancré aux deux bouts pour éviter de matcher un voisin (ex: vpn.example.com
+# ne doit pas matcher vpnxexample.com).
+DOMAIN_RE="^${DOMAIN//./\\.}(-[0-9]+)?\$"
 
 # ─────────────────────────────────────────────────
 # PHASE PRE-FLIGHT : Ouverture des ports firewall
@@ -113,6 +128,8 @@ if [ ! -f "infra/ssl/server.crt" ] || [ ! -f "infra/ssl/server.key" ]; then
  -keyout infra/ssl/server.key \
  -out infra/ssl/server.crt \
  -subj "/C=FR/ST=VPS/L=Cloud/O=WG-FUX/CN=$DOMAIN" 2>/dev/null
+ chmod 600 infra/ssl/server.key
+ chmod 644 infra/ssl/server.crt
  log_success "Cert auto-signé généré pour $DOMAIN."
 fi
 
@@ -149,7 +166,7 @@ if ! curl -sf --max-time 5 "http://$DOMAIN/" &>/dev/null; then
 fi
 
 # Vérifier s'il existe déjà un cert LE valide
-EXISTING_CERT=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ 2>/dev/null | grep "^$DOMAIN" | sort -r | head -n1 || true)
+EXISTING_CERT=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ 2>/dev/null | grep -E "$DOMAIN_RE" | sort -r | head -n1 || true)
 
 if [ -z "${FORCE_RENEW:-}" ] && [ -n "$EXISTING_CERT" ]; then
  log_success "Certificat Let's Encrypt existant détecté : $EXISTING_CERT"
@@ -168,7 +185,12 @@ fi
 
 CERTBOT_DOMAINS="-d $DOMAIN"
 if [ -n "$EXTRA_DOMAINS" ]; then
- CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $EXTRA_DOMAINS"
+ # EXTRA_DOMAINS peut contenir plusieurs domaines (séparés par espace ou virgule).
+ # Chacun doit recevoir son propre -d, sinon certbot prend les suivants pour des
+ # arguments positionnels et échoue.
+ for _d in ${EXTRA_DOMAINS//,/ }; do
+  [ -n "$_d" ] && CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $_d"
+ done
  log_info "Domaines SAN : $DOMAIN, $EXTRA_DOMAINS"
 fi
 
@@ -177,7 +199,7 @@ CERTBOT_CMD="certbot certonly --webroot -w /var/www/certbot $CERTBOT_ARGS $CERTB
 log_info "Lancement Certbot (webroot via Nginx sur port 80)..."
 if docker compose run --rm --entrypoint sh certbot -c "$CERTBOT_CMD"; then
  log_success "Certbot : certificat obtenu avec succès !"
- DOMAIN_DIR=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ 2>/dev/null | grep "^$DOMAIN" | sort -r | head -n1 || echo "$DOMAIN")
+ DOMAIN_DIR=$(docker compose run --rm --entrypoint ls certbot /etc/letsencrypt/live/ 2>/dev/null | grep -E "$DOMAIN_RE" | sort -r | head -n1 || echo "$DOMAIN")
  _apply_le_cert
 else
  log_error "Certbot a échoué (voir erreur ci-dessus)."

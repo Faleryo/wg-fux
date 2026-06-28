@@ -49,6 +49,20 @@ fi
 IP_SUFFIX=""
 BASE_DIR="/etc/wireguard/clients"
 CLIENT_DIR="$BASE_DIR/$CONTAINER/$NAME"
+
+# Nettoyage anti-orphelin : si la création échoue AVANT l'écriture du .conf,
+# on supprime le répertoire partiel. Sinon un dir incomplet (clé réservée mais
+# pas de conf) bloque toute recréation (test d'idempotence) et réserve l'IP à vie.
+CREATED_DIR=0
+cleanup_on_error() {
+  local ec=$?
+  if [ "$ec" -ne 0 ] && [ "$CREATED_DIR" -eq 1 ] && [ ! -f "$CLIENT_DIR/$NAME.conf" ]; then
+    rm -rf "$CLIENT_DIR" 2>/dev/null || true
+    log_warn "Création échouée — répertoire partiel nettoyé : $CLIENT_DIR"
+  fi
+}
+trap cleanup_on_error EXIT
+
 mkdir -p /var/lock 2>/dev/null || true
 {
   flock -x 200 || exit 1
@@ -92,6 +106,7 @@ mkdir -p /var/lock 2>/dev/null || true
   # Reserve the IP immediately while holding the lock
   CLIENT_IP="${VPN_SUBNET%.*}.$IP_SUFFIX"
   mkdir -p "$CLIENT_DIR"
+  CREATED_DIR=1
   echo "$CLIENT_IP" > "$CLIENT_DIR/.ip_reserved"
   # Key Gen (still inside lock) — umask 077 prevents world/group read before chmod below
   (umask 077; wg genkey > "$CLIENT_DIR/private.key"; wg pubkey < "$CLIENT_DIR/private.key" > "$CLIENT_DIR/public.key")

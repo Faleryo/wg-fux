@@ -46,6 +46,7 @@ RUN printf '%s\n' \
     "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-remove-container.sh" \
     "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-speedtest.sh" \
     "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-stats.sh" \
+    "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-sync-peers.sh" \
     "wg-api ALL=(ALL) SETENV:NOPASSWD: /app/core-vpn/scripts/wg-toggle.sh" \
     "wg-api ALL=(ALL) SETENV:NOPASSWD: /usr/bin/wg" \
     "wg-api ALL=(ALL) SETENV:NOPASSWD: /usr/bin/wg-quick" \

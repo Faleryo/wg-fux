@@ -23,6 +23,8 @@ LOG_FILE="/var/log/wg-optimize.log"
 STATE_FILE="/etc/wireguard/active_profile"
 QOS_PROFILE_FILE="/etc/wireguard/qos.profile"
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+# shellcheck source=./wg-common.sh
+source "$SCRIPT_DIR/wg-common.sh"
 
 # Load UPSTREAM_BANDWIDTH from manager.conf (with dangerous-char guard via load_config)
 load_config

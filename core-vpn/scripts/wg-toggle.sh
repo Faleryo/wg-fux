@@ -27,6 +27,22 @@ if [[ "$ACTION" == "remove" ]]; then
  /usr/bin/wg set "$INTERFACE" peer "$PEER" remove 2>/dev/null || true
 elif [[ "$ACTION" == "allowed-ips" ]]; then
  if [[ ! "$VALUE" =~ ^[a-fA-F0-9:.,/\ ]+$ ]]; then log_error "Toggle: Invalid AllowedIPs"; exit 1; fi
- /usr/bin/wg set "$INTERFACE" peer "$PEER" allowed-ips "$VALUE" || { log_warn "Toggle: allowed-ips set failed (check if peer exists)"; }
+ # Ré-activer un peer désactivé = le ré-AJOUTER (il a été retiré via 'remove').
+ # Il faut restaurer son preshared-key, sinon le peer est ré-ajouté SANS PSK et
+ # le client ne peut plus se connecter (PSK mismatch). On retrouve le PSK en
+ # matchant la clé publique dans /etc/wireguard/clients (source de vérité).
+ PSK_PATH=""
+ while IFS= read -r -d '' _pkf; do
+  if [ "$(tr -d '[:space:]' < "$_pkf" 2>/dev/null)" = "$PEER" ]; then
+   _cand="$(dirname "$_pkf")/preshared.key"
+   [ -f "$_cand" ] && PSK_PATH="$_cand"
+   break
+  fi
+ done < <(find /etc/wireguard/clients -name "public.key" -print0 2>/dev/null)
+ if [ -n "$PSK_PATH" ]; then
+  /usr/bin/wg set "$INTERFACE" peer "$PEER" preshared-key "$PSK_PATH" allowed-ips "$VALUE" || { log_warn "Toggle: allowed-ips set failed (check if peer exists)"; }
+ else
+  /usr/bin/wg set "$INTERFACE" peer "$PEER" allowed-ips "$VALUE" || { log_warn "Toggle: allowed-ips set failed (check if peer exists)"; }
+ fi
 else
  log_error "Toggle: Unsupported action '$ACTION'"; exit 1; fi

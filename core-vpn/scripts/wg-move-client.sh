@@ -33,12 +33,15 @@ if [ ! -d "$DEST_PARENT" ]; then log_error "Destination container not found"; ex
 if [ -d "$DEST" ]; then log_error "Client already exists in destination"; exit 1; fi
 
 mv "$SRC" "$DEST" || { log_error "Failed to move client directory"; exit 1; }
-chown root:wg-api "$DEST"
-chmod 750 "$DEST"
-chown root:wg-api "$DEST/$NAME.conf"
-chmod 640 "$DEST/$NAME.conf"
-chown root:wg-api "$DEST/public.key"
-chmod 640 "$DEST/public.key"
-chown root:root "$DEST/private.key" "$DEST/preshared.key" 2>/dev/null || true
-chmod 600 "$DEST/private.key" "$DEST/preshared.key" 2>/dev/null || true
+
+# Permissions/ownership IDENTIQUES à wg-create-client.sh : la dir doit rester
+# possédée par wg-api (l'API la lit directement). L'ancien code la passait en
+# root:wg-api 750 et le .conf (qui contient la PrivateKey) en 640 lisible par le
+# groupe — incohérent avec la création (700 / 600 / propriété wg-api).
+_WG_API_UID=$(id -u wg-api 2>/dev/null || echo 1001)
+_WG_API_GID=$(id -g wg-api 2>/dev/null || echo 1001)
+chown -R "$_WG_API_UID:$_WG_API_GID" "$DEST" 2>/dev/null || true
+chmod 700 "$DEST"
+chmod 640 "$DEST/"* 2>/dev/null || true
+chmod 600 "$DEST/private.key" "$DEST/preshared.key" "$DEST/$NAME.conf" 2>/dev/null || true
 echo "Client moved successfully"

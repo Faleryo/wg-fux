@@ -92,3 +92,11 @@ log_info "Pare-feu configuré avec succès (v6.6 SRE)."
 if [ -x "$SCRIPT_DIR/wg-apply-qos.sh" ]; then
  "$SCRIPT_DIR/wg-apply-qos.sh" || log_warn "wg-apply-qos.sh failed at PostUp (continuing)"
 fi
+
+# 8. Peer re-sync — réapplique tous les clients actifs sur l'interface.
+# wg0.conf ne contient aucun bloc [Peer] (SaveConfig=false) : sans ça, les peers
+# disparaissent à chaque montée d'interface (reboot / restart / auto-healing),
+# déconnectant silencieusement tous les clients.
+if [ -x "$SCRIPT_DIR/wg-sync-peers.sh" ]; then
+ "$SCRIPT_DIR/wg-sync-peers.sh" || log_warn "wg-sync-peers.sh failed at PostUp (continuing)"
+fi

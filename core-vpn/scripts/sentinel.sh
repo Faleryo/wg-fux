@@ -137,14 +137,20 @@ check_system() {
   done
 
  # 5. SSL Certificate & Nginx Reload Check
- local ssl_cert="$SCRIPT_DIR/../../infra/ssl/server.crt"
- if [ -f "$ssl_cert" ]; then
- local current_mtime; current_mtime=$(stat -c %Y "$ssl_cert")
- if [ "${PREV_SSL_MTIME:-0}" -ne "$current_mtime" ] && [ "${PREV_SSL_MTIME:-0}" -ne 0 ]; then
- log_sre "SSL Certificate change detected. Reloading Nginx..."
-  docker exec wg-sentinel-proxy nginx -s reload 2>/dev/null
- fi
- PREV_SSL_MTIME="$current_mtime"
+ # On hashe le cert réellement servi par nginx — auto-signé ET tout cert
+ # Let's Encrypt présent dans le volume certbot — DEPUIS le conteneur.
+ # Surveiller uniquement le fichier hôte infra/ssl/server.crt ratait les
+ # renouvellements LE (qui vivent dans /etc/letsencrypt, jamais sur l'hôte).
+ local current_sig
+ current_sig=$(docker exec wg-sentinel-proxy sh -c \
+   'cat /etc/nginx/ssl/server.crt /etc/letsencrypt/live/*/fullchain.pem 2>/dev/null | sha256sum | cut -d" " -f1' \
+   2>/dev/null || echo "")
+ if [ -n "$current_sig" ]; then
+   if [ -n "${PREV_SSL_SIG:-}" ] && [ "${PREV_SSL_SIG:-}" != "$current_sig" ]; then
+     log_sre "SSL Certificate change detected. Reloading Nginx..."
+     docker exec wg-sentinel-proxy nginx -s reload 2>/dev/null || true
+   fi
+   PREV_SSL_SIG="$current_sig"
  fi
 
  send_heartbeat "healthy"

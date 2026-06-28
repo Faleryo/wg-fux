@@ -224,32 +224,14 @@ router.post(
   auth,
   requireAdmin,
   asyncWrap(async (req, res) => {
-    const iface = process.env.WG_INTERFACE || 'wg0';
-    const {
-      success: stripOk,
-      stdout: strippedConf,
-      error: stripErr,
-    } = await runSystemCommand(WG_QUICK_BIN, ['strip', iface]);
-
-    if (!stripOk) {
-      throw createError(stripErr, 'wg-quick strip failed', 'SYSTEM_ERROR');
-    }
-
-    if (!strippedConf || strippedConf.trim().length === 0) {
-      throw createError(
-        'Generated configuration is empty. Sync aborted for safety.',
-        null,
-        'CONFIG_ERROR'
-      );
-    }
-
-    const { success, error } = await runSystemCommand(
-      WG_BIN,
-      ['syncconf', iface, '/dev/stdin'],
-      strippedConf
-    );
+    // wg0.conf ne contient AUCUN bloc [Peer] (SaveConfig=false) : les peers sont
+    // ajoutés au runtime via `wg set`. L'ancienne implémentation faisait
+    // `wg-quick strip` (→ config sans peers) puis `wg syncconf`, ce qui EFFAÇAIT
+    // tous les peers actifs. On ré-applique désormais les clients depuis leurs
+    // répertoires (source de vérité) via wg-sync-peers.sh.
+    const { success, error } = await runSystemCommand(getScriptPath('wg-sync-peers.sh'), []);
     if (!success) {
-      throw createError(error, 'syncconf failed', 'SYSTEM_ERROR');
+      throw createError(error, 'Peer re-sync failed', 'SYSTEM_ERROR');
     }
     res.json({ success: true });
   })
