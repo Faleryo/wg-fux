@@ -450,8 +450,8 @@ data = {
  "failed": $FAILED,
  "warnings": $WARNINGS,
  "status": "healthy" if $FAILED == 0 else "degraded" if $FAILED < 3 else "critical",
- "issues": [$(echo "${ISSUES[@]:-}" | python3 -c "import sys; items=sys.stdin.read().split(); print(','.join(json.dumps(i) for i in items))" 2>/dev/null || echo "")],
- "fixes_applied": [$(echo "${FIXES_APPLIED[@]:-}" | python3 -c "import sys; items=sys.stdin.read().split(); print(','.join(json.dumps(i) for i in items))" 2>/dev/null || echo "")],
+ "issues": [$(printf '%s\n' "${ISSUES[@]:-}" | python3 -c "import sys,json; print(','.join(json.dumps(l.rstrip('\n')) for l in sys.stdin if l.strip()))" 2>/dev/null || echo "")],
+ "fixes_applied": [$(printf '%s\n' "${FIXES_APPLIED[@]:-}" | python3 -c "import sys,json; print(','.join(json.dumps(l.rstrip('\n')) for l in sys.stdin if l.strip()))" 2>/dev/null || echo "")],
 }
 print(json.dumps(data, indent=2))
 EOF

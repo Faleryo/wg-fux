@@ -185,11 +185,8 @@ if [ "$PROFILE" = "gaming" ]; then
  fi
 
   # FQ (Fair Queue) + pacing : élimine les bursts de paquets → jitter réduit
-  if tc qdisc show dev "$INTERFACE" 2>/dev/null | grep -qw "fq" || \
-  grep -qw "fq" /proc/sys/net/core/default_qdisc 2>/dev/null; then
   apply_sysctl net.core.default_qdisc fq
   log "✓ FQ qdisc activé (pacing anti-jitter)"
-  fi
 
  # ----------------------------------------------------------
  # 5. WireGuard INTERFACE TUNING

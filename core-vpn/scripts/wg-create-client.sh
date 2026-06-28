@@ -96,6 +96,8 @@ mkdir -p /var/lock 2>/dev/null || true
   # Key Gen (still inside lock) — umask 077 prevents world/group read before chmod below
   (umask 077; wg genkey > "$CLIENT_DIR/private.key"; wg pubkey < "$CLIENT_DIR/private.key" > "$CLIENT_DIR/public.key")
   (umask 077; wg genpsk > "$CLIENT_DIR/preshared.key")
+  [[ -s "$CLIENT_DIR/private.key" ]] || { log_error "wg genkey a échoué (clé vide)"; exit 1; }
+  [[ -s "$CLIENT_DIR/public.key" ]]  || { log_error "wg pubkey a échoué (clé vide)"; exit 1; }
 
   PUBKEY=$(tr -d '[:space:]' < "$CLIENT_DIR/public.key")
   PRIVKEY=$(tr -d '[:space:]' < "$CLIENT_DIR/private.key")

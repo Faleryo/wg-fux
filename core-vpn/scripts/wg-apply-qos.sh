@@ -21,7 +21,11 @@ TC=$(command -v tc || echo "/sbin/tc")
 # Default class ID (Hex 0x9999) to avoid conflict with client IDs
 DEFAULT_CLASS="1:9999"
 
-if [ -f /etc/wireguard/manager.conf ]; then source /etc/wireguard/manager.conf; fi
+load_config
+
+# Prevent concurrent execution from corrupting the qdisc tree
+exec 9>/var/lock/wg-qos.lock
+flock -n 9 || { log_warn "QoS: autre instance en cours, skip."; exit 0; }
 
 # Default-class leaf qdisc params (overridden by wg-optimize profile if active)
 CAKE_BANDWIDTH="${UPSTREAM_BANDWIDTH:-10gbit}"

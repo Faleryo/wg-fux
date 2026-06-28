@@ -12,9 +12,11 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 # shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
 
-if [ -f /etc/wireguard/manager.conf ]; then
- source /etc/wireguard/manager.conf
-fi
+load_config
+
+# Prevent concurrent execution from corrupting the state file
+exec 9>/var/lock/wg-monitor.lock
+flock -n 9 || { log_warn "wg-monitor: déjà en cours, skip."; exit 0; }
 
 STATE_FILE="/var/run/wg-monitor.state"
 DB_FILE="${WG_DB_PATH:-/app/data}/wg-fux.db"

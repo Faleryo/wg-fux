@@ -149,7 +149,7 @@ load_config() {
  if [ -f "$conf" ]; then
  # BUG-1 FIX: Reject config file if it contains dangerous shell characters
  # to prevent code execution when sourcing as root.
- if grep -v '^\s*#' "$conf" | grep -qP '[`$;|&<>()\{\}]' 2>/dev/null; then
+ if grep -v '^\s*#' "$conf" | grep -qE '[`$;|&<>()\{\}]' 2>/dev/null; then
   log_error "Caractères dangereux dans $conf. Abandon."
   exit 1
  fi

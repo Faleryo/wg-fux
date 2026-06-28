@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-IFACE=$(ip route get 8.8.8.8 2>/dev/null | grep -Po '(?<=dev )[^ ]+' | head -1 || ip -4 route ls | grep default | grep -Po '(?<=dev )[^ ]+' | head -1)
+IFACE=$(ip route get 8.8.8.8 2>/dev/null | grep -oE 'dev [^ ]+' | head -1 | cut -d' ' -f2 || ip -4 route ls | grep default | grep -oE 'dev [^ ]+' | head -1 | cut -d' ' -f2)
 IFACE="${IFACE:-unknown}"
 echo "=== Interface Physique: $IFACE ==="
 

@@ -31,7 +31,7 @@ trap 'rm -rf "$TEMP_DIR"' EXIT INT TERM
 # 1. Database Backup (Safe copy for SQLite WAL)
 if [ -f "$DB_FILE" ]; then
  echo "📦 Backing up SQLite database..."
-  sqlite3 "$DB_FILE" ".backup ${TEMP_DIR}/database.sqlite"
+  sqlite3 "$DB_FILE" ".backup '${TEMP_DIR}/database.sqlite'"
 fi
 
 # 2. WireGuard Configs
@@ -43,7 +43,6 @@ fi
 # 3. Compress + encrypt with AES-256 (pbkdf2)
 echo "🗜️ Compressing and encrypting backup..."
 OUT="$BACKUP_DIR/$BACKUP_NAME"
-set -o pipefail
 tar -czf - -C "$TEMP_DIR" . | \
  openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 \
  -pass env:BACKUP_PASSPHRASE \
