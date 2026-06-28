@@ -15,7 +15,7 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
   const totalUlBytes = clients.reduce((a, c) => a + (c.uploadBytes || 0), 0);
   const quotaCritical = clients.filter((c) => {
     if (!c.quota || c.quota <= 0) return false;
-    return (c.usageTotal / (c.quota * 1024 * 1024 * 1024)) * 100 > 80;
+    return ((c.usageTotal || 0) / (c.quota * 1024 * 1024 * 1024)) * 100 > 80;
   }).length;
 
   return (
@@ -76,14 +76,19 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
               </div>
             </div>
             <div className="flex gap-2 items-center">
-              {clients.length === 0 && onDeleteContainer && (
+              {onDeleteContainer && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDeleteContainer(name);
+                    if (clients.length === 0) onDeleteContainer(name);
                   }}
+                  disabled={clients.length > 0}
+                  title={clients.length > 0 ? `Supprimez d'abord les ${clients.length} peer(s)` : 'Supprimer le conteneur'}
                   className={cn(
-                    'w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 text-slate-500 border-white/5'
+                    'w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 border-white/5',
+                    clients.length === 0
+                      ? 'hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 text-slate-500 cursor-pointer'
+                      : 'text-slate-700 cursor-not-allowed opacity-40'
                   )}
                 >
                   <Trash2 size={14} />

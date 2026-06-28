@@ -15,6 +15,8 @@ const ClientGridView = ({
   containerClients,
   onlinePeers = [],
   search,
+  selectedIds = new Set(),
+  onToggleSelect,
   onSelect,
   onToggle,
   onEdit,
@@ -131,6 +133,8 @@ const ClientGridView = ({
                     client={client}
                     color={selectedColor}
                     isOnlineOverride={onlinePeersSet.has(client.publicKey)}
+                    isSelected={selectedIds.has(client.id)}
+                    onToggleSelect={onToggleSelect}
                     onSelect={onSelect}
                     onToggle={onToggle}
                     onEdit={onEdit}

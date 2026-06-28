@@ -9,17 +9,11 @@ const CACHE_TTL = 30000; // 30s
 const POLL_INTERVAL = 5000;
 const SENTINEL_INTERVAL = 15000;
 
-/**
- * Feature: Dashboard
- * Central data-fetching hook. Extracts all API calls from App.jsx (was ~200 lines).
- * Manages clients, stats, health, sentinel, and traffic history.
- */
 const HEAVY_SECTIONS = new Set(['dashboard', 'containers', 'topology']);
 
 const useDashboardData = (session, activeSection = 'dashboard') => {
   const { addToast } = useToast();
   const prevDataRef = useRef({ clients: [], timestamp: null });
-  // Supprime les toasts WebSocket pendant 3s après une action manuelle (ex: suppression)
   const suppressWsUntilRef = useRef(0);
   const suppressWsToast = useCallback(() => {
     suppressWsUntilRef.current = Date.now() + 3000;
@@ -33,7 +27,6 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
   const [stats, setStats] = useState({});
   const [systemStats, setSystemStats] = useState({ cpu: 0, memory: 0, disk: 0 });
   const [trafficData, setTrafficData] = useState([]);
-  const [clientsHistory, setClientsHistory] = useState({});
   const [loading, setLoading] = useState(true);
   const [health, setHealth] = useState({ status: 'unknown', ready: false });
   const [config, setConfig] = useState({});
@@ -47,8 +40,6 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
   const [adguardStatus, setAdguardStatus] = useState({ status: 'unknown' });
   const [onlinePeers, setOnlinePeers] = useState([]);
 
-  // ── AdGuard ───────────────────────────────────────────────────────────────
-  // /system/adguard-status exige manager+ : on n'appelle pas pour un viewer.
   const isManagerRole = session?.role === 'admin' || session?.role === 'manager';
   const fetchAdguard = useCallback(async () => {
     if (!isManagerRole) {
@@ -63,7 +54,6 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
     }
   }, [isManagerRole]);
 
-  // ── WebSocket ─────────────────────────────────────────────────────────────
   useWebSocket(getWsUri('status'), {
     token: getWsToken(),
     onMessage: (data) => {
@@ -77,8 +67,6 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
         data.type === 'peer_connected' ||
         data.type === 'peer_disconnected';
       if (isPeerEvent) {
-        // Ne pas afficher de toast WebSocket pendant la fenêtre de suppression manuelle
-        // (évite le doublon : toast DELETE + toast WS peer_disconnected)
         const isSuppressed = Date.now() < suppressWsUntilRef.current;
         if (!isSuppressed) {
           const name = data.name || data.client?.name || 'Peer';
@@ -96,7 +84,6 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
     },
   });
 
-  // ── Sentinel ──────────────────────────────────────────────────────────────
   const fetchSentinel = useCallback(async () => {
     try {
       const res = await axiosInstance.get('/sentinel/status');
@@ -106,8 +93,8 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
     }
   }, []);
 
-  // ── Main Data Fetch ───────────────────────────────────────────────────────
   const isFetchingRef = useRef(false);
+  const abortControllerRef = useRef(null);
   const clientsRef = useRef(clients);
   clientsRef.current = clients;
   const containersRef = useRef(allContainers);
@@ -121,13 +108,16 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
 
   const fetchData = useCallback(async () => {
     if (isFetchingRef.current) return;
+
+    // Cancel previous in-flight batch
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+    const { signal } = abortControllerRef.current;
+
     isFetchingRef.current = true;
     try {
       const role = sessionRoleRef.current;
       const isAdmin = role === 'admin';
-      // Les endpoints /system/* (stats, interfaces, telemetry…) exigent le rôle
-      // manager+. Pour un viewer (revendeur) on NE les appelle pas : ça évite
-      // les 403 en boucle ET la fuite de métriques globales inter-tenants.
       const isManager = role === 'admin' || role === 'manager';
       const section = activeSectionRef.current;
       const needsHeavy = HEAVY_SECTIONS.has(section);
@@ -142,22 +132,27 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
         interfacesRes,
         usersRes,
       ] = await Promise.all([
-        needsHeavy ? axiosInstance.get('/clients') : Promise.resolve({ data: clientsRef.current }),
-        isManager
-          ? axiosInstance.get(`/system/stats?interface=${iface}`).catch(() => ({ data: {} }))
-          : Promise.resolve({ data: {} }),
-        axiosInstance.get('/system/health').catch(() => ({ data: { status: 'unhealthy' } })),
-        axiosInstance.get('/ready').catch(() => ({ data: { status: 'not ready' } })),
         needsHeavy
-          ? axiosInstance.get('/clients/containers').catch(() => ({ data: [] }))
+          ? axiosInstance.get('/clients', { signal })
+          : Promise.resolve({ data: clientsRef.current }),
+        isManager
+          ? axiosInstance.get(`/system/stats?interface=${iface}`, { signal }).catch(() => ({ data: {} }))
+          : Promise.resolve({ data: {} }),
+        axiosInstance.get('/system/health', { signal }).catch(() => ({ data: { status: 'unhealthy' } })),
+        axiosInstance.get('/ready', { signal }).catch(() => ({ data: { status: 'not ready' } })),
+        needsHeavy
+          ? axiosInstance.get('/clients/containers', { signal }).catch(() => ({ data: [] }))
           : Promise.resolve({ data: containersRef.current }),
         isManager
-          ? axiosInstance.get('/system/interfaces').catch(() => ({ data: [] }))
+          ? axiosInstance.get('/system/interfaces', { signal }).catch(() => ({ data: [] }))
           : Promise.resolve({ data: [] }),
         isAdmin
-          ? axiosInstance.get('/users').catch(() => ({ data: [] }))
+          ? axiosInstance.get('/users', { signal }).catch(() => ({ data: [] }))
           : Promise.resolve({ data: [] }),
       ]);
+
+      if (signal.aborted) return;
+
       const fetchedInterfaces = interfacesRes.data || [];
       setInterfaces(fetchedInterfaces);
 
@@ -175,8 +170,7 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
         const currentUp = Number(client.uploadBytes) || 0;
         const prevDown = prevClient ? Number(prevClient.downloadBytes) || 0 : 0;
         const prevUp = prevClient ? Number(prevClient.uploadBytes) || 0 : 0;
-        let downloadRate = 0,
-          uploadRate = 0;
+        let downloadRate = 0, uploadRate = 0;
         if (prevClient && timeDiff > 0) {
           downloadRate = Math.max(0, (currentDown - prevDown) / timeDiff);
           uploadRate = Math.max(0, (currentUp - prevUp) / timeDiff);
@@ -187,8 +181,6 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
       setClients(clientsWithRates);
       prevDataRef.current = { clients: fetchedClients, timestamp: now };
 
-      // Viewer : pas d'accès à /system/stats → on calcule des stats RÉSEAU
-      // scopées à ses propres clients (déjà filtrés côté serveur par ownership).
       let networkStats;
       if (isManager) {
         networkStats = statsRes.data?.network || {};
@@ -219,49 +211,23 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
       setTrafficData((prev) =>
         [...prev, { time: timeLabel, download: totalDownRate, upload: totalUpRate }].slice(-20)
       );
-      setClientsHistory((prev) => {
-        const newMap = { ...prev };
-        clientsWithRates.forEach((c) => {
-          const current = newMap[c.id] || [];
-          newMap[c.id] = [
-            ...current,
-            { time: timeLabel, dl: c.downloadRate || 0, ul: c.uploadRate || 0 },
-          ].slice(-20);
-        });
-        return newMap;
-      });
 
       setLoading(false);
+
+      // Cache write — use a fast signature instead of full JSON.stringify
       try {
+        const clientSig =
+          fetchedClients.length +
+          ':' +
+          fetchedClients.reduce((s, c) => s + (Number(c.downloadBytes) || 0), 0);
         const prevCache = sessionStorage.getItem(CACHE_KEY);
-        const rawClientsJson = JSON.stringify(fetchedClients);
-        const statsJson = JSON.stringify(networkStats);
-        if (prevCache) {
-          const old = JSON.parse(prevCache);
-          if (
-            old.rawClients &&
-            JSON.stringify(old.rawClients) === rawClientsJson &&
-            JSON.stringify(old.stats) === statsJson
-          ) {
-            // Data unchanged, skip cache write
-          } else {
-            sessionStorage.setItem(
-              CACHE_KEY,
-              JSON.stringify({
-                rawClients: fetchedClients,
-                clients: clientsWithRates,
-                stats: networkStats,
-                ts: now,
-              })
-            );
-          }
-        } else {
+        if (!prevCache || JSON.parse(prevCache).sig !== clientSig) {
           sessionStorage.setItem(
             CACHE_KEY,
             JSON.stringify({
-              rawClients: fetchedClients,
               clients: clientsWithRates,
               stats: networkStats,
+              sig: clientSig,
               ts: now,
             })
           );
@@ -270,20 +236,19 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
         /* storage full */
       }
     } catch (error) {
+      if (error.name === 'AbortError' || error.name === 'CanceledError') return;
       console.error('[useDashboardData] Fetch error:', error);
       setLoading(false);
     } finally {
       isFetchingRef.current = false;
     }
-  }, [sessionRoleRef, activeSectionRef, activeInterfaceRef, clientsRef, containersRef]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Static Data (fetched once on mount) ─────────────────────────────────
   useEffect(() => {
     axiosInstance
       .get('/system/uptime')
       .then((r) => setUptime(r.data.uptime))
       .catch(() => {});
-    // GET /system/config exige le rôle admin → on évite le 403 pour les autres.
     if (session?.role === 'admin') {
       axiosInstance
         .get('/system/config')
@@ -292,10 +257,7 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
     }
   }, [session?.role]);
 
-  // ── Bootstrap + Polling ───────────────────────────────────────────────────
   useEffect(() => {
-    let mounted = true;
-
     // Restore cache instantly
     const cached = sessionStorage.getItem(CACHE_KEY);
     if (cached) {
@@ -303,7 +265,6 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
         const { clients: c, stats: s, ts } = JSON.parse(cached);
         if (Date.now() - ts < CACHE_TTL) {
           setTimeout(() => {
-            if (!mounted) return;
             setClients(c);
             setStats(s);
             setLoading(false);
@@ -314,7 +275,6 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
       }
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
     fetchSentinel();
     fetchAdguard();
@@ -324,14 +284,13 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
     const iAdg = setInterval(fetchAdguard, SENTINEL_INTERVAL);
 
     return () => {
-      mounted = false;
       clearInterval(iMain);
       clearInterval(iSent);
       clearInterval(iAdg);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [fetchData, fetchSentinel, fetchAdguard]);
 
-  // ── Actions ───────────────────────────────────────────────────────────────
   const handleRunSpeedtest = useCallback(async () => {
     setSpeedtest({ loading: true, data: null });
     try {
@@ -352,7 +311,6 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
       stats,
       systemStats,
       trafficData,
-      clientsHistory,
       loading,
       health,
       config,
@@ -377,7 +335,6 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
       stats,
       systemStats,
       trafficData,
-      clientsHistory,
       loading,
       health,
       config,

@@ -1,10 +1,22 @@
-import { memo } from 'react';
-import { Edit, Trash2, Pause, Play, ChevronRight, QrCode } from 'lucide-react';
+import { memo, useState } from 'react';
+import { Edit, Trash2, Pause, Play, ChevronRight, QrCode, RefreshCw, Check } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import GlassCard from '../../../components/ui/Card';
 import { isOnlineClient, isExpired, isExpiringSoon, daysUntilExpiry } from './ClientListHelpers';
 
-const ClientCard = ({ client, color, isOnlineOverride = false, onSelect, onToggle, onEdit, onQRCode, onDelete }) => {
+const ClientCard = ({
+  client,
+  color,
+  isOnlineOverride = false,
+  isSelected = false,
+  onToggleSelect,
+  onSelect,
+  onToggle,
+  onEdit,
+  onQRCode,
+  onDelete,
+}) => {
+  const [qrLoading, setQrLoading] = useState(false);
   const online = isOnlineOverride || isOnlineClient(client);
   const expired = isExpired(client.expiry);
   const expiring = isExpiringSoon(client.expiry);
@@ -14,11 +26,39 @@ const ClientCard = ({ client, color, isOnlineOverride = false, onSelect, onToggl
       ? Math.min(100, ((client.usageTotal || 0) / (client.quota * 1024 * 1024 * 1024)) * 100)
       : 0;
 
+  const handleQRCode = async (e) => {
+    e.stopPropagation();
+    if (qrLoading) return;
+    setQrLoading(true);
+    try {
+      await onQRCode(client);
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
   return (
     <GlassCard
       onClick={() => onSelect(client)}
-      className="p-5 group cursor-pointer border-white/5 hover:border-white/20 transition-all duration-300"
+      className="p-5 group cursor-pointer border-white/5 hover:border-white/20 transition-all duration-300 relative"
     >
+      {/* Bulk select overlay on avatar */}
+      {onToggleSelect && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleSelect(client); }}
+          aria-label={isSelected ? 'Désélectionner' : 'Sélectionner'}
+          aria-pressed={isSelected}
+          className={cn(
+            'absolute top-4 left-4 z-10 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200',
+            isSelected
+              ? 'bg-indigo-500 border-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.5)]'
+              : 'bg-slate-900/70 border-white/20 opacity-0 group-hover:opacity-100'
+          )}
+        >
+          {isSelected && <Check size={12} className="text-white" />}
+        </button>
+      )}
+
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-4">
           <div
@@ -40,8 +80,12 @@ const ClientCard = ({ client, color, isOnlineOverride = false, onSelect, onToggl
                   'w-1.5 h-1.5 rounded-full',
                   online ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'
                 )}
+                aria-hidden="true"
               />
-              <span className="text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest">
+              <span
+                className="text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest"
+                aria-label={online ? 'Peer actif' : 'Peer hors ligne'}
+              >
                 {online ? 'Actif' : 'Offline'}
               </span>
             </div>
@@ -95,12 +139,9 @@ const ClientCard = ({ client, color, isOnlineOverride = false, onSelect, onToggl
                 {quotaPct.toFixed(1)}%
               </span>
             </div>
-            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round(quotaPct)} aria-valuemin={0} aria-valuemax={100}>
               <div
-                className={cn(
-                  'h-full rounded-full',
-                  quotaPct > 80 ? 'bg-rose-500' : ''
-                )}
+                className={cn('h-full rounded-full', quotaPct > 80 ? 'bg-rose-500' : '')}
                 style={{
                   width: `${quotaPct}%`,
                   ...(quotaPct <= 80 ? { backgroundColor: COLOR_MAP[color]?.[500] || '#6366f1' } : {}),
@@ -114,50 +155,43 @@ const ClientCard = ({ client, color, isOnlineOverride = false, onSelect, onToggl
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
         <div className="flex gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(client);
-            }}
+            onClick={(e) => { e.stopPropagation(); onEdit(client); }}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
             title="Modifier"
           >
             <Edit size={14} />
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle(client.container, client.name, !client.enabled);
-            }}
+            onClick={(e) => { e.stopPropagation(); onToggle(client.container, client.name, !client.enabled); }}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-all"
             title={client.enabled ? 'Désactiver' : 'Activer'}
+            aria-label={client.enabled ? 'Désactiver le peer' : 'Activer le peer'}
           >
             {client.enabled ? <Pause size={14} /> : <Play size={14} />}
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onQRCode(client);
-            }}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400 transition-all"
+            onClick={handleQRCode}
+            disabled={qrLoading}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400 transition-all disabled:opacity-50"
             title="Configuration / QR Code"
+            aria-label="Afficher la configuration QR Code"
           >
-            <QrCode size={14} />
+            {qrLoading
+              ? <RefreshCw size={14} className="animate-spin" />
+              : <QrCode size={14} />
+            }
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(client);
-            }}
+            onClick={(e) => { e.stopPropagation(); onDelete(client); }}
             className="p-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all"
             title="Supprimer"
+            aria-label="Supprimer le peer"
           >
             <Trash2 size={14} />
           </button>
         </div>
         <div
-          className={cn(
-            'p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300'
-          )}
+          className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"
           style={{ backgroundColor: COLOR_MAP[color]?.[500] ? COLOR_MAP[color][500] + '1a' : '#6366f11a', color: COLOR_MAP[color]?.[400] || '#818cf8' }}
         >
           <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />

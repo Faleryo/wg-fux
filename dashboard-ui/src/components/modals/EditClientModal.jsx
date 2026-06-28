@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
 import { axiosInstance } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
+import { getContainerColor } from '../../features/clients/components/ClientListHelpers';
 
 const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
   const { theme } = useTheme();
@@ -46,27 +47,16 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
 
   if (!client) return null;
 
-  const getContainerColor = (container) => {
-    const colors = ['emerald', 'indigo', 'rose', 'amber', 'cyan', 'purple'];
-    const hashCode = (s) =>
-      s.split('').reduce((a, b) => {
-        a = (a << 5) - a + b.charCodeAt(0);
-        return a & a;
-      }, 0);
-    return colors[Math.abs(hashCode(container || '')) % colors.length];
-  };
   const color = getContainerColor(client.container);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Éditer Peer`} maxWidth="max-w-lg">
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Peer Identity Card */}
-        <div
-          className={'flex items-center gap-4 p-5 rounded-2xl border bg-white/5 border-white/10'}
-        >
+        <div className="flex items-center gap-4 p-5 rounded-2xl border bg-white/5 border-white/10">
           <div
-          className={'w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-xl'}
-          style={{ backgroundColor: COLOR_MAP[color]?.[600] || '#4f46e5' }}
+            className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-xl"
+            style={{ backgroundColor: COLOR_MAP[color]?.[600] || '#4f46e5' }}
           >
             {client?.name?.charAt(0).toUpperCase()}
           </div>
@@ -76,19 +66,19 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span
-                className={'text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest'}
-               style={{
-                 backgroundColor: `${COLOR_MAP[color]?.[500] || '#6366f1'}20`,
-                 color: COLOR_MAP[color]?.[400] || '#818cf8',
-                 borderColor: `${COLOR_MAP[color]?.[500] || '#6366f1'}40`,
-               }}
+                className="text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest"
+                style={{
+                  backgroundColor: `${COLOR_MAP[color]?.[500] || '#6366f1'}20`,
+                  color: COLOR_MAP[color]?.[400] || '#818cf8',
+                  borderColor: `${COLOR_MAP[color]?.[500] || '#6366f1'}40`,
+                }}
               >
                 {client?.container}
               </span>
               <span className="text-[10px] font-mono text-slate-500">{client?.ip}</span>
             </div>
           </div>
-          <Shield size={20} style={{ color: `${COLOR_MAP[color]?.[500] || '#6366f1'}80` }} className={'flex-shrink-0'} />
+          <Shield size={20} style={{ color: `${COLOR_MAP[color]?.[500] || '#6366f1'}80` }} className="flex-shrink-0" />
         </div>
 
         {/* Quota */}
@@ -97,26 +87,35 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <Database size={14} /> Quota de Données
             </label>
-            <span className={'text-sm font-black font-mono'} style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}>
-              {quota > 0 ? `${quota} GB` : '∞ Illimité'}
-            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="0"
+                step="5"
+                value={quota}
+                onChange={(e) => setQuota(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-20 px-2 py-1 bg-white/5 border border-white/10 rounded-xl text-sm font-mono text-white text-center focus:outline-none focus:border-white/30"
+                aria-label="Quota en GB"
+              />
+              <span className="text-xs font-black font-mono text-slate-500">GB</span>
+              {quota === 0 && <span className="text-[10px] text-slate-600 font-black">Illimité</span>}
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <input
-              type="range"
-              min="0"
-              max="200"
-              step="5"
-              value={quota}
-              onChange={(e) => setQuota(Number(e.target.value))}
-              className="w-full accent-indigo-500"
-            />
-          </div>
+          <input
+            type="range"
+            min="0"
+            max="200"
+            step="5"
+            value={Math.min(quota, 200)}
+            onChange={(e) => setQuota(Number(e.target.value))}
+            className="w-full accent-indigo-500"
+            aria-label="Quota de données (curseur)"
+          />
           <div className="flex justify-between text-[9px] font-mono text-slate-600">
             <span>0 (illimité)</span>
             <span>50 GB</span>
             <span>100 GB</span>
-            <span>200 GB</span>
+            <span>200 GB+</span>
           </div>
         </div>
 
@@ -126,26 +125,35 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <Gauge size={14} /> Bande Passante Max
             </label>
-            <span className={'text-sm font-black font-mono'} style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}>
-              {uploadLimit > 0 ? `${uploadLimit} Mbps` : '∞ Illimité'}
-            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="0"
+                step="10"
+                value={uploadLimit}
+                onChange={(e) => setUploadLimit(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-20 px-2 py-1 bg-white/5 border border-white/10 rounded-xl text-sm font-mono text-white text-center focus:outline-none focus:border-white/30"
+                aria-label="Limite upload en Mbps"
+              />
+              <span className="text-xs font-black font-mono text-slate-500">Mbps</span>
+              {uploadLimit === 0 && <span className="text-[10px] text-slate-600 font-black">Illimité</span>}
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <input
-              type="range"
-              min="0"
-              max="1000"
-              step="10"
-              value={uploadLimit}
-              onChange={(e) => setUploadLimit(Number(e.target.value))}
-              className="w-full accent-indigo-500"
-            />
-          </div>
+          <input
+            type="range"
+            min="0"
+            max="1000"
+            step="10"
+            value={Math.min(uploadLimit, 1000)}
+            onChange={(e) => setUploadLimit(Number(e.target.value))}
+            className="w-full accent-indigo-500"
+            aria-label="Bande passante max (curseur)"
+          />
           <div className="flex justify-between text-[9px] font-mono text-slate-600">
             <span>0 (illimité)</span>
             <span>250 Mbps</span>
             <span>500 Mbps</span>
-            <span>1 Gbps</span>
+            <span>1 Gbps+</span>
           </div>
         </div>
 
@@ -157,9 +165,16 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             </label>
             <label className="flex items-center gap-2 cursor-pointer group">
               <div
+                role="button"
+                tabIndex={0}
+                aria-pressed={isUnlimited}
+                aria-label={isUnlimited ? 'Durée illimitée activée' : 'Durée illimitée désactivée'}
                 onClick={() => setIsUnlimited(!isUnlimited)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsUnlimited(!isUnlimited); }
+                }}
                 className={cn(
-                  'w-10 h-5 rounded-full transition-all relative border border-white/10 cursor-pointer',
+                  'w-10 h-5 rounded-full transition-all relative border border-white/10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500',
                   isUnlimited ? 'bg-emerald-600' : 'bg-slate-800'
                 )}
               >
@@ -204,7 +219,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
           <button
             type="submit"
             disabled={loading}
-            className={'flex-[2] py-4 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30'}
+            className="flex-[2] py-4 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30"
             style={{
               backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
               boxShadow: `0 10px 20px -5px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}4D`,

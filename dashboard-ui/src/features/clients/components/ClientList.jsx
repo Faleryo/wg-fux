@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 import { getContainerColor } from './ClientListHelpers';
@@ -20,9 +20,11 @@ export const ClientList = ({
   onDeleteContainer,
   onCreateClient,
   onCreateContainer,
+  onBulkDelete,
 }) => {
   const { theme } = useTheme();
   const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const containerGroups = clients.reduce((acc, client) => {
     const key = client.container || 'default';
@@ -44,20 +46,41 @@ export const ClientList = ({
     ? (containerGroups[activeContainer] || []).filter(
         (c) =>
           !search ||
-          String(c?.name || '')
-            .toLowerCase()
-            .includes(search.toLowerCase()) ||
+          String(c?.name || '').toLowerCase().includes(search.toLowerCase()) ||
           String(c?.ip || '').includes(search)
       )
     : [];
 
   const selectedColor = activeContainer ? getContainerColor(activeContainer) : theme;
 
+  const onToggleSelect = useCallback((client) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(client.id)) next.delete(client.id);
+      else next.add(client.id);
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  const handleBulkDelete = useCallback(() => {
+    const selectedClients = clients.filter((c) => selectedIds.has(c.id));
+    if (selectedClients.length === 0) return;
+    onBulkDelete?.(selectedClients, clearSelection);
+  }, [clients, selectedIds, onBulkDelete, clearSelection]);
+
+  // Clear selection when leaving container view
+  const handleSetActiveContainer = useCallback((name) => {
+    setActiveContainer(name);
+    setSelectedIds(new Set());
+  }, [setActiveContainer]);
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
       <ClientListToolbar
         activeContainer={activeContainer}
-        setActiveContainer={setActiveContainer}
+        setActiveContainer={handleSetActiveContainer}
         selectedColor={selectedColor}
         search={search}
         setSearch={setSearch}
@@ -67,6 +90,9 @@ export const ClientList = ({
         onCreateContainer={onCreateContainer}
         clients={clients}
         containerClients={containerClients}
+        selectedIds={selectedIds}
+        onBulkDelete={handleBulkDelete}
+        onClearSelection={clearSelection}
       />
 
       <AnimatePresence mode="wait">
@@ -74,7 +100,7 @@ export const ClientList = ({
           <ContainerGridView
             key="container-grid"
             containerEntries={containerEntries}
-            onSelectContainer={setActiveContainer}
+            onSelectContainer={handleSetActiveContainer}
             onDeleteContainer={onDeleteContainer}
           />
         ) : (
@@ -86,6 +112,8 @@ export const ClientList = ({
             containerClients={containerClients}
             onlinePeers={onlinePeers}
             search={search}
+            selectedIds={selectedIds}
+            onToggleSelect={onToggleSelect}
             onSelect={onSelect}
             onToggle={onToggle}
             onEdit={onEdit}

@@ -55,7 +55,8 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
         const name = String(c?.name || '').toLowerCase();
         const container = String(c?.container || '').toLowerCase();
         const ip = String(c?.ip || '').toLowerCase();
-        return name.includes(q) || container.includes(q) || ip.includes(q);
+        const pubkey = String(c?.publicKey || '').toLowerCase();
+        return name.includes(q) || container.includes(q) || ip.includes(q) || pubkey.includes(q);
       })
       .slice(0, 6)
       .forEach((c) =>
@@ -66,6 +67,8 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
           icon: Package,
           type: 'client',
           category: 'Peers',
+          container: c.container,
+          clientObj: c,
         })
       );
   }
@@ -99,7 +102,11 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
   }, [query]);
 
   const handleSelect = (item) => {
-    onNavigate(item.type === 'client' ? 'containers' : item.id);
+    if (item.type === 'client') {
+      onNavigate('containers', { container: item.container, client: item.clientObj });
+    } else {
+      onNavigate(item.id);
+    }
     onClose();
   };
 

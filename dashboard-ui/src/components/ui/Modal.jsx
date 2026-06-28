@@ -1,16 +1,61 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
 
+const FOCUSABLE_SELECTORS =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 const Modal = ({ isOpen, onClose, title, children, className, maxWidth = 'max-w-md' }) => {
   const { mode } = useTheme();
   const isDark = mode === 'dark';
+  const contentRef = useRef(null);
+  const previousFocusRef = useRef(null);
+
+  // Save focus target and restore on close
+  useEffect(() => {
+    if (isOpen) {
+      previousFocusRef.current = document.activeElement;
+      const timer = setTimeout(() => {
+        const focusable = contentRef.current?.querySelectorAll(FOCUSABLE_SELECTORS);
+        focusable?.[0]?.focus();
+      }, 60);
+      return () => clearTimeout(timer);
+    } else {
+      previousFocusRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  // Focus trap + ESC
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const focusable = [...(contentRef.current?.querySelectorAll(FOCUSABLE_SELECTORS) || [])];
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-[100] overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? 'modal-title' : undefined}
+        >
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -23,10 +68,10 @@ const Modal = ({ isOpen, onClose, title, children, className, maxWidth = 'max-w-
             )}
           />
 
-          {/* Centering wrapper — min-h-full keeps items centered even when content is taller than viewport */}
+          {/* Centering wrapper */}
           <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
-          {/* Modal Content */}
           <motion.div
+            ref={contentRef}
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -44,6 +89,7 @@ const Modal = ({ isOpen, onClose, title, children, className, maxWidth = 'max-w-
             <div className="flex items-center justify-between mb-8">
               {title && (
                 <h3
+                  id="modal-title"
                   className={cn(
                     'text-2xl font-black tracking-tight uppercase',
                     isDark ? 'text-white' : 'text-slate-900'
@@ -54,6 +100,7 @@ const Modal = ({ isOpen, onClose, title, children, className, maxWidth = 'max-w-
               )}
               <button
                 onClick={onClose}
+                aria-label="Fermer"
                 className={cn(
                   'p-3 rounded-2xl transition-all',
                   isDark

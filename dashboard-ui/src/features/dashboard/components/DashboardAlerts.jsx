@@ -10,7 +10,7 @@ const DashboardAlerts = ({ clients, onNavigate }) => {
       .map((c) => ({
         name: c.name,
         container: c.container,
-        pct: Math.min(100, (c.usageTotal / (c.quota * 1024 * 1024 * 1024)) * 100),
+        pct: Math.min(100, ((c.usageTotal || 0) / (c.quota * 1024 * 1024 * 1024)) * 100),
       }))
       .filter((c) => c.pct > 80)
       .sort((a, b) => b.pct - a.pct);
