@@ -694,14 +694,6 @@ const MainLayout = ({ session, onLogout }) => {
                 <a href="#" className="hover:text-indigo-400 transition-colors">
                   Documentation
                 </a>
-                <a
-                  href="https://github.com/faleryo/wg-fux"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-indigo-400 transition-colors"
-                >
-                  GitHub
-                </a>
               </div>
               <div className="text-[10px] opacity-60">
                 &copy; {new Date().getFullYear()} Faleryo Labs. All rights reserved.
