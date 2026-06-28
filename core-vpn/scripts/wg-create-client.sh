@@ -142,7 +142,7 @@ PublicKey = $SERVER_PUBKEY
 PresharedKey = $PSK
 Endpoint = $ACTUAL_ENDPOINT
 AllowedIPs = $ALLOWED_IPS_CLIENT
-PersistentKeepalive = ${PERSISTENT_KEEPALIVE:-25}
+PersistentKeepalive = ${PERSISTENT_KEEPALIVE:-15}
 EOC
 
   [ -n "$EXPIRY" ] && echo "$EXPIRY" > "$CLIENT_DIR/expiry"

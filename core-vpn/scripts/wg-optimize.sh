@@ -148,6 +148,22 @@ if [ "$PROFILE" = "gaming" ]; then
  apply_sysctl net.ipv4.tcp_dsack 1 # Duplicate SACK
 
  # ----------------------------------------------------------
+ # 2b. BUSY POLL — Réduit la latence d'interruption kernel
+ # ----------------------------------------------------------
+ # Le noyau tourne activement pendant 10µs avant de bloquer sur recv.
+ # Économise 50-200µs par paquet sans saturer un vCPU de VPS.
+ # (machines dédiées peuvent monter à 50-100µs)
+ apply_sysctl net.core.busy_poll 10
+ apply_sysctl net.core.busy_read 10
+
+ # TCP buffers réduits pour gaming (évite bufferbloat kernel avant CAKE)
+ # Les jeux tournent en UDP ; réduire les buffers TCP élimine la
+ # pré-occupation des files d'attente par les téléchargements concurrents.
+ apply_sysctl net.ipv4.tcp_rmem "4096 16384 4194304"
+ apply_sysctl net.ipv4.tcp_wmem "4096 16384 4194304"
+ apply_sysctl net.ipv4.tcp_tw_reuse 1 # Réutilisation rapide TIME_WAIT
+
+ # ----------------------------------------------------------
  # 3. KERNEL SCHEDULER réseau
  # ----------------------------------------------------------
  apply_sysctl net.core.netdev_max_backlog 10000 # File d'attente NIC→kernel
@@ -203,7 +219,7 @@ if [ "$PROFILE" = "gaming" ]; then
  "20ms" \
  "diffserv4" \
  "nat wash ack-filter overhead 80" \
- "5ms"
+ "2ms"
 
  # ----------------------------------------------------------
  # 7. RPS/RFS — RSS Software (multi-core NIC processing)
@@ -240,6 +256,23 @@ if [ "$PROFILE" = "gaming" ]; then
 	else
 	log "⚠ ethtool non installé — skip IRQ coalescing"
 	fi
+
+ # ----------------------------------------------------------
+ # 9. GRO/GSO OFF — Supprime le batching de paquets NIC
+ # ----------------------------------------------------------
+ # GRO (Generic Receive Offload) regroupe les paquets entrants en un seul
+ # gros paquet pour économiser des CPU cycles. Sur un VPN gaming, ça ajoute
+ # 0.5-2ms de latence en attendant que le batch soit plein. On désactive.
+ if command -v ethtool &>/dev/null; then
+  ETH_IFACE_GRO=$(ip route | grep default | awk '{print $5}' | head -n1)
+  if [ -n "$ETH_IFACE_GRO" ]; then
+   if ethtool -K "$ETH_IFACE_GRO" gro off gso off 2>/dev/null; then
+    log "✓ GRO/GSO désactivés sur $ETH_IFACE_GRO (anti-batching)"
+   else
+    log "⚠ ethtool -K échoué sur $ETH_IFACE_GRO (VPS virtio — ok si pas de support)"
+   fi
+  fi
+ fi
 
  log "🎮 Gaming Profile DONE — Latence cible ≤20ms activée"
 
@@ -322,6 +355,11 @@ elif [ "$PROFILE" = "restore" ] || [ "$PROFILE" = "default" ] || [ "$PROFILE" = 
  apply_sysctl net.ipv4.tcp_fastopen 1
  apply_sysctl net.ipv4.tcp_congestion_control cubic
  apply_sysctl net.core.default_qdisc pfifo_fast
+ apply_sysctl net.core.busy_poll 0
+ apply_sysctl net.core.busy_read 0
+ apply_sysctl net.ipv4.tcp_rmem "4096 87380 6291456"
+ apply_sysctl net.ipv4.tcp_wmem "4096 16384 4194304"
+ apply_sysctl net.ipv4.tcp_tw_reuse 0
 
  # Récupération du MTU cible depuis la config (ex: 1280 pour PUBG)
  # Si non défini, on repasse sur le standard 1420
@@ -338,10 +376,11 @@ elif [ "$PROFILE" = "restore" ] || [ "$PROFILE" = "default" ] || [ "$PROFILE" = 
  ip link set dev "$INTERFACE" txqueuelen 1000 2>/dev/null || true
  fi
 
- # Re-activer IRQ coalescing
+ # Re-activer IRQ coalescing + GRO/GSO
  ETH_IFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
- if [ -n "$ETH_IFACE" ]; then
+ if [ -n "$ETH_IFACE" ] && command -v ethtool &>/dev/null; then
  ethtool -C "$ETH_IFACE" rx-usecs 50 adaptive-rx on 2>/dev/null || true
+ ethtool -K "$ETH_IFACE" gro on gso on 2>/dev/null || true
  fi
 
  rm -f "$STATE_FILE" "$QOS_PROFILE_FILE"

@@ -501,7 +501,7 @@ bring_up_services() {
 
     log_info "🚀 Starting containers…"
     sudo docker compose stop 2>/dev/null || true
-    sudo docker compose up -d
+    sudo docker compose up -d --remove-orphans
 
     wait_for_healthy 180
 

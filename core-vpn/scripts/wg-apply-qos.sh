@@ -28,7 +28,7 @@ CAKE_BANDWIDTH="${UPSTREAM_BANDWIDTH:-10gbit}"
 CAKE_RTT="20ms"
 CAKE_DIFFSERV="diffserv4"
 CAKE_EXTRA="nat wash ack-filter overhead 80"
-FQ_TARGET="5ms"
+FQ_TARGET="2ms"
 PROFILE="default"
 # shellcheck source=/dev/null
 [ -f /etc/wireguard/qos.profile ] && source /etc/wireguard/qos.profile
