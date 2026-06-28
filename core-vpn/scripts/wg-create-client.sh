@@ -115,9 +115,11 @@ mkdir -p /var/lock 2>/dev/null || true
 
    ADDRESS_STR="$CLIENT_IP/24, $CLIENT_IPV6/64"
    ALLOWED_IPS_STR="$CLIENT_IP/32,$CLIENT_IPV6/128"
+   ALLOWED_IPS_CLIENT="0.0.0.0/0, ::/0"
   else
    ADDRESS_STR="$CLIENT_IP/24"
    ALLOWED_IPS_STR="$CLIENT_IP/32"
+   ALLOWED_IPS_CLIENT="0.0.0.0/0"
   fi
 
   if [ -n "${SERVER_DOMAIN:-}" ]; then
@@ -139,7 +141,7 @@ MTU = $SERVER_MTU
 PublicKey = $SERVER_PUBKEY
 PresharedKey = $PSK
 Endpoint = $ACTUAL_ENDPOINT
-AllowedIPs = 0.0.0.0/0, ::/0
+AllowedIPs = $ALLOWED_IPS_CLIENT
 PersistentKeepalive = ${PERSISTENT_KEEPALIVE:-25}
 EOC
 

@@ -12,7 +12,7 @@ const ROLE_CONFIG = {
   viewer:  { label: 'Operator Access', badge: 'Viewer',  variant: 'slate' },
 };
 
-const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDelete, onRefresh }) => {
+const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDelete, onRefresh, onViewReport }) => {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -112,6 +112,7 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ delay: idx * 0.05 }}
                     className="group hover:bg-white/5 transition-colors cursor-pointer"
+                    onClick={() => onViewReport && onViewReport(user)}
                   >
                     <td className="px-10 py-6">
                       {(() => {

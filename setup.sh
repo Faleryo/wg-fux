@@ -140,6 +140,17 @@ random_secret() {
     openssl rand -hex "$bytes"
 }
 
+detect_ipv6_support() {
+    # True if the host has a global IPv6 address or can reach an IPv6 endpoint.
+    if ip -6 addr show scope global 2>/dev/null | grep -q "inet6"; then
+        return 0
+    fi
+    if ping6 -c1 -W2 2001:4860:4860::8888 &>/dev/null 2>&1; then
+        return 0
+    fi
+    return 1
+}
+
 # ─── Module loading ─────────────────────────────────────────────────────────
 for mod in "$SCRIPT_DIR"/scripts/setup/*.sh; do
     [ -f "$mod" ] || continue
@@ -243,6 +254,20 @@ configure_interactive() {
         TG_TOKEN=""
         TG_CHATID=""
     fi
+
+    echo
+    echo "── IPv6 ──"
+    if detect_ipv6_support; then
+        log_info "IPv6 support detected on this host."
+        if ask_yes_no "Configurer IPv6 pour WireGuard (adresses fd00::/64 assignées aux clients)?" "y"; then
+            CONFIGURE_IPV6="y"
+        else
+            CONFIGURE_IPV6="n"
+        fi
+    else
+        log_info "Aucun IPv6 global détecté — IPv6 désactivé dans les configs clients."
+        CONFIGURE_IPV6="n"
+    fi
 }
 
 configure_from_env() {
@@ -259,6 +284,8 @@ configure_from_env() {
     AGH_PASS="${WGFUX_AGH_PASS:-}"
     TG_TOKEN="${WGFUX_TELEGRAM_TOKEN:-}"
     TG_CHATID="${WGFUX_TELEGRAM_CHAT:-}"
+    # "y" = force enable, "n" = disable, "auto" (default) = detect at write time
+    CONFIGURE_IPV6="${WGFUX_CONFIGURE_IPV6:-auto}"
 
     local missing=()
     [ -z "$ADMIN_PASS" ] && missing+=("WGFUX_ADMIN_PASS")
@@ -336,7 +363,6 @@ EOF
 SERVER_IP="$SERVER_IP"
 SERVER_PORT="$SERVER_PORT"
 VPN_SUBNET=10.0.0.0/24
-VPN_SUBNET_V6=fd00::/64
 CLIENT_DNS=1.1.1.1
 # Standard WG MTU = 1500 - 80 (transport overhead). Gaming profile drops to
 # 1280 (IPv6 min) for zero fragmentation over mobile/4G.
@@ -352,6 +378,15 @@ UPSTREAM_BANDWIDTH=10gbit
 PEER_ISOLATION=false
 EOF
     echo "SERVER_DOMAIN=\"${WG_ENDPOINT}\"" | sudo tee -a "$WG_DIR/manager.conf" > /dev/null
+
+    # Write VPN_SUBNET_V6 only when IPv6 support is confirmed or explicitly requested.
+    local _ipv6="${CONFIGURE_IPV6:-auto}"
+    if [ "$_ipv6" = "y" ] || { [ "$_ipv6" = "auto" ] && detect_ipv6_support; }; then
+        echo 'VPN_SUBNET_V6=fd00::/64' | sudo tee -a "$WG_DIR/manager.conf" > /dev/null
+        log_info "IPv6 activé dans manager.conf (VPN_SUBNET_V6=fd00::/64)"
+    else
+        log_info "IPv6 non configuré — les configs clients seront IPv4 uniquement."
+    fi
 
     # Stash sensitive vars from the live env so they don't leak into subprocesses.
     unset ADMIN_PASS admin_hash salt jwt sentinel backup_pass

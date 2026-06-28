@@ -24,9 +24,9 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [quota, setQuota] = useState(0);
-  const [uploadLimit, setUploadLimit] = useState(0);
+  const [uploadLimit, setUploadLimit] = useState(80);
   const [expiryDuration, setExpiryDuration] = useState({ value: 30, unit: 'days' });
-  const [isUnlimited, setIsUnlimited] = useState(true);
+  const [isUnlimited, setIsUnlimited] = useState(false);
   // Sync guard: setLoading(true) only flips the disabled prop after a re-render,
   // so two clicks in the same frame both reach handleSubmit. This ref blocks
   // the second call instantly.
@@ -54,9 +54,9 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
     if (isOpen) {
       setName('');
       setQuota(0);
-      setUploadLimit(0);
+      setUploadLimit(80);
       setExpiryDuration({ value: 30, unit: 'days' });
-      setIsUnlimited(true);
+      setIsUnlimited(false);
       if (targetContainer) {
         generateSuggestion(targetContainer);
       }
@@ -253,7 +253,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
                 <input
                   type="range"
                   min="0"
-                  max="100"
+                  max="500"
                   step="5"
                   value={uploadLimit}
                   onChange={(e) => setUploadLimit(Number(e.target.value))}

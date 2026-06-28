@@ -21,6 +21,7 @@ import QRCodeModal from '../modals/QRCodeModal';
 import CreateUserModal from '../modals/CreateUserModal';
 import EditUserModal from '../modals/EditUserModal';
 import EditClientModal from '../modals/EditClientModal';
+import UserReportModal from '../modals/UserReportModal';
 
 // Feature: Dashboard
 import useDashboardData from '../../features/dashboard/hooks/useDashboardData';
@@ -89,6 +90,8 @@ const MainLayout = ({ session, onLogout }) => {
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [selectedUserForEdit, setSelectedUserForEdit] = useState(null);
+  const [showUserReportModal, setShowUserReportModal] = useState(false);
+  const [selectedUserForReport, setSelectedUserForReport] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedClientForEdit, setSelectedClientForEdit] = useState(null);
   const [selectedClientForModal, setSelectedClientForModal] = useState(null);
@@ -387,6 +390,10 @@ const MainLayout = ({ session, onLogout }) => {
               setShowEditUserModal(true);
             }}
             onCreateUser={() => setShowCreateUserModal(true)}
+            onViewReport={(user) => {
+              setSelectedUserForReport(user);
+              setShowUserReportModal(true);
+            }}
           />
         );
       case 'logs':
@@ -684,6 +691,15 @@ const MainLayout = ({ session, onLogout }) => {
             onSave={fetchData}
           />
         )}
+
+        <UserReportModal
+          isOpen={showUserReportModal}
+          onClose={() => {
+            setShowUserReportModal(false);
+            setSelectedUserForReport(null);
+          }}
+          user={selectedUserForReport}
+        />
 
         {showEditUserModal && selectedUserForEdit && (
           <EditUserModal
