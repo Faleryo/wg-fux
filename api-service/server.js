@@ -318,7 +318,11 @@ if (require.main === module) {
       console.log('Initializing WG-FUX API Services...');
 
       await initializeDatabase();
-      await initializeDNS();
+
+      // Fire-and-forget: AdGuard boots slower than the API and init retries for
+      // up to ~60s. Awaiting it would delay server.listen() and fail healthchecks.
+      // It never throws (errors are logged internally).
+      initializeDNS();
 
       startJobs(); // Start background tasks
 

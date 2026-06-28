@@ -237,6 +237,24 @@ async function initializeDNS() {
   logger.info('dns', '🛡️ Check AdGuard Home status...');
   if (process.env.VITEST === 'true') return logger.info('dns', '🧪 VITEST: Skipping DNS init');
 
+  // AdGuard usually boots slower than the API. Retry until it answers, otherwise
+  // the DNAT redirect (wg-postup.sh) points clients at a dead resolver and any
+  // VPN client that probes DNS on connect (e.g. WG Tunnel) hangs on "resolving DNS".
+  const MAX_ATTEMPTS = Number(process.env.AGH_INIT_ATTEMPTS) || 30;
+  const DELAY_MS = Number(process.env.AGH_INIT_DELAY_MS) || 2000;
+  const HTTP_TIMEOUT = 5000;
+
+  // /control/status returns 200 + JSON once configured, or 302 → install.html
+  // while the setup wizard is still pending. maxRedirects:0 lets us tell them apart.
+  const isInitialized = async () => {
+    const res = await axios.get(`${AGH_BASE_URL}/control/status`, {
+      maxRedirects: 0,
+      timeout: HTTP_TIMEOUT,
+      validateStatus: (s) => s >= 200 && s < 400,
+    });
+    return res.status === 200 && res.data !== null && typeof res.data === 'object';
+  };
+
   const initAGH = async () => {
     if (!password || password.length < 8) {
       throw new Error('AGH_PASSWORD must be at least 8 characters');
@@ -244,41 +262,47 @@ async function initializeDNS() {
     const config = {
       web: { ip: '0.0.0.0', port: 3000 },
       dns: { ip: '0.0.0.0', port: 53 },
-      username: username,
-      password: password,
+      username,
+      password,
     };
-    await axios.post(`${AGH_BASE_URL}/control/install/configure`, config);
+    try {
+      await axios.post(`${AGH_BASE_URL}/control/install/configure`, config, {
+        timeout: HTTP_TIMEOUT,
+      });
+    } catch (e) {
+      // 422 = "instance already configured": race with another init, treat as done.
+      if (e.response && e.response.status === 422) return;
+      throw e;
+    }
   };
 
-  try {
-    const status = await axios.get(`${AGH_BASE_URL}/control/status`, {
-      maxRedirects: 0,
-      validateStatus: (status) => status >= 200 && status < 400,
-    });
-
-    if (status.status === 200 && status.data.initialized) {
-      logger.info('dns', '✅ AdGuard Home is already initialized.');
-      return;
-    }
-
-    logger.info('dns', '🚀 Initializing AdGuard Home with .env credentials...');
-    await initAGH();
-    logger.info('dns', '✅ AdGuard Home initialized successfully.');
-  } catch (error) {
-    if (error.response && error.response.status === 302) {
-      logger.info('dns', '🚀 Initializing AdGuard Home (Wizard Bypass)...');
-      try {
-        await initAGH();
-        logger.info('dns', '✅ AdGuard Home initialized successfully.');
-      } catch (innerError) {
-        logger.error('dns', '❌ Failed to initialize AdGuard Home', {
-          err: innerError.response ? innerError.response.data : innerError.message,
-        });
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      if (await isInitialized()) {
+        logger.info('dns', '✅ AdGuard Home is already initialized.');
+        return;
       }
-    } else {
-      logger.warn('dns', '⚠️ Could not connect to AdGuard Home API yet', { err: error.message });
+      logger.info('dns', `🚀 Initializing AdGuard Home (attempt ${attempt}/${MAX_ATTEMPTS})...`);
+      await initAGH();
+      logger.info('dns', '✅ AdGuard Home initialized successfully.');
+      return;
+    } catch (error) {
+      const code = error.code || (error.response && error.response.status);
+      logger.warn('dns', `⏳ AdGuard not ready yet (attempt ${attempt}/${MAX_ATTEMPTS})`, {
+        err: error.message,
+        code,
+      });
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+      }
     }
   }
+
+  logger.error(
+    'dns',
+    `❌ AdGuard Home init failed after ${MAX_ATTEMPTS} attempts. ` +
+      'DNS filtering will not work until it is initialized (re-run setup or POST /control/install/configure).'
+  );
 }
 
 module.exports = { initializeDatabase, initializeDNS };
