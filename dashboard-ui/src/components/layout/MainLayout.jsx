@@ -781,6 +781,7 @@ const MainLayout = ({ session, onLogout }) => {
             }}
             onCreate={handleCreateClient}
             targetContainer={targetContainerForCreate}
+            allContainers={allContainers}
           />
         )}
         {showCreateUserModal && (
@@ -788,13 +789,9 @@ const MainLayout = ({ session, onLogout }) => {
             isOpen={showCreateUserModal}
             onClose={() => setShowCreateUserModal(false)}
             onCreate={async (username, password, role) => {
-              try {
-                await axiosInstance.post('/users', { username, password, role });
-                addToast(`Opérateur ${username} créé avec succès`, 'success');
-                fetchData();
-              } catch (err) {
-                addToast(err.response?.data?.error || 'Erreur lors de la création', 'error');
-              }
+              await axiosInstance.post('/users', { username, password, role });
+              addToast(`Opérateur ${username} créé avec succès`, 'success');
+              fetchData();
             }}
           />
         )}

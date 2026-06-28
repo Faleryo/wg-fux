@@ -18,7 +18,7 @@ import { axiosInstance } from '../../lib/api';
 
 import { COLOR_MAP } from '../../lib/utils';
 
-const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
+const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allContainers = [] }) => {
   const { theme } = useTheme();
   const { addToast } = useToast();
   const [name, setName] = useState('');
@@ -27,6 +27,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
   const [uploadLimit, setUploadLimit] = useState(80);
   const [expiryDuration, setExpiryDuration] = useState({ value: 30, unit: 'days' });
   const [isUnlimited, setIsUnlimited] = useState(false);
+  const [selectedContainer, setSelectedContainer] = useState(null);
   // Sync guard: setLoading(true) only flips the disabled prop after a re-render,
   // so two clicks in the same frame both reach handleSubmit. This ref blocks
   // the second call instantly.
@@ -50,6 +51,8 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
       .catch(() => {});
   };
 
+  const activeContainer = targetContainer || selectedContainer;
+
   useEffect(() => {
     if (isOpen) {
       setName('');
@@ -57,6 +60,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
       setUploadLimit(80);
       setExpiryDuration({ value: 30, unit: 'days' });
       setIsUnlimited(false);
+      setSelectedContainer(null);
       if (targetContainer) {
         generateSuggestion(targetContainer);
       }
@@ -66,7 +70,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submittingRef.current) return;
-    if (name.trim() && targetContainer) {
+    if (name.trim() && activeContainer) {
       submittingRef.current = true;
       setLoading(true);
       try {
@@ -87,7 +91,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
           expiry = date.toISOString().split('T')[0];
         }
 
-        await onCreate(name, targetContainer, expiry, quota, uploadLimit);
+        await onCreate(name, activeContainer, expiry, quota, uploadLimit);
         addToast(`Peer ${name} créé avec succès`, 'success');
         onClose();
       } catch (error) {
@@ -98,7 +102,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
         // et on régénère un nom libre pour débloquer la création immédiatement.
         if (status === 409) {
           addToast(serverMsg || `Le nom '${name}' est déjà utilisé`, 'error');
-          generateSuggestion(targetContainer);
+          generateSuggestion(activeContainer);
         } else {
           addToast(serverMsg || 'Erreur lors de la création du client', 'error');
         }
@@ -144,15 +148,36 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
                   size={18}
                 />
-                <input
-                  type="text"
-                  value={targetContainer || 'Aucun'}
-                  disabled
-                  className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono cursor-not-allowed opacity-50"
-                />
+                {targetContainer ? (
+                  <input
+                    type="text"
+                    value={targetContainer}
+                    disabled
+                    className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono cursor-not-allowed opacity-50"
+                  />
+                ) : (
+                  <select
+                    value={selectedContainer || ''}
+                    onChange={(e) => {
+                      setSelectedContainer(e.target.value || null);
+                      if (e.target.value) generateSuggestion(e.target.value);
+                    }}
+                    className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono appearance-none"
+                    style={{ accentColor: COLOR_MAP[theme]?.[500] || '#6366f1' }}
+                  >
+                    <option value="">— Sélectionner un conteneur —</option>
+                    {allContainers.map((c) => (
+                      <option key={c.name || c} value={c.name || c}>
+                        {c.name || c}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
               <p className="mt-2 text-[9px] text-slate-500 italic">
-                Le client sera ajouté dans ce conteneur en cours.
+                {targetContainer
+                  ? 'Le client sera ajouté dans ce conteneur en cours.'
+                  : 'Choisissez le conteneur de destination.'}
               </p>
             </div>
           </div>
@@ -272,7 +297,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer }) => {
           </button>
           <button
             type="submit"
-            disabled={loading || !name.trim() || !targetContainer}
+            disabled={loading || !name.trim() || !activeContainer}
             className="flex-[2] py-4 text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
             style={{
               backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
