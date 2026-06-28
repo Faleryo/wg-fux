@@ -193,22 +193,38 @@ const MainLayout = ({ session, onLogout }) => {
   }, []);
 
   // ── Mobile back navigation (bouton retour Android / swipe iOS) ────────────
-  // navRef garde l'état courant accessible sans stale closure dans le listener.
-  // Ordre de priorité : sidebar → client detail → container actif → dashboard.
+  // Principe : pushState à chaque navigation en avant → popstate intercepté en retour.
+  // isBackNavRef évite de re-pousher quand c'est popstate qui a changé l'état.
+  // topologySelectedClient?.id (pas l'objet entier) pour ignorer les rafraîchissements de données.
   const navRef = useRef(null);
-  useEffect(() => {
-    navRef.current = { activeSection, activeContainer, client: topologySelectedClient, sidebarOpen };
-  }, [activeSection, activeContainer, topologySelectedClient, sidebarOpen]);
+  const isBackNavRef = useRef(false);
+  const navMountedRef = useRef(false);
 
   useEffect(() => {
-    window.history.replaceState({ wgFux: true }, '');
+    navRef.current = { activeSection, activeContainer, client: topologySelectedClient };
+  }, [activeSection, activeContainer, topologySelectedClient]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!navMountedRef.current) {
+      navMountedRef.current = true;
+      window.history.replaceState({ wgFux: true }, '');
+      return;
+    }
+    if (isBackNavRef.current) {
+      isBackNavRef.current = false;
+      return;
+    }
+    window.history.pushState({ wgFux: true }, '');
+  }, [activeSection, activeContainer, topologySelectedClient?.id ?? null]);
+
+  useEffect(() => {
     const onPopState = (e) => {
       if (!e.state?.wgFux) return;
-      const { activeSection: sec, activeContainer: ctr, client, sidebarOpen: sbOpen } = navRef.current;
-      if (sbOpen) {
-        navRef.current = { ...navRef.current, sidebarOpen: false };
-        setSidebarOpen(false);
-      } else if (client) {
+      const { activeSection: sec, activeContainer: ctr, client } = navRef.current;
+      isBackNavRef.current = true;
+      setSidebarOpen(false);
+      if (client) {
         navRef.current = { ...navRef.current, client: null };
         setTopologySelectedClient(null);
       } else if (ctr) {
@@ -218,9 +234,8 @@ const MainLayout = ({ session, onLogout }) => {
         navRef.current = { ...navRef.current, activeSection: 'dashboard' };
         setActiveSection('dashboard');
       } else {
-        return; // déjà au root — le navigateur gère (ex. quitter l'app)
+        isBackNavRef.current = false; // root — le navigateur gère
       }
-      window.history.pushState({ wgFux: true }, '');
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
