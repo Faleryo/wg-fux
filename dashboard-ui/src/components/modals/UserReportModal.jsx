@@ -8,40 +8,70 @@ import { Package, Users, UserPlus, Activity, Clock, Shield } from 'lucide-react'
 
 const ROLE_LABELS = { admin: 'Root Access', manager: 'Manager', viewer: 'Operator' };
 
+const PERIODS = [
+  { days: 1,  label: 'Jour',    chartTitle: 'Créations — 24 dernières heures' },
+  { days: 7,  label: 'Semaine', chartTitle: 'Créations — 7 derniers jours'    },
+  { days: 30, label: 'Mois',    chartTitle: 'Créations — 30 derniers jours'   },
+];
+
+const ACTIVITY_LABELS   = { 1: '24h',     7: '7 jours', 30: '30 jours'      };
+const PERIOD_STAT_LABELS = { 1: 'Ajoutés 24h', 7: 'Ajoutés 7j', 30: 'Ajoutés 30j' };
+
 const UserReportModal = ({ isOpen, onClose, user }) => {
   const { theme, isDark } = useTheme();
-  const [report, setReport] = useState(null);
+  const [report, setReport]   = useState(null);
   const [loading, setLoading] = useState(false);
+  const [days, setDays]       = useState(7);
 
   useEffect(() => {
     if (!isOpen || !user) return;
     setReport(null);
     setLoading(true);
     axiosInstance
-      .get(`/users/${user.username}/report`)
+      .get(`/users/${user.username}/report?days=${days}`)
       .then((res) => setReport(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isOpen, user]);
+  }, [isOpen, user, days]);
+
+  // Reset period on close
+  useEffect(() => { if (!isOpen) setDays(7); }, [isOpen]);
 
   if (!user) return null;
 
-  const accent = COLOR_MAP[theme]?.[500] || '#6366f1';
-  const accentBg = COLOR_MAP[theme]?.[600] || '#4f46e5';
+  const accent        = COLOR_MAP[theme]?.[500] || '#6366f1';
+  const accentBg      = COLOR_MAP[theme]?.[600] || '#4f46e5';
+  const currentPeriod = PERIODS.find((p) => p.days === days);
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={`Rapport — ${user.username}`}
-      maxWidth="max-w-3xl"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title={`Rapport — ${user.username}`} maxWidth="max-w-3xl">
+      {/* Period filter */}
+      <div className="flex items-center gap-2 mb-6">
+        {PERIODS.map((p) => {
+          const active = p.days === days;
+          return (
+            <button
+              key={p.days}
+              onClick={() => setDays(p.days)}
+              className={cn(
+                'px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border',
+                active
+                  ? 'text-white border-transparent'
+                  : isDark
+                  ? 'bg-white/5 border-white/5 text-slate-500 hover:text-white hover:bg-white/10'
+                  : 'bg-black/5 border-black/5 text-slate-500 hover:text-slate-900 hover:bg-black/10'
+              )}
+              style={active ? { backgroundColor: accentBg, borderColor: accent + '55' } : undefined}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+
       {loading ? (
         <div className="h-48 flex items-center justify-center">
-          <div
-            className="animate-spin rounded-full h-12 w-12 border-b-2"
-            style={{ borderColor: accent }}
-          />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: accent }} />
         </div>
       ) : report ? (
         <div className="space-y-8">
@@ -72,10 +102,10 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
           {/* Stats grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { icon: Package, label: 'Conteneurs', value: report.stats.totalContainers },
-              { icon: Users, label: 'Clients total', value: report.stats.totalClients },
-              { icon: Activity, label: 'Actifs', value: report.stats.activeClients },
-              { icon: UserPlus, label: 'Ajoutés 24h', value: report.stats.newClientsToday },
+              { icon: Package,  label: 'Conteneurs',                     value: report.stats.totalContainers   },
+              { icon: Users,    label: 'Clients total',                  value: report.stats.totalClients      },
+              { icon: Activity, label: 'Actifs',                         value: report.stats.activeClients     },
+              { icon: UserPlus, label: PERIOD_STAT_LABELS[days] || 'Ajoutés', value: report.stats.newClientsInPeriod },
             ].map(({ icon: Icon, label, value }) => (
               <div
                 key={label}
@@ -95,19 +125,19 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
             ))}
           </div>
 
-          {/* 7-day chart */}
+          {/* Chart */}
           <div>
             <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">
-              Clients créés — 7 derniers jours
+              {currentPeriod?.chartTitle}
             </h4>
             <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={report.dailyBreakdown} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <BarChart data={report.breakdown} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                 <XAxis
-                  dataKey="date"
+                  dataKey="label"
                   tick={{ fill: '#475569', fontSize: 9, fontWeight: 700 }}
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(v) => v.slice(5)}
+                  interval={days === 30 ? 4 : 0}
                 />
                 <YAxis
                   tick={{ fill: '#475569', fontSize: 9 }}
@@ -127,11 +157,8 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
                   cursor={{ fill: accent + '18' }}
                 />
                 <Bar dataKey="count" name="Clients" radius={[4, 4, 0, 0]}>
-                  {report.dailyBreakdown.map((entry, idx) => (
-                    <Cell
-                      key={idx}
-                      fill={entry.count > 0 ? accent : (isDark ? '#1e293b' : '#e2e8f0')}
-                    />
+                  {report.breakdown.map((entry, idx) => (
+                    <Cell key={idx} fill={entry.count > 0 ? accent : isDark ? '#1e293b' : '#e2e8f0'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -150,7 +177,9 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
                     key={c}
                     className={cn(
                       'text-[10px] font-mono font-black px-3 py-1.5 rounded-xl border',
-                      isDark ? 'bg-white/5 text-slate-400 border-white/5' : 'bg-black/5 text-slate-600 border-black/5'
+                      isDark
+                        ? 'bg-white/5 text-slate-400 border-white/5'
+                        : 'bg-black/5 text-slate-600 border-black/5'
                     )}
                   >
                     {c}
@@ -164,7 +193,7 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
           {report.recentActivity.length > 0 && (
             <div>
               <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">
-                Activité récente (24h)
+                Activité récente ({ACTIVITY_LABELS[days]})
               </h4>
               <div className="space-y-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-1">
                 {report.recentActivity.map((a, idx) => (
@@ -176,10 +205,10 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
                     )}
                   >
                     <Clock size={11} className="text-slate-600 flex-shrink-0" />
-                    <span className="text-[9px] text-slate-500 font-mono w-10 flex-shrink-0">
-                      {new Date(a.timestamp).toLocaleTimeString('fr-FR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
+                    <span className="text-[9px] text-slate-500 font-mono w-20 flex-shrink-0">
+                      {new Date(a.timestamp).toLocaleString('fr-FR', {
+                        day: '2-digit', month: '2-digit',
+                        hour: '2-digit', minute: '2-digit',
                       })}
                     </span>
                     <span

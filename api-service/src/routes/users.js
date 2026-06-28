@@ -169,26 +169,52 @@ router.get(
         .where(inArray(schema.clients.container, containerNames));
     }
 
-    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    // Validate period param — only 1, 7, or 30 days
+    const daysParam = parseInt(req.query.days, 10);
+    const days = [1, 7, 30].includes(daysParam) ? daysParam : 7;
+    const sincePeriod = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    // Build 7-day daily breakdown
-    const dailyBreakdown = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      dailyBreakdown.push({ date: d.toISOString().split('T')[0], count: 0 });
+    // Build breakdown: hourly for day view, daily for week/month
+    const breakdown = [];
+    if (days === 1) {
+      for (let i = 23; i >= 0; i--) {
+        const h = new Date(Date.now() - i * 3600 * 1000);
+        breakdown.push({
+          label: h.getHours().toString().padStart(2, '0') + 'h',
+          date: h.toISOString().slice(0, 13),
+          count: 0,
+        });
+      }
+      allClients.forEach((c) => {
+        if (!c.createdAt) return;
+        const created = new Date(c.createdAt);
+        if (created < sincePeriod) return;
+        const hourKey = created.toISOString().slice(0, 13);
+        const entry = breakdown.find((e) => e.date === hourKey);
+        if (entry) entry.count++;
+      });
+    } else {
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        breakdown.push({ label: dateStr.slice(5), date: dateStr, count: 0 });
+      }
+      allClients.forEach((c) => {
+        if (!c.createdAt) return;
+        const created = new Date(c.createdAt);
+        if (created < sincePeriod) return;
+        const dayStr = created.toISOString().split('T')[0];
+        const entry = breakdown.find((e) => e.date === dayStr);
+        if (entry) entry.count++;
+      });
     }
-    allClients.forEach((c) => {
-      if (!c.createdAt) return;
-      const day = new Date(c.createdAt).toISOString().split('T')[0];
-      const entry = dailyBreakdown.find((e) => e.date === day);
-      if (entry) entry.count++;
-    });
 
-    const newClientsToday = allClients.filter(
-      (c) => c.createdAt && new Date(c.createdAt) > since24h
+    const newClientsInPeriod = allClients.filter(
+      (c) => c.createdAt && new Date(c.createdAt) > sincePeriod
     ).length;
 
+    const activityLimit = days === 1 ? 15 : days === 7 ? 30 : 50;
     const recentActivity = await db
       .select({
         timestamp: schema.auditLogs.timestamp,
@@ -198,9 +224,9 @@ router.get(
         ip: schema.auditLogs.ip,
       })
       .from(schema.auditLogs)
-      .where(and(eq(schema.auditLogs.actor, username), gt(schema.auditLogs.timestamp, since24h)))
+      .where(and(eq(schema.auditLogs.actor, username), gt(schema.auditLogs.timestamp, sincePeriod)))
       .orderBy(desc(schema.auditLogs.timestamp))
-      .limit(15);
+      .limit(activityLimit);
 
     res.json({
       user,
@@ -209,9 +235,10 @@ router.get(
         totalContainers: containerNames.length,
         totalClients: allClients.length,
         activeClients: allClients.filter((c) => c.enabled !== false).length,
-        newClientsToday,
+        newClientsInPeriod,
       },
-      dailyBreakdown,
+      breakdown,
+      days,
       recentActivity,
     });
   })
