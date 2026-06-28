@@ -18,12 +18,48 @@ check_and_install_deps() {
 
     if [ "${#missing[@]}" -eq 0 ]; then
         _maybe_apply_low_ram_docker_tuning
+        _ensure_docker_dns
         return 0
     fi
 
     log_warn "Missing: ${missing[*]} — attempting install."
     install_deps
     _maybe_apply_low_ram_docker_tuning
+    _ensure_docker_dns
+}
+
+# Configure Docker daemon with public DNS so image pulls succeed even when
+# systemd-resolved (127.0.0.53) is broken or misconfigured on the host.
+# Merges into existing daemon.json if present; otherwise creates a minimal one.
+_ensure_docker_dns() {
+    local daemon_json="/etc/docker/daemon.json"
+    local dns_servers='["8.8.8.8", "1.1.1.1"]'
+
+    # Skip if DNS already configured
+    if [ -f "$daemon_json" ] && \
+       python3 -c "import json,sys; d=json.load(open('$daemon_json')); sys.exit(0 if 'dns' in d else 1)" 2>/dev/null; then
+        return 0
+    fi
+
+    sudo mkdir -p /etc/docker
+    if [ -f "$daemon_json" ]; then
+        # Merge dns key into the existing JSON without destroying other settings
+        python3 - "$daemon_json" <<'PYEOF' | sudo tee "$daemon_json.tmp" >/dev/null && \
+            sudo mv "$daemon_json.tmp" "$daemon_json"
+import json, sys
+with open(sys.argv[1]) as f:
+    d = json.load(f)
+d["dns"] = ["8.8.8.8", "1.1.1.1"]
+print(json.dumps(d, indent=2))
+PYEOF
+    else
+        printf '{\n  "dns": ["8.8.8.8", "1.1.1.1"]\n}\n' | sudo tee "$daemon_json" >/dev/null
+    fi
+
+    log_info "Docker DNS set to 8.8.8.8 / 1.1.1.1 — restarting daemon…"
+    sudo systemctl restart docker 2>/dev/null || sudo service docker restart 2>/dev/null || true
+    ensure_docker_ready
+    log_success "Docker DNS configured."
 }
 
 install_deps() {
