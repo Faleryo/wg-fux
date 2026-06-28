@@ -11,7 +11,7 @@ const ClientCard = ({ client, color, isOnlineOverride = false, onSelect, onToggl
   const daysLeft = expiring ? daysUntilExpiry(client.expiry) : null;
   const quotaPct =
     client.quota > 0
-      ? Math.min(100, (client.usageTotal / (client.quota * 1024 * 1024 * 1024)) * 100)
+      ? Math.min(100, ((client.usageTotal || 0) / (client.quota * 1024 * 1024 * 1024)) * 100)
       : 0;
 
   return (

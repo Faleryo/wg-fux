@@ -142,10 +142,7 @@ class WebSocketService {
       if (sentinelToken && receivedToken) {
         const sBuf = Buffer.from(sentinelToken);
         const rBuf = Buffer.from(receivedToken);
-        const maxLen = Math.max(sBuf.length, rBuf.length);
-        const paddedS = Buffer.concat([sBuf, Buffer.alloc(maxLen)]).slice(0, maxLen);
-        const paddedR = Buffer.concat([rBuf, Buffer.alloc(maxLen)]).slice(0, maxLen);
-        isSentinel = crypto.timingSafeEqual(paddedS, paddedR);
+        isSentinel = sBuf.length === rBuf.length && crypto.timingSafeEqual(sBuf, rBuf);
       }
       if (isSentinel) {
         request.user = { id: 0, role: 'admin', username: 'sentinel-watchdog', internal: true };
