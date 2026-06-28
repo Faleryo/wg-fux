@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -16,7 +16,7 @@ export const ToastProvider = ({ children }) => {
   // Cleanup all pending timeouts on unmount
   useEffect(() => () => Object.values(timeoutRefs.current).forEach(clearTimeout), []);
 
-  const addToast = (message, type = 'info') => {
+  const addToast = useCallback((message, type = 'info') => {
     const id = `t-${Date.now()}-${++toastSeq}`;
     // De-dup: if an identical toast (same message + type) is already on screen,
     // don't stack a second copy — this kills the "double toast" caused by a
@@ -30,7 +30,7 @@ export const ToastProvider = ({ children }) => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
       delete timeoutRefs.current[id];
     }, 3000);
-  };
+  }, []);
 
   const removeToast = (id) => {
     clearTimeout(timeoutRefs.current[id]);

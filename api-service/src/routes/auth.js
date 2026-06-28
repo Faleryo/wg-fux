@@ -107,7 +107,7 @@ router.post(
       if (user.enabled === false) {
         await logLoginAttempt(username, clientIp, userAgent, false);
         return res
-          .status(401)
+          .status(403)
           .json(createError('Compte suspendu. Contactez un administrateur.', null, 'ACCOUNT_DISABLED'));
       }
       // Check account expiry
@@ -214,11 +214,15 @@ router.post(
   auth,
   asyncWrap(async (req, res) => {
     const [user] = await db
-      .select({ username: schema.users.username, role: schema.users.role })
+      .select({ username: schema.users.username, role: schema.users.role, enabled: schema.users.enabled, expiry: schema.users.expiry })
       .from(schema.users)
       .where(eq(schema.users.username, req.user.username))
       .limit(1);
     if (!user) return res.status(401).json(createError('User not found', null, 'NOT_FOUND'));
+    if (user.enabled === false)
+      return res.status(401).json(createError('Compte suspendu', null, 'ACCOUNT_DISABLED'));
+    if (user.expiry && new Date(user.expiry) < new Date())
+      return res.status(403).json(createError('Compte expiré', null, 'ACCOUNT_EXPIRED'));
     const token = jwt.sign({ username: user.username, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: TOKEN_TTL[user.role] || '24h',
     });
@@ -236,7 +240,7 @@ router.get(
     const history = await db
       .select()
       .from(schema.logs)
-      .where(and(eq(schema.logs.type, 'auth')))
+      .where(eq(schema.logs.type, 'auth'))
       .orderBy(desc(schema.logs.timestamp))
       .limit(limit)
       .offset(offset);
@@ -330,6 +334,7 @@ router.post(
   '/2fa/disable',
   auth,
   requireManager,
+  twoFaLimiter,
   asyncWrap(async (req, res) => {
     const { password, token: totpToken } = req.body || {};
     if (!password) {

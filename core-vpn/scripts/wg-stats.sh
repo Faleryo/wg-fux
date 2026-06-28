@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # --- : WireGuard Stats Bridge ---
 # BUG-FIX: La 1ère ligne de "wg show dump" contient les infos INTERFACE (pas un peer).
 # Elle était incluse dans le JSON → objet malformé avec des champs vides.

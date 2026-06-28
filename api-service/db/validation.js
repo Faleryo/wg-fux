@@ -12,8 +12,8 @@ const loginSchema = z.object({
 
 const clientSchema = z
   .object({
-    name: z.string().regex(identifierRegex, 'Format de nom invalide'),
-    container: z.string().regex(identifierRegex, 'Format de container invalide'),
+    name: z.string().min(1).max(64).regex(identifierRegex, 'Format de nom invalide'),
+    container: z.string().min(1).max(64).regex(identifierRegex, 'Format de container invalide'),
     expiry: z
       .string()
       .regex(dateRegex, 'Format de date invalide (YYYY-MM-DD)')
@@ -59,11 +59,12 @@ const bulkUpdateSchema = z.object({
   clients: z
     .array(
       z.object({
-        container: z.string().regex(identifierRegex),
-        name: z.string().regex(identifierRegex),
+        container: z.string().min(1).max(64).regex(identifierRegex),
+        name: z.string().min(1).max(64).regex(identifierRegex),
       })
     )
-    .min(1, 'Au moins un client requis'),
+    .min(1, 'Au moins un client requis')
+    .max(100, 'Maximum 100 clients par opération bulk'),
   update: z.object({
     expiry: z.string().regex(dateRegex).or(z.literal('')).or(z.null()).optional(),
     quota: z
@@ -79,11 +80,12 @@ const bulkDeleteSchema = z.object({
   clients: z
     .array(
       z.object({
-        container: z.string().regex(identifierRegex),
-        name: z.string().regex(identifierRegex),
+        container: z.string().min(1).max(64).regex(identifierRegex),
+        name: z.string().min(1).max(64).regex(identifierRegex),
       })
     )
-    .min(1, 'Au moins un client requis'),
+    .min(1, 'Au moins un client requis')
+    .max(100, 'Maximum 100 clients par opération bulk'),
 });
 
 // Schéma pour move client
@@ -95,7 +97,7 @@ const moveClientSchema = z.object({
 
 // Schéma pour create container
 const containerSchema = z.object({
-  name: z.string().regex(identifierRegex, 'Format de nom invalide'),
+  name: z.string().min(1).max(64).regex(identifierRegex, 'Format de nom invalide'),
 });
 
 const userSchema = z
@@ -125,7 +127,7 @@ const systemConfigSchema = z.object({
   dns: z
     .string()
     .min(1)
-    .regex(/^[a-zA-Z0-9\s.,-]+$/, 'Format DNS invalide (caractères spéciaux interdits)')
+    .regex(/^[a-zA-Z0-9 .,-]+$/, 'Format DNS invalide (caractères spéciaux interdits)')
     .optional(),
   subnet: z
     .string()

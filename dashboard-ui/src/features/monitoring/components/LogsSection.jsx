@@ -153,7 +153,11 @@ const LogsSection = () => {
           if (!cancelled) {
             wsRetryCountRef.current += 1;
             if (wsRetryCountRef.current >= 3) setWsStatus('error');
-            setTimeout(connectWs, 3000);
+            // Stop retrying after 10 attempts to avoid indefinite reconnect loops
+            if (wsRetryCountRef.current <= 10) {
+              const delay = Math.min(3000 * wsRetryCountRef.current, 30000);
+              setTimeout(connectWs, delay);
+            }
           }
         };
 

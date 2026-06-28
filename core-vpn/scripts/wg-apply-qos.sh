@@ -87,7 +87,7 @@ fi
 if [ "${WG_QOS_FORCE:-}" != "1" ] \
  && [ "$FINGERPRINT" = "$PREV_FINGERPRINT" ] \
  && [ "$TREE_PRESENT" = "true" ]; then
- log_info "QoS: state unchanged (profile=$PROFILE, $(echo "$DESIRED_STATE" | grep -c .) clients) — skip rebuild"
+ log_info "QoS: state unchanged (profile=$PROFILE, $(echo "$DESIRED_STATE" | grep -c . || true) clients) — skip rebuild"
  exit 0
 fi
 
@@ -180,5 +180,5 @@ done
 # Persist the fingerprint so the next invocation can short-circuit.
 mkdir -p "$(dirname "$STATE_FILE")"
 echo "$FINGERPRINT" > "$STATE_FILE"
-log_info "QoS: tree rebuilt and fingerprint saved ($(echo "$DESIRED_STATE" | grep -c .) clients with limits)"
+log_info "QoS: tree rebuilt and fingerprint saved ($(echo "$DESIRED_STATE" | grep -c . || true) clients with limits)"
 exit 0

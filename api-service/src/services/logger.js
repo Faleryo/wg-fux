@@ -24,7 +24,7 @@ const latencies = [];
 const getP95Latency = () => {
   if (latencies.length === 0) return 0;
   const sorted = [...latencies].sort((a, b) => a - b);
-  const index = Math.floor(sorted.length * 0.95);
+  const index = Math.min(Math.ceil(sorted.length * 0.95) - 1, sorted.length - 1);
   return sorted[index];
 };
 
@@ -80,10 +80,11 @@ const getSafeIp = (req) => {
     const xff = req.headers['x-forwarded-for'];
     let ip = '';
     if (typeof xff === 'string') {
+      // Use the leftmost IP (originating client), not the rightmost (last proxy)
       const parts = xff.split(',');
-      ip = parts[parts.length - 1].trim();
+      ip = parts[0].trim();
     } else if (Array.isArray(xff) && xff.length > 0) {
-      ip = String(xff[xff.length - 1]).trim();
+      ip = String(xff[0]).trim();
     }
     return (ip || req.socket?.remoteAddress || '-').trim();
   } catch {
@@ -132,7 +133,9 @@ process.on('unhandledRejection', (reason) => {
     reason: reason instanceof Error ? reason.message : String(reason),
     stack: reason instanceof Error ? (reason.stack || '').split('\n')?.[1]?.trim() : undefined,
   });
-  process.exit(1);
+  // Do NOT call process.exit(1) here — transient errors (DB timeout, network blip)
+  // would kill the server. Let Node's default behaviour apply and allow graceful
+  // shutdown hooks to run on the next SIGTERM/SIGINT.
 });
 
 const logger = {

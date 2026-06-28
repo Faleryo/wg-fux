@@ -113,14 +113,17 @@ async function initializeDatabase() {
       if (appliedVersions.has(m.version)) continue;
       try {
         sqlite.exec(m.sql);
+        sqlite.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(m.version);
         logger.info('db', `✅ Migration v${m.version} applied: ${m.label}`);
       } catch (e) {
-        // Column already exists from the old inline path — harmless
-        if (!e.message.includes('duplicate column name')) {
-          logger.warn('db', `Migration v${m.version} notice: ${e.message}`);
+        if (e.message.includes('duplicate column name')) {
+          // Column already exists from old inline path — mark as applied
+          sqlite.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(m.version);
+        } else {
+          logger.error('db', `❌ Migration v${m.version} FAILED: ${e.message}`);
+          throw e;
         }
       }
-      sqlite.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(m.version);
     }
 
     // 3. Create Indexes if they don't exist

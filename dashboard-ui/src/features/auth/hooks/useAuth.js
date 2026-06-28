@@ -100,6 +100,11 @@ const useAuth = () => {
     setSession({ token: null, role: null, username: null });
   }, []);
 
+  // Clear the refresh timer on unmount
+  useEffect(() => () => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+  }, []);
+
   // On mount, verify the stored token against the server and refresh role/username.
   // This prevents a tampered or stale role in storage from influencing the UI.
   useEffect(() => {
@@ -124,8 +129,12 @@ const useAuth = () => {
       })
       .catch((err) => {
         if (err.name === 'CanceledError') return;
-        clearStorage();
-        setSession({ token: null, role: null, username: null });
+        // Only clear session on actual auth failures (401/403), not on network blips
+        const status = err.response?.status;
+        if (status === 401 || status === 403) {
+          clearStorage();
+          setSession({ token: null, role: null, username: null });
+        }
       });
     return () => controller.abort();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

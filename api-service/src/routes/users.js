@@ -133,9 +133,10 @@ router.delete(
 
     // Orphan containers owned by this user so they remain accessible to admins
     // rather than becoming stuck with a non-existent owner.
+    const newOwner = process.env.ADMIN_USER || req.user.username;
     await db
       .update(schema.containers)
-      .set({ owner: 'admin' })
+      .set({ owner: newOwner })
       .where(eq(schema.containers.owner, username));
     await db.delete(schema.users).where(eq(schema.users.username, username));
     invalidateUserCache(username);

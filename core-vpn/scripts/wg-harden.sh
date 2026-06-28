@@ -11,15 +11,15 @@ touch "$SYSCTL_CONF"
 
 # Helper for memory application + persistence
 apply_sysctl_harden() {
- local key=$1 val=$2
- # BUG-2 FIX: Escape slashes in $key to prevent sed injection if the key
- # contains '/' (e.g. net.ipv4.conf.all/something).
- local key_escaped="${key//\//\\/}"
+ local key="$1" val="$2"
+ # Escape dots and slashes so the sed regex address is exact, not "any char"
+ local key_sed="${key//./\\.}"
+ key_sed="${key_sed//\//\\/}"
  # Apply to memory
  sysctl -w "$key=$val" > /dev/null 2>&1 || true
  # Apply to file (idempotent)
  if grep -qE "^${key//./\\.}=" "$SYSCTL_CONF"; then
- sed -i "/^$key_escaped=/c\\$key=$val" "$SYSCTL_CONF"
+ sed -i "/^${key_sed}=/c\\$key=$val" "$SYSCTL_CONF"
  else
  echo "$key=$val" >> "$SYSCTL_CONF"
  fi

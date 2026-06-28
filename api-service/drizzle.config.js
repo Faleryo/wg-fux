@@ -4,6 +4,6 @@ module.exports = {
   out: './db/migrations',
   dialect: 'sqlite',
   dbCredentials: {
-    url: './data/wg-fux.db',
+    url: process.env.DB_PATH || './data/wg-fux.db',
   },
 };

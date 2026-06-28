@@ -33,13 +33,16 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 32M
+          memory: 64M  # ssl_session_cache shared:SSL:10m requires ~16MB; 32M was too low
 
   # CRITICAL-2 : Let's Encrypt Certbot (renouvellement automatique)
   # Usage : docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d VOTRE_DOMAINE
   certbot:
     image: certbot/certbot:v2.7.0
     container_name: wg-fux-certbot
+    depends_on:
+      nginx:
+        condition: service_healthy
     volumes:
       - certbot_certs:/etc/letsencrypt
       - certbot_www:/var/www/certbot
@@ -137,6 +140,9 @@ services:
     image: adguard/adguardhome:v0.107.52
     container_name: wg-fux-dns
     restart: always
+    depends_on:
+      api:
+        condition: service_healthy
     ports:
       - "127.0.0.1:3002:3000/tcp"
       # PORT-CONFLICT-GUARD: Port 53 is NOT exposed to host to avoid conflict with systemd-resolved.

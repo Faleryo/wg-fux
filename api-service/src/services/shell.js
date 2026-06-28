@@ -41,7 +41,8 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
 
   // Safe because spawn() never invokes a shell (args go directly to execvp).
   // \p{So} covers emoji (Symbol, Other) — safe since no shell metachar lives in that Unicode category.
-  const SAFE_ARG = /^[\p{L}\p{N}\p{So}\s\-_.,:@+/=~!'()%&#[\]=*?]*$/u;
+  // * and ? are shell glob chars — they have no legitimate place in execFile args
+  const SAFE_ARG = /^[\p{L}\p{N}\p{So}\s\-_.,:@+/=~!'()%&#[\]]*$/u;
   for (const arg of sanitizedArgs) {
     if (arg && !SAFE_ARG.test(arg)) {
       if (log && typeof log.error === 'function') {
@@ -74,34 +75,43 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
   try {
     if (stdinData !== null) {
       return await new Promise((resolve) => {
-        const proc = childProcess.spawn(cmd, sanitizedArgs, { timeout: 90000, env });
-        let stdout = '',
-          stderr = '';
-        proc.stdout.on('data', (d) => {
-          stdout += d.toString();
-        });
-        proc.stderr.on('data', (d) => {
-          stderr += d.toString();
-        });
+        // Note: spawn() ignores the 'timeout' option — implement manually
+        const proc = childProcess.spawn(cmd, sanitizedArgs, { env });
+        let stdout = '', stderr = '', settled = false;
+        const settle = (result) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(killTimer);
+          resolve(result);
+        };
+        const killTimer = setTimeout(() => {
+          if (!settled) {
+            proc.kill('SIGTERM');
+            if (log && typeof log.error === 'function') {
+              log.error('shell', `"${commandStr}" killed after 90s timeout`);
+            }
+            settle({ success: false, error: 'Command timed out', code: 'ETIMEDOUT' });
+          }
+        }, 90000);
+        proc.stdout.on('data', (d) => { stdout += d.toString(); });
+        proc.stderr.on('data', (d) => { stderr += d.toString(); });
         proc.on('close', (code) => {
           if (code === 0) {
             if (stderr && log && typeof log.warn === 'function')
               log.warn('shell', `"${commandStr}" produced stderr: ${stderr.trim()}`);
-            resolve({ success: true, stdout: stdout.trim(), stderr: stderr.trim() });
+            settle({ success: true, stdout: stdout.trim(), stderr: stderr.trim() });
           } else {
             if (log && typeof log.error === 'function') {
-              log.error('shell', `"${commandStr}" exited with code ${code}`, {
-                stderr: stderr.trim(),
-              });
+              log.error('shell', `"${commandStr}" exited with code ${code}`, { stderr: stderr.trim() });
             }
-            resolve({ success: false, error: stderr.trim() || `Exit code ${code}`, code });
+            settle({ success: false, error: stderr.trim() || `Exit code ${code}`, code });
           }
         });
         proc.on('error', (err) => {
           if (log && typeof log.error === 'function') {
             log.error('shell', `"${commandStr}" failed to spawn: ${err.message}`);
           }
-          resolve({ success: false, error: err.message, code: err.code });
+          settle({ success: false, error: err.message, code: err.code });
         });
         if (proc.stdin) {
           proc.stdin.write(stdinData);

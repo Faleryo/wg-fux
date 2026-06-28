@@ -234,7 +234,7 @@ const MainLayout = ({ session, onLogout }) => {
       setActiveSection('dashboard');
       addToast('Accès refusé — section réservée aux administrateurs', 'error');
     }
-  }, [activeSection]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeSection, isManager, isAdmin, addToast]);
 
   const handleNavigate = (sectionId, opts = {}) => {
     setActiveSection(sectionId);

@@ -71,6 +71,10 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
     e.preventDefault();
     if (submittingRef.current) return;
     if (name.trim() && activeContainer) {
+      if (!/^[a-zA-Z0-9_-]{1,64}$/.test(name.trim())) {
+        addToast('Nom invalide (1-64 caractères, lettres, chiffres, _ et - uniquement)', 'error');
+        return;
+      }
       submittingRef.current = true;
       setLoading(true);
       try {

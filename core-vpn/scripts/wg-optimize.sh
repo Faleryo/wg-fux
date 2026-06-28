@@ -24,12 +24,9 @@ STATE_FILE="/etc/wireguard/active_profile"
 QOS_PROFILE_FILE="/etc/wireguard/qos.profile"
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
-# Load UPSTREAM_BANDWIDTH from manager.conf
-if [ -f /etc/wireguard/manager.conf ]; then
-  # shellcheck disable=SC1090
-  source /etc/wireguard/manager.conf
-  export SERVER_IP SERVER_PORT VPN_SUBNET VPN_SUBNET_V6 CLIENT_DNS SERVER_MTU WG_INTERFACE UPSTREAM_BANDWIDTH PERSISTENT_KEEPALIVE
-fi
+# Load UPSTREAM_BANDWIDTH from manager.conf (with dangerous-char guard via load_config)
+load_config
+export SERVER_IP SERVER_PORT VPN_SUBNET VPN_SUBNET_V6 CLIENT_DNS SERVER_MTU WG_INTERFACE UPSTREAM_BANDWIDTH PERSISTENT_KEEPALIVE
 
 # Persist QoS params for wg-apply-qos.sh (sole owner of the qdisc tree).
 # Called instead of doing `tc qdisc` directly on $INTERFACE.
@@ -77,7 +74,8 @@ apply_sysctl() {
  # 2. Apply to persistent file
  if touch "$SYSCTL_CONF" 2>/dev/null; then
  if grep -qE "^${key//./\\.}=" "$SYSCTL_CONF" 2>/dev/null; then
-  sed -i "/^$key=/c\\$key=$val" "$SYSCTL_CONF"
+  local key_sed="${key//./\\.}"
+  sed -i "/^${key_sed}=/c\\$key=$val" "$SYSCTL_CONF"
  else
  echo "$key=$val" >> "$SYSCTL_CONF"
  fi

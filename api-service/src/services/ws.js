@@ -148,7 +148,7 @@ class WebSocketService {
         request.user = { id: 0, role: 'admin', username: 'sentinel-watchdog', internal: true };
       } else {
         try {
-          const decoded = jwt.verify(String(token), process.env.JWT_SECRET);
+          const decoded = jwt.verify(String(token), process.env.JWT_SECRET, { algorithms: ['HS256'] });
           request.user = decoded;
         } catch (e) {
           socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
@@ -216,7 +216,7 @@ class WebSocketService {
   }
 
   sendToUser(username, type, payload) {
-    const message = JSON.stringify({ type, ...payload });
+    const message = JSON.stringify({ type, data: payload });
     if (!username) return;
     [this.wssLogs, this.wssStatus].forEach((wss) => {
       wss.clients.forEach((client) => {

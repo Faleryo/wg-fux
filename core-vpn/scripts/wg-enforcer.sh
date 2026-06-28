@@ -61,7 +61,7 @@ CACHE_FILE="/var/run/wg-peer-cache.json"
 } > "$CACHE_FILE"
 
 # 2. Enforce Limits
-find "$CLIENTS_DIR" -name "public.key" -print0 2>/dev/null | while IFS= read -r -d '' keyfile; do
+while IFS= read -r -d '' keyfile; do
  PUBKEY=$(tr -d '[:space:]' < "$keyfile")
  CLIENT_DIR=$(dirname "$keyfile")
  CLIENT_NAME=$(basename "$CLIENT_DIR")
@@ -134,4 +134,4 @@ find "$CLIENTS_DIR" -name "public.key" -print0 2>/dev/null | while IFS= read -r 
  test -x "$SCRIPT_DIR/wg-apply-qos.sh" && "$SCRIPT_DIR/wg-apply-qos.sh" 2>/dev/null || true
  send_telegram_msg "Access revoked for $CLIENT_NAME (Quota exceeded)." "WARN"
  fi
-done
+done < <(find "$CLIENTS_DIR" -name "public.key" -print0 2>/dev/null)

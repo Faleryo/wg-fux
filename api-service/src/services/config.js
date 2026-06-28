@@ -31,7 +31,16 @@ const getScriptPath = (scriptName) => {
     }
     return scriptName;
   }
-  if (scriptName.startsWith('./')) return scriptName;
+  if (scriptName.startsWith('./')) {
+    const resolved = path.resolve(scriptName);
+    const allowed = ALLOWED_SCRIPT_PREFIXES.some(
+      (prefix) => resolved.startsWith(prefix + '/') || resolved === prefix
+    );
+    if (!allowed) {
+      throw new Error(`Forbidden relative script path: ${scriptName}`);
+    }
+    return resolved;
+  }
   return path.join(SCRIPT_DIR, scriptName);
 };
 

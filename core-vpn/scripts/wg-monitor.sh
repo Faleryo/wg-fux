@@ -86,14 +86,12 @@ while true; do
  if [ -x "$SCRIPT_DIR/wg-send-msg.sh" ]; then
  "$SCRIPT_DIR/wg-send-msg.sh" "🔌 VPN: $CLIENT_NAME connecté ($ENDPOINT)" || true
  fi
-  grep -vF "$PUB_KEY" "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-  echo "$PUB_KEY CONNECTED" >> "$STATE_FILE"
+  { grep -vF "$PUB_KEY" "$STATE_FILE"; echo "$PUB_KEY CONNECTED"; } > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
   fi
   else
   if [ "$LAST_STATE" == "CONNECTED" ]; then
    USAGE_TOTAL_CLEAN="${USAGE_TOTAL:-0}"
    USAGE_TOTAL_CLEAN="${USAGE_TOTAL_CLEAN//[^0-9]/}"
-   declare ESC_CONTAINER ESC_NAME ESC_IPS ESC_EP
    ESC_CONTAINER=$(sql_escape "$CONTAINER_NAME")
    ESC_NAME=$(sql_escape "$CLIENT_NAME")
    ESC_IPS=$(sql_escape "$ALLOWED_IPS")
@@ -102,8 +100,7 @@ while true; do
   if [ -x "$SCRIPT_DIR/wg-send-msg.sh" ]; then
   "$SCRIPT_DIR/wg-send-msg.sh" "🔌 VPN: $CLIENT_NAME déconnecté" || true
   fi
-  grep -vF "$PUB_KEY" "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-  echo "$PUB_KEY DISCONNECTED" >> "$STATE_FILE"
+  { grep -vF "$PUB_KEY" "$STATE_FILE"; echo "$PUB_KEY DISCONNECTED"; } > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
  fi
  fi
  done < <(wg show "$INTERFACE" dump 2>/dev/null | tail -n +2)

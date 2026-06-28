@@ -139,7 +139,7 @@ app.use('/api/clients', auth, clientRoutes);
 app.use('/api/system', auth, systemRoutes);
 app.use('/api/users', auth, requireAdmin, userRoutes);
 app.use('/api/sentinel', auth, sentinelRoutes);
-app.use('/api/dns', auth, requireAdmin, dnsRoutes);
+app.use('/api/dns', auth, dnsRoutes); // individual dns routes carry their own requireAdmin/requireManager
 
 // ─── Debug Route (admin only) ─────────────────────────────────────────────────
 // GET /api/debug → rapport de santé complet
@@ -252,7 +252,8 @@ app.get('/', (req, res) => {
 wsService.init(server);
 
 // Sentry Error Handler (must be BEFORE 404 handler to catch route errors)
-if (process.env.SENTRY_DSN) {
+// Use the same guard as init to avoid mounting an uninitialised handler
+if (process.env.SENTRY_DSN?.startsWith('http')) {
   app.use(Sentry.Handlers.errorHandler());
 }
 
@@ -304,12 +305,8 @@ app.use((err, req, res, _next) => {
 
 // --- Startup ---
 // --- Startup Validation ---
-if (!process.env.JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET not set. Authentication is required.');
-  process.exit(1);
-}
-if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 16) {
-  console.error('FATAL: JWT_SECRET is too short (minimum 16 characters).');
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('FATAL: JWT_SECRET must be set and at least 32 characters (256-bit minimum for HS256).');
   process.exit(1);
 }
 

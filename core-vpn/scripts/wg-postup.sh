@@ -30,10 +30,17 @@ _add_rule() {
  fi
 }
 
-# Load manager.conf for PEER_ISOLATION and other knobs.
-[ -f /etc/wireguard/manager.conf ] && source /etc/wireguard/manager.conf
-# Load QoS profile (set by wg-optimize.sh) for DSCP marking decisions.
-[ -f /etc/wireguard/qos.profile ] && source /etc/wireguard/qos.profile
+# Load manager.conf safely via load_config() (validates for shell metacharacters)
+load_config
+# Load QoS profile safely (validate for dangerous chars before sourcing)
+if [ -f /etc/wireguard/qos.profile ]; then
+  if grep -v '^\s*#' /etc/wireguard/qos.profile | grep -qE '[`$;|&<>()\{\}]' 2>/dev/null; then
+    log_error "Dangerous characters in qos.profile — aborting"
+    exit 1
+  fi
+  # shellcheck disable=SC1091
+  source /etc/wireguard/qos.profile
+fi
 
 log_info "Configuration du pare-feu pour $INTERFACE ($SERVER_INTERFACE)..."
 

@@ -518,13 +518,13 @@ router.get(
   asyncWrap(async (req, res) => {
     const backupDir = process.env.BACKUP_DIR || '/app/data/backups';
     if (!fs.existsSync(backupDir)) return res.json([]);
-    const files = await fsPromises.readdir(backupDir);
+    const entries = await fsPromises.readdir(backupDir, { withFileTypes: true });
     const backups = await Promise.all(
-      files
-        .filter((f) => f.endsWith('.tar.gz'))
-        .map(async (f) => {
-          const stats = await fsPromises.stat(path.join(backupDir, f));
-          return { name: f, size: stats.size, date: stats.mtime };
+      entries
+        .filter((e) => e.isFile() && e.name.endsWith('.tar.gz'))
+        .map(async (e) => {
+          const stats = await fsPromises.stat(path.join(backupDir, e.name));
+          return { name: e.name, size: stats.size, date: stats.mtime };
         })
     );
     res.json(backups.sort((a, b) => b.date - a.date));

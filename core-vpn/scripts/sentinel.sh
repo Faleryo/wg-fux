@@ -15,6 +15,10 @@ if [ -f "$SCRIPT_DIR/sentinel.env" ]; then
  source "$SCRIPT_DIR/sentinel.env"
 fi
 TOKEN="${SENTINEL_TOKEN:-}"
+if [ -z "$TOKEN" ]; then
+  log_error "[Sentinel] SENTINEL_TOKEN is not set. Cannot authenticate with API. Exiting."
+  exit 1
+fi
 API_BASE="${SENTINEL_API_BASE:-http://127.0.0.1:3000}"
 HEARTBEAT_URL="$API_BASE/api/sentinel/heartbeat"
 HEALTH_URL="$API_BASE/api/health"
@@ -98,7 +102,7 @@ check_system() {
 
  # 3. Full Infrastructure Scan (Docker Health)
  local unhealthy_containers
- unhealthy_containers=$(docker ps --filter "health=unhealthy" --format "{{.Names}}")
+ unhealthy_containers=$(docker ps --filter "health=unhealthy" --filter "name=wg-" --format "{{.Names}}")
 
   if [ -n "$unhealthy_containers" ]; then
   while IFS= read -r container; do

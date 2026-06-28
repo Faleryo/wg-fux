@@ -25,23 +25,43 @@ let lastTrafficLog = null;
 // the number of `wg show dump` subprocess invocations. Now one call serves both.
 let _sharedPeers = null;
 let _sharedPeersTs = 0;
+let _sharedPeersPromise = null;
 const SHARED_PEERS_TTL = 55000; // 55s — safe within the 60s job interval
 
 const getSharedPeers = async () => {
   const now = Date.now();
   if (_sharedPeers && now - _sharedPeersTs < SHARED_PEERS_TTL) return _sharedPeers;
-  _sharedPeers = await getWireGuardStats();
-  _sharedPeersTs = now;
-  return _sharedPeers;
+  // Coalesce concurrent callers onto a single in-flight request (promise-singleton)
+  if (!_sharedPeersPromise) {
+    _sharedPeersPromise = getWireGuardStats()
+      .then((peers) => {
+        _sharedPeers = peers;
+        _sharedPeersTs = Date.now();
+        return peers;
+      })
+      .finally(() => {
+        _sharedPeersPromise = null;
+      });
+  }
+  return _sharedPeersPromise;
 };
 
 // Track which clients have already received a quota/expiry notification this
 // session so we don't spam on every polling cycle.
+// Pruned periodically to avoid unbounded memory growth.
 const _notifiedQuota = new Set();
 const _notifiedExpiry = new Set();
+const MAX_NOTIFY_SET_SIZE = 10000;
 // Cache quota bytes per publicKey so the DB lookup inside updateUsage runs only
 // once per peer per session instead of on every 60s tick.
 const _quotaCache = new Map(); // publicKey → quota in bytes (0 = no quota set)
+const MAX_QUOTA_CACHE_SIZE = 10000;
+
+const pruneNotificationSets = () => {
+  if (_notifiedQuota.size > MAX_NOTIFY_SET_SIZE) _notifiedQuota.clear();
+  if (_notifiedExpiry.size > MAX_NOTIFY_SET_SIZE) _notifiedExpiry.clear();
+  if (_quotaCache.size > MAX_QUOTA_CACHE_SIZE) _quotaCache.clear();
+};
 
 const invalidateSharedPeersCache = () => {
   _sharedPeers = null;
@@ -461,6 +481,7 @@ const startJobs = () => {
   setInterval(vacuumDatabase, 86400000 * 7); // Weekly maintenance
   setInterval(reconcileContainers, 86400000); // Daily filesystem↔DB reconciliation
   setInterval(checkClientExpirations, 6 * 3600000); // Every 6h
+  setInterval(pruneNotificationSets, 3600000); // Hourly pruning of notification sets
   reconcileContainers(); // Run once at startup
   checkClientExpirations(); // Check expirations at startup
   scheduleAutomaticBackup();
@@ -477,8 +498,11 @@ const rotateEnforcerLogs = async () => {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const backupFile = `${logFile}.${timestamp}.bak`;
 
+      // Create a fresh empty file first so logFile is never absent between ops
+      const tmpLog = `${logFile}.tmp`;
+      await fsPromises.writeFile(tmpLog, '');
       await fsPromises.rename(logFile, backupFile);
-      await fsPromises.writeFile(logFile, '');
+      await fsPromises.rename(tmpLog, logFile);
 
       await runSystemCommand('gzip', [backupFile]).catch(() => {});
 

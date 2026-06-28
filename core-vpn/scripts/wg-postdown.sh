@@ -38,8 +38,15 @@ _del_rule() {
  fi
 }
 
-[ -f /etc/wireguard/manager.conf ] && source /etc/wireguard/manager.conf
-[ -f /etc/wireguard/qos.profile ] && source /etc/wireguard/qos.profile
+load_config
+if [ -f /etc/wireguard/qos.profile ]; then
+  if grep -v '^\s*#' /etc/wireguard/qos.profile | grep -qE '[`$;|&<>()\{\}]' 2>/dev/null; then
+    log_error "Dangerous characters in qos.profile — aborting"
+    exit 1
+  fi
+  # shellcheck disable=SC1091
+  source /etc/wireguard/qos.profile
+fi
 
 log_info "Nettoyage du pare-feu pour $INTERFACE..."
 

@@ -74,7 +74,11 @@ const auth = async (req, res, next) => {
       log.error('auth', 'JWT_SECRET NOT SET. Authentication unavailable.');
       return res.status(500).json({ error: 'Server authentication misconfigured' });
     }
-    const decoded = jwt.verify(tokenStr, jwtSecret);
+    const decoded = jwt.verify(tokenStr, jwtSecret, { algorithms: ['HS256'] });
+
+    if (!decoded.username || typeof decoded.username !== 'string') {
+      return res.status(401).json({ error: 'Invalid token payload' });
+    }
 
     const cached = userCache.get(decoded.username);
     if (cached && Date.now() - cached.ts < USER_CACHE_TTL) {

@@ -317,6 +317,11 @@ router.post(
       if (req.user.role !== 'admin' && req.user.role !== 'manager' && existingContainer.owner !== req.user.username) {
         return res.status(403).json(createError('Forbidden: Vous ne possédez pas ce conteneur.'));
       }
+    } else {
+      // Container doesn't exist yet — only admin/manager may implicitly create it
+      if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+        return res.status(403).json(createError('Forbidden: Conteneur inexistant ou accès refusé.'));
+      }
     }
 
     // Early duplicate check — avoids running the WG script unnecessarily and
@@ -865,6 +870,12 @@ router.post(
     if (!(await verifyOwnership(req, container)) || !(await verifyOwnership(req, newContainer))) {
       return res.status(403).json(createError('Forbidden: Vous ne possédez pas ces conteneurs.'));
     }
+    const [clientToMove] = await db
+      .select({ id: schema.clients.id })
+      .from(schema.clients)
+      .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
+      .limit(1);
+    if (!clientToMove) return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
     const { success, error } = await runSystemCommand(getScriptPath('wg-move-client.sh'), [
       container,
       name,

@@ -34,6 +34,10 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
       setError("Nom d'utilisateur requis");
       return;
     }
+    if (!/^[a-zA-Z0-9_-]{2,64}$/.test(username.trim())) {
+      setError("Nom d'utilisateur invalide (2-64 caractères, lettres, chiffres, _ et - uniquement)");
+      return;
+    }
     if (password.length < 8) {
       setError('Mot de passe : 8 caractères minimum');
       return;
