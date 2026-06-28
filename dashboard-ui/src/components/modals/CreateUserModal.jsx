@@ -17,6 +17,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
 
   useEffect(() => {
     if (!isOpen) return;
+    submittingRef.current = false;
     setUsername('');
     setPassword('');
     setConfirmPassword('');

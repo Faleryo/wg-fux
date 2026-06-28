@@ -151,8 +151,8 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
               month: 'short',
               hour: '2-digit',
             }),
-            download: rxDiff,
-            upload: txDiff,
+            download: txDiff,
+            upload: rxDiff,
           };
         });
         setHistory72h(data);

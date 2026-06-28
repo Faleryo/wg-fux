@@ -200,8 +200,8 @@ async function initializeDNS() {
   const username = process.env.AGH_USER || 'admin';
   const password = process.env.AGH_PASSWORD;
 
-  const WEAK_PASSWORDS = new Set(['password', 'CHANGE_ME', 'admin', 'admin123', '12345678', 'changeme', 'wireguard', 'wgpass']);
-  if (!password || WEAK_PASSWORDS.has(password)) {
+  const WEAK_PASSWORDS = new Set(['password', 'change_me', 'admin', 'admin123', '12345678', 'changeme', 'wireguard', 'wgpass']);
+  if (!password || WEAK_PASSWORDS.has(password.toLowerCase())) {
     if (process.env.NODE_ENV === 'production') {
       // BUG-FIX: AdGuard is an optional feature. A missing/insecure password should
       // not crash the entire API at startup. Log the error and skip DNS init gracefully.
