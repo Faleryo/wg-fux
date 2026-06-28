@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import GlassCard from '../../../components/ui/Card';
+import { Skeleton } from '../../../components/ui/Skeleton';
 import { LiveTelemetryChart } from './LiveTelemetryChart';
 import EdgeNodeHeatmap from '../../../components/SRE/EdgeNodeHeatmap';
 import DashboardAlerts from './DashboardAlerts';
@@ -48,6 +49,7 @@ const DashboardSection = ({
   setActiveInterface,
   interfaces,
   isManager = true,
+  loading = false,
 }) => {
   return (
     <motion.div
@@ -84,12 +86,18 @@ const DashboardSection = ({
       </div>
 
       {/* EdgeNodeHeatmap (interfaces) réservé aux managers : /system/interfaces */}
-      {isManager && interfaces && interfaces.length > 0 && (
-        <motion.div variants={itemVariants}>
-          <GlassCard className="p-6 md:p-8">
-            <EdgeNodeHeatmap interfaces={interfaces} />
-          </GlassCard>
-        </motion.div>
+      {isManager && (
+        loading && interfaces.length === 0 ? (
+          <motion.div variants={itemVariants}>
+            <Skeleton className="h-36 rounded-[2rem]" />
+          </motion.div>
+        ) : interfaces.length > 0 ? (
+          <motion.div variants={itemVariants}>
+            <GlassCard className="p-6 md:p-8">
+              <EdgeNodeHeatmap interfaces={interfaces} />
+            </GlassCard>
+          </motion.div>
+        ) : null
       )}
 
       <motion.div

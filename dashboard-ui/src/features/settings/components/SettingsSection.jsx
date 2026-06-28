@@ -32,18 +32,55 @@ const SettingsSection = () => {
     keepalive: '25',
     wg_endpoint: '',
   });
+  const [savedConfig, setSavedConfig] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
     axiosInstance
       .get('/system/config')
-      .then((res) => setConfig((prev) => ({ ...prev, ...res.data })))
+      .then((res) => {
+        const loaded = { port: '51820', mtu: '1420', dns: '1.1.1.1, 8.8.8.8', subnet: '10.0.0.0/24', keepalive: '25', wg_endpoint: '', ...res.data };
+        setConfig(loaded);
+        setSavedConfig(loaded);
+      })
       .catch(console.error);
   }, []);
 
+  const isDirty = savedConfig !== null && JSON.stringify(config) !== JSON.stringify(savedConfig);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e) => { e.preventDefault(); e.returnValue = 'Modifications non sauvegardées'; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  const validateConfig = () => {
+    const errors = {};
+    const port = parseInt(config.port, 10);
+    if (!config.port || isNaN(port) || port < 1 || port > 65535)
+      errors.port = 'Port invalide (1–65535)';
+    const mtu = parseInt(config.mtu, 10);
+    if (!config.mtu || isNaN(mtu) || mtu < 576 || mtu > 9000)
+      errors.mtu = 'MTU invalide (576–9000)';
+    const ka = parseInt(config.keepalive, 10);
+    if (config.keepalive !== '' && (isNaN(ka) || ka < 0 || ka > 3600))
+      errors.keepalive = 'Keepalive invalide (0–3600s)';
+    return errors;
+  };
+
   const handleSave = async () => {
+    const errors = validateConfig();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      addToast('Corriger les erreurs avant de sauvegarder', 'error');
+      return;
+    }
+    setValidationErrors({});
     setLoading(true);
     try {
       await axiosInstance.post('/system/config', config);
+      setSavedConfig({ ...config });
       addToast('Configuration appliquée avec succès', 'success');
     } catch (error) {
       addToast("Erreur lors de l'application", 'error');
@@ -96,11 +133,25 @@ const SettingsSection = () => {
           </div>
         </div>
 
-        <div className="flex gap-4 w-full lg:w-auto">
+        <div className="flex flex-col items-end gap-3 w-full lg:w-auto">
+          {isDirty && Object.keys(validationErrors).length === 0 && (
+            <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest animate-pulse">
+              • Modifications en attente
+            </span>
+          )}
+          {Object.keys(validationErrors).length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {Object.values(validationErrors).map((err) => (
+                <span key={err} className="text-[10px] font-black text-rose-400 uppercase tracking-widest">
+                  ✕ {err}
+                </span>
+              ))}
+            </div>
+          )}
           <button
             onClick={handleSave}
             disabled={loading}
-            className='flex-1 lg:flex-none flex items-center justify-center gap-3 px-10 py-5 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-95 disabled:opacity-30'
+            className='flex items-center justify-center gap-3 px-10 py-5 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-95 disabled:opacity-30'
             style={{
               backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
               boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}4d`,

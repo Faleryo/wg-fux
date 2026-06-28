@@ -111,8 +111,15 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="group hover:bg-white/5 transition-colors cursor-pointer"
+                    className="group hover:bg-white/5 transition-colors cursor-pointer focus:outline-none focus:bg-white/5"
+                    tabIndex={0}
                     onClick={() => onViewReport && onViewReport(user)}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && onViewReport) {
+                        e.preventDefault();
+                        onViewReport(user);
+                      }
+                    }}
                   >
                     <td className="px-10 py-6">
                       {(() => {

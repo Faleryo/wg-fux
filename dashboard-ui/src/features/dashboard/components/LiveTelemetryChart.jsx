@@ -65,7 +65,7 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
   const { isDark } = useTheme();
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [usingRealtime, setUsingRealtime] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,9 +79,13 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
           up: (h.tx || 0) / (1024 * 1024),
         }));
         setHistoryData(formatted);
+        setFetchError(false);
         setLoading(false);
       } catch {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setFetchError(true);
+          setLoading(false);
+        }
       }
     };
     fetchHistory();
@@ -92,16 +96,16 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
     };
   }, []);
 
-  // Prefer realtime data (polling) when history is empty
-  const data = historyData.length > 0 ? historyData : realtimeData.map((d) => ({
-    name: d.time,
-    down: (d.download || 0) / (1024 * 1024),
-    up: (d.upload || 0) / (1024 * 1024),
-  }));
+  // Prefer history when available, fall back to realtime polling
+  const data = historyData.length > 0
+    ? historyData
+    : realtimeData.map((d) => ({
+        name: d.time,
+        down: (d.download || 0) / (1024 * 1024),
+        up: (d.upload || 0) / (1024 * 1024),
+      }));
 
-  useEffect(() => {
-    setUsingRealtime(historyData.length === 0 && realtimeData.length > 0);
-  }, [historyData.length, realtimeData.length]);
+  const usingRealtime = historyData.length === 0;
 
   if (loading)
     return (
@@ -185,7 +189,9 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
                 isDark ? 'text-slate-600' : 'text-slate-400'
               )}
             >
-              Initialisation des flux Sentinel...
+              {fetchError
+                ? 'Historique indisponible — données temps réel actives'
+                : 'Initialisation des flux Sentinel...'}
             </p>
             <p
               className={cn(
@@ -193,7 +199,9 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
                 isDark ? 'text-slate-700' : 'text-slate-300'
               )}
             >
-              (Données disponibles après le premier cycle d'audit)
+              {fetchError
+                ? 'Vérifier la connexion au service traffic-history'
+                : "(Données disponibles après le premier cycle d'audit)"}
             </p>
           </div>
         ) : (

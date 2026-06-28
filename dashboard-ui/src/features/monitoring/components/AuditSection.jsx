@@ -116,6 +116,7 @@ const AuditSection = () => {
                 className="text-slate-800/50"
               />
               <motion.circle
+                key={securityScore}
                 cx="96"
                 cy="96"
                 r="80"

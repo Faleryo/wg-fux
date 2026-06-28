@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Cpu } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Terminal, Cpu, WifiOff } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
@@ -28,7 +28,9 @@ const LogsSection = () => {
   const [clearing, setClearing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('access');
+  const [wsStatus, setWsStatus] = useState('idle'); // 'idle' | 'connected' | 'error'
   const wsRef = useRef(null);
+  const wsRetryCountRef = useRef(0);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -69,11 +71,13 @@ const LogsSection = () => {
   useEffect(() => {
     let cancelled = false;
 
-    // Fermer la connexion WS précédente
+    // Fermer la connexion WS précédente et réinitialiser le statut
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
+    setWsStatus('idle');
+    wsRetryCountRef.current = 0;
 
     const doFetch = async () => {
       setLoading(true);
@@ -106,6 +110,13 @@ const LogsSection = () => {
         const wst = getWsToken();
         const ws = new WebSocket(wsUrl, wst ? [wst] : undefined);
         wsRef.current = ws;
+
+        ws.onopen = () => {
+          if (!cancelled) {
+            setWsStatus('connected');
+            wsRetryCountRef.current = 0;
+          }
+        };
 
         ws.onmessage = (evt) => {
           if (cancelled) return;
@@ -140,11 +151,14 @@ const LogsSection = () => {
 
         ws.onclose = () => {
           if (!cancelled) {
+            wsRetryCountRef.current += 1;
+            if (wsRetryCountRef.current >= 3) setWsStatus('error');
             setTimeout(connectWs, 3000);
           }
         };
 
         ws.onerror = () => {
+          setWsStatus('error');
           ws.close();
         };
       } catch (e) {
@@ -165,11 +179,17 @@ const LogsSection = () => {
     };
   }, [activeTab]);
 
-  const filteredLogs = (logs || []).filter((log) =>
-    JSON.stringify(log || {})
-      .toLowerCase()
-      .includes(String(searchTerm || '').toLowerCase())
-  );
+  const filteredLogs = useMemo(() => {
+    if (!searchTerm) return logs;
+    const q = searchTerm.toLowerCase();
+    return logs.filter(
+      (log) =>
+        (log.message || '').toLowerCase().includes(q) ||
+        (log.ip || '').toLowerCase().includes(q) ||
+        (log.status || '').toLowerCase().includes(q) ||
+        (log.time || '').toLowerCase().includes(q)
+    );
+  }, [logs, searchTerm]);
 
   const handleDownload = () => {
     const content = filteredLogs
@@ -234,6 +254,16 @@ const LogsSection = () => {
         theme={theme}
         liveConnected={wsRef.current?.readyState === 1}
       />
+
+      {/* WS error banner */}
+      {wsStatus === 'error' && (activeTab === 'security' || activeTab === 'system') && (
+        <div className="flex items-center gap-3 p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl">
+          <WifiOff size={16} className="text-rose-400 flex-shrink-0" />
+          <p className="text-[10px] font-bold text-rose-400/80 uppercase tracking-widest">
+            Connexion temps réel perdue — Reconnexion automatique en cours...
+          </p>
+        </div>
+      )}
 
       {/* System tab notice */}
       {activeTab === 'system' && (

@@ -86,6 +86,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [trafficHistory60, setTrafficHistory60] = useState([]);
   const [history72h, setHistory72h] = useState([]);
+  const [loadingHistory72h, setLoadingHistory72h] = useState(false);
   const [viewMode, setViewMode] = useState('realtime');
 
   // Initialize the traffic buffer when the client identity changes
@@ -136,6 +137,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
   useEffect(() => {
     if (viewMode !== 'history') return;
     const controller = new AbortController();
+    setLoadingHistory72h(true);
     axiosInstance
       .get(`/clients/${client.container}/${client.name}/history-hours`, { signal: controller.signal })
       .then((res) => {
@@ -155,7 +157,8 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
         });
         setHistory72h(data);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoadingHistory72h(false));
     return () => controller.abort();
   }, [viewMode, client.id, client.container, client.name]);
 
@@ -340,7 +343,15 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
               ))}
             </div>
           </div>
-          <div className="h-80 w-full">
+          <div className="h-80 w-full relative">
+            {loadingHistory72h && viewMode === 'history' && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
+                <RefreshCw className="animate-spin text-slate-500" size={28} />
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
+                  Chargement 72h...
+                </span>
+              </div>
+            )}
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={viewMode === 'realtime' ? trafficHistory60 : history72h}>
                 <defs>

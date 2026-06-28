@@ -241,6 +241,17 @@ const MainLayout = ({ session, onLogout }) => {
     return () => window.removeEventListener('popstate', onPopState);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Redirect + toast when a viewer navigates to a forbidden section
+  useEffect(() => {
+    const forbidden =
+      (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
+      (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection));
+    if (forbidden) {
+      setActiveSection('dashboard');
+      addToast('Accès refusé — section réservée aux administrateurs', 'error');
+    }
+  }, [activeSection]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleNavigate = (sectionId, opts = {}) => {
     setActiveSection(sectionId);
     if (opts.container) setActiveContainer(opts.container);
@@ -439,6 +450,7 @@ const MainLayout = ({ session, onLogout }) => {
             setActiveInterface={setActiveInterface}
             interfaces={interfaces}
             isManager={isManager}
+            loading={loading}
           />
         );
       case 'containers':
