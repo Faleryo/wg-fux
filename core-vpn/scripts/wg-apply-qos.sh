@@ -24,6 +24,7 @@ DEFAULT_CLASS="1:9999"
 load_config
 
 # Prevent concurrent execution from corrupting the qdisc tree
+mkdir -p /var/lock 2>/dev/null || true
 exec 9>/var/lock/wg-qos.lock
 flock -n 9 || { log_warn "QoS: autre instance en cours, skip."; exit 0; }
 

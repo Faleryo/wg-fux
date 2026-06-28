@@ -150,8 +150,8 @@ load_config() {
  # BUG-1 FIX: Reject config file if it contains dangerous shell characters
  # to prevent code execution when sourcing as root.
  if grep -v '^\s*#' "$conf" | grep -qE '[`$;|&<>()\{\}]' 2>/dev/null; then
-  log_error "Caractères dangereux dans $conf. Abandon."
-  exit 1
+  log_error "Caractères dangereux dans $conf. Abandon. (Les valeurs contenant ces chars doivent être entre guillemets simples.)"
+  return 1
  fi
  # shellcheck disable=SC1090
  source "$conf"
@@ -181,7 +181,7 @@ send_telegram_msg() {
  local conf_file="/etc/wireguard/sentinel.conf"
 
  if [ -f "$conf_file" ]; then
- if grep -v '^\s*#' "$conf_file" | grep -qP '[`$;|&<>()\{\}]' 2>/dev/null; then
+ if grep -v '^\s*#' "$conf_file" | grep -qE '[`$;|&<>()\{\}]' 2>/dev/null; then
   log_error "Caractères dangereux dans $conf_file. Abandon."
   return 1
  fi

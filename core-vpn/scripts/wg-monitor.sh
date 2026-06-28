@@ -15,6 +15,7 @@ source "$SCRIPT_DIR/wg-common.sh"
 load_config
 
 # Prevent concurrent execution from corrupting the state file
+mkdir -p /var/lock 2>/dev/null || true
 exec 9>/var/lock/wg-monitor.lock
 flock -n 9 || { log_warn "wg-monitor: déjà en cours, skip."; exit 0; }
 

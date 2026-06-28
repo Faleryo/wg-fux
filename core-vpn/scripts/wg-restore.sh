@@ -77,7 +77,8 @@ ROLLBACK_DIR="$TEMP_DIR/wireguard_before_restore"
 cp -a /etc/wireguard/ "$ROLLBACK_DIR"
 rsync -a --delete "$STAGE/wireguard/" /etc/wireguard/ || {
   echo "❌ rsync échoué — rollback de /etc/wireguard/ en cours..." >&2
-  rsync -a --delete "$ROLLBACK_DIR/" /etc/wireguard/ || true
+  rsync -a --delete "$ROLLBACK_DIR/" /etc/wireguard/ || \
+    { echo "❌ Rollback aussi échoué — /etc/wireguard/ peut être dans un état corrompu !" >&2; }
   exit 1
 }
 echo "✅ Restauration effectuée avec succès."
