@@ -57,9 +57,15 @@ const track = (event, props) => {
   }
 };
 
+const TWOFА_BANNER_KEY = '2fa-banner-v1-dismissed';
+
 const TwoFABanner = ({ onNavigate }) => {
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem(TWOFА_BANNER_KEY) === '1');
   if (dismissed) return null;
+  const dismiss = () => {
+    localStorage.setItem(TWOFА_BANNER_KEY, '1');
+    setDismissed(true);
+  };
   return (
     <div className="mx-auto max-w-[1600px] px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 pt-4">
       <div className="flex items-center gap-4 px-5 py-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300">
@@ -73,7 +79,7 @@ const TwoFABanner = ({ onNavigate }) => {
             configurer maintenant
           </button>
         </p>
-        <button onClick={() => setDismissed(true)} className="p-1 hover:text-white transition-colors">
+        <button onClick={dismiss} className="p-1 hover:text-white transition-colors">
           <XIcon size={14} />
         </button>
       </div>
@@ -185,6 +191,40 @@ const MainLayout = ({ session, onLogout }) => {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
+
+  // ── Mobile back navigation (bouton retour Android / swipe iOS) ────────────
+  // navRef garde l'état courant accessible sans stale closure dans le listener.
+  // Ordre de priorité : sidebar → client detail → container actif → dashboard.
+  const navRef = useRef(null);
+  useEffect(() => {
+    navRef.current = { activeSection, activeContainer, client: topologySelectedClient, sidebarOpen };
+  }, [activeSection, activeContainer, topologySelectedClient, sidebarOpen]);
+
+  useEffect(() => {
+    window.history.replaceState({ wgFux: true }, '');
+    const onPopState = (e) => {
+      if (!e.state?.wgFux) return;
+      const { activeSection: sec, activeContainer: ctr, client, sidebarOpen: sbOpen } = navRef.current;
+      if (sbOpen) {
+        navRef.current = { ...navRef.current, sidebarOpen: false };
+        setSidebarOpen(false);
+      } else if (client) {
+        navRef.current = { ...navRef.current, client: null };
+        setTopologySelectedClient(null);
+      } else if (ctr) {
+        navRef.current = { ...navRef.current, activeContainer: null };
+        setActiveContainer(null);
+      } else if (sec !== 'dashboard') {
+        navRef.current = { ...navRef.current, activeSection: 'dashboard' };
+        setActiveSection('dashboard');
+      } else {
+        return; // déjà au root — le navigateur gère (ex. quitter l'app)
+      }
+      window.history.pushState({ wgFux: true }, '');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNavigate = (sectionId) => {
     setActiveSection(sectionId);

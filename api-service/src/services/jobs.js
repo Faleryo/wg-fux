@@ -39,6 +39,14 @@ const getSharedPeers = async () => {
 // session so we don't spam on every polling cycle.
 const _notifiedQuota = new Set();
 const _notifiedExpiry = new Set();
+// Cache quota bytes per publicKey so the DB lookup inside updateUsage runs only
+// once per peer per session instead of on every 60s tick.
+const _quotaCache = new Map(); // publicKey → quota in bytes (0 = no quota set)
+
+const invalidateSharedPeersCache = () => {
+  _sharedPeers = null;
+  _sharedPeersTs = 0;
+};
 
 const loadSchedules = async () => {
   Object.keys(scheduledJobs).forEach((id) => scheduledJobs[id]?.cancel?.());
@@ -153,19 +161,23 @@ const updateUsage = async () => {
                 set: { total: newTotal, daily: JSON.stringify(daily) },
               });
 
-            // Notify when a client crosses its quota threshold for the first time
+            // Notify when a client crosses its quota threshold for the first time.
+            // _quotaCache avoids a DB round-trip on every tick; the entry is set
+            // on first lookup and reused for the lifetime of the process.
             if (!_notifiedQuota.has(pubKey)) {
-              const [client] = await tx
-                .select({ name: schema.clients.name, container: schema.clients.container, quota: schema.clients.quota })
-                .from(schema.clients)
-                .where(eq(schema.clients.publicKey, pubKey))
-                .limit(1);
-              if (client?.quota > 0) {
-                const quotaBytes = client.quota * 1024 * 1024 * 1024;
-                if (prevTotal < quotaBytes && newTotal >= quotaBytes) {
-                  _notifiedQuota.add(pubKey);
-                  notify.send('quota', `🚨 QUOTA DÉPASSÉ: Client '${client.name}' (${client.container}) a consommé ${client.quota} GB — accès suspendu.`).catch(() => {});
-                }
+              if (!_quotaCache.has(pubKey)) {
+                const [client] = await tx
+                  .select({ name: schema.clients.name, container: schema.clients.container, quota: schema.clients.quota })
+                  .from(schema.clients)
+                  .where(eq(schema.clients.publicKey, pubKey))
+                  .limit(1);
+                const qb = client?.quota > 0 ? client.quota * 1024 * 1024 * 1024 : 0;
+                _quotaCache.set(pubKey, { bytes: qb, name: client?.name, container: client?.container, gb: client?.quota });
+              }
+              const cached = _quotaCache.get(pubKey);
+              if (cached.bytes > 0 && prevTotal < cached.bytes && newTotal >= cached.bytes) {
+                _notifiedQuota.add(pubKey);
+                notify.send('quota', `🚨 QUOTA DÉPASSÉ: Client '${cached.name}' (${cached.container}) a consommé ${cached.gb} GB — accès suspendu.`).catch(() => {});
               }
             }
           });
@@ -428,7 +440,7 @@ const checkClientExpirations = async () => {
       .where(and(gte(schema.clients.expiry, todayStr), lte(schema.clients.expiry, in24hStr)));
 
     for (const client of expiringSoon) {
-      const key = `expiry-${client.name}-${client.expiry}`;
+      const key = `expiry-${client.container}-${client.name}-${client.expiry}`;
       if (_notifiedExpiry.has(key)) continue;
       _notifiedExpiry.add(key);
       notify.send('expiry', `⏰ EXPIRATION IMMINENTE: Client '${client.name}' (${client.container}) expire le ${client.expiry}.`).catch(() => {});
@@ -524,5 +536,6 @@ module.exports = {
   rotateEnforcerLogs,
   pruneSeenStats,
   checkClientExpirations,
+  invalidateSharedPeersCache,
   SCHEDULE_FILE,
 };

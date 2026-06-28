@@ -20,6 +20,14 @@ const LOGIN_ALERT_COOLDOWN = 300000; // 5 minutes
 // Viewers get a long TTL for convenience (monitoring dashboards stay open).
 const TOKEN_TTL = { admin: '4h', manager: '8h', viewer: '24h' };
 
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Trop de tentatives de refresh. Veuillez réessayer dans 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -186,6 +194,7 @@ router.get(
 
 router.post(
   '/refresh',
+  refreshLimiter,
   auth,
   asyncWrap(async (req, res) => {
     const [user] = await db

@@ -18,6 +18,7 @@ const { auth } = require('../middleware/auth');
 const { runSystemCommand, writeFileAsRoot, unlinkAsRoot } = require('../services/shell');
 const { getWireGuardStats, getClientDir, parseWireGuardDump } = require('../services/system');
 const { getScriptPath } = require('../services/config');
+const { invalidateSharedPeersCache } = require('../services/jobs');
 const { auditLog } = require('../services/audit');
 const log = require('../services/logger');
 const { asyncWrap, createError } = require('../utils/errors');
@@ -582,6 +583,7 @@ router.delete(
 
     await db.delete(schema.usage).where(eq(schema.usage.publicKey, client.publicKey));
     await db.delete(schema.clients).where(eq(schema.clients.publicKey, client.publicKey));
+    invalidateSharedPeersCache();
 
     await auditLog({
       actor: req.user.username,
@@ -970,6 +972,19 @@ router.get(
   })
 );
 
+// SQLite's SQLITE_MAX_VARIABLE_NUMBER is 32766 on modern versions but we use a
+// conservative batch size to avoid issues on older builds or very large arrays.
+const SQLITE_BATCH = 500;
+const inArrayBatched = async (table, column, ids, selectFn) => {
+  if (ids.length === 0) return [];
+  const results = await Promise.all(
+    Array.from({ length: Math.ceil(ids.length / SQLITE_BATCH) }, (_, i) =>
+      selectFn(ids.slice(i * SQLITE_BATCH, (i + 1) * SQLITE_BATCH))
+    )
+  );
+  return results.flat();
+};
+
 // Aggregate stats per container — used by the dashboard stats widget.
 // Returns { [containerName]: { totalClients, activeClients, totalBytes, owner } }
 router.get(
@@ -985,15 +1000,22 @@ router.get(
     if (visible.length === 0) return res.json({});
 
     const containerNames = visible.map((c) => c.name);
-    const allClients = await db
-      .select()
-      .from(schema.clients)
-      .where(inArray(schema.clients.container, containerNames));
+    const allClients = await inArrayBatched(
+      schema.clients,
+      schema.clients.container,
+      containerNames,
+      (chunk) => db.select().from(schema.clients).where(inArray(schema.clients.container, chunk))
+    );
 
     const pubKeys = allClients.map((c) => c.publicKey).filter(Boolean);
     const usageRows =
       pubKeys.length > 0
-        ? await db.select().from(schema.usage).where(inArray(schema.usage.publicKey, pubKeys))
+        ? await inArrayBatched(
+            schema.usage,
+            schema.usage.publicKey,
+            pubKeys,
+            (chunk) => db.select().from(schema.usage).where(inArray(schema.usage.publicKey, chunk))
+          )
         : [];
 
     const usageMap = {};

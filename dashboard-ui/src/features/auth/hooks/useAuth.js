@@ -5,6 +5,7 @@ const STORAGE_KEYS = {
   token: 'wg-api-token',
   role: 'wg-user-role',
   username: 'wg-user-username',
+  twoFactorEnabled: 'wg-user-2fa',
   cache: 'wg-fux-cache',
 };
 
@@ -12,6 +13,8 @@ const readSession = () => ({
   token: localStorage.getItem(STORAGE_KEYS.token) || sessionStorage.getItem(STORAGE_KEYS.token),
   role: localStorage.getItem(STORAGE_KEYS.role) || sessionStorage.getItem(STORAGE_KEYS.role),
   username: localStorage.getItem(STORAGE_KEYS.username) || sessionStorage.getItem(STORAGE_KEYS.username),
+  twoFactorEnabled:
+    (localStorage.getItem(STORAGE_KEYS.twoFactorEnabled) ?? sessionStorage.getItem(STORAGE_KEYS.twoFactorEnabled)) === 'true',
 });
 
 const clearStorage = () => {
@@ -59,6 +62,13 @@ const useAuth = () => {
   }, []);
 
   const login = useCallback((token, rememberMe, role, username) => {
+    if (!rememberMe) {
+      // Clear any stale token a previous rememberMe session may have left
+      // so scheduleRefresh can't accidentally route the refreshed token to localStorage.
+      [STORAGE_KEYS.token, STORAGE_KEYS.role, STORAGE_KEYS.username, STORAGE_KEYS.twoFactorEnabled].forEach(
+        (k) => localStorage.removeItem(k)
+      );
+    }
     if (rememberMe) {
       localStorage.setItem(STORAGE_KEYS.token, token);
     } else {
@@ -102,10 +112,12 @@ const useAuth = () => {
         const token = store.getItem(STORAGE_KEYS.token);
         if (token) scheduleRefresh(token);
         setSession((prev) => {
-          if (prev.role === role && prev.username === username && prev.twoFactorEnabled === twoFactorEnabled) return prev;
+          const tf = !!twoFactorEnabled;
+          if (prev.role === role && prev.username === username && prev.twoFactorEnabled === tf) return prev;
           store.setItem(STORAGE_KEYS.role, role);
           store.setItem(STORAGE_KEYS.username, username);
-          return { ...prev, role, username, twoFactorEnabled: !!twoFactorEnabled };
+          store.setItem(STORAGE_KEYS.twoFactorEnabled, String(tf));
+          return { ...prev, role, username, twoFactorEnabled: tf };
         });
       })
       .catch((err) => {
