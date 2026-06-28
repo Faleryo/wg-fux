@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, Search } from 'lucide-react';
+import { Menu, Search, ShieldAlert, X as XIcon } from 'lucide-react';
 import { axiosInstance } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -32,11 +32,13 @@ import NetworkMap from '../../features/dashboard/components/NetworkMap';
 import ContainersSection from '../../features/clients/components/ClientList';
 import ClientDetail from '../../features/clients/components/ClientDetail';
 import UsersSection from '../../features/users/components/UsersSection';
-import LogsSection from '../../features/monitoring/components/LogsSection';
-import SettingsSection from '../../features/settings/components/SettingsSection';
-import OptimizationSection from '../../features/settings/components/OptimizationSection';
-import AuditSection from '../../features/monitoring/components/AuditSection';
-import DnsSection from '../../features/dns/components/DnsEditor';
+// Heavy sections are lazy-loaded so the initial bundle stays small.
+// They are only fetched the first time the user navigates to them.
+const LogsSection = lazy(() => import('../../features/monitoring/components/LogsSection'));
+const SettingsSection = lazy(() => import('../../features/settings/components/SettingsSection'));
+const OptimizationSection = lazy(() => import('../../features/settings/components/OptimizationSection'));
+const AuditSection = lazy(() => import('../../features/monitoring/components/AuditSection'));
+const DnsSection = lazy(() => import('../../features/dns/components/DnsEditor'));
 
 /**
  * Analytics non-bloquant. PostHog tourne avec un token placeholder et son
@@ -53,6 +55,30 @@ const track = (event, props) => {
   } catch {
     /* télémétrie non-bloquante */
   }
+};
+
+const TwoFABanner = ({ onNavigate }) => {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+  return (
+    <div className="mx-auto max-w-[1600px] px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 pt-4">
+      <div className="flex items-center gap-4 px-5 py-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300">
+        <ShieldAlert size={18} className="flex-shrink-0 text-amber-400" />
+        <p className="text-[11px] font-black uppercase tracking-wider flex-1">
+          Votre compte admin n'a pas de 2FA activé —{' '}
+          <button
+            onClick={onNavigate}
+            className="underline hover:text-amber-200 transition-colors"
+          >
+            configurer maintenant
+          </button>
+        </p>
+        <button onClick={() => setDismissed(true)} className="p-1 hover:text-white transition-colors">
+          <XIcon size={14} />
+        </button>
+      </div>
+    </div>
+  );
 };
 
 /**
@@ -397,15 +423,15 @@ const MainLayout = ({ session, onLogout }) => {
           />
         );
       case 'logs':
-        return <LogsSection />;
+        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><LogsSection /></Suspense>;
       case 'settings':
-        return <SettingsSection />;
+        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><SettingsSection /></Suspense>;
       case 'optimization':
-        return <OptimizationSection systemStats={systemStats} />;
+        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><OptimizationSection systemStats={systemStats} /></Suspense>;
       case 'audit':
-        return <AuditSection />;
+        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><AuditSection /></Suspense>;
       case 'dns':
-        return <DnsSection />;
+        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><DnsSection /></Suspense>;
       default:
         return null;
     }
@@ -494,6 +520,11 @@ const MainLayout = ({ session, onLogout }) => {
             )}
           />
         </div>
+
+        {/* 2FA warning banner — shown to admins who haven't set up 2FA */}
+        {isAdmin && session.twoFactorEnabled === false && (
+          <TwoFABanner onNavigate={() => setActiveSection('settings')} />
+        )}
 
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 space-y-12">
           <AnimatePresence mode="wait">

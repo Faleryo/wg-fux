@@ -1,6 +1,6 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Users, Activity } from 'lucide-react';
+import { Package, Users, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import GlassCard from '../../../components/ui/Card';
 import ClientCard from './ClientCard';
@@ -20,6 +20,9 @@ const ClientGridView = ({
   onDelete,
 }) => {
   const onlinePeersSet = useMemo(() => new Set(onlinePeers), [onlinePeers]);
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [activeContainer, search]);
 
   return (
     <motion.div
@@ -110,32 +113,61 @@ const ClientGridView = ({
               : 'Aucun peer dans ce conteneur'}
           </p>
         </GlassCard>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-          <AnimatePresence mode="popLayout">
-            {containerClients.map((client, idx) => (
-              <motion.div
-                key={client.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: Math.min(idx * 0.03, 0.3), duration: 0.25 }}
-              >
-                <ClientCard
-                  client={client}
-                  color={selectedColor}
-                  isOnlineOverride={onlinePeersSet.has(client.publicKey)}
-                  onSelect={onSelect}
-                  onToggle={onToggle}
-                  onEdit={onEdit}
-                  onQRCode={onQRCode}
-                  onDelete={onDelete}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
+      ) : (() => {
+        const totalPages = Math.ceil(containerClients.length / PAGE_SIZE);
+        const safePage = Math.min(page, Math.max(0, totalPages - 1));
+        const pageClients = containerClients.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+        return (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+              <AnimatePresence mode="popLayout">
+                {pageClients.map((client, idx) => (
+                  <motion.div
+                    key={client.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: Math.min(idx * 0.03, 0.3), duration: 0.25 }}
+                  >
+                    <ClientCard
+                      client={client}
+                      color={selectedColor}
+                      isOnlineOverride={onlinePeersSet.has(client.publicKey)}
+                      onSelect={onSelect}
+                      onToggle={onToggle}
+                      onEdit={onEdit}
+                      onQRCode={onQRCode}
+                      onDelete={onDelete}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 pt-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={safePage === 0}
+                  className="p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Page {safePage + 1} / {totalPages}
+                  <span className="ml-2 text-slate-600">({containerClients.length} peers)</span>
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={safePage >= totalPages - 1}
+                  className="p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+          </>
+        );
+      })()}
     </motion.div>
   );
 };

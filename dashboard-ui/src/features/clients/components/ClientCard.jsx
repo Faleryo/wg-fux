@@ -2,12 +2,13 @@ import { memo } from 'react';
 import { Edit, Trash2, Pause, Play, ChevronRight, QrCode } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import GlassCard from '../../../components/ui/Card';
-import { isOnlineClient, isExpired, isExpiringSoon } from './ClientListHelpers';
+import { isOnlineClient, isExpired, isExpiringSoon, daysUntilExpiry } from './ClientListHelpers';
 
 const ClientCard = ({ client, color, isOnlineOverride = false, onSelect, onToggle, onEdit, onQRCode, onDelete }) => {
   const online = isOnlineOverride || isOnlineClient(client);
   const expired = isExpired(client.expiry);
   const expiring = isExpiringSoon(client.expiry);
+  const daysLeft = expiring ? daysUntilExpiry(client.expiry) : null;
   const quotaPct =
     client.quota > 0
       ? Math.min(100, (client.usageTotal / (client.quota * 1024 * 1024 * 1024)) * 100)
@@ -59,7 +60,7 @@ const ClientCard = ({ client, color, isOnlineOverride = false, onSelect, onToggl
                   : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
               )}
             >
-              {expired ? 'Expiré' : 'Bientôt'}
+              {expired ? 'Expiré' : daysLeft !== null ? `${daysLeft}j` : 'Bientôt'}
             </span>
           )}
         </div>

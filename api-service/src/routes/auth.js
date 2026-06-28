@@ -16,6 +16,10 @@ const { asyncWrap, createError } = require('../utils/errors');
 let lastLoginAlertTime = 0;
 const LOGIN_ALERT_COOLDOWN = 300000; // 5 minutes
 
+// Shorter TTL = smaller exposure window if a token leaks.
+// Viewers get a long TTL for convenience (monitoring dashboards stay open).
+const TOKEN_TTL = { admin: '4h', manager: '8h', viewer: '24h' };
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -122,7 +126,7 @@ router.post(
       }
 
       const token = jwt.sign({ username: user.username, role: user.role }, process.env.JWT_SECRET, {
-        expiresIn: '24h',
+        expiresIn: TOKEN_TTL[user.role] || '24h',
       });
       res.json({ valid: true, token, role: user.role });
     } else {
@@ -176,7 +180,24 @@ router.get(
       .where(eq(schema.users.username, req.user.username))
       .limit(1);
     if (!user) return res.status(401).json(createError('User not found', null, 'NOT_FOUND'));
-    res.json({ valid: true, username: user.username, role: user.role });
+    res.json({ valid: true, username: user.username, role: user.role, twoFactorEnabled: !!user.twoFactorSecret });
+  })
+);
+
+router.post(
+  '/refresh',
+  auth,
+  asyncWrap(async (req, res) => {
+    const [user] = await db
+      .select({ username: schema.users.username, role: schema.users.role })
+      .from(schema.users)
+      .where(eq(schema.users.username, req.user.username))
+      .limit(1);
+    if (!user) return res.status(401).json(createError('User not found', null, 'NOT_FOUND'));
+    const token = jwt.sign({ username: user.username, role: user.role }, process.env.JWT_SECRET, {
+      expiresIn: TOKEN_TTL[user.role] || '24h',
+    });
+    res.json({ token, role: user.role });
   })
 );
 

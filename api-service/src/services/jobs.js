@@ -2,7 +2,7 @@ const path = require('path');
 const fsPromises = require('fs').promises;
 const schedule = require('node-schedule');
 const { db, schema, sqlite } = require('../../db');
-const { eq, and, lt } = require('drizzle-orm');
+const { eq, and, lt, lte, gte } = require('drizzle-orm');
 const { runCommand, runSystemCommand, appendFileAsRoot } = require('./shell');
 const { getWireGuardStats } = require('./system');
 const log = require('./logger');
@@ -19,6 +19,26 @@ let isUpdatingUsage = false;
 let isLoggingTraffic = false;
 let lastUsageUpdate = null;
 let lastTrafficLog = null;
+
+// Shared WireGuard peer snapshot — both updateUsage and logTrafficHistory
+// previously called getWireGuardStats() independently each minute, doubling
+// the number of `wg show dump` subprocess invocations. Now one call serves both.
+let _sharedPeers = null;
+let _sharedPeersTs = 0;
+const SHARED_PEERS_TTL = 55000; // 55s — safe within the 60s job interval
+
+const getSharedPeers = async () => {
+  const now = Date.now();
+  if (_sharedPeers && now - _sharedPeersTs < SHARED_PEERS_TTL) return _sharedPeers;
+  _sharedPeers = await getWireGuardStats();
+  _sharedPeersTs = now;
+  return _sharedPeers;
+};
+
+// Track which clients have already received a quota/expiry notification this
+// session so we don't spam on every polling cycle.
+const _notifiedQuota = new Set();
+const _notifiedExpiry = new Set();
 
 const loadSchedules = async () => {
   Object.keys(scheduledJobs).forEach((id) => scheduledJobs[id]?.cancel?.());
@@ -79,7 +99,7 @@ const updateUsage = async () => {
   if (isUpdatingUsage) return;
   isUpdatingUsage = true;
   try {
-    const peers = await getWireGuardStats();
+    const peers = await getSharedPeers();
     const today = new Date().toISOString().split('T')?.[0];
     lastUsageUpdate = new Date();
 
@@ -118,7 +138,8 @@ const updateUsage = async () => {
             }
 
             daily[today] = (Number(daily[today]) || 0) + delta;
-            const newTotal = (Number(existingUsage?.total) || 0) + delta;
+            const prevTotal = Number(existingUsage?.total) || 0;
+            const newTotal = prevTotal + delta;
 
             await tx
               .insert(schema.usage)
@@ -131,6 +152,22 @@ const updateUsage = async () => {
                 target: schema.usage.publicKey,
                 set: { total: newTotal, daily: JSON.stringify(daily) },
               });
+
+            // Notify when a client crosses its quota threshold for the first time
+            if (!_notifiedQuota.has(pubKey)) {
+              const [client] = await tx
+                .select({ name: schema.clients.name, container: schema.clients.container, quota: schema.clients.quota })
+                .from(schema.clients)
+                .where(eq(schema.clients.publicKey, pubKey))
+                .limit(1);
+              if (client?.quota > 0) {
+                const quotaBytes = client.quota * 1024 * 1024 * 1024;
+                if (prevTotal < quotaBytes && newTotal >= quotaBytes) {
+                  _notifiedQuota.add(pubKey);
+                  notify.send('quota', `🚨 QUOTA DÉPASSÉ: Client '${client.name}' (${client.container}) a consommé ${client.quota} GB — accès suspendu.`).catch(() => {});
+                }
+              }
+            }
           });
         } catch (e) {
           log.error('jobs', 'Usage update transaction failed', { pubKey, err: e.message });
@@ -163,7 +200,7 @@ const logTrafficHistory = async () => {
   if (isLoggingTraffic) return;
   isLoggingTraffic = true;
   try {
-    const peers = await getWireGuardStats();
+    const peers = await getSharedPeers();
     const timestamp = new Date();
     lastTrafficLog = timestamp;
 
@@ -375,6 +412,32 @@ const reconcileContainers = async () => {
   }
 };
 
+// Check for clients expiring in the next 24h and send one Telegram notification
+// per client per session. Runs every 6 hours so we catch new expirations.
+const checkClientExpirations = async () => {
+  try {
+    const now = new Date();
+    const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const todayStr = now.toISOString().split('T')[0];
+    const in24hStr = in24h.toISOString().split('T')[0];
+
+    // Clients with expiry between now and 24h from now
+    const expiringSoon = await db
+      .select({ name: schema.clients.name, container: schema.clients.container, expiry: schema.clients.expiry })
+      .from(schema.clients)
+      .where(and(gte(schema.clients.expiry, todayStr), lte(schema.clients.expiry, in24hStr)));
+
+    for (const client of expiringSoon) {
+      const key = `expiry-${client.name}-${client.expiry}`;
+      if (_notifiedExpiry.has(key)) continue;
+      _notifiedExpiry.add(key);
+      notify.send('expiry', `⏰ EXPIRATION IMMINENTE: Client '${client.name}' (${client.container}) expire le ${client.expiry}.`).catch(() => {});
+    }
+  } catch (e) {
+    log.error('jobs', 'Expiration check error', { err: e.message });
+  }
+};
+
 const startJobs = () => {
   if (process.env.VITEST === 'true' || process.env.NODE_ENV === 'test') return;
   loadSchedules();
@@ -385,7 +448,9 @@ const startJobs = () => {
   setInterval(rotateEnforcerLogs, 3600000);
   setInterval(vacuumDatabase, 86400000 * 7); // Weekly maintenance
   setInterval(reconcileContainers, 86400000); // Daily filesystem↔DB reconciliation
+  setInterval(checkClientExpirations, 6 * 3600000); // Every 6h
   reconcileContainers(); // Run once at startup
+  checkClientExpirations(); // Check expirations at startup
   scheduleAutomaticBackup();
 };
 
@@ -458,5 +523,6 @@ module.exports = {
   logTrafficHistory,
   rotateEnforcerLogs,
   pruneSeenStats,
+  checkClientExpirations,
   SCHEDULE_FILE,
 };

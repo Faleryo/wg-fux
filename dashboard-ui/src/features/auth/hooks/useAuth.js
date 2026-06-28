@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { axiosInstance } from '../../../lib/api';
 
 const STORAGE_KEYS = {
@@ -29,8 +29,34 @@ const clearStorage = () => {
  * authenticated request. That lets us swap to <LoginPage/> via state change
  * instead of a full page reload.
  */
+// Decode a JWT payload (no verification — used only for expiry scheduling)
+const getTokenExp = (token) => {
+  try {
+    return JSON.parse(atob(token.split('.')[1])).exp * 1000;
+  } catch {
+    return null;
+  }
+};
+
 const useAuth = () => {
   const [session, setSession] = useState(readSession);
+  const refreshTimerRef = useRef(null);
+
+  const scheduleRefresh = useCallback((token) => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    const exp = getTokenExp(token);
+    if (!exp) return;
+    const delay = Math.max(0, exp - Date.now() - 5 * 60 * 1000); // 5 min before expiry
+    refreshTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await axiosInstance.post('/auth/refresh');
+        const newToken = res.data.token;
+        const store = localStorage.getItem(STORAGE_KEYS.token) ? localStorage : sessionStorage;
+        store.setItem(STORAGE_KEYS.token, newToken);
+        scheduleRefresh(newToken);
+      } catch { /* silently fail — next request will 401 and trigger logout */ }
+    }, delay);
+  }, []);
 
   const login = useCallback((token, rememberMe, role, username) => {
     if (rememberMe) {
@@ -53,9 +79,11 @@ const useAuth = () => {
       }
     }
     setSession({ token, role: role || null, username: username || null });
-  }, []);
+    scheduleRefresh(token);
+  }, [scheduleRefresh]);
 
   const logout = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     clearStorage();
     setSession({ token: null, role: null, username: null });
   }, []);
@@ -69,13 +97,15 @@ const useAuth = () => {
     axiosInstance
       .get('/auth/check', { signal: controller.signal })
       .then((res) => {
-        const { role, username } = res.data;
+        const { role, username, twoFactorEnabled } = res.data;
+        const store = localStorage.getItem(STORAGE_KEYS.token) ? localStorage : sessionStorage;
+        const token = store.getItem(STORAGE_KEYS.token);
+        if (token) scheduleRefresh(token);
         setSession((prev) => {
-          if (prev.role === role && prev.username === username) return prev;
-          const store = localStorage.getItem(STORAGE_KEYS.token) ? localStorage : sessionStorage;
+          if (prev.role === role && prev.username === username && prev.twoFactorEnabled === twoFactorEnabled) return prev;
           store.setItem(STORAGE_KEYS.role, role);
           store.setItem(STORAGE_KEYS.username, username);
-          return { ...prev, role, username };
+          return { ...prev, role, username, twoFactorEnabled: !!twoFactorEnabled };
         });
       })
       .catch((err) => {

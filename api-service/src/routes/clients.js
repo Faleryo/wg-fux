@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fsPromises = require('fs').promises;
 const { db, schema } = require('../../db');
-const { eq, and, desc } = require('drizzle-orm');
+const { eq, and, desc, inArray } = require('drizzle-orm');
 const {
   clientSchema,
   clientPatchSchema,
@@ -967,6 +967,50 @@ router.get(
       }
       throw err;
     }
+  })
+);
+
+// Aggregate stats per container — used by the dashboard stats widget.
+// Returns { [containerName]: { totalClients, activeClients, totalBytes, owner } }
+router.get(
+  '/stats/by-container',
+  auth,
+  asyncWrap(async (req, res) => {
+    const allContainers = await db.select().from(schema.containers);
+    const visible =
+      req.user.role === 'admin' || req.user.role === 'manager'
+        ? allContainers
+        : allContainers.filter((c) => c.owner === req.user.username);
+
+    if (visible.length === 0) return res.json({});
+
+    const containerNames = visible.map((c) => c.name);
+    const allClients = await db
+      .select()
+      .from(schema.clients)
+      .where(inArray(schema.clients.container, containerNames));
+
+    const pubKeys = allClients.map((c) => c.publicKey).filter(Boolean);
+    const usageRows =
+      pubKeys.length > 0
+        ? await db.select().from(schema.usage).where(inArray(schema.usage.publicKey, pubKeys))
+        : [];
+
+    const usageMap = {};
+    usageRows.forEach((u) => { usageMap[u.publicKey] = u.total || 0; });
+
+    const result = {};
+    for (const ctr of visible) {
+      const clients = allClients.filter((c) => c.container === ctr.name);
+      const totalBytes = clients.reduce((sum, c) => sum + (usageMap[c.publicKey] || 0), 0);
+      result[ctr.name] = {
+        totalClients: clients.length,
+        activeClients: clients.filter((c) => c.enabled !== false).length,
+        totalBytes,
+        owner: ctr.owner,
+      };
+    }
+    res.json(result);
   })
 );
 
