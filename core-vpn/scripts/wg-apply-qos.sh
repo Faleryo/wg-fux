@@ -98,8 +98,10 @@ fi
 # 1. Egress (Download pour le client: Server → Client)
 # Racine HTB
 "$TC" qdisc add dev "$WG_INTERFACE" root handle 1: htb default 9999 r2q 50
-# Classe par défaut (illimitée / 10Gbps)
-"$TC" class add dev "$WG_INTERFACE" parent 1: classid $DEFAULT_CLASS htb rate 10000mbit
+# Classe par défaut (illimitée / 10Gbps).
+# quantum explicite : sans lui, HTB dérive quantum = rate/r2q = énorme pour 10gbit
+# → "sch_htb: quantum of class ... is big". 200000 = max sous le seuil d'alerte.
+"$TC" class add dev "$WG_INTERFACE" parent 1: classid $DEFAULT_CLASS htb rate 10000mbit quantum 200000
 # CAKE > fq_codel for gaming/streaming : flow management + AQM + anti-bufferbloat.
 # Params from /etc/wireguard/qos.profile (set by wg-optimize.sh), fallback to safe defaults.
 # shellcheck disable=SC2086

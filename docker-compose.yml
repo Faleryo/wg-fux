@@ -10,7 +10,9 @@ services:
       - DOMAIN=${DOMAIN}
       - VPN_SUBNET=${VPN_SUBNET:-10.0.0.0/24}
       # Seulement ces variables sont substituées par envsubst — préserve $host, $uri, etc.
-      - ENVSUBST_VARS=$DOMAIN,$VPN_SUBNET
+      # $$ pour échapper l'expansion par Compose : on passe les NOMS littéraux
+      # ($DOMAIN,$VPN_SUBNET) au conteneur, pas leurs valeurs.
+      - ENVSUBST_VARS=$$DOMAIN,$$VPN_SUBNET
     volumes:
       - ./infra/nginx/default.conf:/etc/nginx/templates/default.conf.template:ro
       - ./infra/ssl:/etc/nginx/ssl:ro

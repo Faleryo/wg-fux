@@ -20,7 +20,11 @@ exec 9>/var/lock/wg-monitor.lock
 flock -n 9 || { log_warn "wg-monitor: déjà en cours, skip."; exit 0; }
 
 STATE_FILE="/var/run/wg-monitor.state"
-DB_FILE="${WG_DB_PATH:-/app/data}/wg-fux.db"
+# WG_DB_PATH = chemin COMPLET du fichier DB (même contrat que wg-enforcer.sh).
+# L'ancienne version le traitait comme un répertoire → si WG_DB_PATH était défini,
+# on construisait "<chemin>/wg-fux.db/wg-fux.db" (cassé).
+WG_DATA_DIR="${API_DATA_DIR:-/app/data}"
+DB_FILE="${WG_DB_PATH:-$WG_DATA_DIR/wg-fux.db}"
 INTERFACE="${WG_INTERFACE:-wg0}"
 touch "$STATE_FILE"
 
