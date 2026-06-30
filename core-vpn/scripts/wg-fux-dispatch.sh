@@ -23,6 +23,7 @@ ALLOWLIST=(
   wg-stats.sh wg-health.sh wg-file-proxy.sh
   wg-backup.sh wg-restore.sh wg-check-expiry.sh
   wg-apply-qos.sh wg-enforcer.sh
+  wg-init-server.sh
 )
 
 # SAFE_ARG : miroir exact de la politique de api-service/src/services/shell.js.

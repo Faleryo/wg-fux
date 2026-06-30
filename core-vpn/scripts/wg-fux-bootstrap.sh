@@ -29,6 +29,10 @@ SCRIPTS_TARBALL_URL='{{SCRIPTS_TARBALL_URL}}'
 SCRIPTS_SHA256='{{SCRIPTS_SHA256}}'         # sha256 attendu du tarball des wg-*.sh
 TLS_PINNED_PUBKEY='{{TLS_PINNED_PUBKEY}}'   # sha256//... de la clé publique TLS (cert pinning)
 SCRIPTS_VERSION='{{SCRIPTS_VERSION}}'
+VPS_PUBLIC_IP='{{VPS_PUBLIC_IP}}'           # IP publique du VPS (injectée par l'API)
+WG_PORT='{{WG_PORT}}'                       # port WireGuard (défaut 51820)
+VPN_SUBNET='{{VPN_SUBNET}}'                 # sous-réseau VPN (défaut 10.0.0.0/24)
+WG_INTERFACE='{{WG_INTERFACE}}'             # interface WireGuard (défaut wg0)
 
 WG_FUX_USER='wg-fux'
 WG_FUX_HOME="/home/${WG_FUX_USER}"
@@ -148,6 +152,13 @@ visudo -cf "${SUDOERS_FILE}.new" >/dev/null || fail "sudoers généré invalide 
 install -m 0440 -o root -g root "${SUDOERS_FILE}.new" "$SUDOERS_FILE"
 rm -f "${SUDOERS_FILE}.new"
 log "sudoers restreint posé (1 entrée, sans wildcard)."
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5.5 Initialisation WireGuard (clés serveur, manager.conf, wg0.conf, service)
+# ─────────────────────────────────────────────────────────────────────────────
+log "Initialisation WireGuard (interface, clés, manager.conf)…"
+"$BIN_DIR/wg-init-server.sh" "$VPS_PUBLIC_IP" "$WG_PORT" "$VPN_SUBNET" "$WG_INTERFACE" \
+  || fail "Initialisation WireGuard échouée."
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. Callback "ready" — déclenche la vérification SSH côté plateforme.

@@ -118,6 +118,10 @@ async function renderBootstrap(server, { req } = {}) {
     '{{SCRIPTS_SHA256}}': scriptsSha256,
     '{{TLS_PINNED_PUBKEY}}': (process.env.TLS_PINNED_PUBKEY || '').trim(),
     '{{SCRIPTS_VERSION}}': SCRIPTS_VERSION,
+    '{{VPS_PUBLIC_IP}}': server.host || '',
+    '{{WG_PORT}}': String(server.wgPort || 51820),
+    '{{VPN_SUBNET}}': server.vpnSubnet || '10.0.0.0/24',
+    '{{WG_INTERFACE}}': server.wgInterface || 'wg0',
   };
 
   let script = template;
