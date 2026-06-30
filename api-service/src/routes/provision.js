@@ -256,7 +256,7 @@ router.post('/:token/ready', express.json(), async (req, res, next) => {
 //   1. On écrit hostKey = pendingHostKey AVANT d'appeler l'executor : c'est cette
 //      colonne que getExecutorForServer lit pour pinner la host key. Si la host
 //      key réellement vue diverge (MITM), l'executor échoue → on rollback à NULL.
-//   2. On exécute une commande triviale allowlistée (wg-health.sh).
+//   2. On exécute une sonde triviale allowlistée (wg-fux-verify.sh).
 //   3. Succès → status='online', hostKey pinnée, token consommé (usage unique),
 //      auditLog. Échec → status='error', lastError, token NON consommé (retry OK).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -287,8 +287,9 @@ async function verifyServer(serverId) {
   let result;
   try {
     const executor = await getExecutorForServer(serverId);
-    // Commande triviale allowlistée : prouve que le SSH+sudo fonctionne.
-    result = await executor.run('wg-health.sh', []);
+    // Sonde triviale dédiée : prouve que SSH+dispatch+sudo fonctionne, SANS
+    // dépendre d'une config WireGuard (absente sur un VPS fraîchement provisionné).
+    result = await executor.run('wg-fux-verify.sh', []);
   } catch (err) {
     // Échec de connexion (host key divergente = MITM possible, réseau, auth…).
     result = { success: false, stderr: err.message };

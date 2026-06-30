@@ -487,7 +487,7 @@ const serverHeartbeat = async () => {
       let errMsg = null;
       try {
         const executor = await getExecutorForServer(server.id);
-        const result = await executor.run('wg-health.sh', []);
+        const result = await executor.run('wg-fux-verify.sh', []);
         online = !!(result && result.success);
         if (!online) errMsg = (result && (result.error || result.stderr)) || 'health check failed';
       } catch (e) {

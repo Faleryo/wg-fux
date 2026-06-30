@@ -11,6 +11,7 @@
 set -euo pipefail
 
 ALLOWLIST=(
+  wg-fux-verify.sh
   wg-create-client.sh wg-remove-client.sh
   wg-create-container.sh wg-remove-container.sh
   wg-move-client.sh wg-sync-peers.sh wg-toggle.sh
