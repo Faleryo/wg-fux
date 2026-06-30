@@ -25,12 +25,51 @@ const containers = sqliteTable(
     name: text('name').notNull().unique(),
     owner: text('owner').default('admin'), // The user who owns this container (for resellers)
     interface: text('interface').default('wg0'), // Mapping to WireGuard interface (wg0, wg1, etc.)
+    serverId: integer('serverId').references(() => servers.id, { onDelete: 'set null' }), // NULL = serveur local admin (rétrocompatible)
     createdAt: integer('createdAt', { mode: 'timestamp' }).default(
       sql`(cast(strftime('%s','now') as int))`
     ),
   },
   (table) => ({
     containerNameIdx: uniqueIndex('container_name_idx').on(table.name),
+  })
+);
+
+// Registre des VPS revendeurs (cibles d'exécution distante). Voir specs
+// 2026-06-27 (socle SSH) et 2026-06-30 (provisioning one-liner).
+const servers = sqliteTable(
+  'servers',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    ownerId: integer('ownerId')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    label: text('label').notNull(),
+    host: text('host').notNull(),
+    port: integer('port').default(22),
+    sshUsername: text('sshUsername').notNull().default('wg-fux'),
+    // Clé privée SSH chiffrée AES-256-GCM (services/crypto.js). Jamais en clair.
+    encPrivateKey: text('encPrivateKey'),
+    encKeyIv: text('encKeyIv'),
+    encKeyAuth: text('encKeyAuth'),
+    publicKey: text('publicKey'), // clé publique SSH (sert le templating du bootstrap)
+    hostKey: text('hostKey'), // host key VÉRIFIÉE (pin anti-MITM)
+    pendingHostKey: text('pendingHostKey'), // host key annoncée au callback, avant vérif
+    status: text('status').default('pending'), // pending|provisioning|online|error|offline
+    consecutiveFailures: integer('consecutiveFailures').default(0),
+    lastChecked: integer('lastChecked', { mode: 'timestamp' }),
+    lastError: text('lastError'),
+    // Provisioning one-liner
+    provisionTokenHash: text('provisionTokenHash'), // sha256 du token (usage unique)
+    provisionTokenExpiry: integer('provisionTokenExpiry', { mode: 'timestamp' }),
+    scriptsVersion: text('scriptsVersion'),
+    createdAt: integer('createdAt', { mode: 'timestamp' }).default(
+      sql`(cast(strftime('%s','now') as int))`
+    ),
+  },
+  (table) => ({
+    serverOwnerIdx: index('server_owner_idx').on(table.ownerId),
+    serverHostIdx: uniqueIndex('server_host_idx').on(table.ownerId, table.host, table.port),
   })
 );
 
@@ -124,4 +163,5 @@ module.exports = {
   usage,
   logs,
   auditLogs,
+  servers,
 };

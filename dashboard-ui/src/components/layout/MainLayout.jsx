@@ -36,6 +36,7 @@ import ClientDetail from '../../features/clients/components/ClientDetail';
 import UsersSection from '../../features/users/components/UsersSection';
 // Heavy sections are lazy-loaded so the initial bundle stays small.
 // They are only fetched the first time the user navigates to them.
+const ServersSection = lazy(() => import('../../features/servers/components/ServersSection'));
 const LogsSection = lazy(() => import('../../features/monitoring/components/LogsSection'));
 const SettingsSection = lazy(() => import('../../features/settings/components/SettingsSection'));
 const OptimizationSection = lazy(() => import('../../features/settings/components/OptimizationSection'));
@@ -86,7 +87,7 @@ const MainLayout = ({ session, onLogout }) => {
   const isManager = session?.role === 'admin' || session?.role === 'manager';
   const isAdmin = session?.role === 'admin';
   const MANAGER_ONLY_SECTIONS = new Set(['logs', 'dns', 'optimization', 'audit']);
-  const ADMIN_ONLY_SECTIONS = new Set(['users', 'settings']);
+  const ADMIN_ONLY_SECTIONS = new Set(['users', 'settings', 'servers']);
   const [activeSection, setActiveSection] = useState(
     localStorage.getItem('active-tab') || 'dashboard'
   );
@@ -366,6 +367,8 @@ const MainLayout = ({ session, onLogout }) => {
             }}
           />
         );
+      case 'servers':
+        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><ServersSection /></Suspense>;
       case 'logs':
         return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><LogsSection /></Suspense>;
       case 'settings':

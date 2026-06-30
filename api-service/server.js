@@ -48,6 +48,8 @@ const userRoutes = require('./src/routes/users');
 
 const sentinelRoutes = require('./src/routes/sentinel');
 const dnsRoutes = require('./src/routes/dns');
+const serverRoutes = require('./src/routes/servers');
+const provisionRoutes = require('./src/routes/provision');
 const { initializeDatabase, initializeDNS } = require('./src/services/init');
 
 const app = express();
@@ -131,6 +133,10 @@ app.get('/api/ready', async (req, res) => {
   }
 });
 
+// --- Provisioning one-liner (PUBLIC : le token de provisioning EST l'auth) ---
+// Monté HORS /api donc sans le middleware d'auth JWT ni le rate-limit /api.
+app.use('/provision', provisionRoutes);
+
 // --- Auth Routes (contains both public /login and protected /check) ---
 app.use('/api/auth', authRoutes);
 
@@ -140,6 +146,7 @@ app.use('/api/system', auth, systemRoutes);
 app.use('/api/users', auth, requireAdmin, userRoutes);
 app.use('/api/sentinel', auth, sentinelRoutes);
 app.use('/api/dns', auth, dnsRoutes); // individual dns routes carry their own requireAdmin/requireManager
+app.use('/api/servers', auth, serverRoutes); // registre des VPS revendeurs (provisioning one-liner)
 
 // ─── Debug Route (admin only) ─────────────────────────────────────────────────
 // GET /api/debug → rapport de santé complet
@@ -306,7 +313,9 @@ app.use((err, req, res, _next) => {
 // --- Startup ---
 // --- Startup Validation ---
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-  console.error('FATAL: JWT_SECRET must be set and at least 32 characters (256-bit minimum for HS256).');
+  console.error(
+    'FATAL: JWT_SECRET must be set and at least 32 characters (256-bit minimum for HS256).'
+  );
   process.exit(1);
 }
 

@@ -1,184 +1,72 @@
-const childProcess = require('child_process');
+// services/shell.js — Façade rétrocompatible d'exécution.
+//
+// Le cœur (runCommand, SAFE_ARG, stripAnsi, SUDO, check binaire) vit désormais
+// dans shell-core.js. Ce module expose runSystemCommand + les helpers fs en
+// leur ajoutant un 4ᵉ argument optionnel { executor } (défaut = LocalExecutor),
+// ce qui permet de router l'exécution en LOCAL (sudo, historique) ou à DISTANCE
+// (SSH) sans changer aucun appelant existant.
+
 const fs = require('fs').promises;
 const { getScriptPath } = require('./config');
 const log = require('./logger');
 
-// 🛡️ OBSIDIAN-HARDENING: Use direct module references for reliable mocking in tests.
-// Promisify the module method directly so spies on the module are honored.
-const execFilePromise = (cmd, args, opts) => {
-  return new Promise((resolve, reject) => {
-    childProcess.execFile(cmd, args, opts, (error, stdout, stderr) => {
-      if (error) {
-        error.stdout = stdout;
-        error.stderr = stderr;
-        reject(error);
-      } else {
-        resolve({ stdout, stderr });
-      }
-    });
-  });
-};
+// Cœur partagé : runCommand + ré-exports rétrocompatibles.
+const { runCommand, SUDO, SUDO_ARGS } = require('./shell-core');
 
-const isRoot = !process.getuid || process.getuid() === 0;
-const SUDO = isRoot ? null : process.env.SUDO_BIN || 'sudo';
-const SUDO_ARGS = isRoot ? [] : ['-E', '-n'];
-
-/* eslint-disable no-control-regex */
-const ANSI_RE = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
-/* eslint-enable no-control-regex */
-const stripAnsi = (str) => (typeof str === 'string' ? str.replace(ANSI_RE, '') : str);
+// Exécuteur local singleton (sudo). Importé paresseusement n'est pas nécessaire :
+// local.js ne dépend que de shell-core, pas de cycle.
+const localExecutor = require('./executors/local');
 
 /**
- * Standardized Shell Command Wrapper
- * HARDENING: Binary existence check and structured logging
+ * Exécute un script/binaire via l'exécuteur résolu.
+ * Signature historique conservée : runSystemCommand(file, args, stdinData).
+ * 4ᵉ arg optionnel { executor } pour cibler un serveur distant.
+ * Sans opts.executor → comportement LOCAL strictement identique à avant.
  */
-const runCommand = async (cmd, args = [], stdinData = null) => {
-  const env = { ...process.env, LC_ALL: 'C', LANG: 'C' };
-
-  // 🛡️ SRE-HARDENING: Strip ANSI colors from arguments to avoid SAFE_ARG violations
-  const sanitizedArgs = args.map((arg) => stripAnsi(arg));
-  const commandStr = `${cmd} ${sanitizedArgs.join(' ')}`;
-
-  // Safe because spawn() never invokes a shell (args go directly to execvp).
-  // \p{So} covers emoji (Symbol, Other) — safe since no shell metachar lives in that Unicode category.
-  // * and ? are shell glob chars — they have no legitimate place in execFile args
-  const SAFE_ARG = /^[\p{L}\p{N}\p{So}\s\-_.,:@+/=~!'()%&#[\]]*$/u;
-  for (const arg of sanitizedArgs) {
-    if (arg && !SAFE_ARG.test(arg)) {
-      if (log && typeof log.error === 'function') {
-        log.error('shell', `Unsafe character detected in command argument: "${arg}"`, {
-          command: cmd,
-        });
-      }
-      return { success: false, error: 'Unsafe command argument detected', code: 'EPERM_SAFE_EXEC' };
-    }
-  }
-
-  // Safety check: binary existence and executability (only for absolute paths)
-  if ((cmd.startsWith('/') || cmd.startsWith('./')) && process.env.NODE_ENV !== 'test') {
-    try {
-      const fsConst = require('fs').constants;
-      await fs.access(cmd, fsConst.F_OK | fsConst.X_OK);
-    } catch (e) {
-      if (log && typeof log.error === 'function') {
-        log.error('shell', `Command binary not found or not executable: ${cmd}`);
-      }
-      return { success: false, error: `Binary not accessible: ${cmd}`, code: 'EACCES_OR_ENOENT' };
-    }
-  }
-
-  // 🧪 TEST BYPASS (Moved after hardening/binary checks to maximize coverage)
-  if (global.TEST_MOCK_SHELL) {
-    return { success: true, stdout: 'MOCKED_OUTPUT', stderr: '', code: 0 };
-  }
-
-  try {
-    if (stdinData !== null) {
-      return await new Promise((resolve) => {
-        // Note: spawn() ignores the 'timeout' option — implement manually
-        const proc = childProcess.spawn(cmd, sanitizedArgs, { env });
-        let stdout = '', stderr = '', settled = false;
-        const settle = (result) => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(killTimer);
-          resolve(result);
-        };
-        const killTimer = setTimeout(() => {
-          if (!settled) {
-            proc.kill('SIGTERM');
-            if (log && typeof log.error === 'function') {
-              log.error('shell', `"${commandStr}" killed after 90s timeout`);
-            }
-            settle({ success: false, error: 'Command timed out', code: 'ETIMEDOUT' });
-          }
-        }, 90000);
-        proc.stdout.on('data', (d) => { stdout += d.toString(); });
-        proc.stderr.on('data', (d) => { stderr += d.toString(); });
-        proc.on('close', (code) => {
-          if (code === 0) {
-            if (stderr && log && typeof log.warn === 'function')
-              log.warn('shell', `"${commandStr}" produced stderr: ${stderr.trim()}`);
-            settle({ success: true, stdout: stdout.trim(), stderr: stderr.trim() });
-          } else {
-            if (log && typeof log.error === 'function') {
-              log.error('shell', `"${commandStr}" exited with code ${code}`, { stderr: stderr.trim() });
-            }
-            settle({ success: false, error: stderr.trim() || `Exit code ${code}`, code });
-          }
-        });
-        proc.on('error', (err) => {
-          if (log && typeof log.error === 'function') {
-            log.error('shell', `"${commandStr}" failed to spawn: ${err.message}`);
-          }
-          settle({ success: false, error: err.message, code: err.code });
-        });
-        if (proc.stdin) {
-          proc.stdin.write(stdinData);
-          proc.stdin.end();
-        }
-      });
-    }
-
-    const { stdout, stderr } = await execFilePromise(cmd, sanitizedArgs, {
-      timeout: 90000,
-      maxBuffer: 10 * 1024 * 1024,
-      env,
-    });
-    if (stderr) log.warn('shell', `"${commandStr}" produced stderr: ${stderr.trim()}`);
-    return { success: true, stdout: stdout.trim(), stderr: stderr.trim() };
-  } catch (error) {
-    const errorMessage = error.stderr
-      ? error.stderr.trim()
-      : error.message || 'Unknown shell error';
-    log.error('shell', `"${commandStr}" failed`, { error: errorMessage, code: error.code });
-    return { success: false, error: errorMessage, code: error.code, stdout: error.stdout };
-  }
+const runSystemCommand = async (file, args = [], stdinData = null, opts = {}) => {
+  const executor = opts.executor || localExecutor;
+  return executor.run(file, args, stdinData);
 };
 
 /**
- * Executes a command with sudo if necessary
+ * Write a file with sudo if necessary (via tee). opts.executor propagé.
  */
-const runSystemCommand = async (file, args = [], stdinData = null) => {
-  if (SUDO) {
-    return runCommand(SUDO, [...SUDO_ARGS, file, ...args], stdinData);
-  }
-  return runCommand(file, args, stdinData);
-};
-
-/**
- * Write a file with sudo if necessary (via tee)
- */
-const writeFileAsRoot = async (filePath, content) => {
+const writeFileAsRoot = async (filePath, content, opts = {}) => {
   const { success, error, code } = await runSystemCommand(
     getScriptPath('wg-file-proxy.sh'),
     ['write', filePath],
-    content
+    content,
+    opts
   );
   return { success, error, code };
 };
 
-const appendFileAsRoot = async (filePath, content) => {
+const appendFileAsRoot = async (filePath, content, opts = {}) => {
   const { success, error, code } = await runSystemCommand(
     getScriptPath('wg-file-proxy.sh'),
     ['append', filePath],
-    content
+    content,
+    opts
   );
   return { success, error, code };
 };
 
-const unlinkAsRoot = async (filePath) => {
-  const { success, error, code } = await runSystemCommand(getScriptPath('wg-file-proxy.sh'), [
-    'delete',
-    filePath,
-  ]);
+const unlinkAsRoot = async (filePath, opts = {}) => {
+  const { success, error, code } = await runSystemCommand(
+    getScriptPath('wg-file-proxy.sh'),
+    ['delete', filePath],
+    null,
+    opts
+  );
   return { success, error, code };
 };
 
-const readdirAsRoot = async (dirPath) => {
+const readdirAsRoot = async (dirPath, opts = {}) => {
   const { success, stdout, error, code } = await runSystemCommand(
     getScriptPath('wg-file-proxy.sh'),
-    ['list', dirPath]
+    ['list', dirPath],
+    null,
+    opts
   );
   return { success, stdout, error, code };
 };

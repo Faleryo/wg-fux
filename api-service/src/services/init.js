@@ -86,6 +86,32 @@ async function initializeDatabase() {
  );
  `);
 
+    // Registre des VPS revendeurs (exécution SSH distante). Voir specs reseller.
+    sqlite.exec(`
+ CREATE TABLE IF NOT EXISTS servers (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ ownerId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ label TEXT NOT NULL,
+ host TEXT NOT NULL,
+ port INTEGER DEFAULT 22,
+ sshUsername TEXT NOT NULL DEFAULT 'wg-fux',
+ encPrivateKey TEXT,
+ encKeyIv TEXT,
+ encKeyAuth TEXT,
+ publicKey TEXT,
+ hostKey TEXT,
+ pendingHostKey TEXT,
+ status TEXT DEFAULT 'pending',
+ consecutiveFailures INTEGER DEFAULT 0,
+ lastChecked INTEGER,
+ lastError TEXT,
+ provisionTokenHash TEXT,
+ provisionTokenExpiry INTEGER,
+ scriptsVersion TEXT,
+ createdAt INTEGER DEFAULT (strftime('%s', 'now'))
+ );
+ `);
+
     // ── Versioned migration system ─────────────────────────────────────────
     // Each migration runs exactly once, tracked in schema_version.
     // New columns / indexes go here — never touch the CREATE TABLE blocks above.
@@ -97,16 +123,38 @@ async function initializeDatabase() {
     `);
 
     const appliedVersions = new Set(
-      sqlite.prepare('SELECT version FROM schema_version').all().map((r) => r.version)
+      sqlite
+        .prepare('SELECT version FROM schema_version')
+        .all()
+        .map((r) => r.version)
     );
 
     const migrations = [
       // Phase 4 (legacy — already applied inline above, registered here for completeness)
-      { version: 4, sql: "ALTER TABLE containers ADD COLUMN interface TEXT DEFAULT 'wg0'", label: 'containers.interface' },
+      {
+        version: 4,
+        sql: "ALTER TABLE containers ADD COLUMN interface TEXT DEFAULT 'wg0'",
+        label: 'containers.interface',
+      },
       // Phase 5
-      { version: 5, sql: "ALTER TABLE containers ADD COLUMN owner TEXT DEFAULT 'admin'", label: 'containers.owner' },
+      {
+        version: 5,
+        sql: "ALTER TABLE containers ADD COLUMN owner TEXT DEFAULT 'admin'",
+        label: 'containers.owner',
+      },
       // Phase 6
-      { version: 6, sql: 'ALTER TABLE users ADD COLUMN enabled INTEGER DEFAULT 1', label: 'users.enabled' },
+      {
+        version: 6,
+        sql: 'ALTER TABLE users ADD COLUMN enabled INTEGER DEFAULT 1',
+        label: 'users.enabled',
+      },
+      // Phase 7 — reseller multi-tenant : un container peut vivre sur un VPS distant.
+      // NULL = serveur local admin (rétrocompatible). Table servers créée ci-dessus.
+      {
+        version: 7,
+        sql: 'ALTER TABLE containers ADD COLUMN serverId INTEGER REFERENCES servers(id) ON DELETE SET NULL',
+        label: 'containers.serverId',
+      },
     ];
 
     for (const m of migrations) {
@@ -118,7 +166,9 @@ async function initializeDatabase() {
       } catch (e) {
         if (e.message.includes('duplicate column name')) {
           // Column already exists from old inline path — mark as applied
-          sqlite.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(m.version);
+          sqlite
+            .prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)')
+            .run(m.version);
         } else {
           logger.error('db', `❌ Migration v${m.version} FAILED: ${e.message}`);
           throw e;
@@ -141,6 +191,8 @@ async function initializeDatabase() {
  CREATE INDEX IF NOT EXISTS audit_timestamp_idx ON auditLogs(timestamp);
  CREATE INDEX IF NOT EXISTS audit_actor_idx ON auditLogs(actor);
  CREATE INDEX IF NOT EXISTS audit_action_idx ON auditLogs(action);
+ CREATE INDEX IF NOT EXISTS server_owner_idx ON servers(ownerId);
+ CREATE UNIQUE INDEX IF NOT EXISTS server_host_idx ON servers(ownerId, host, port);
  `);
 
     logger.info('db', '✅ Schema synchronization complete.');
@@ -220,7 +272,16 @@ async function initializeDNS() {
   const username = process.env.AGH_USER || 'admin';
   const password = process.env.AGH_PASSWORD;
 
-  const WEAK_PASSWORDS = new Set(['password', 'change_me', 'admin', 'admin123', '12345678', 'changeme', 'wireguard', 'wgpass']);
+  const WEAK_PASSWORDS = new Set([
+    'password',
+    'change_me',
+    'admin',
+    'admin123',
+    '12345678',
+    'changeme',
+    'wireguard',
+    'wgpass',
+  ]);
   if (!password || WEAK_PASSWORDS.has(password.toLowerCase())) {
     if (process.env.NODE_ENV === 'production') {
       // BUG-FIX: AdGuard is an optional feature. A missing/insecure password should

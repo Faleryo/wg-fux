@@ -300,11 +300,14 @@ configure_from_env() {
 write_env_files() {
     log_info "Writing configuration files…"
 
-    local salt jwt sentinel backup_pass admin_hash
+    local salt jwt sentinel backup_pass admin_hash master_key
     salt="${ADMIN_PASSWORD_SALT:-$(openssl rand -hex 16)}"
     jwt="${JWT_SECRET:-$(random_secret 32)}"
     sentinel="${SENTINEL_TOKEN:-$(random_secret 24)}"
     backup_pass="${BACKUP_PASSPHRASE:-$(random_secret 32)}"
+    # Clé maître AES-256-GCM pour chiffrer les clés privées SSH des VPS revendeurs
+    # (services/crypto.js). 32 bytes = 64 hex. Jamais en base, jamais commitée.
+    master_key="${WG_FUX_MASTER_KEY:-$(openssl rand -hex 32)}"
 
     admin_hash=$(generate_admin_hash "$ADMIN_PASS" "$salt")
     [ -n "$admin_hash" ] || { log_error "Hash generation failed (no node/python3?)"; exit 1; }
@@ -333,6 +336,11 @@ DOMAIN=$DOMAIN
 BACKUP_PASSPHRASE=$backup_pass
 TELEGRAM_BOT_TOKEN=$TG_TOKEN
 TELEGRAM_CHAT_ID=$TG_CHATID
+# --- Mode revendeur : provisioning des VPS distants (one-liner) ---
+WG_FUX_MASTER_KEY=$master_key
+PLATFORM_BASE_URL=${PLATFORM_BASE_URL:-${DOMAIN:+https://$DOMAIN}}
+PLATFORM_PUBLIC_IP=${PLATFORM_PUBLIC_IP:-$SERVER_IP}
+TLS_PINNED_PUBKEY=${TLS_PINNED_PUBKEY:-}
 EOF
     chmod 600 "$API_ENV"
 

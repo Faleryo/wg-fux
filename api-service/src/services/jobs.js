@@ -4,6 +4,7 @@ const schedule = require('node-schedule');
 const { db, schema, sqlite } = require('../../db');
 const { eq, and, lt, lte, gte } = require('drizzle-orm');
 const { runCommand, runSystemCommand, appendFileAsRoot } = require('./shell');
+const { getExecutorForServer } = require('./executors');
 const { getWireGuardStats } = require('./system');
 const log = require('./logger');
 const { getScriptPath } = require('./config');
@@ -470,11 +471,59 @@ const checkClientExpirations = async () => {
   }
 };
 
+// Heartbeat des VPS revendeurs (spec socle §5.3). Exécute une commande triviale
+// allowlistée via l'exécuteur SSH et tient à jour status/consecutiveFailures.
+// On ignore pending/provisioning (transitoires) et offline (terminal — réactivé
+// manuellement ou au prochain provisioning).
+let isHeartbeating = false;
+const serverHeartbeat = async () => {
+  if (isHeartbeating) return;
+  isHeartbeating = true;
+  try {
+    const servers = await db.select().from(schema.servers);
+    for (const server of servers) {
+      if (['pending', 'provisioning', 'offline'].includes(server.status)) continue;
+      let online = false;
+      let errMsg = null;
+      try {
+        const executor = await getExecutorForServer(server.id);
+        const result = await executor.run('wg-health.sh', []);
+        online = !!(result && result.success);
+        if (!online) errMsg = (result && (result.error || result.stderr)) || 'health check failed';
+      } catch (e) {
+        errMsg = e.message;
+      }
+      if (online) {
+        await db
+          .update(schema.servers)
+          .set({ status: 'online', consecutiveFailures: 0, lastChecked: new Date(), lastError: null })
+          .where(eq(schema.servers.id, server.id));
+      } else {
+        const failures = (server.consecutiveFailures || 0) + 1;
+        await db
+          .update(schema.servers)
+          .set({
+            status: failures >= 3 ? 'offline' : 'error',
+            consecutiveFailures: failures,
+            lastChecked: new Date(),
+            lastError: errMsg,
+          })
+          .where(eq(schema.servers.id, server.id));
+      }
+    }
+  } catch (e) {
+    log.error('jobs', 'Server heartbeat error', { err: e.message });
+  } finally {
+    isHeartbeating = false;
+  }
+};
+
 const startJobs = () => {
   if (process.env.VITEST === 'true' || process.env.NODE_ENV === 'test') return;
   loadSchedules();
   setInterval(updateUsage, 60000);
   setInterval(logTrafficHistory, 60000);
+  setInterval(serverHeartbeat, 60000); // Santé des VPS revendeurs distants
   setInterval(interfaceWatchdog, 30000);
   setInterval(adguardWatchdog, 60000);
   setInterval(rotateEnforcerLogs, 3600000);
