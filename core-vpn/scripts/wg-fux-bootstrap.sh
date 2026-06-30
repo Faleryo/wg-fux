@@ -1,183 +1,89 @@
 #!/bin/bash
-# wg-fux-bootstrap.sh — Provisioning one-liner (côté VPS revendeur)
+# wg-fux-bootstrap.sh — Installe la plateforme complète wg-fux sur un VPS revendeur.
 #
 # Ce script est SERVI ET PERSONNALISÉ par l'API à GET /provision/<token>/script.
 # Les jetons {{...}} sont substitués côté serveur AVANT de calculer le sha256
-# affiché dans la commande one-liner. Le client le télécharge, vérifie le hash,
-# puis l'exécute en root sur SON VPS.
+# affiché dans le one-liner. Le VPS télécharge, vérifie le hash, puis exécute.
 #
-# Propriétés de sécurité :
-#   - Idempotent : ré-exécuté = mise à jour (jamais d'état à moitié configuré).
-#   - La clé SSH installée est CANTONNÉE (forced command + restrict + from).
-#   - sudoers sans wildcard : une seule entrée, vers wg-fux-exec.sh.
-#   - Tarball des scripts vérifié par sha256 (supply chain).
-#   - La confiance n'est PAS déclarée ici : la plateforme se reconnecte en SSH
-#     pour la prouver. Ce script ne fait que se préparer + signaler "ready".
-#
-# Le token de provisioning est lu depuis l'environnement (WG_T), JAMAIS depuis
-# argv (pas de fuite via ps aux).
+# Flow :
+#   1. Installe git + prérequis Docker
+#   2. Clone wg-fux depuis le repo officiel
+#   3. Lance setup.sh --install (interactif : port, domaine, admin, AdGuard…)
+#   4. Callback plateforme → marque le serveur online
 
 set -euo pipefail
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Valeurs injectées par l'API (templating au moment de servir le script).
-# ─────────────────────────────────────────────────────────────────────────────
-WG_FUX_PUBKEY='{{WG_FUX_PUBKEY}}'           # clé publique ed25519 générée par la plateforme
-PLATFORM_BASE='{{PLATFORM_BASE}}'           # https://vpn-labs.ink
-PLATFORM_IP='{{PLATFORM_IP}}'               # IP source autorisée dans authorized_keys (from=)
-SCRIPTS_TARBALL_URL='{{SCRIPTS_TARBALL_URL}}'
-SCRIPTS_SHA256='{{SCRIPTS_SHA256}}'         # sha256 attendu du tarball des wg-*.sh
-TLS_PINNED_PUBKEY='{{TLS_PINNED_PUBKEY}}'   # sha256//... de la clé publique TLS (cert pinning)
-SCRIPTS_VERSION='{{SCRIPTS_VERSION}}'
-VPS_PUBLIC_IP='{{VPS_PUBLIC_IP}}'           # IP publique du VPS (injectée par l'API)
-WG_PORT='{{WG_PORT}}'                       # port WireGuard (défaut 51820)
-VPN_SUBNET='{{VPN_SUBNET}}'                 # sous-réseau VPN (défaut 10.0.0.0/24)
-WG_INTERFACE='{{WG_INTERFACE}}'             # interface WireGuard (défaut wg0)
-
-WG_FUX_USER='wg-fux'
-WG_FUX_HOME="/home/${WG_FUX_USER}"
-BIN_DIR='/usr/local/bin'
+PLATFORM_BASE='{{PLATFORM_BASE}}'
+REPO_URL='{{REPO_URL}}'
+INSTALL_DIR='/opt/wg-fux'
 LOG_FILE='/var/log/wg-fux-provision.log'
 TOKEN="${WG_T:-}"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Logging local (debug post-mortem si le callback n'arrive jamais)
-# ─────────────────────────────────────────────────────────────────────────────
-log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "$LOG_FILE" >&2; }
+log()  { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "$LOG_FILE" >&2; }
 fail() { log "ERREUR: $*"; exit 1; }
 
-curl_pinned() {
-  # curl durci : HTTPS strict, TLS 1.3, clé publique TLS épinglée.
-  curl --proto '=https' --tlsv1.3 \
-       ${TLS_PINNED_PUBKEY:+--pinnedpubkey "$TLS_PINNED_PUBKEY"} \
-       --fail --silent --show-error --location --max-time 30 "$@"
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 0. Pré-conditions
-# ─────────────────────────────────────────────────────────────────────────────
 [ "$(id -u)" -eq 0 ] || fail "Ce script doit être exécuté en root."
 [ -n "$TOKEN" ] || fail "Token de provisioning manquant (variable WG_T)."
-touch "$LOG_FILE" 2>/dev/null || true
-chmod 600 "$LOG_FILE" 2>/dev/null || true
-log "=== Bootstrap wg-fux (version scripts ${SCRIPTS_VERSION}) ==="
 
-# OS supporté : Debian/Ubuntu (apt). Échec propre sinon — pas d'état partiel.
-if ! command -v apt-get >/dev/null 2>&1; then
-  fail "OS non supporté (apt-get introuvable). Debian/Ubuntu requis."
-fi
+touch "$LOG_FILE" 2>/dev/null && chmod 600 "$LOG_FILE" 2>/dev/null || true
+log "=== Bootstrap wg-fux ==="
 
+command -v apt-get >/dev/null 2>&1 || fail "OS non supporté (apt-get introuvable). Debian/Ubuntu requis."
 export DEBIAN_FRONTEND=noninteractive
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 1. Dépendances (idempotent : apt n'installe que le manquant)
+# 1. Dépendances minimales (git, curl, ca-certificates)
 # ─────────────────────────────────────────────────────────────────────────────
-log "Installation des dépendances (wireguard, jq, curl, iproute2)…"
+log "Installation des prérequis (git, curl, ca-certificates)…"
 apt-get update -qq
-apt-get install -y -qq wireguard wireguard-tools jq curl iproute2 sudo coreutils \
-  || fail "Échec d'installation des paquets."
+apt-get install -y -qq git curl ca-certificates
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2. Utilisateur système dédié 'wg-fux' (no password, idempotent)
+# 2. Téléchargement de wg-fux (idempotent)
 # ─────────────────────────────────────────────────────────────────────────────
-if ! id "$WG_FUX_USER" >/dev/null 2>&1; then
-  log "Création de l'utilisateur système ${WG_FUX_USER}…"
-  useradd --system --create-home --home-dir "$WG_FUX_HOME" \
-          --shell /bin/bash "$WG_FUX_USER"
+if [ -d "$INSTALL_DIR/.git" ]; then
+  log "wg-fux déjà présent dans $INSTALL_DIR — mise à jour vers la dernière version…"
+  BRANCH=$(git -C "$INSTALL_DIR" symbolic-ref --short HEAD 2>/dev/null || echo 'main')
+  git -C "$INSTALL_DIR" fetch --all --prune --quiet
+  git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH" --quiet
+else
+  log "Clonage de wg-fux dans $INSTALL_DIR…"
+  git clone --depth 1 --quiet "$REPO_URL" "$INSTALL_DIR"
 fi
-# Un VRAI shell est requis : sshd exécute le forced command via le shell de login
-# ($SHELL -c "…"). /usr/sbin/nologin refuserait TOUTE commande ("This account is
-# currently not available"). La clé reste cantonnée par command="…"+restrict dans
-# authorized_keys → jamais de shell interactif possible. usermod inconditionnel
-# pour réparer un user pré-existant (idempotence).
-usermod --shell /bin/bash "$WG_FUX_USER" >/dev/null 2>&1 || true
-# Jamais de mot de passe : login par clé uniquement.
-passwd -l "$WG_FUX_USER" >/dev/null 2>&1 || true
+log "Code wg-fux prêt dans $INSTALL_DIR."
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3. Scripts WireGuard + dispatcher (tarball vérifié par sha256)
+# 3. Installation complète (interactif)
 # ─────────────────────────────────────────────────────────────────────────────
-TMP_DIR="$(mktemp -d /tmp/wg-fux-prov.XXXXXX)"
-trap 'rm -rf "$TMP_DIR"' EXIT
-TARBALL="${TMP_DIR}/scripts.tgz"
+echo
+echo "════════════════════════════════════════════════════════════════"
+echo "  wg-fux — Installation de votre serveur VPN"
+echo "  Répondez aux questions ci-dessous pour configurer votre instance."
+echo "  Vous pourrez modifier ces paramètres plus tard via setup.sh."
+echo "════════════════════════════════════════════════════════════════"
+echo
 
-log "Téléchargement des scripts…"
-curl_pinned -o "$TARBALL" "$SCRIPTS_TARBALL_URL" || fail "Téléchargement du tarball échoué."
-
-log "Vérification d'intégrité (sha256)…"
-echo "${SCRIPTS_SHA256}  ${TARBALL}" | sha256sum -c - \
-  || fail "Intégrité du tarball INVALIDE — abandon (supply chain ?)."
-
-# Extraction atomique vers /usr/local/bin
-tar -xzf "$TARBALL" -C "$TMP_DIR/extract" --one-top-level="extract" 2>/dev/null \
-  || { mkdir -p "$TMP_DIR/extract" && tar -xzf "$TARBALL" -C "$TMP_DIR/extract"; }
-install -m 0755 -o root -g root "$TMP_DIR"/extract/wg-*.sh "$BIN_DIR"/ 2>/dev/null || true
-# Dispatcher + exec entrypoint sont inclus dans le tarball.
-install -m 0755 -o root -g root "$TMP_DIR/extract/wg-fux-dispatch.sh" "$BIN_DIR/wg-fux-dispatch.sh"
-install -m 0755 -o root -g root "$TMP_DIR/extract/wg-fux-exec.sh" "$BIN_DIR/wg-fux-exec.sh"
-echo "$SCRIPTS_VERSION" > "$BIN_DIR/.wg-fux-scripts-version"
-log "Scripts installés dans ${BIN_DIR}."
+cd "$INSTALL_DIR"
+bash setup.sh --install || fail "L'installation wg-fux a échoué (voir $LOG_FILE)."
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4. Clé SSH CANTONNÉE (forced command + restrict + from)
+# 4. Callback — notifie la plateforme que ce serveur est online
 # ─────────────────────────────────────────────────────────────────────────────
-SSH_DIR="${WG_FUX_HOME}/.ssh"
-AUTH_KEYS="${SSH_DIR}/authorized_keys"
-install -d -m 0700 -o "$WG_FUX_USER" -g "$WG_FUX_USER" "$SSH_DIR"
-
-# restrict        : pas de PTY/port-forward/agent/X11/tunnel — clé non pivotable.
-# from="IP"       : seule l'IP de la plateforme peut utiliser la clé.
-# command="..."   : la clé ne peut RIEN faire d'autre que lancer le dispatcher.
-AUTH_LINE="restrict,from=\"${PLATFORM_IP}\",command=\"${BIN_DIR}/wg-fux-dispatch.sh\" ${WG_FUX_PUBKEY}"
-# Idempotent : on remplace toute ligne wg-fux préexistante.
-{
-  [ -f "$AUTH_KEYS" ] && grep -vF "wg-fux-dispatch.sh" "$AUTH_KEYS" || true
-  echo "$AUTH_LINE"
-} > "${AUTH_KEYS}.new"
-install -m 0600 -o "$WG_FUX_USER" -g "$WG_FUX_USER" "${AUTH_KEYS}.new" "$AUTH_KEYS"
-rm -f "${AUTH_KEYS}.new"
-log "Clé publique installée (cantonnée : forced command + from=${PLATFORM_IP})."
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 5. sudoers ultra-restreint : UNE seule entrée, zéro wildcard
-# ─────────────────────────────────────────────────────────────────────────────
-SUDOERS_FILE='/etc/sudoers.d/wg-fux'
-cat > "${SUDOERS_FILE}.new" <<EOF
-# Généré par wg-fux-bootstrap.sh — NE PAS éditer à la main.
-# wg-fux ne peut élever ses privilèges QUE via l'entrypoint validateur.
-${WG_FUX_USER} ALL=(root) NOPASSWD: ${BIN_DIR}/wg-fux-exec.sh
-EOF
-# Validation syntaxique AVANT activation (un sudoers cassé = lock-out).
-visudo -cf "${SUDOERS_FILE}.new" >/dev/null || fail "sudoers généré invalide — abandon."
-install -m 0440 -o root -g root "${SUDOERS_FILE}.new" "$SUDOERS_FILE"
-rm -f "${SUDOERS_FILE}.new"
-log "sudoers restreint posé (1 entrée, sans wildcard)."
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 5.5 Initialisation WireGuard (clés serveur, manager.conf, wg0.conf, service)
-# ─────────────────────────────────────────────────────────────────────────────
-log "Initialisation WireGuard (interface, clés, manager.conf)…"
-"$BIN_DIR/wg-init-server.sh" "$VPS_PUBLIC_IP" "$WG_PORT" "$VPN_SUBNET" "$WG_INTERFACE" \
-  || fail "Initialisation WireGuard échouée."
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 6. Callback "ready" — déclenche la vérification SSH côté plateforme.
-#    On envoie notre host key ; la plateforme la CROISERA avec celle qu'elle
-#    verra en se reconnectant. Le callback ne suffit pas à passer 'online'.
-# ─────────────────────────────────────────────────────────────────────────────
-HOST_KEY="$(cat /etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null | awk '{print $1" "$2}')"
-[ -n "$HOST_KEY" ] || fail "Host key ed25519 introuvable sur ce VPS."
-
 log "Notification de la plateforme (callback ready)…"
-PAYLOAD="$(jq -nc --arg hk "$HOST_KEY" --arg hn "$(hostname)" --arg v "$SCRIPTS_VERSION" \
-  '{hostKey:$hk, hostname:$hn, scriptsVersion:$v}')"
 
-curl_pinned -X POST \
+SERVER_IP=$(curl -fsSL --max-time 5 https://ifconfig.me/ip 2>/dev/null \
+  || curl -fsSL --max-time 5 https://api4.ipify.org 2>/dev/null \
+  || hostname -I | awk '{print $1}' \
+  || echo "")
+
+curl --proto '=https' --tlsv1.2 -fsSL -X POST \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer ${TOKEN}" \
-  --data "$PAYLOAD" \
+  --data "{\"host\":\"${SERVER_IP}\"}" \
   "${PLATFORM_BASE}/provision/${TOKEN}/ready" \
-  || fail "Callback échoué — vérifiez l'accès internet sortant du VPS."
+  || log "Callback échoué — vérifiez la connectivité vers ${PLATFORM_BASE}."
 
-log "=== Bootstrap terminé. En attente de la vérification de la plateforme. ==="
-echo "✅ VPS préparé. Retournez sur wg-fux : le serveur va passer 'online'."
+log "=== Bootstrap terminé ==="
+echo
+echo "✅ wg-fux installé. Accédez à votre panel : http://${SERVER_IP}/"
+echo "   (ou https://VOTRE-DOMAINE/ si vous avez configuré un domaine)"

@@ -68,12 +68,12 @@ describe('renderBootstrap', () => {
   const provision = require('../src/routes/provision');
 
   it('substitue TOUS les jetons {{...}} (aucun résiduel)', async () => {
-    const server = { publicKey: 'ssh-ed25519 AAAATESTKEY' };
+    const server = { host: '198.51.100.10' };
     const { script } = await provision.renderBootstrap(server, {});
     expect(script).not.toMatch(/{{[A-Z_0-9]+}}/); // aucun jeton restant
-    expect(script).toContain('ssh-ed25519 AAAATESTKEY');
-    expect(script).toContain('203.0.113.7'); // PLATFORM_IP injectée
-    expect(script).toContain('https://vpn-labs.test/provision/scripts.tgz');
+    expect(script).toContain('https://vpn-labs.test'); // PLATFORM_BASE injectée
+    expect(script).toContain('github.com/Faleryo/wg-fux'); // REPO_URL injectée
+    expect(script).toContain('setup.sh --install'); // lance l'installateur interactif
   });
 
   it('le sha256 du script rendu est déterministe', async () => {

@@ -1,11 +1,12 @@
 // routes/provision.js — Endpoints PUBLICS du provisioning one-liner.
 //
 // Monté sous /provision, SANS le middleware d'auth JWT : ici le TOKEN de
-// provisioning EST l'authentification. Voir spec 2026-06-30 (sections 4, 6, 7).
+// provisioning EST l'authentification.
 //
-// Principe de sécurité fondateur : le callback /ready n'est jamais cru sur parole.
-// Le statut `online` n'est atteint QUE si la plateforme rouvre elle-même un SSH
-// vers le VPS avec sa clé privée (étape de vérification, verifyServer()).
+// Flow : le one-liner télécharge le bootstrap (templaté), vérifie le sha256,
+// l'exécute. Le bootstrap clone wg-fux + lance setup.sh --install (interactif),
+// puis callback /ready. À la réception du callback, la plateforme marque le
+// serveur online directement (plus de vérification SSH — le VPS a son propre stack).
 
 const express = require('express');
 const crypto = require('crypto');
@@ -99,29 +100,18 @@ function platformBase(req) {
  * Rend le script bootstrap pour un serveur donné : substitue tous les jetons
  * {{...}}. Le sha256 du résultat est ce qui s'affiche dans le one-liner.
  *
- * @param {object} server  ligne `servers` (au moins { publicKey })
- * @param {object} opts     { token, req }  (req sert à reconstruire PLATFORM_BASE)
- * @returns {Promise<{ script: string, sha256: string, scriptsSha256: string }>}
+ * @param {object} server  ligne `servers`
+ * @param {object} opts    { req }  (req sert à reconstruire PLATFORM_BASE)
+ * @returns {Promise<{ script: string, sha256: string }>}
  */
 async function renderBootstrap(server, { req } = {}) {
   const templatePath = path.join(SCRIPT_DIR, 'wg-fux-bootstrap.sh');
   const template = fs.readFileSync(templatePath, 'utf8');
-
-  const { sha256: scriptsSha256 } = await buildScriptsTarball();
   const base = platformBase(req);
 
   const replacements = {
-    '{{WG_FUX_PUBKEY}}': server.publicKey || '',
     '{{PLATFORM_BASE}}': base,
-    '{{PLATFORM_IP}}': (process.env.PLATFORM_PUBLIC_IP || '').trim(),
-    '{{SCRIPTS_TARBALL_URL}}': `${base}/provision/scripts.tgz`,
-    '{{SCRIPTS_SHA256}}': scriptsSha256,
-    '{{TLS_PINNED_PUBKEY}}': (process.env.TLS_PINNED_PUBKEY || '').trim(),
-    '{{SCRIPTS_VERSION}}': SCRIPTS_VERSION,
-    '{{VPS_PUBLIC_IP}}': server.host || '',
-    '{{WG_PORT}}': String(server.wgPort || 51820),
-    '{{VPN_SUBNET}}': server.vpnSubnet || '10.0.0.0/24',
-    '{{WG_INTERFACE}}': server.wgInterface || 'wg0',
+    '{{REPO_URL}}': (process.env.WG_FUX_REPO_URL || 'https://github.com/Faleryo/wg-fux.git').trim(),
   };
 
   let script = template;
@@ -135,7 +125,7 @@ async function renderBootstrap(server, { req } = {}) {
   script = script.replace(/\n+$/, '');
 
   const sha256 = crypto.createHash('sha256').update(script, 'utf8').digest('hex');
-  return { script, sha256, scriptsSha256 };
+  return { script, sha256 };
 }
 
 /**
@@ -216,40 +206,39 @@ router.post('/:token/ready', express.json(), async (req, res, next) => {
       return res.status(404).json({ error: 'Token de provisioning invalide ou expiré' });
     }
 
-    const { hostKey, hostname, scriptsVersion } = req.body || {};
-    if (!hostKey || typeof hostKey !== 'string') {
-      return res.status(400).json({ error: 'hostKey requis' });
+    // Le bootstrap envoie l'IP publique du VPS détectée après setup.sh.
+    const { host } = req.body || {};
+
+    const updateData = {
+      status: 'online',
+      consecutiveFailures: 0,
+      lastChecked: new Date(),
+      lastError: null,
+      // Consomme le token (usage unique).
+      provisionTokenHash: null,
+      provisionTokenExpiry: null,
+    };
+    // Met à jour l'IP si le VPS la rapporte et qu'elle est valide.
+    if (host && typeof host === 'string' && host.trim()) {
+      updateData.host = host.trim();
     }
 
-    // Stocke la host key ANNONCÉE (candidate) ; le vrai pin viendra de la vérif.
-    await db
-      .update(schema.servers)
-      .set({
-        pendingHostKey: hostKey,
-        status: 'provisioning',
-        scriptsVersion: scriptsVersion || null,
-        lastError: null,
-      })
-      .where(eq(schema.servers.id, server.id));
+    await db.update(schema.servers).set(updateData).where(eq(schema.servers.id, server.id));
 
-    log.info('provision', 'Callback ready reçu', {
-      serverId: server.id,
-      hostname: hostname || null,
+    await auditLog({
+      actor: 'system',
+      action: 'server_online',
+      targetType: 'server',
+      targetName: server.label,
+      details: { serverId: server.id, host: (host || server.host) },
     });
 
-    // Déclenche la vérification SSH. On l'attend pour renvoyer un résultat clair.
-    const result = await verifyServer(server.id);
-
-    if (result.online) {
-      return res.json({ status: 'online', serverId: server.id });
-    }
-    // Vérif échouée : on répond 200 (le callback a bien été reçu) mais on signale
-    // l'état. Le revendeur peut réessayer tant que le token n'est pas consommé.
-    return res.status(200).json({
-      status: 'provisioning',
+    log.info('provision', 'Serveur promu online (callback reçu)', {
       serverId: server.id,
-      error: result.error || 'Vérification SSH en échec',
+      host: host || server.host,
     });
+
+    return res.json({ status: 'online', serverId: server.id });
   } catch (err) {
     next(err);
   }
