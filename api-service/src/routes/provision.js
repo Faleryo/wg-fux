@@ -125,6 +125,11 @@ async function renderBootstrap(server, { req } = {}) {
     script = script.split(token).join(value);
   }
 
+  // CRITIQUE : en bash, `S=$(curl …)` retire les newlines de FIN. Le VPS hashe
+  // donc `printf '%s' "$S"` = le script SANS newline final. On hashe ET on sert
+  // sans newline final pour que le sha256 côté VPS corresponde à WG_H.
+  script = script.replace(/\n+$/, '');
+
   const sha256 = crypto.createHash('sha256').update(script, 'utf8').digest('hex');
   return { script, sha256, scriptsSha256 };
 }
