@@ -25,20 +25,22 @@ function isLocalRole(role) {
 
 /**
  * Résout l'exécuteur pour une requête.
- *  - pas d'utilisateur OU admin/manager → LocalExecutor singleton (comportement historique)
- *  - revendeur sans req.serverId        → throw Error code=NO_SERVER_SELECTED
- *  - revendeur avec req.serverId        → exécuteur SSH du serveur (via pool)
+ *  - cible distante explicite (req.serverId, posée par resolveServer) → SSH, QUEL
+ *    que soit le rôle. Permet à l'admin de piloter un VPS distant et au revendeur
+ *    de cibler le sien (le contrôle de propriété est fait par resolveServer en amont).
+ *  - pas de serveur + admin/manager (ou pas d'user) → LocalExecutor (historique)
+ *  - pas de serveur + revendeur               → throw Error code=NO_SERVER_SELECTED
  */
 async function resolveExecutor(req) {
+  if (req && req.serverId) {
+    return getExecutorForServer(req.serverId);
+  }
   if (!req || !req.user || isLocalRole(req.user.role)) {
     return localExecutor;
   }
-  if (!req.serverId) {
-    const e = new Error('NO_SERVER_SELECTED');
-    e.code = 'NO_SERVER_SELECTED';
-    throw e;
-  }
-  return getExecutorForServer(req.serverId);
+  const e = new Error('NO_SERVER_SELECTED');
+  e.code = 'NO_SERVER_SELECTED';
+  throw e;
 }
 
 /**
