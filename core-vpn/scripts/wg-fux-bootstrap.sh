@@ -79,8 +79,14 @@ apt-get install -y -qq wireguard wireguard-tools jq curl iproute2 sudo coreutils
 if ! id "$WG_FUX_USER" >/dev/null 2>&1; then
   log "Création de l'utilisateur système ${WG_FUX_USER}…"
   useradd --system --create-home --home-dir "$WG_FUX_HOME" \
-          --shell /usr/sbin/nologin "$WG_FUX_USER"
+          --shell /bin/bash "$WG_FUX_USER"
 fi
+# Un VRAI shell est requis : sshd exécute le forced command via le shell de login
+# ($SHELL -c "…"). /usr/sbin/nologin refuserait TOUTE commande ("This account is
+# currently not available"). La clé reste cantonnée par command="…"+restrict dans
+# authorized_keys → jamais de shell interactif possible. usermod inconditionnel
+# pour réparer un user pré-existant (idempotence).
+usermod --shell /bin/bash "$WG_FUX_USER" >/dev/null 2>&1 || true
 # Jamais de mot de passe : login par clé uniquement.
 passwd -l "$WG_FUX_USER" >/dev/null 2>&1 || true
 
