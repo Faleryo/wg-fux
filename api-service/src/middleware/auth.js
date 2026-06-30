@@ -93,7 +93,7 @@ const auth = async (req, res, next) => {
       if (tokenBlacklist.has(`${decoded.username}:${decoded.iat}`)) {
         return res.status(401).json({ error: 'Token revoked' });
       }
-      req.user = { ...decoded, role: cached.role };
+      req.user = { ...decoded, role: cached.role, id: cached.id };
       return next();
     }
 
@@ -115,8 +115,8 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ error: 'Token revoked' });
     }
 
-    userCache.set(decoded.username, { role: user.role, expiry: user.expiry || null, enabled: user.enabled !== false, ts: Date.now() });
-    req.user = { ...decoded, role: user.role };
+    userCache.set(decoded.username, { id: user.id, role: user.role, expiry: user.expiry || null, enabled: user.enabled !== false, ts: Date.now() });
+    req.user = { ...decoded, role: user.role, id: user.id };
     next();
   } catch (error) {
     if (
