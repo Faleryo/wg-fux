@@ -9,7 +9,7 @@ ALLOWED_DIR="/etc/wireguard/clients/"
 ALLOWED_LOG="/var/log/"
 
 if [ "$#" -lt 2 ]; then
- echo "Usage: $0 [write|append|delete|list] [filepath] [content]"
+ echo "Usage: $0 [read|write|append|delete|list] [filepath] [content]"
  exit 1
 fi
 
@@ -90,6 +90,11 @@ case "$ACTION" in
  else
  cat >> "$TARGET"
  fi
+ ;;
+ "read")
+ # Lecture du contenu (utilisé par l'API pour récupérer .conf/public.key, en
+ # local comme à distance via SSH). cat échoue (set -e) si le fichier manque.
+ cat "$TARGET"
  ;;
  "delete")
  rm -f "$TARGET"

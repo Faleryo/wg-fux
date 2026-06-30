@@ -50,6 +50,7 @@ const sentinelRoutes = require('./src/routes/sentinel');
 const dnsRoutes = require('./src/routes/dns');
 const serverRoutes = require('./src/routes/servers');
 const provisionRoutes = require('./src/routes/provision');
+const resolveServer = require('./src/middleware/resolveServer');
 const { initializeDatabase, initializeDNS } = require('./src/services/init');
 
 const app = express();
@@ -141,7 +142,7 @@ app.use('/provision', provisionRoutes);
 app.use('/api/auth', authRoutes);
 
 // --- Protected Routes (Global Auth applied at mount point) ---
-app.use('/api/clients', auth, clientRoutes);
+app.use('/api/clients', auth, resolveServer, clientRoutes);
 app.use('/api/system', auth, systemRoutes);
 app.use('/api/users', auth, requireAdmin, userRoutes);
 app.use('/api/sentinel', auth, sentinelRoutes);

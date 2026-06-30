@@ -3,8 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, Search, ShieldAlert, X as XIcon } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useSelectedServer } from '../../context/SelectedServerContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
 import ErrorBoundary from '../ErrorBoundary';
+import ServerSelector from '../../features/servers/components/ServerSelector';
 
 // Layout
 import Sidebar from './Sidebar';
@@ -116,6 +118,9 @@ const MainLayout = ({ session, onLogout }) => {
   const [selectedClientForModal, setSelectedClientForModal] = useState(null);
   // ── Modal state for QR + create/edit (owned here; delete modal owned by useDeleteActions) ─
 
+  // Serveur cible courant (Local / VPS). Pilote l'en-tête x-server-id et le re-fetch.
+  const { selectedServerId } = useSelectedServer();
+
   // ── All data comes from the dedicated hook ────────────────────────────────
   const {
     clients,
@@ -138,7 +143,7 @@ const MainLayout = ({ session, onLogout }) => {
     activeInterface,
     setActiveInterface,
     interfaces,
-  } = useDashboardData(session, activeSection);
+  } = useDashboardData(session, activeSection, selectedServerId);
 
   // ── Persist active tab + container ───────────────────────────────────────
   useEffect(() => {
@@ -406,23 +411,26 @@ const MainLayout = ({ session, onLogout }) => {
         <Menu size={20} />
       </button>
 
-      <button
-        onClick={() => setShowSearch(true)}
-        className="fixed top-4 right-4 z-40 hidden md:flex items-center gap-2 px-4 py-2.5 glass-panel border rounded-xl transition-all text-[11px] font-black uppercase tracking-widest shadow-lg hover:scale-105"
-      >
-        <Search size={14} />
-        <span>Rechercher</span>
-        <kbd
-          className={cn(
-            'ml-2 px-1.5 py-0.5 rounded text-[9px] border transition-colors',
-            isDark
-              ? 'bg-white/5 border-white/10 text-white/40'
-              : 'bg-black/5 border-slate-200 text-slate-400'
-          )}
+      <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+        <ServerSelector userRole={session?.role || ''} />
+        <button
+          onClick={() => setShowSearch(true)}
+          className="hidden md:flex items-center gap-2 px-4 py-2.5 glass-panel border rounded-xl transition-all text-[11px] font-black uppercase tracking-widest shadow-lg hover:scale-105"
         >
-          Ctrl K
-        </kbd>
-      </button>
+          <Search size={14} />
+          <span>Rechercher</span>
+          <kbd
+            className={cn(
+              'ml-2 px-1.5 py-0.5 rounded text-[9px] border transition-colors',
+              isDark
+                ? 'bg-white/5 border-white/10 text-white/40'
+                : 'bg-black/5 border-slate-200 text-slate-400'
+            )}
+          >
+            Ctrl K
+          </kbd>
+        </button>
+      </div>
 
       <ErrorBoundary sectionName="Sidebar">
         <Sidebar

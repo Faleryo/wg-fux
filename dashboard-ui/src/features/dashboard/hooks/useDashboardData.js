@@ -11,7 +11,7 @@ const SENTINEL_INTERVAL = 15000;
 
 const HEAVY_SECTIONS = new Set(['dashboard', 'containers', 'topology']);
 
-const useDashboardData = (session, activeSection = 'dashboard') => {
+const useDashboardData = (session, activeSection = 'dashboard', selectedServerId = 'local') => {
   const { addToast } = useToast();
   const prevDataRef = useRef({ clients: [], timestamp: null });
   const suppressWsUntilRef = useRef(0);
@@ -243,6 +243,27 @@ const useDashboardData = (session, activeSection = 'dashboard') => {
       isFetchingRef.current = false;
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Changement de serveur cible (Local ↔ VPS) : on purge l'état du serveur
+  // précédent et on recharge immédiatement. Le 1er rendu est ignoré (le montage
+  // principal déclenche déjà fetchData).
+  const didMountServerRef = useRef(false);
+  useEffect(() => {
+    if (!didMountServerRef.current) {
+      didMountServerRef.current = true;
+      return;
+    }
+    prevDataRef.current = { clients: [], timestamp: null };
+    setClients([]);
+    setAllContainers([]);
+    setLoading(true);
+    try {
+      sessionStorage.removeItem(CACHE_KEY);
+    } catch {
+      /* ignore */
+    }
+    fetchData();
+  }, [selectedServerId, fetchData]);
 
   useEffect(() => {
     axiosInstance

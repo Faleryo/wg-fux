@@ -57,6 +57,21 @@ axiosInstance.interceptors.request.use((config) => {
   if (token) {
     config.headers['X-Api-Token'] = token;
   }
+
+  // Cible serveur (multi-tenant) : on injecte `x-server-id` sur les routes
+  // /clients (les seules portant le middleware resolveServer). 'local' (ou
+  // absent) → pas d'en-tête = serveur historique. Lu depuis localStorage car
+  // l'intercepteur n'est pas un composant React. Voir SelectedServerContext.
+  const url = config.url || '';
+  if (url.startsWith('/clients')) {
+    const serverId = localStorage.getItem('wg-selected-server');
+    if (serverId && serverId !== 'local') {
+      config.headers['x-server-id'] = serverId;
+    } else {
+      delete config.headers['x-server-id'];
+    }
+  }
+
   config.metadata = { startTime: new Date() };
   return config;
 });

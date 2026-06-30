@@ -27,6 +27,7 @@ import App from './App';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ToastProvider } from './context/ToastContext';
+import { SelectedServerProvider } from './context/SelectedServerContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -34,7 +35,9 @@ root.render(
     <ThemeProvider>
       <LanguageProvider>
         <ToastProvider>
-          <App />
+          <SelectedServerProvider>
+            <App />
+          </SelectedServerProvider>
         </ToastProvider>
       </LanguageProvider>
     </ThemeProvider>

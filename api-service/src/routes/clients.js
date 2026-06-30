@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fsPromises = require('fs').promises;
 const { db, schema } = require('../../db');
-const { eq, and, desc, inArray } = require('drizzle-orm');
+const { eq, and, desc, inArray, sql } = require('drizzle-orm');
 const {
   clientSchema,
   clientPatchSchema,
@@ -15,7 +15,8 @@ const {
   paginationSchema,
 } = require('../../db/validation');
 const { auth } = require('../middleware/auth');
-const { runSystemCommand, writeFileAsRoot, unlinkAsRoot } = require('../services/shell');
+const { runSystemCommand, writeFileAsRoot, unlinkAsRoot, readFileAsRoot } = require('../services/shell');
+const { resolveExecutor } = require('../services/executors');
 const { getWireGuardStats, getClientDir, parseWireGuardDump } = require('../services/system');
 const { getScriptPath } = require('../services/config');
 const { invalidateSharedPeersCache } = require('../services/jobs');
@@ -69,16 +70,57 @@ async function verifyOwnership(req, containerName) {
   return container && container.owner === req.user.username;
 }
 
+// Lit le contenu d'une config client via le proxy sécurisé (local OU SSH distant
+// selon l'executor). Renvoie le texte ou null si absent/illisible.
+async function readClientConfig(container, name, executor) {
+  const configPath = path.join(getClientDir(container, name), `${name}.conf`);
+  const { success, content } = await readFileAsRoot(configPath, { executor });
+  return success ? content : null;
+}
+
+// Calcule les allowed-ips (CIDR /32|/128) pour un peer. Source primaire : la
+// colonne clients.ip (persistée à la création) — fonctionne local ET distant
+// sans I/O. Repli : lecture de la config (pour les clients legacy sans ip en DB).
+async function resolveAllowedIps(client, container, name, executor) {
+  let raw = client.ip;
+  if (!raw) {
+    const conf = await readClientConfig(container, name, executor);
+    const m = conf && conf.match(/^\s*Address\s*=\s*([^#\n]+)/m);
+    if (m) raw = m[1];
+  }
+  if (!raw) return null;
+  return raw
+    .split(',')
+    .map((ip) => ip.trim().split('/')[0])
+    .filter(Boolean)
+    .map((ip) => (ip.includes(':') ? `${ip}/128` : `${ip}/32`))
+    .join(',');
+}
+
 router.get(
   '/containers',
   auth,
   asyncWrap(async (req, res) => {
+    const isReseller = req.user.role !== 'admin' && req.user.role !== 'manager';
+
+    // Cible distante (req.serverId posé par resolveServer) : la source de vérité
+    // est la DB filtrée par serveur — pas le filesystem local. On y ajoute le
+    // filtre de propriété pour les revendeurs.
+    if (req.serverId) {
+      const where = isReseller
+        ? and(eq(schema.containers.serverId, req.serverId), eq(schema.containers.owner, req.user.username))
+        : eq(schema.containers.serverId, req.serverId);
+      const rows = await db.select({ name: schema.containers.name }).from(schema.containers).where(where);
+      return res.json(rows.map((c) => c.name));
+    }
+
+    // Contexte LOCAL (serveur historique) : filesystem comme avant.
     const dir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
     try {
       const entries = await fsPromises.readdir(dir, { withFileTypes: true });
       let containers = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
-      
-      if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+
+      if (isReseller) {
         // Filter by ownership for viewers (resellers)
         const userContainers = await db
           .select({ name: schema.containers.name })
@@ -87,7 +129,7 @@ router.get(
         const ownedNames = new Set(userContainers.map((c) => c.name));
         containers = containers.filter((name) => ownedNames.has(name));
       }
-      
+
       res.json(containers);
     } catch (error) {
       if (error.code === 'ENOENT') return res.json([]);
@@ -106,18 +148,23 @@ router.post(
       return res.status(400).json(createError(parsed.error, 'Validation error for container name'));
     }
     const { name } = parsed.data;
-    const { success, error } = await runSystemCommand(getScriptPath('wg-create-container.sh'), [
-      name,
-    ]);
+    const executor = await resolveExecutor(req);
+    const { success, error } = await runSystemCommand(
+      getScriptPath('wg-create-container.sh'),
+      [name],
+      null,
+      { executor }
+    );
     if (!success) {
       throw createError(error, 'Failed to create container', 'SYSTEM_ERROR');
     }
 
-    // 🛡️ Sync DB
-    await db.insert(schema.containers).values({ 
-      name, 
+    // 🛡️ Sync DB — serverId rattache le conteneur à son VPS (NULL = local).
+    await db.insert(schema.containers).values({
+      name,
       owner: req.user.username,
-      interface: 'wg0' 
+      interface: 'wg0',
+      serverId: req.serverId || null
     }).onConflictDoNothing();
 
     await auditLog({
@@ -144,9 +191,13 @@ router.delete(
       return res.status(403).json(createError('Forbidden: Vous ne possédez pas ce conteneur.'));
     }
 
-    const { success, error } = await runSystemCommand(getScriptPath('wg-remove-container.sh'), [
-      name,
-    ]);
+    const executor = await resolveExecutor(req);
+    const { success, error } = await runSystemCommand(
+      getScriptPath('wg-remove-container.sh'),
+      [name],
+      null,
+      { executor }
+    );
     if (!success) {
       throw createError(error, 'Failed to delete container', 'SYSTEM_ERROR');
     }
@@ -170,30 +221,42 @@ router.get(
   '/',
   auth,
   asyncWrap(async (req, res) => {
-    const { getInterfaces } = require('../services/system');
-    const allInterfaces = await getInterfaces();
-    const wgInterfaces = allInterfaces.filter((i) => i.type === 'WireGuard').map((i) => i.name);
-
+    // Stats live `wg show` : LOCAL uniquement. Pour un VPS distant on ne lit pas
+    // l'état temps réel ici (déféré) — la liste vient de la DB scopée par serveur.
     const wgStats = {};
-    for (const iface of wgInterfaces) {
-      const stdout = await getWireGuardStats(iface);
-      const peers = parseWireGuardDump(stdout);
-      peers.forEach((p) => {
-        wgStats[p.publicKey] = { ...p, interface: iface };
-      });
+    if (!req.serverId) {
+      const { getInterfaces } = require('../services/system');
+      const allInterfaces = await getInterfaces();
+      const wgInterfaces = allInterfaces.filter((i) => i.type === 'WireGuard').map((i) => i.name);
+      for (const iface of wgInterfaces) {
+        const stdout = await getWireGuardStats(iface);
+        const peers = parseWireGuardDump(stdout);
+        peers.forEach((p) => {
+          wgStats[p.publicKey] = { ...p, interface: iface };
+        });
+      }
     }
 
     let dbClients = await db.select().from(schema.clients);
 
-    // Restrict viewer (reseller) role to their own containers only
-    if (req.user.role !== 'admin' && req.user.role !== 'manager') {
-      const ownedContainers = await db
-        .select({ name: schema.containers.name })
-        .from(schema.containers)
-        .where(eq(schema.containers.owner, req.user.username));
-      const ownedNames = new Set(ownedContainers.map((c) => c.name));
-      dbClients = dbClients.filter((c) => ownedNames.has(c.container));
-    }
+    // Scope par serveur : on filtre les clients via leurs conteneurs.
+    //   - cible distante  → conteneurs du serveur (serverId == req.serverId)
+    //   - contexte local  → conteneurs locaux (serverId IS NULL)
+    const scopeWhere = req.serverId
+      ? eq(schema.containers.serverId, req.serverId)
+      : sql`${schema.containers.serverId} IS NULL`;
+    const scopedContainers = await db
+      .select({ name: schema.containers.name, owner: schema.containers.owner })
+      .from(schema.containers)
+      .where(scopeWhere);
+    const isReseller = req.user.role !== 'admin' && req.user.role !== 'manager';
+    const scopedNames = new Set(
+      (isReseller
+        ? scopedContainers.filter((c) => c.owner === req.user.username)
+        : scopedContainers
+      ).map((c) => c.name)
+    );
+    dbClients = dbClients.filter((c) => scopedNames.has(c.container));
 
     const clients = dbClients.map((c) => {
       const stat = wgStats[c.publicKey];
@@ -341,16 +404,29 @@ router.post(
       );
     }
 
-    // Auto-create container on filesystem+DB if missing (idempotent)
-    const clientsBaseDir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
-    const containerDir = path.join(clientsBaseDir, container);
-    try {
-      const stat = await fsPromises.stat(containerDir);
-      if (!stat.isDirectory()) throw new Error('not a directory');
-    } catch (_err) {
-      const { success, error } = await runSystemCommand(getScriptPath('wg-create-container.sh'), [
-        container,
-      ]);
+    // Exécuteur cible (local ou SSH distant selon req.serverId).
+    const executor = await resolveExecutor(req);
+
+    // Auto-create container if missing (idempotent). En LOCAL on confirme via le
+    // filesystem (gère la dérive DB/FS) ; en DISTANT la DB fait foi (pas de fs).
+    let containerExists = !!existingContainer;
+    if (!req.serverId) {
+      const clientsBaseDir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
+      const containerDir = path.join(clientsBaseDir, container);
+      try {
+        const stat = await fsPromises.stat(containerDir);
+        containerExists = stat.isDirectory();
+      } catch (_err) {
+        containerExists = false;
+      }
+    }
+    if (!containerExists) {
+      const { success, error } = await runSystemCommand(
+        getScriptPath('wg-create-container.sh'),
+        [container],
+        null,
+        { executor }
+      );
       if (!success) {
         return res
           .status(500)
@@ -365,16 +441,19 @@ router.post(
     }
     await db
       .insert(schema.containers)
-      .values({ 
-        name: container, 
+      .values({
+        name: container,
         owner: req.user.username,
-        interface: 'wg0' 
+        interface: 'wg0',
+        serverId: req.serverId || null
       })
       .onConflictDoNothing();
 
     const { success, error, code, stdout } = await runSystemCommand(
       getScriptPath('wg-create-client.sh'),
-      [container, name, expiry || '', quota || 0, uploadLimit || 0]
+      [container, name, expiry || '', quota || 0, uploadLimit || 0],
+      null,
+      { executor }
     );
 
     if (!success) {
@@ -396,22 +475,24 @@ router.post(
     } else {
       // SRE FIX: Read the CLIENT's public key from its own public.key file
       // NOT from the .conf (which contains the SERVER's PublicKey in [Peer])
+      // Lectures via le proxy sécurisé (local OU SSH distant via {executor}).
       const clientDir = getClientDir(container, name);
       const publicKeyPath = path.join(clientDir, 'public.key');
-      try {
-        publicKey = (await fsPromises.readFile(publicKeyPath, 'utf8')).trim();
-      } catch (e1) {
+      const pkRead = await readFileAsRoot(publicKeyPath, { executor });
+      if (pkRead.success && pkRead.content && pkRead.content.trim()) {
+        publicKey = pkRead.content.trim();
+      } else {
         // Secondary fallback: try reading PrivateKey from .conf and derive pubkey
         log.warn('clients', `public.key not found for ${name}, trying .conf fallback`, {
-          err: e1.message,
+          err: pkRead.error,
         });
         try {
-          const configPath = path.join(clientDir, `${name}.conf`);
-          const config = await fsPromises.readFile(configPath, 'utf8');
+          const config = await readClientConfig(container, name, executor);
           // Extract PrivateKey (client's own key) from [Interface] section
-          const privMatch = config.match(/PrivateKey\s*=\s*([a-zA-Z0-9+/=]{44})/);
+          const privMatch = config && config.match(/PrivateKey\s*=\s*([a-zA-Z0-9+/=]{44})/);
           if (privMatch) {
-            // Derive public key from private key using wg pubkey via stdin
+            // Derive public key from private key using wg pubkey via stdin.
+            // Crypto pure → reste LOCAL (pas d'{executor}), même pour un VPS distant.
             const { stdout: derivedPk } = await runSystemCommand(WG_BIN, ['pubkey'], privMatch[1]);
             if (derivedPk && derivedPk.trim().length === 44) {
               publicKey = derivedPk.trim();
@@ -435,9 +516,8 @@ router.post(
     // writes it there but doesn't output it to stdout/stderr in a parseable way).
     let clientIp = null;
     try {
-      const configPath = path.join(getClientDir(container, name), `${name}.conf`);
-      const confText = await fsPromises.readFile(configPath, 'utf8');
-      const addrMatch = confText.match(/^\s*Address\s*=\s*([0-9]{1,3}(?:\.[0-9]{1,3}){3})/m);
+      const confText = await readClientConfig(container, name, executor);
+      const addrMatch = confText && confText.match(/^\s*Address\s*=\s*([0-9]{1,3}(?:\.[0-9]{1,3}){3})/m);
       if (addrMatch) clientIp = addrMatch[1];
     } catch { /* non-blocking — ip stays null */ }
 
@@ -500,50 +580,40 @@ router.post(
 
     const clientDir = getClientDir(container, name);
     const publicKey = client.publicKey;
+    const executor = await resolveExecutor(req);
 
     if (enabled) {
-      await unlinkAsRoot(path.join(clientDir, 'disabled'));
-      let config;
-      try {
-        config = await fsPromises.readFile(path.join(clientDir, `${name}.conf`), 'utf8');
-      } catch (err) {
+      await unlinkAsRoot(path.join(clientDir, 'disabled'), { executor });
+      // allowed-ips depuis la DB (clients.ip), repli config — fonctionne distant.
+      const ips = await resolveAllowedIps(client, container, name, executor);
+      if (!ips) {
         return res
           .status(404)
-          .json(createError(`Config file for ${name} not found`, null, 'NOT_FOUND'));
+          .json(createError(`Adresse introuvable pour ${name}`, null, 'CONFIG_ERROR'));
       }
-      const addressMatch = config.match(/^\s*Address\s*=\s*([^#\n]+)/m);
-      if (!addressMatch) {
-        throw createError(`Invalid configuration file for ${name}`, null, 'CONFIG_ERROR');
-      }
-      const ips = addressMatch?.[1]
-        .trim()
-        .split(',')
-        .map((ip) => ip.trim().split('/')?.[0])
-        .map((ip) => (ip.includes(':') ? `${ip}/128` : `${ip}/32`))
-        .join(',');
-      await runSystemCommand(getScriptPath('wg-toggle.sh'), [
-        process.env.WG_INTERFACE || 'wg0',
-        'peer',
-        publicKey,
-        'allowed-ips',
-        ips,
-      ]);
+      await runSystemCommand(
+        getScriptPath('wg-toggle.sh'),
+        [process.env.WG_INTERFACE || 'wg0', 'peer', publicKey, 'allowed-ips', ips],
+        null,
+        { executor }
+      );
     } else {
       const { success: disabledSuccess, error: disabledError } = await writeFileAsRoot(
         path.join(clientDir, 'disabled'),
-        new Date().toISOString()
+        new Date().toISOString(),
+        { executor }
       );
       if (!disabledSuccess) {
         return res
           .status(500)
           .json(createError(disabledError, 'Failed to write disabled flag', 'SYSTEM_ERROR'));
       }
-      await runSystemCommand(getScriptPath('wg-toggle.sh'), [
-        process.env.WG_INTERFACE || 'wg0',
-        'peer',
-        publicKey,
-        'remove',
-      ]);
+      await runSystemCommand(
+        getScriptPath('wg-toggle.sh'),
+        [process.env.WG_INTERFACE || 'wg0', 'peer', publicKey, 'remove'],
+        null,
+        { executor }
+      );
     }
 
     await db
@@ -580,10 +650,13 @@ router.delete(
       return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
     }
 
-    const { success, error } = await runSystemCommand(getScriptPath('wg-remove-client.sh'), [
-      container,
-      name,
-    ]);
+    const executor = await resolveExecutor(req);
+    const { success, error } = await runSystemCommand(
+      getScriptPath('wg-remove-client.sh'),
+      [container, name],
+      null,
+      { executor }
+    );
     if (!success) throw createError(error, 'Removal failed', 'SYSTEM_ERROR');
 
     await db.delete(schema.usage).where(eq(schema.usage.publicKey, client.publicKey));
@@ -621,24 +694,25 @@ router.patch(
     }
 
     const clientDir = getClientDir(container, name);
+    const executor = await resolveExecutor(req);
     const updateData = {};
     if (expiry !== undefined) {
       updateData.expiry = expiry || null;
       if (expiry) {
-        const { success } = await writeFileAsRoot(path.join(clientDir, 'expiry'), expiry);
+        const { success } = await writeFileAsRoot(path.join(clientDir, 'expiry'), expiry, { executor });
         if (!success) throw createError('Failed to write expiry flag', null, 'SYSTEM_ERROR');
       } else {
-        await unlinkAsRoot(path.join(clientDir, 'expiry')).catch(() => {});
+        await unlinkAsRoot(path.join(clientDir, 'expiry'), { executor }).catch(() => {});
       }
     }
     if (quota !== undefined) {
       updateData.quota = Math.max(0, parseInt(quota, 10) || 0);
       if (updateData.quota > 0) {
         // BUG-5 FIX: Write the parsed value (updateData.quota) not the raw input (quota)
-        const { success } = await writeFileAsRoot(path.join(clientDir, 'quota'), String(updateData.quota));
+        const { success } = await writeFileAsRoot(path.join(clientDir, 'quota'), String(updateData.quota), { executor });
         if (!success) throw createError('Failed to write quota flag', null, 'SYSTEM_ERROR');
       } else {
-        await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
+        await unlinkAsRoot(path.join(clientDir, 'quota'), { executor }).catch(() => {});
       }
     }
     if (uploadLimit !== undefined) {
@@ -646,16 +720,19 @@ router.patch(
       if (updateData.uploadLimit > 0) {
         const { success } = await writeFileAsRoot(
           path.join(clientDir, 'upload_limit'),
-          String(updateData.uploadLimit)
+          String(updateData.uploadLimit),
+          { executor }
         );
         if (!success) throw createError('Failed to write upload_limit flag', null, 'SYSTEM_ERROR');
       } else {
-        await unlinkAsRoot(path.join(clientDir, 'upload_limit')).catch(() => {});
+        await unlinkAsRoot(path.join(clientDir, 'upload_limit'), { executor }).catch(() => {});
       }
 
       const { success: qosSuccess, error: qosError } = await runSystemCommand(
         getScriptPath('wg-apply-qos.sh'),
-        []
+        [],
+        null,
+        { executor }
       );
       if (!qosSuccess) log.error('clients', 'wg-apply-qos failed', { error: qosError });
     }
@@ -665,7 +742,9 @@ router.patch(
       .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)));
     const { success: enfSuccess, error: enfError } = await runSystemCommand(
       getScriptPath('wg-enforcer.sh'),
-      []
+      [],
+      null,
+      { executor }
     );
     if (!enfSuccess) log.error('clients', 'wg-enforcer failed', { error: enfError });
 
@@ -699,20 +778,22 @@ router.post(
       clients = clients.filter(c => ownedContainers.has(c.container));
       if (clients.length === 0) return res.json({ success: 0, failed: 0 });
     }
-    // Snapshot original filesystem state before any writes so the rollback
-    // can restore the exact previous value (not just delete the file).
+    const executor = await resolveExecutor(req);
+    // Snapshot original state before any writes so the rollback can restore the
+    // exact previous value (not just delete the file). Lecture via proxy →
+    // fonctionne en local comme à distance (SSH).
     const origStates = {};
     for (const client of clients) {
       const clientDir = getClientDir(client.container, client.name);
       const key = `${client.container}/${client.name}`;
       origStates[key] = {};
       if (update.expiry !== undefined) {
-        try { origStates[key].expiry = await fsPromises.readFile(path.join(clientDir, 'expiry'), 'utf8'); }
-        catch { origStates[key].expiry = null; }
+        const r = await readFileAsRoot(path.join(clientDir, 'expiry'), { executor });
+        origStates[key].expiry = r.success ? r.content : null;
       }
       if (update.quota !== undefined) {
-        try { origStates[key].quota = await fsPromises.readFile(path.join(clientDir, 'quota'), 'utf8'); }
-        catch { origStates[key].quota = null; }
+        const r = await readFileAsRoot(path.join(clientDir, 'quota'), { executor });
+        origStates[key].quota = r.success ? r.content : null;
       }
     }
 
@@ -727,13 +808,13 @@ router.post(
       try {
         const clientDir = getClientDir(client.container, client.name);
         if (update.expiry !== undefined) {
-          if (update.expiry) await writeFileAsRoot(path.join(clientDir, 'expiry'), update.expiry);
-          else await unlinkAsRoot(path.join(clientDir, 'expiry')).catch(() => {});
+          if (update.expiry) await writeFileAsRoot(path.join(clientDir, 'expiry'), update.expiry, { executor });
+          else await unlinkAsRoot(path.join(clientDir, 'expiry'), { executor }).catch(() => {});
         }
         if (update.quota !== undefined) {
           if (update.quota > 0)
-            await writeFileAsRoot(path.join(clientDir, 'quota'), String(update.quota));
-          else await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
+            await writeFileAsRoot(path.join(clientDir, 'quota'), String(update.quota), { executor });
+          else await unlinkAsRoot(path.join(clientDir, 'quota'), { executor }).catch(() => {});
         }
 
         succeededClients.push(client);
@@ -767,12 +848,12 @@ router.post(
             const clientDir = getClientDir(client.container, client.name);
             const orig = origStates[`${client.container}/${client.name}`] || {};
             if (update.expiry !== undefined) {
-              if (orig.expiry != null) await writeFileAsRoot(path.join(clientDir, 'expiry'), orig.expiry);
-              else await unlinkAsRoot(path.join(clientDir, 'expiry')).catch(() => {});
+              if (orig.expiry != null) await writeFileAsRoot(path.join(clientDir, 'expiry'), orig.expiry, { executor });
+              else await unlinkAsRoot(path.join(clientDir, 'expiry'), { executor }).catch(() => {});
             }
             if (update.quota !== undefined) {
-              if (orig.quota != null) await writeFileAsRoot(path.join(clientDir, 'quota'), orig.quota);
-              else await unlinkAsRoot(path.join(clientDir, 'quota')).catch(() => {});
+              if (orig.quota != null) await writeFileAsRoot(path.join(clientDir, 'quota'), orig.quota, { executor });
+              else await unlinkAsRoot(path.join(clientDir, 'quota'), { executor }).catch(() => {});
             }
           } catch (_) {
             // ignore cleanup errors during rollback
@@ -782,7 +863,7 @@ router.post(
         successCount = 0;
       }
     }
-    await runSystemCommand(getScriptPath('wg-enforcer.sh'), []).catch(() => {});
+    await runSystemCommand(getScriptPath('wg-enforcer.sh'), [], null, { executor }).catch(() => {});
 
     await auditLog({
       actor: req.user.username,
@@ -814,6 +895,7 @@ router.post(
       clients = clients.filter(c => ownedContainers.has(c.container));
       if (clients.length === 0) return res.json({ success: 0, failed: 0 });
     }
+    const executor = await resolveExecutor(req);
     let successCount = 0,
       failedCount = 0;
     for (const client of clients) {
@@ -828,10 +910,12 @@ router.post(
             )
           )
           .limit(1);
-        const { success } = await runSystemCommand(getScriptPath('wg-remove-client.sh'), [
-          client.container,
-          client.name,
-        ]);
+        const { success } = await runSystemCommand(
+          getScriptPath('wg-remove-client.sh'),
+          [client.container, client.name],
+          null,
+          { executor }
+        );
         // BUG-3 FIX: Count as success if script succeeded, regardless of dbClient
         if (success) {
           if (dbClient) {
@@ -876,11 +960,13 @@ router.post(
       .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
       .limit(1);
     if (!clientToMove) return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
-    const { success, error } = await runSystemCommand(getScriptPath('wg-move-client.sh'), [
-      container,
-      name,
-      newContainer,
-    ]);
+    const executor = await resolveExecutor(req);
+    const { success, error } = await runSystemCommand(
+      getScriptPath('wg-move-client.sh'),
+      [container, name, newContainer],
+      null,
+      { executor }
+    );
     if (!success) throw createError(error, 'Move failed', 'SYSTEM_ERROR');
     await db
       .update(schema.clients)
@@ -962,24 +1048,20 @@ router.get(
       .limit(1);
     if (!client) return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
 
-    const clientDir = getClientDir(container, name);
-    const configPath = path.join(clientDir, `${name}.conf`);
-    try {
-      const configText = await fsPromises.readFile(configPath, 'utf8');
-      await auditLog({
-        actor: req.user.username,
-        action: 'download_config',
-        targetType: 'client',
-        targetName: `${container}/${name}`,
-        ip: req.ip,
-      });
-      res.json({ config: configText });
-    } catch (err) {
-      if (err.code === 'ENOENT') {
-        throw createError('Configuration file not found', null, 'NOT_FOUND');
-      }
-      throw err;
+    const executor = await resolveExecutor(req);
+    // Lecture via proxy sécurisé → fonctionne local ET sur VPS distant (SSH).
+    const configText = await readClientConfig(container, name, executor);
+    if (!configText) {
+      throw createError('Configuration file not found', null, 'NOT_FOUND');
     }
+    await auditLog({
+      actor: req.user.username,
+      action: 'download_config',
+      targetType: 'client',
+      targetName: `${container}/${name}`,
+      ip: req.ip,
+    });
+    res.json({ config: configText });
   })
 );
 

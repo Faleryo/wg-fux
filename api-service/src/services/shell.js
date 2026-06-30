@@ -61,6 +61,19 @@ const unlinkAsRoot = async (filePath, opts = {}) => {
   return { success, error, code };
 };
 
+// Read a file's content via the secure proxy (sudo local OU SSH distant selon
+// opts.executor). Renvoie { success, content, error, code }. Indispensable pour
+// les lectures de configs/clés sur un VPS distant où fs natif n'a pas accès.
+const readFileAsRoot = async (filePath, opts = {}) => {
+  const { success, stdout, error, code } = await runSystemCommand(
+    getScriptPath('wg-file-proxy.sh'),
+    ['read', filePath],
+    null,
+    opts
+  );
+  return { success, content: stdout, error, code };
+};
+
 const readdirAsRoot = async (dirPath, opts = {}) => {
   const { success, stdout, error, code } = await runSystemCommand(
     getScriptPath('wg-file-proxy.sh'),
@@ -117,6 +130,7 @@ module.exports = {
   writeFileAsRoot,
   appendFileAsRoot,
   unlinkAsRoot,
+  readFileAsRoot,
   readdirAsRoot,
   readFile,
   writeFile,
