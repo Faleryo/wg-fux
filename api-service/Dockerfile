@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openresolv \
     build-essential \
     python3 \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 

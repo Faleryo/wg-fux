@@ -94,6 +94,20 @@ describe('renderBootstrap', () => {
     expect(list).not.toMatch(/\.env$/m); // jamais de secrets
   });
 
+  it('le bundle sert le template nginx COMMITTÉ (pas les modifs locales de la prod)', async () => {
+    // Régression : setup-ssl.sh réécrit les chemins ssl_certificate en prod ;
+    // un bundle du working tree embarquerait ces chemins Let's Encrypt → nginx
+    // planterait chez chaque revendeur. git archive HEAD garantit le template propre.
+    const { buffer } = await provision.buildBundleTarball();
+    const { execFileSync } = require('child_process');
+    const conf = execFileSync('tar', ['-xzOf', '-', './infra/nginx/default.conf'], {
+      input: buffer,
+      maxBuffer: 16 * 1024 * 1024,
+    }).toString();
+    expect(conf).toContain('/etc/nginx/ssl/server.crt'); // cert bootstrap auto-signé
+    expect(conf).not.toContain('/etc/letsencrypt/live/'); // jamais les chemins d'une prod
+  });
+
   it('le sha256 du script rendu est déterministe', async () => {
     const server = { publicKey: 'ssh-ed25519 AAAASTABLE' };
     const a = await provision.renderBootstrap(server, {});
