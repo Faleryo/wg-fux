@@ -84,6 +84,18 @@ ACTUAL_SHA=$(sha256sum "$TMP_BUNDLE" | awk '{print $1}')
 [ "$EXPECTED_SHA" = "$ACTUAL_SHA" ] \
   || fail "Intégrité du bundle INVALIDE (attendu ${EXPECTED_SHA}, obtenu ${ACTUAL_SHA}) — abandon."
 
+# PURGE avant extraction : un tar par-dessus ÉCRASE les fichiers de même nom
+# mais ne supprime JAMAIS ceux absents de la nouvelle archive. Le passage au
+# bundle durci a changé la forme de dashboard-ui (src/ → dist/ seul) : sans
+# cette purge, l'ancien code source (JSX en clair) resterait indéfiniment sur
+# le disque à côté du nouveau dist/, lisible par quiconque a un accès au VPS.
+# Aucun état persistant ne vit dans ces dossiers (.env et data/ sont ailleurs,
+# jamais touchés) — les supprimer avant extraction est sans risque.
+log "Purge du code remplacé (dashboard-ui, api-service/src+db, core-vpn/scripts)…"
+for d in dashboard-ui api-service/src api-service/db core-vpn/scripts; do
+  rm -rf "${INSTALL_DIR:?}/${d}"
+done
+
 log "Extraction par-dessus ${INSTALL_DIR} (préserve .env + data)…"
 tar -xzf "$TMP_BUNDLE" -C "$INSTALL_DIR"
 
