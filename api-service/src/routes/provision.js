@@ -123,11 +123,17 @@ function buildBundleTarball({ fresh = false } = {}) {
   // il est servi tel quel — le client ne reçoit jamais le code source propre.
   // Sinon on retombe sur `git archive HEAD` (dev / instance non durcie).
   const protectedPath = (process.env.PROTECTED_BUNDLE_PATH || '').trim();
-  if (protectedPath && !fresh) {
+  if (protectedPath) {
     try {
+      const mtimeMs = fs.statSync(protectedPath).mtimeMs;
+      // Cache invalidé si le fichier a changé (re-fabrication du bundle) → pas
+      // besoin de redémarrer l'API après un nouveau build-protected-bundle.sh.
+      if (_bundleCache && _bundleCache.protectedMtime === mtimeMs && !fresh) {
+        return Promise.resolve(_bundleCache);
+      }
       const buf = fs.readFileSync(protectedPath);
       const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
-      _bundleCache = { buffer: buf, sha256, builtAt: Date.now() };
+      _bundleCache = { buffer: buf, sha256, builtAt: Date.now(), protectedMtime: mtimeMs };
       log.info('provision', 'Bundle durci servi (pré-fabriqué)', {
         sizeMB: (buf.length / 1048576).toFixed(1),
         sha256: sha256.slice(0, 12),
