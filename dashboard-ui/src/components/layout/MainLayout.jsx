@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useSelectedServer } from '../../context/SelectedServerContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
+import { axiosInstance } from '../../lib/api';
 import ErrorBoundary from '../ErrorBoundary';
 import ServerSelector from '../../features/servers/components/ServerSelector';
 
@@ -42,10 +43,11 @@ const ServersSection = lazy(() => import('../../features/servers/components/Serv
 const NetworkSection = lazy(() => import('../../features/network/components/NetworkSection'));
 const LogsSection = lazy(() => import('../../features/monitoring/components/LogsSection'));
 const SettingsSection = lazy(() => import('../../features/settings/components/SettingsSection'));
-const OptimizationSection = lazy(() => import('../../features/settings/components/OptimizationSection'));
+const OptimizationSection = lazy(
+  () => import('../../features/settings/components/OptimizationSection')
+);
 const AuditSection = lazy(() => import('../../features/monitoring/components/AuditSection'));
 const DnsSection = lazy(() => import('../../features/dns/components/DnsEditor'));
-
 
 const TWOFА_BANNER_KEY = '2fa-banner-v1-dismissed';
 
@@ -62,10 +64,7 @@ const TwoFABanner = ({ onNavigate }) => {
         <ShieldAlert size={18} className="flex-shrink-0 text-amber-400" />
         <p className="text-[11px] font-black uppercase tracking-wider flex-1">
           Votre compte admin n'a pas de 2FA activé —{' '}
-          <button
-            onClick={onNavigate}
-            className="underline hover:text-amber-200 transition-colors"
-          >
+          <button onClick={onNavigate} className="underline hover:text-amber-200 transition-colors">
             configurer maintenant
           </button>
         </p>
@@ -73,6 +72,67 @@ const TwoFABanner = ({ onNavigate }) => {
           <XIcon size={14} />
         </button>
       </div>
+    </div>
+  );
+};
+
+// Bandeau licence de l'instance revendeur : marque (white-label poussée par la
+// plateforme mère), échéance proche/expirée, mise à jour disponible. Ne rend
+// rien sur l'instance mère (licence désactivée).
+const LicenseBanner = () => {
+  const [lic, setLic] = useState(null);
+  const [now] = useState(() => Date.now());
+  useEffect(() => {
+    let mounted = true;
+    axiosInstance
+      .get('/system/license')
+      .then((res) => mounted && setLic(res.data))
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // White-label : le nom de marque devient le titre de l'onglet.
+  useEffect(() => {
+    if (lic?.brand?.name) document.title = lic.brand.name;
+  }, [lic]);
+
+  if (!lic || !lic.enabled) return null;
+  const daysLeft = lic.expiresAt
+    ? Math.ceil((new Date(lic.expiresAt).getTime() - now) / 86400000)
+    : null;
+  const expired = !lic.valid;
+  const soon = !expired && daysLeft != null && daysLeft <= 7;
+  if (!expired && !soon && !lic.updateAvailable) return null;
+
+  return (
+    <div className="mx-auto max-w-[1600px] px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 pt-4 space-y-2">
+      {(expired || soon) && (
+        <div
+          className={cn(
+            'flex items-center gap-4 px-5 py-3.5 rounded-2xl border',
+            expired
+              ? 'bg-red-500/10 border-red-500/20 text-red-300'
+              : 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+          )}
+        >
+          <ShieldAlert size={18} className="flex-shrink-0" />
+          <p className="text-[11px] font-black uppercase tracking-wider flex-1">
+            {expired
+              ? 'Licence expirée — la création de clients est bloquée. Contactez votre revendeur pour renouveler.'
+              : `Licence : ${daysLeft} jour${daysLeft > 1 ? 's' : ''} restant${daysLeft > 1 ? 's' : ''} — pensez à renouveler.`}
+          </p>
+        </div>
+      )}
+      {lic.updateAvailable && !expired && (
+        <div className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+          <p className="text-[10px] font-black uppercase tracking-wider">
+            Mise à jour disponible ({lic.currentVersion} → {lic.latestVersion}) — appliquée
+            automatiquement par le cron quotidien.
+          </p>
+        </div>
+      )}
     </div>
   );
 };
@@ -100,7 +160,7 @@ const MainLayout = ({ session, onLogout }) => {
   const [topologySelectedClient, setTopologySelectedClient] = useState(null);
   const [activeContainer, setActiveContainer] = useState(() => {
     const savedTab = localStorage.getItem('active-tab');
-    return savedTab === 'containers' ? (localStorage.getItem('active-container') || null) : null;
+    return savedTab === 'containers' ? localStorage.getItem('active-container') || null : null;
   });
 
   const isDark = mode === 'dark';
@@ -260,7 +320,13 @@ const MainLayout = ({ session, onLogout }) => {
     handleToggleClient,
     handleShowQRCode,
     handleDownloadConfig,
-  } = useClientActions({ fetchData, addToast, suppressWsToast, setShowQRModal, setSelectedClientForModal });
+  } = useClientActions({
+    fetchData,
+    addToast,
+    suppressWsToast,
+    setShowQRModal,
+    setSelectedClientForModal,
+  });
 
   const {
     confirmModal,
@@ -270,9 +336,18 @@ const MainLayout = ({ session, onLogout }) => {
     handleBulkDelete,
     handleDeleteUser,
     executeDelete,
-  } = useDeleteActions({ fetchData, addToast, suppressWsToast, topologySelectedClient, setTopologySelectedClient });
+  } = useDeleteActions({
+    fetchData,
+    addToast,
+    suppressWsToast,
+    topologySelectedClient,
+    setTopologySelectedClient,
+  });
 
-  const { handleCreateUser, handleSaveUser, handleReset2FA } = useUserActions({ fetchData, addToast });
+  const { handleCreateUser, handleSaveUser, handleReset2FA } = useUserActions({
+    fetchData,
+    addToast,
+  });
 
   // ── Section Renderer ──────────────────────────────────────────────────────
   const renderSection = () => {
@@ -377,19 +452,47 @@ const MainLayout = ({ session, onLogout }) => {
           />
         );
       case 'servers':
-        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><ServersSection /></Suspense>;
+        return (
+          <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}>
+            <ServersSection />
+          </Suspense>
+        );
       case 'network':
-        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><NetworkSection userRole={session?.role || ''} /></Suspense>;
+        return (
+          <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}>
+            <NetworkSection userRole={session?.role || ''} />
+          </Suspense>
+        );
       case 'logs':
-        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><LogsSection /></Suspense>;
+        return (
+          <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}>
+            <LogsSection />
+          </Suspense>
+        );
       case 'settings':
-        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><SettingsSection /></Suspense>;
+        return (
+          <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}>
+            <SettingsSection />
+          </Suspense>
+        );
       case 'optimization':
-        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><OptimizationSection systemStats={systemStats} /></Suspense>;
+        return (
+          <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}>
+            <OptimizationSection systemStats={systemStats} />
+          </Suspense>
+        );
       case 'audit':
-        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><AuditSection /></Suspense>;
+        return (
+          <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}>
+            <AuditSection />
+          </Suspense>
+        );
       case 'dns':
-        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><DnsSection /></Suspense>;
+        return (
+          <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}>
+            <DnsSection />
+          </Suspense>
+        );
       default:
         return null;
     }
@@ -486,6 +589,9 @@ const MainLayout = ({ session, onLogout }) => {
         {isAdmin && session.twoFactorEnabled === false && (
           <TwoFABanner onNavigate={() => setActiveSection('settings')} />
         )}
+
+        {/* Licence de l'instance (revendeur) : expiration, maj, white-label */}
+        <LicenseBanner />
 
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 space-y-12">
           <AnimatePresence mode="wait">
@@ -747,7 +853,13 @@ const MainLayout = ({ session, onLogout }) => {
           intent="danger"
           onConfirm={executeDelete}
           onCancel={() =>
-            setConfirmModal({ open: false, client: null, container: null, user: null, clients: null })
+            setConfirmModal({
+              open: false,
+              client: null,
+              container: null,
+              user: null,
+              clients: null,
+            })
           }
         />
       </ErrorBoundary>

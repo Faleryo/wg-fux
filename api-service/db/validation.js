@@ -5,7 +5,11 @@ const identifierRegex = /^[a-zA-Z0-9_-]+$/;
 const dateRegex = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
 const loginSchema = z.object({
-  username: z.string().min(1, 'Username requis').max(64, 'Username trop long').regex(identifierRegex, 'Format invalide'),
+  username: z
+    .string()
+    .min(1, 'Username requis')
+    .max(64, 'Username trop long')
+    .regex(identifierRegex, 'Format invalide'),
   password: z.string().min(1, 'Mot de passe requis').max(128, 'Mot de passe trop long'),
   token: z.string().optional(),
 });
@@ -21,12 +25,18 @@ const clientSchema = z
       .optional(),
     quota: z
       .union([z.number(), z.string()])
-      .transform((v) => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; })
+      .transform((v) => {
+        const n = parseInt(v, 10);
+        return isNaN(n) ? 0 : n;
+      })
       .refine((n) => n >= 0, 'Quota doit être positif')
       .optional(),
     uploadLimit: z
       .union([z.number(), z.string()])
-      .transform((v) => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; })
+      .transform((v) => {
+        const n = parseInt(v, 10);
+        return isNaN(n) ? 0 : n;
+      })
       .refine((n) => n >= 0, 'Limite doit être positive')
       .optional(),
   })
@@ -38,12 +48,18 @@ const clientPatchSchema = z
     expiry: z.string().regex(dateRegex).or(z.literal('')).or(z.null()).optional(),
     quota: z
       .union([z.number(), z.string()])
-      .transform((v) => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; })
+      .transform((v) => {
+        const n = parseInt(v, 10);
+        return isNaN(n) ? 0 : n;
+      })
       .refine((n) => n >= 0, 'Quota doit être positif')
       .optional(),
     uploadLimit: z
       .union([z.number(), z.string()])
-      .transform((v) => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; })
+      .transform((v) => {
+        const n = parseInt(v, 10);
+        return isNaN(n) ? 0 : n;
+      })
       .refine((n) => n >= 0, 'Limite doit être positive')
       .optional(),
   })
@@ -69,7 +85,10 @@ const bulkUpdateSchema = z.object({
     expiry: z.string().regex(dateRegex).or(z.literal('')).or(z.null()).optional(),
     quota: z
       .union([z.number(), z.string()])
-      .transform((v) => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; })
+      .transform((v) => {
+        const n = parseInt(v, 10);
+        return isNaN(n) ? 0 : n;
+      })
       .refine((n) => n >= 0, 'Quota doit être positif')
       .optional(),
   }),
@@ -107,8 +126,9 @@ const userSchema = z
       .min(2, 'Username doit faire au moins 2 caractères')
       .regex(identifierRegex, "Format de nom d'utilisateur invalide"),
     password: z.string().min(6, 'Mot de passe requis (min 6 caractères)'),
-    role: z.enum(['admin', 'manager', 'viewer']).default('viewer'),
+    role: z.enum(['admin', 'manager', 'viewer', 'reseller']).default('viewer'),
     expiry: z.string().regex(dateRegex).or(z.null()).optional(),
+    email: z.string().email('Email invalide').max(255).or(z.null()).optional(),
   })
   .strict();
 
@@ -163,9 +183,10 @@ const dnsConfigSchema = z.object({
 const userUpdateSchema = z
   .object({
     password: z.string().min(6).optional(),
-    role: z.enum(['admin', 'manager', 'viewer']).optional(),
+    role: z.enum(['admin', 'manager', 'viewer', 'reseller']).optional(),
     expiry: z.string().regex(dateRegex).or(z.null()).optional(),
     enabled: z.boolean().optional(),
+    email: z.string().email('Email invalide').max(255).or(z.null()).optional(),
   })
   .strict();
 
@@ -186,7 +207,14 @@ const dnsFilterSchema = z
     url: z
       .string()
       .url('URL invalide')
-      .refine((u) => { try { const p = new URL(u); return p.protocol === 'http:' || p.protocol === 'https:'; } catch { return false; } }, 'Seuls les protocoles http/https sont acceptés'),
+      .refine((u) => {
+        try {
+          const p = new URL(u);
+          return p.protocol === 'http:' || p.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      }, 'Seuls les protocoles http/https sont acceptés'),
   })
   .strict();
 
@@ -195,7 +223,14 @@ const dnsRemoveSchema = z
     url: z
       .string()
       .url('URL invalide')
-      .refine((u) => { try { const p = new URL(u); return p.protocol === 'http:' || p.protocol === 'https:'; } catch { return false; } }, 'Seuls les protocoles http/https sont acceptés'),
+      .refine((u) => {
+        try {
+          const p = new URL(u);
+          return p.protocol === 'http:' || p.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      }, 'Seuls les protocoles http/https sont acceptés'),
   })
   .strict();
 

@@ -27,6 +27,8 @@ router.get(
         role: schema.users.role,
         expiry: schema.users.expiry,
         enabled: schema.users.enabled,
+        email: schema.users.email,
+        parentId: schema.users.parentId,
       })
       .from(schema.users);
     res.json(users);
@@ -43,7 +45,7 @@ router.post(
       return res.status(400).json(createError(result.error, 'Validation failed'));
     }
 
-    const { username, password, role, expiry } = result.data;
+    const { username, password, role, expiry, email } = result.data;
 
     const [existing] = await db
       .select()
@@ -62,6 +64,7 @@ router.post(
       salt,
       role: role || 'viewer',
       expiry: expiry || null,
+      email: email || null,
     });
     res.status(201).json({ success: true });
   })
@@ -78,7 +81,7 @@ router.patch(
       return res.status(400).json(createError(result.error, 'Validation failed'));
     }
 
-    const { password, role, expiry, enabled } = result.data;
+    const { password, role, expiry, enabled, email } = result.data;
 
     const [existing] = await db
       .select()
@@ -98,6 +101,7 @@ router.patch(
     if (role) updateData.role = role;
     if (expiry !== undefined) updateData.expiry = expiry;
     if (enabled !== undefined) updateData.enabled = enabled;
+    if (email !== undefined) updateData.email = email;
 
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json(createError('No fields to update', null, 'BAD_REQUEST'));
@@ -123,8 +127,7 @@ router.delete(
         .json(createError('Cannot delete your own account', null, 'SELF_DELETE_FORBIDDEN'));
     }
     const adminUser = process.env.ADMIN_USER;
-    const isProtectedAdmin =
-      username === 'admin' || (adminUser && username === adminUser);
+    const isProtectedAdmin = username === 'admin' || (adminUser && username === adminUser);
     if (isProtectedAdmin) {
       return res
         .status(400)
@@ -152,7 +155,11 @@ router.get(
     const { username } = req.params;
 
     const [user] = await db
-      .select({ username: schema.users.username, role: schema.users.role, expiry: schema.users.expiry })
+      .select({
+        username: schema.users.username,
+        role: schema.users.role,
+        expiry: schema.users.expiry,
+      })
       .from(schema.users)
       .where(eq(schema.users.username, username))
       .limit(1);

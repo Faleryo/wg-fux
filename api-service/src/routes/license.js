@@ -89,11 +89,39 @@ router.post(
       /* réglages absents : pas de contact — non bloquant */
     }
 
+    // Mise à jour de flotte gouvernée : canal 'hold' (gel par serveur) et
+    // update_paused (kill-switch global) suppriment l'offre de mise à jour —
+    // l'instance ne voit alors aucune version plus récente.
+    let offeredVersion = APP_VERSION;
+    if (server.updateChannel === 'hold') {
+      offeredVersion = null;
+    } else {
+      try {
+        const paused = await require('../services/settings').getSetting('update_paused');
+        if (paused === '1' || paused === 'true') offeredVersion = null;
+      } catch {
+        /* réglage illisible : on n'offre pas de maj par prudence */
+        offeredVersion = null;
+      }
+    }
+
+    // White-label : la marque résolue du propriétaire (plus proche ancêtre) est
+    // poussée à l'instance, qui habille son UI avec (nom, logo, couleur).
+    let brand = null;
+    try {
+      brand = await require('../services/brand').resolveBrand(server.ownerId);
+    } catch {
+      /* non bloquant */
+    }
+
     res.json({
       valid,
       expiresAt: server.licenseExpiry ? new Date(server.licenseExpiry).toISOString() : null,
       // L'instance compare à sa propre version pour décider d'une mise à jour.
-      latestVersion: APP_VERSION,
+      latestVersion: offeredVersion,
+      // Palier de licence : plafond de clients appliqué PAR l'instance (null = illimité).
+      maxClients: Number.isInteger(server.maxClients) ? server.maxClients : null,
+      brand,
       reseller,
     });
   })

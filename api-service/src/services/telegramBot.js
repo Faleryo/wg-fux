@@ -37,6 +37,24 @@ async function sendMessage(token, chatId, text) {
   }
 }
 
+// Alerte PUSH vers le chat admin (serveur offline, solde insuffisant…). No-op si
+// le bot n'est pas configuré. Ne lève jamais — l'alerting ne casse pas les jobs.
+async function sendAdminAlert(text) {
+  try {
+    const { getSetting } = require('./settings');
+    const [token, chatId] = await Promise.all([
+      getSetting('telegram_bot_token'),
+      getSetting('telegram_chat_id'),
+    ]);
+    if (!token || !chatId) return false;
+    await sendMessage(token, chatId, text);
+    return true;
+  } catch (e) {
+    log.warn('telegram', 'sendAdminAlert échoué', { err: e.message });
+    return false;
+  }
+}
+
 const HELP =
   '<b>wg-fux — bot admin</b>\n\n' +
   '/nouveauvps <code>&lt;label&gt; &lt;host&gt; [port]</code> — créer un serveur et obtenir le one-liner\n' +
@@ -117,7 +135,7 @@ async function processUpdate(token, adminChatId, update) {
     case '/help':
       return sendMessage(token, msg.chat.id, HELP);
     default:
-      return sendMessage(token, msg.chat.id, "Commande inconnue. /aide pour la liste.");
+      return sendMessage(token, msg.chat.id, 'Commande inconnue. /aide pour la liste.');
   }
 }
 
@@ -172,4 +190,4 @@ function startTelegramBot() {
   loop().catch((e) => log.error('telegram', 'Boucle bot arrêtée', { err: e.message }));
 }
 
-module.exports = { startTelegramBot, processUpdate, escapeHtml };
+module.exports = { startTelegramBot, processUpdate, escapeHtml, sendAdminAlert };

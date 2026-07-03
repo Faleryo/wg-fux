@@ -5,7 +5,7 @@
 // (usage unique, TTL 10 min) + la clé de licence (essai 30 j), insère le serveur
 // en 'pending' et renvoie le one-liner à coller sur le VPS.
 
-const { db, schema } = require('../../db');
+const { db, schema, sqlite } = require('../../db');
 const { encryptPrivateKey } = require('./crypto');
 const { generateKeyPair, generateToken, hashToken } = require('./sshKeys');
 const { renderBootstrap } = require('../routes/provision');
@@ -14,6 +14,25 @@ const log = require('./logger');
 
 const PROVISION_TOKEN_TTL_MS = 10 * 60 * 1000;
 const LICENSE_TRIAL_MS = 30 * 24 * 3600 * 1000;
+// Ré-enrôlement d'un host déjà vu : pas de nouvel essai gratuit, juste une
+// fenêtre d'installation courte — la suite se paie en crédits.
+const LICENSE_REENROLL_MS = 72 * 3600 * 1000;
+
+// Anti-abus : 1 seul essai gratuit de 30 jours PAR HOST, à vie (supprimer puis
+// recréer le serveur ne réinitialise pas le compteur). Statements paresseux :
+// la table trial_grants n'existe qu'après initializeDatabase().
+let _trialStmts = null;
+function claimTrial(host, ownerId) {
+  if (!_trialStmts) {
+    _trialStmts = {
+      insert: sqlite.prepare(
+        'INSERT OR IGNORE INTO trial_grants (host, firstOwnerId) VALUES (?, ?)'
+      ),
+    };
+  }
+  // INSERT OR IGNORE : changes === 1 → premier enrôlement (essai accordé).
+  return _trialStmts.insert.run(host.toLowerCase(), ownerId).changes > 0;
+}
 
 class ServerConflictError extends Error {}
 
@@ -54,7 +73,13 @@ async function createServer({ ownerId, label, host, port = 22, actor, req, ip })
   const provisionTokenExpiry = new Date(Date.now() + PROVISION_TOKEN_TTL_MS);
 
   const licenseKey = generateToken();
-  const licenseExpiry = new Date(Date.now() + LICENSE_TRIAL_MS);
+  const isFirstTrial = claimTrial(host, ownerId);
+  const licenseExpiry = new Date(
+    Date.now() + (isFirstTrial ? LICENSE_TRIAL_MS : LICENSE_REENROLL_MS)
+  );
+  if (!isFirstTrial) {
+    log.info('servers', 'Host déjà connu : ré-enrôlement sans nouvel essai gratuit', { host });
+  }
 
   let inserted;
   try {
@@ -78,10 +103,7 @@ async function createServer({ ownerId, label, host, port = 22, actor, req, ip })
       })
       .returning();
   } catch (dbErr) {
-    if (
-      dbErr.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
-      dbErr.message?.includes('UNIQUE constraint')
-    ) {
+    if (dbErr.code === 'SQLITE_CONSTRAINT_UNIQUE' || dbErr.message?.includes('UNIQUE constraint')) {
       throw new ServerConflictError(`Le serveur ${host}:${port} est déjà enregistré`);
     }
     throw dbErr;
@@ -95,7 +117,7 @@ async function createServer({ ownerId, label, host, port = 22, actor, req, ip })
     action: 'create_server',
     targetType: 'server',
     targetName: label,
-    details: { serverId: inserted.id, host, port },
+    details: { serverId: inserted.id, host, port, trial: isFirstTrial },
     ip,
   });
   log.info('servers', 'Serveur enregistré (pending)', { serverId: inserted.id });
@@ -106,7 +128,14 @@ async function createServer({ ownerId, label, host, port = 22, actor, req, ip })
     scriptSha256,
     expiresAt: provisionTokenExpiry.toISOString(),
     licenseExpiry: licenseExpiry.toISOString(),
+    trial: isFirstTrial,
   };
 }
 
-module.exports = { createServer, ServerConflictError, PROVISION_TOKEN_TTL_MS, LICENSE_TRIAL_MS };
+module.exports = {
+  createServer,
+  ServerConflictError,
+  PROVISION_TOKEN_TTL_MS,
+  LICENSE_TRIAL_MS,
+  LICENSE_REENROLL_MS,
+};

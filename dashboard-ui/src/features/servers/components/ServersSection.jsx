@@ -93,11 +93,7 @@ const LicenseBadge = ({ expiry }) => {
   }
   const expired = days <= 0;
   const soon = days > 0 && days <= 7;
-  const cls = expired
-    ? 'text-red-400'
-    : soon
-      ? 'text-amber-400'
-      : 'text-emerald-400/90';
+  const cls = expired ? 'text-red-400' : soon ? 'text-amber-400' : 'text-emerald-400/90';
   const label = expired
     ? `Expirée (${Math.abs(days)} j)`
     : days === 0
@@ -112,7 +108,16 @@ const RENEW_OPTIONS = [
   { days: 90, label: '+ 3 mois' },
   { days: 365, label: '+ 1 an' },
 ];
+const UPDATE_CHANNELS = [
+  { value: 'stable', label: 'Stable' },
+  { value: 'canary', label: 'Canary (pilote)' },
+  { value: 'hold', label: 'Gelé (aucune maj)' },
+];
 const RenewModal = ({ server, onClose, onApply, busy }) => {
+  const [maxClients, setMaxClients] = useState('');
+  useEffect(() => {
+    setMaxClients(server?.maxClients != null ? String(server.maxClients) : '');
+  }, [server]);
   if (!server) return null;
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -123,7 +128,9 @@ const RenewModal = ({ server, onClose, onApply, busy }) => {
           </div>
           <div>
             <h3 className="text-lg font-black text-white uppercase tracking-tight">Licence</h3>
-            <p className="text-[11px] font-mono text-slate-500">{server.label} · {server.host}</p>
+            <p className="text-[11px] font-mono text-slate-500">
+              {server.label} · {server.host}
+            </p>
           </div>
         </div>
 
@@ -142,6 +149,54 @@ const RenewModal = ({ server, onClose, onApply, busy }) => {
               {opt.label}
             </button>
           ))}
+        </div>
+
+        {/* Palier : plafond de clients (appliqué par l'instance au heartbeat suivant) */}
+        <div className="space-y-2 pt-2 border-t border-white/5">
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+            Plafond de clients (vide = illimité)
+          </label>
+          <div className="flex gap-3">
+            <input
+              value={maxClients}
+              onChange={(e) => setMaxClients(e.target.value)}
+              placeholder="illimité"
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-white/20"
+            />
+            <button
+              disabled={busy}
+              onClick={() =>
+                onApply({ maxClients: maxClients.trim() === '' ? null : Number(maxClients) })
+              }
+              className="px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-indigo-500/20 text-[11px] font-black uppercase tracking-widest text-white transition-colors disabled:opacity-50"
+            >
+              Appliquer
+            </button>
+          </div>
+        </div>
+
+        {/* Canal de mise à jour */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+            Canal de mise à jour
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {UPDATE_CHANNELS.map((ch) => (
+              <button
+                key={ch.value}
+                disabled={busy}
+                onClick={() => onApply({ updateChannel: ch.value })}
+                className={cn(
+                  'py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50',
+                  (server.updateChannel || 'stable') === ch.value
+                    ? 'border-indigo-500/50 bg-indigo-500/20 text-indigo-300'
+                    : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'
+                )}
+              >
+                {ch.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-white/5">
@@ -243,12 +298,17 @@ const ServersSection = () => {
     setRenewing(true);
     try {
       const { data } = await axiosInstance.patch(`/servers/${renewTarget.id}/license`, payload);
-      addToast(
-        payload.revoke
-          ? 'Licence coupée'
-          : `Licence prolongée jusqu'au ${new Date(data.licenseExpiry).toLocaleDateString('fr-FR')}`,
-        'success'
-      );
+      let msg;
+      if (payload.revoke) msg = 'Licence coupée';
+      else if (payload.updateChannel) msg = `Canal de mise à jour : ${payload.updateChannel}`;
+      else if (payload.maxClients !== undefined)
+        msg =
+          payload.maxClients == null
+            ? 'Plafond de clients retiré'
+            : `Plafond : ${payload.maxClients} clients`;
+      else
+        msg = `Licence prolongée jusqu'au ${new Date(data.licenseExpiry).toLocaleDateString('fr-FR')}`;
+      addToast(msg, 'success');
       setRenewTarget(null);
       fetchServers();
     } catch (e) {
@@ -363,7 +423,8 @@ const ServersSection = () => {
                         <LicenseBadge expiry={srv.licenseExpiry} />
                         {typeof srv.clientCount === 'number' && (
                           <span className="flex items-center gap-1 text-[10px] font-mono text-slate-600">
-                            <Users size={11} /> {srv.clientCount} client{srv.clientCount > 1 ? 's' : ''}
+                            <Users size={11} /> {srv.clientCount} client
+                            {srv.clientCount > 1 ? 's' : ''}
                           </span>
                         )}
                       </div>

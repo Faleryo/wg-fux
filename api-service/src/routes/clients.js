@@ -15,7 +15,12 @@ const {
   paginationSchema,
 } = require('../../db/validation');
 const { auth } = require('../middleware/auth');
-const { runSystemCommand, writeFileAsRoot, unlinkAsRoot, readFileAsRoot } = require('../services/shell');
+const {
+  runSystemCommand,
+  writeFileAsRoot,
+  unlinkAsRoot,
+  readFileAsRoot,
+} = require('../services/shell');
 const { resolveExecutor } = require('../services/executors');
 const { getWireGuardStats, getClientDir, parseWireGuardDump } = require('../services/system');
 const { getScriptPath } = require('../services/config');
@@ -43,20 +48,46 @@ const identifierRegex = /^[a-zA-Z0-9_-]+$/;
 const requireLicense = (req, res, next) => {
   const { isLicensed } = require('../services/license');
   if (isLicensed()) return next();
-  return res.status(403).json(
-    createError(
-      'Licence expirée — renouvelez votre abonnement pour créer de nouveaux clients.',
-      null,
-      'LICENSE_EXPIRED'
-    )
-  );
+  return res
+    .status(403)
+    .json(
+      createError(
+        'Licence expirée — renouvelez votre abonnement pour créer de nouveaux clients.',
+        null,
+        'LICENSE_EXPIRED'
+      )
+    );
+};
+
+// Palier de licence : plafond de clients de l'instance (poussé par la plateforme
+// au heartbeat). Appliqué UNIQUEMENT à la création de client — les clients
+// existants ne sont jamais touchés. null = illimité (dont instance mère).
+const requireClientCapacity = async (req, res, next) => {
+  try {
+    const { clientLimit } = require('../services/license');
+    const limit = clientLimit();
+    if (limit == null) return next();
+    const [row] = await db.select({ n: sql`count(*)` }).from(schema.clients);
+    if ((Number(row?.n) || 0) < limit) return next();
+    return res
+      .status(403)
+      .json(
+        createError(
+          `Plafond de clients atteint (${limit}) — passez au palier supérieur pour en créer davantage.`,
+          null,
+          'CLIENT_LIMIT_REACHED'
+        )
+      );
+  } catch (e) {
+    return next(e);
+  }
 };
 
 // 🛡️ OBSIDIAN-HARDENING: Global parameter validation and RBAC
 router.param('container', async (req, res, next, val) => {
   if (!identifierRegex.test(val))
     return res.status(400).json(createError('Invalid container identifier'));
-  
+
   try {
     if (!(await verifyOwnership(req, val))) {
       return res.status(403).json(createError('Forbidden: Vous ne possédez pas ce conteneur.'));
@@ -122,9 +153,15 @@ router.get(
     // filtre de propriété pour les revendeurs.
     if (req.serverId) {
       const where = isReseller
-        ? and(eq(schema.containers.serverId, req.serverId), eq(schema.containers.owner, req.user.username))
+        ? and(
+            eq(schema.containers.serverId, req.serverId),
+            eq(schema.containers.owner, req.user.username)
+          )
         : eq(schema.containers.serverId, req.serverId);
-      const rows = await db.select({ name: schema.containers.name }).from(schema.containers).where(where);
+      const rows = await db
+        .select({ name: schema.containers.name })
+        .from(schema.containers)
+        .where(where);
       return res.json(rows.map((c) => c.name));
     }
 
@@ -175,12 +212,15 @@ router.post(
     }
 
     // 🛡️ Sync DB — serverId rattache le conteneur à son VPS (NULL = local).
-    await db.insert(schema.containers).values({
-      name,
-      owner: req.user.username,
-      interface: 'wg0',
-      serverId: req.serverId || null
-    }).onConflictDoNothing();
+    await db
+      .insert(schema.containers)
+      .values({
+        name,
+        owner: req.user.username,
+        interface: 'wg0',
+        serverId: req.serverId || null,
+      })
+      .onConflictDoNothing();
 
     await auditLog({
       actor: req.user.username,
@@ -376,6 +416,7 @@ router.post(
   '/',
   auth,
   requireLicense,
+  requireClientCapacity,
   creationLimiter,
   asyncWrap(async (req, res) => {
     const result = clientSchema.safeParse(req.body);
@@ -393,13 +434,19 @@ router.post(
       .limit(1);
 
     if (existingContainer) {
-      if (req.user.role !== 'admin' && req.user.role !== 'manager' && existingContainer.owner !== req.user.username) {
+      if (
+        req.user.role !== 'admin' &&
+        req.user.role !== 'manager' &&
+        existingContainer.owner !== req.user.username
+      ) {
         return res.status(403).json(createError('Forbidden: Vous ne possédez pas ce conteneur.'));
       }
     } else {
       // Container doesn't exist yet — only admin/manager may implicitly create it
       if (req.user.role !== 'admin' && req.user.role !== 'manager') {
-        return res.status(403).json(createError('Forbidden: Conteneur inexistant ou accès refusé.'));
+        return res
+          .status(403)
+          .json(createError('Forbidden: Conteneur inexistant ou accès refusé.'));
       }
     }
 
@@ -411,13 +458,15 @@ router.post(
       .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
       .limit(1);
     if (existingClient) {
-      return res.status(409).json(
-        createError(
-          `Un client nommé '${name}' existe déjà dans le conteneur '${container}'`,
-          'Client already exists',
-          'CONFLICT'
-        )
-      );
+      return res
+        .status(409)
+        .json(
+          createError(
+            `Un client nommé '${name}' existe déjà dans le conteneur '${container}'`,
+            'Client already exists',
+            'CONFLICT'
+          )
+        );
     }
 
     // Exécuteur cible (local ou SSH distant selon req.serverId).
@@ -461,7 +510,7 @@ router.post(
         name: container,
         owner: req.user.username,
         interface: 'wg0',
-        serverId: req.serverId || null
+        serverId: req.serverId || null,
       })
       .onConflictDoNothing();
 
@@ -533,15 +582,27 @@ router.post(
     let clientIp = null;
     try {
       const confText = await readClientConfig(container, name, executor);
-      const addrMatch = confText && confText.match(/^\s*Address\s*=\s*([0-9]{1,3}(?:\.[0-9]{1,3}){3})/m);
+      const addrMatch =
+        confText && confText.match(/^\s*Address\s*=\s*([0-9]{1,3}(?:\.[0-9]{1,3}){3})/m);
       if (addrMatch) clientIp = addrMatch[1];
-    } catch { /* non-blocking — ip stays null */ }
+    } catch {
+      /* non-blocking — ip stays null */
+    }
 
     let newClient;
     try {
       [newClient] = await db
         .insert(schema.clients)
-        .values({ container, name, publicKey, ip: clientIp, expiry: expiry || null, quota, uploadLimit, enabled: true })
+        .values({
+          container,
+          name,
+          publicKey,
+          ip: clientIp,
+          expiry: expiry || null,
+          quota,
+          uploadLimit,
+          enabled: true,
+        })
         .returning();
     } catch (dbErr) {
       if (
@@ -550,13 +611,15 @@ router.post(
       ) {
         // Race condition: two concurrent requests passed the early check simultaneously.
         // Return a clear French message — the client was created by the first request.
-        return res.status(409).json(
-          createError(
-            `Un client nommé '${name}' existe déjà dans le conteneur '${container}'`,
-            'Client already exists',
-            'CONFLICT'
-          )
-        );
+        return res
+          .status(409)
+          .json(
+            createError(
+              `Un client nommé '${name}' existe déjà dans le conteneur '${container}'`,
+              'Client already exists',
+              'CONFLICT'
+            )
+          );
       }
       throw dbErr;
     }
@@ -715,7 +778,9 @@ router.patch(
     if (expiry !== undefined) {
       updateData.expiry = expiry || null;
       if (expiry) {
-        const { success } = await writeFileAsRoot(path.join(clientDir, 'expiry'), expiry, { executor });
+        const { success } = await writeFileAsRoot(path.join(clientDir, 'expiry'), expiry, {
+          executor,
+        });
         if (!success) throw createError('Failed to write expiry flag', null, 'SYSTEM_ERROR');
       } else {
         await unlinkAsRoot(path.join(clientDir, 'expiry'), { executor }).catch(() => {});
@@ -725,7 +790,11 @@ router.patch(
       updateData.quota = Math.max(0, parseInt(quota, 10) || 0);
       if (updateData.quota > 0) {
         // BUG-5 FIX: Write the parsed value (updateData.quota) not the raw input (quota)
-        const { success } = await writeFileAsRoot(path.join(clientDir, 'quota'), String(updateData.quota), { executor });
+        const { success } = await writeFileAsRoot(
+          path.join(clientDir, 'quota'),
+          String(updateData.quota),
+          { executor }
+        );
         if (!success) throw createError('Failed to write quota flag', null, 'SYSTEM_ERROR');
       } else {
         await unlinkAsRoot(path.join(clientDir, 'quota'), { executor }).catch(() => {});
@@ -788,10 +857,14 @@ router.post(
     let { clients, update } = parsed.data;
     if (req.user.role !== 'admin' && req.user.role !== 'manager') {
       const ownedContainers = new Set(
-        (await db.select({ name: schema.containers.name }).from(schema.containers).where(eq(schema.containers.owner, req.user.username)))
-        .map(c => c.name)
+        (
+          await db
+            .select({ name: schema.containers.name })
+            .from(schema.containers)
+            .where(eq(schema.containers.owner, req.user.username))
+        ).map((c) => c.name)
       );
-      clients = clients.filter(c => ownedContainers.has(c.container));
+      clients = clients.filter((c) => ownedContainers.has(c.container));
       if (clients.length === 0) return res.json({ success: 0, failed: 0 });
     }
     const executor = await resolveExecutor(req);
@@ -824,12 +897,15 @@ router.post(
       try {
         const clientDir = getClientDir(client.container, client.name);
         if (update.expiry !== undefined) {
-          if (update.expiry) await writeFileAsRoot(path.join(clientDir, 'expiry'), update.expiry, { executor });
+          if (update.expiry)
+            await writeFileAsRoot(path.join(clientDir, 'expiry'), update.expiry, { executor });
           else await unlinkAsRoot(path.join(clientDir, 'expiry'), { executor }).catch(() => {});
         }
         if (update.quota !== undefined) {
           if (update.quota > 0)
-            await writeFileAsRoot(path.join(clientDir, 'quota'), String(update.quota), { executor });
+            await writeFileAsRoot(path.join(clientDir, 'quota'), String(update.quota), {
+              executor,
+            });
           else await unlinkAsRoot(path.join(clientDir, 'quota'), { executor }).catch(() => {});
         }
 
@@ -864,11 +940,13 @@ router.post(
             const clientDir = getClientDir(client.container, client.name);
             const orig = origStates[`${client.container}/${client.name}`] || {};
             if (update.expiry !== undefined) {
-              if (orig.expiry != null) await writeFileAsRoot(path.join(clientDir, 'expiry'), orig.expiry, { executor });
+              if (orig.expiry != null)
+                await writeFileAsRoot(path.join(clientDir, 'expiry'), orig.expiry, { executor });
               else await unlinkAsRoot(path.join(clientDir, 'expiry'), { executor }).catch(() => {});
             }
             if (update.quota !== undefined) {
-              if (orig.quota != null) await writeFileAsRoot(path.join(clientDir, 'quota'), orig.quota, { executor });
+              if (orig.quota != null)
+                await writeFileAsRoot(path.join(clientDir, 'quota'), orig.quota, { executor });
               else await unlinkAsRoot(path.join(clientDir, 'quota'), { executor }).catch(() => {});
             }
           } catch (_) {
@@ -905,10 +983,14 @@ router.post(
     let { clients } = parsed.data;
     if (req.user.role !== 'admin' && req.user.role !== 'manager') {
       const ownedContainers = new Set(
-        (await db.select({ name: schema.containers.name }).from(schema.containers).where(eq(schema.containers.owner, req.user.username)))
-        .map(c => c.name)
+        (
+          await db
+            .select({ name: schema.containers.name })
+            .from(schema.containers)
+            .where(eq(schema.containers.owner, req.user.username))
+        ).map((c) => c.name)
       );
-      clients = clients.filter(c => ownedContainers.has(c.container));
+      clients = clients.filter((c) => ownedContainers.has(c.container));
       if (clients.length === 0) return res.json({ success: 0, failed: 0 });
     }
     const executor = await resolveExecutor(req);
@@ -975,7 +1057,8 @@ router.post(
       .from(schema.clients)
       .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
       .limit(1);
-    if (!clientToMove) return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
+    if (!clientToMove)
+      return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
     const executor = await resolveExecutor(req);
     const { success, error } = await runSystemCommand(
       getScriptPath('wg-move-client.sh'),
@@ -1119,16 +1202,15 @@ router.get(
     const pubKeys = allClients.map((c) => c.publicKey).filter(Boolean);
     const usageRows =
       pubKeys.length > 0
-        ? await inArrayBatched(
-            schema.usage,
-            schema.usage.publicKey,
-            pubKeys,
-            (chunk) => db.select().from(schema.usage).where(inArray(schema.usage.publicKey, chunk))
+        ? await inArrayBatched(schema.usage, schema.usage.publicKey, pubKeys, (chunk) =>
+            db.select().from(schema.usage).where(inArray(schema.usage.publicKey, chunk))
           )
         : [];
 
     const usageMap = {};
-    usageRows.forEach((u) => { usageMap[u.publicKey] = u.total || 0; });
+    usageRows.forEach((u) => {
+      usageMap[u.publicKey] = u.total || 0;
+    });
 
     const result = {};
     for (const ctr of visible) {

@@ -38,6 +38,18 @@ const AGH_BASE_URL = process.env.AGH_BASE_URL || 'http://adguard:3000';
 const AGH_USER = (process.env.AGH_USER || '').trim();
 const AGH_PASS = (process.env.AGH_PASSWORD || '').trim();
 
+// État de licence de CETTE instance (revendeur) : validité, échéance, palier,
+// maj disponible, marque poussée par la plateforme. Sur l'instance mère
+// (licence désactivée) : enabled:false — l'UI n'affiche rien.
+router.get(
+  '/license',
+  auth,
+  asyncWrap(async (req, res) => {
+    const { licenseStatus } = require('../services/license');
+    res.json(licenseStatus());
+  })
+);
+
 router.get(
   '/adguard-status',
   auth,

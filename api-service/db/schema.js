@@ -17,6 +17,10 @@ const users = sqliteTable(
     parentId: integer('parentId').references(() => users.id, { onDelete: 'set null' }),
     // Prix de revente d'1 crédit aux enfants, en centimes (marge = revente − acquisition).
     sellPriceCents: integer('sellPriceCents'),
+    // Contact (reçus, alertes de licence, reset). Optionnel mais fortement conseillé.
+    email: text('email'),
+    // Horodatage d'acceptation des CGU (exigée à l'inscription si terms_url configuré).
+    acceptedTermsAt: integer('acceptedTermsAt', { mode: 'timestamp' }),
   },
   (table) => ({
     usernameIdx: uniqueIndex('username_idx').on(table.username),
@@ -108,6 +112,8 @@ const servers = sqliteTable(
     licenseExpiry: integer('licenseExpiry', { mode: 'timestamp' }),
     lastHeartbeat: integer('lastHeartbeat', { mode: 'timestamp' }), // dernier phone-home de l'instance
     clientCount: integer('clientCount').default(0), // télémétrie (tarification par palier)
+    maxClients: integer('maxClients'), // palier de licence : plafond de clients (NULL = illimité)
+    updateChannel: text('updateChannel').default('stable'), // stable | canary | hold (maj flotte)
     createdAt: integer('createdAt', { mode: 'timestamp' }).default(
       sql`(cast(strftime('%s','now') as int))`
     ),
@@ -213,6 +219,38 @@ const appSettings = sqliteTable('app_settings', {
   ),
 });
 
+// Anti-abus d'essai : un host donné n'obtient les 30 jours gratuits qu'UNE fois,
+// même après suppression/recréation du serveur (ré-enrôlement = licence courte).
+const trialGrants = sqliteTable('trial_grants', {
+  host: text('host').primaryKey(),
+  firstOwnerId: integer('firstOwnerId'),
+  grantedAt: integer('grantedAt', { mode: 'timestamp' }).default(
+    sql`(cast(strftime('%s','now') as int))`
+  ),
+});
+
+// Invitations d'inscription : un revendeur top-level (ou l'admin) génère un lien ;
+// l'invité crée son compte rattaché à l'inviteur. Token stocké HACHÉ, usage unique.
+const invites = sqliteTable(
+  'invites',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    tokenHash: text('tokenHash').notNull().unique(),
+    inviterId: integer('inviterId')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: integer('createdAt', { mode: 'timestamp' }).default(
+      sql`(cast(strftime('%s','now') as int))`
+    ),
+    expiresAt: integer('expiresAt', { mode: 'timestamp' }).notNull(),
+    usedAt: integer('usedAt', { mode: 'timestamp' }),
+    usedByUserId: integer('usedByUserId'),
+  },
+  (t) => ({
+    inviteTokenIdx: uniqueIndex('invite_token_idx').on(t.tokenHash),
+  })
+);
+
 // White-label : habillage d'un compte revendeur (résolu au plus proche ancêtre).
 const brands = sqliteTable('brands', {
   userId: integer('userId')
@@ -236,4 +274,6 @@ module.exports = {
   wallets,
   ledger,
   brands,
+  trialGrants,
+  invites,
 };

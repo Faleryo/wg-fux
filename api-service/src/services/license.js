@@ -83,6 +83,10 @@ async function checkLicenseNow() {
       valid: Boolean(data.valid),
       expiresAt: data.expiresAt || null,
       latestVersion: data.latestVersion || null,
+      // Palier de licence : plafond de clients (null = illimité), appliqué ici.
+      maxClients: Number.isInteger(data.maxClients) ? data.maxClients : null,
+      // White-label poussé par la plateforme (nom/logo/couleur du revendeur).
+      brand: data.brand && typeof data.brand === 'object' ? data.brand : null,
       lastCheckOk: Date.now(),
       firstFailure: null,
     });
@@ -136,7 +140,18 @@ function licenseStatus() {
     currentVersion,
     latestVersion,
     updateAvailable: Boolean(latestVersion && latestVersion !== currentVersion),
+    maxClients: Number.isInteger(s.maxClients) ? s.maxClients : null,
+    brand: s.brand || null,
   };
 }
 
-module.exports = { checkLicenseNow, isLicensed, licenseStatus, licenseEnabled };
+/**
+ * Plafond de clients du palier de licence. null = illimité (dont instance mère).
+ */
+function clientLimit() {
+  if (!licenseEnabled()) return null;
+  const s = loadState();
+  return Number.isInteger(s.maxClients) ? s.maxClients : null;
+}
+
+module.exports = { checkLicenseNow, isLicensed, licenseStatus, licenseEnabled, clientLimit };

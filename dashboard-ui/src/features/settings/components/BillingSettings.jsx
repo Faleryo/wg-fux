@@ -69,7 +69,11 @@ const BillingSettings = ({ addToast, isDark }) => {
   };
 
   if (!settings) {
-    return <div className="py-16 text-center text-slate-500 text-xs uppercase tracking-widest">Chargement…</div>;
+    return (
+      <div className="py-16 text-center text-slate-500 text-xs uppercase tracking-widest">
+        Chargement…
+      </div>
+    );
   }
 
   const conf = (k) => Boolean(settings[k]?.configured);
@@ -85,58 +89,170 @@ const BillingSettings = ({ addToast, isDark }) => {
     >
       {/* Stripe */}
       <section className="space-y-6">
-        <h3 className={cn('text-xl font-black flex items-center gap-3 italic uppercase', isDark ? 'text-white' : 'text-slate-900')}>
+        <h3
+          className={cn(
+            'text-xl font-black flex items-center gap-3 italic uppercase',
+            isDark ? 'text-white' : 'text-slate-900'
+          )}
+        >
           <CreditCard size={20} className="text-indigo-400" /> Stripe — Renouvellement auto
         </h3>
         <p className="text-[11px] text-slate-500 leading-relaxed max-w-2xl">
-          Quand un revendeur paie, sa licence est prolongée automatiquement. Configurez l&apos;URL du webhook
-          Stripe sur <code className="text-indigo-400">https://VOTRE-DOMAINE/stripe/webhook</code>, avec dans
-          les métadonnées du paiement <code className="text-indigo-400">serverId</code> et{' '}
-          <code className="text-indigo-400">days</code>. Sans Stripe, le contact ci-dessous est affiché aux revendeurs.
+          Les revendeurs top-level achètent leurs crédits par Stripe Checkout (1 crédit = 30 jours
+          de licence pour 1 serveur — le renouvellement débite le portefeuille automatiquement).
+          Configurez l&apos;URL du webhook Stripe sur{' '}
+          <code className="text-indigo-400">https://VOTRE-DOMAINE/stripe/webhook</code>. Sans
+          Stripe, le contact ci-dessous est affiché aux revendeurs.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Field label="Clé secrète Stripe" icon={KeyRound} secret configured={conf('stripe_secret_key')}
-            value={form.stripe_secret_key ?? ''} onChange={(v) => set('stripe_secret_key', v)}
-            placeholder="sk_live_…" isDark={isDark} />
-          <Field label="Secret du webhook" icon={KeyRound} secret configured={conf('stripe_webhook_secret')}
-            value={form.stripe_webhook_secret ?? ''} onChange={(v) => set('stripe_webhook_secret', v)}
-            placeholder="whsec_…" isDark={isDark} />
-          <Field label="Clé publiable" value={form.stripe_publishable_key ?? pub('stripe_publishable_key')}
-            onChange={(v) => set('stripe_publishable_key', v)} placeholder="pk_live_…" isDark={isDark} />
-          <Field label="ID de prix (Price ID)" value={form.stripe_price_id ?? pub('stripe_price_id')}
-            onChange={(v) => set('stripe_price_id', v)} placeholder="price_…" isDark={isDark} />
+          <Field
+            label="Clé secrète Stripe"
+            icon={KeyRound}
+            secret
+            configured={conf('stripe_secret_key')}
+            value={form.stripe_secret_key ?? ''}
+            onChange={(v) => set('stripe_secret_key', v)}
+            placeholder="sk_live_…"
+            isDark={isDark}
+          />
+          <Field
+            label="Secret du webhook"
+            icon={KeyRound}
+            secret
+            configured={conf('stripe_webhook_secret')}
+            value={form.stripe_webhook_secret ?? ''}
+            onChange={(v) => set('stripe_webhook_secret', v)}
+            placeholder="whsec_…"
+            isDark={isDark}
+          />
+          <Field
+            label="Clé publiable"
+            value={form.stripe_publishable_key ?? pub('stripe_publishable_key')}
+            onChange={(v) => set('stripe_publishable_key', v)}
+            placeholder="pk_live_…"
+            isDark={isDark}
+          />
+          <Field
+            label="ID de prix (Price ID)"
+            value={form.stripe_price_id ?? pub('stripe_price_id')}
+            onChange={(v) => set('stripe_price_id', v)}
+            placeholder="price_…"
+            isDark={isDark}
+          />
+          <Field
+            label="Prix d'1 crédit (centimes)"
+            value={form.credit_price_cents ?? pub('credit_price_cents')}
+            onChange={(v) => set('credit_price_cents', v)}
+            placeholder="ex: 1500 = 15,00 €"
+            isDark={isDark}
+          />
+          <Field
+            label="Devise (ISO)"
+            value={form.billing_currency ?? pub('billing_currency')}
+            onChange={(v) => set('billing_currency', v)}
+            placeholder="eur"
+            isDark={isDark}
+          />
+        </div>
+      </section>
+
+      {/* Plateforme : CGU + gel des mises à jour de la flotte */}
+      <section className="space-y-6">
+        <h3
+          className={cn(
+            'text-xl font-black flex items-center gap-3 italic uppercase',
+            isDark ? 'text-white' : 'text-slate-900'
+          )}
+        >
+          <KeyRound size={20} className="text-amber-400" /> Plateforme
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Field
+            label="URL des CGU (exigées à l'inscription si définie)"
+            value={form.terms_url ?? pub('terms_url')}
+            onChange={(v) => set('terms_url', v)}
+            placeholder="https://votre-domaine/cgu"
+            isDark={isDark}
+          />
+          <Field
+            label="Pause des mises à jour flotte (1 = gelées)"
+            value={form.update_paused ?? pub('update_paused')}
+            onChange={(v) => set('update_paused', v)}
+            placeholder="0 ou 1"
+            isDark={isDark}
+          />
         </div>
       </section>
 
       {/* Contact de paiement (fallback sans Stripe) */}
       <section className="space-y-6">
-        <h3 className={cn('text-xl font-black flex items-center gap-3 italic uppercase', isDark ? 'text-white' : 'text-slate-900')}>
+        <h3
+          className={cn(
+            'text-xl font-black flex items-center gap-3 italic uppercase',
+            isDark ? 'text-white' : 'text-slate-900'
+          )}
+        >
           <MessageCircle size={20} className="text-emerald-400" /> Contact de paiement
         </h3>
         <p className="text-[11px] text-slate-500 max-w-2xl">
-          Affiché aux revendeurs pour renouveler quand Stripe n&apos;est pas actif (paiement manuel via WhatsApp/Telegram).
+          Affiché aux revendeurs pour renouveler quand Stripe n&apos;est pas actif (paiement manuel
+          via WhatsApp/Telegram).
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Field label="WhatsApp" icon={MessageCircle} value={form.payment_contact_whatsapp ?? pub('payment_contact_whatsapp')}
-            onChange={(v) => set('payment_contact_whatsapp', v)} placeholder="+33 6 12 34 56 78" isDark={isDark} />
-          <Field label="Telegram (contact)" icon={Send} value={form.payment_contact_telegram ?? pub('payment_contact_telegram')}
-            onChange={(v) => set('payment_contact_telegram', v)} placeholder="@moncompte" isDark={isDark} />
+          <Field
+            label="WhatsApp"
+            icon={MessageCircle}
+            value={form.payment_contact_whatsapp ?? pub('payment_contact_whatsapp')}
+            onChange={(v) => set('payment_contact_whatsapp', v)}
+            placeholder="+33 6 12 34 56 78"
+            isDark={isDark}
+          />
+          <Field
+            label="Telegram (contact)"
+            icon={Send}
+            value={form.payment_contact_telegram ?? pub('payment_contact_telegram')}
+            onChange={(v) => set('payment_contact_telegram', v)}
+            placeholder="@moncompte"
+            isDark={isDark}
+          />
         </div>
-        <Field label="Instructions de paiement" value={form.payment_instructions ?? pub('payment_instructions')}
-          onChange={(v) => set('payment_instructions', v)} placeholder="ex: Virement / PayPal — 15€/mois par VPS" isDark={isDark} />
+        <Field
+          label="Instructions de paiement"
+          value={form.payment_instructions ?? pub('payment_instructions')}
+          onChange={(v) => set('payment_instructions', v)}
+          placeholder="ex: Virement / PayPal — 15€/mois par VPS"
+          isDark={isDark}
+        />
       </section>
 
       {/* Telegram (bot d'alertes) */}
       <section className="space-y-6">
-        <h3 className={cn('text-xl font-black flex items-center gap-3 italic uppercase', isDark ? 'text-white' : 'text-slate-900')}>
+        <h3
+          className={cn(
+            'text-xl font-black flex items-center gap-3 italic uppercase',
+            isDark ? 'text-white' : 'text-slate-900'
+          )}
+        >
           <Send size={20} className="text-sky-400" /> Bot Telegram (alertes)
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Field label="Token du bot" icon={KeyRound} secret configured={conf('telegram_bot_token')}
-            value={form.telegram_bot_token ?? ''} onChange={(v) => set('telegram_bot_token', v)}
-            placeholder="123456:ABC-DEF…" isDark={isDark} />
-          <Field label="Chat ID" value={form.telegram_chat_id ?? pub('telegram_chat_id')}
-            onChange={(v) => set('telegram_chat_id', v)} placeholder="-100123456789" isDark={isDark} />
+          <Field
+            label="Token du bot"
+            icon={KeyRound}
+            secret
+            configured={conf('telegram_bot_token')}
+            value={form.telegram_bot_token ?? ''}
+            onChange={(v) => set('telegram_bot_token', v)}
+            placeholder="123456:ABC-DEF…"
+            isDark={isDark}
+          />
+          <Field
+            label="Chat ID"
+            value={form.telegram_chat_id ?? pub('telegram_chat_id')}
+            onChange={(v) => set('telegram_chat_id', v)}
+            placeholder="-100123456789"
+            isDark={isDark}
+          />
         </div>
       </section>
 

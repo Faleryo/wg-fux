@@ -94,8 +94,7 @@ const loadSchedules = async () => {
 
       const job = schedule.scheduleJob(rule, () => {
         const rawProfile = task.profile || '';
-        const safeProfile =
-          /^[a-zA-Z0-9_-]{1,64}$/.test(rawProfile) ? rawProfile : 'default';
+        const safeProfile = /^[a-zA-Z0-9_-]{1,64}$/.test(rawProfile) ? rawProfile : 'default';
         runSystemCommand(getScriptPath('wg-optimize.sh'), [safeProfile]).catch((e) =>
           log.error('jobs', 'Scheduled optimization failed', { err: e.message })
         );
@@ -141,7 +140,11 @@ const updateUsage = async () => {
       // historical WireGuard traffic as a spike on the first poll run.
       const isFirstSeen = !Object.prototype.hasOwnProperty.call(lastSeenStats, pubKey);
       const lastSession = lastSeenStats[pubKey] || 0;
-      const delta = isFirstSeen ? 0 : (currentTotal >= lastSession ? currentTotal - lastSession : currentTotal);
+      const delta = isFirstSeen
+        ? 0
+        : currentTotal >= lastSession
+          ? currentTotal - lastSession
+          : currentTotal;
       lastSeenStats[pubKey] = currentTotal;
 
       if (delta > 0) {
@@ -188,17 +191,31 @@ const updateUsage = async () => {
             if (!_notifiedQuota.has(pubKey)) {
               if (!_quotaCache.has(pubKey)) {
                 const [client] = await tx
-                  .select({ name: schema.clients.name, container: schema.clients.container, quota: schema.clients.quota })
+                  .select({
+                    name: schema.clients.name,
+                    container: schema.clients.container,
+                    quota: schema.clients.quota,
+                  })
                   .from(schema.clients)
                   .where(eq(schema.clients.publicKey, pubKey))
                   .limit(1);
                 const qb = client?.quota > 0 ? client.quota * 1024 * 1024 * 1024 : 0;
-                _quotaCache.set(pubKey, { bytes: qb, name: client?.name, container: client?.container, gb: client?.quota });
+                _quotaCache.set(pubKey, {
+                  bytes: qb,
+                  name: client?.name,
+                  container: client?.container,
+                  gb: client?.quota,
+                });
               }
               const cached = _quotaCache.get(pubKey);
               if (cached.bytes > 0 && prevTotal < cached.bytes && newTotal >= cached.bytes) {
                 _notifiedQuota.add(pubKey);
-                notify.send('quota', `🚨 QUOTA DÉPASSÉ: Client '${cached.name}' (${cached.container}) a consommé ${cached.gb} GB — accès suspendu.`).catch(() => {});
+                notify
+                  .send(
+                    'quota',
+                    `🚨 QUOTA DÉPASSÉ: Client '${cached.name}' (${cached.container}) a consommé ${cached.gb} GB — accès suspendu.`
+                  )
+                  .catch(() => {});
               }
             }
           });
@@ -353,7 +370,10 @@ const interfaceWatchdog = async () => {
       `🚨 ALERTE SRE: Interface ${interfaceName} détectée DOWN. Tentative d'auto-réparation en cours...`,
     ]).catch(() => {});
 
-    const repair = await runSystemCommand(process.env.WG_QUICK_BIN || 'wg-quick', ['up', interfaceName]);
+    const repair = await runSystemCommand(process.env.WG_QUICK_BIN || 'wg-quick', [
+      'up',
+      interfaceName,
+    ]);
     const healed = repair.success;
     const error = repair.error;
 
@@ -432,7 +452,10 @@ const reconcileContainers = async () => {
 
     for (const name of fsContainers) {
       if (!dbNames.has(name)) {
-        log.warn('reconcile', `Container '${name}' on filesystem but missing from DB — auto-inserting`);
+        log.warn(
+          'reconcile',
+          `Container '${name}' on filesystem but missing from DB — auto-inserting`
+        );
         await db
           .insert(schema.containers)
           .values({ name, owner: 'admin', interface: process.env.WG_INTERFACE || 'wg0' })
@@ -456,7 +479,11 @@ const checkClientExpirations = async () => {
 
     // Clients with expiry between now and 24h from now
     const expiringSoon = await db
-      .select({ name: schema.clients.name, container: schema.clients.container, expiry: schema.clients.expiry })
+      .select({
+        name: schema.clients.name,
+        container: schema.clients.container,
+        expiry: schema.clients.expiry,
+      })
       .from(schema.clients)
       .where(and(gte(schema.clients.expiry, todayStr), lte(schema.clients.expiry, in24hStr)));
 
@@ -464,7 +491,12 @@ const checkClientExpirations = async () => {
       const key = `expiry-${client.container}-${client.name}-${client.expiry}`;
       if (_notifiedExpiry.has(key)) continue;
       _notifiedExpiry.add(key);
-      notify.send('expiry', `⏰ EXPIRATION IMMINENTE: Client '${client.name}' (${client.container}) expire le ${client.expiry}.`).catch(() => {});
+      notify
+        .send(
+          'expiry',
+          `⏰ EXPIRATION IMMINENTE: Client '${client.name}' (${client.container}) expire le ${client.expiry}.`
+        )
+        .catch(() => {});
     }
   } catch (e) {
     log.error('jobs', 'Expiration check error', { err: e.message });
@@ -479,6 +511,16 @@ const checkClientExpirations = async () => {
 // On ignore pending/provisioning (transitoires) et offline (terminal — réactivé
 // manuellement ou au prochain provisioning).
 const AUTONOMOUS_STALE_MS = 24 * 3600 * 1000;
+
+// Alerte Telegram admin quand un serveur PASSE offline (la boucle saute les
+// serveurs déjà offline, donc chaque appel ici est une vraie transition).
+function alertServerOffline(server, reason) {
+  const { sendAdminAlert, escapeHtml } = require('./telegramBot');
+  sendAdminAlert(
+    `🔴 <b>Serveur hors ligne</b>\n<b>${escapeHtml(server.label)}</b> (#${server.id}, ${escapeHtml(server.host || '?')}) : ${escapeHtml(reason)}`
+  ).catch(() => {});
+}
+
 let isHeartbeating = false;
 const serverHeartbeat = async () => {
   if (isHeartbeating) return;
@@ -496,9 +538,7 @@ const serverHeartbeat = async () => {
         // vient d'être promue), on compte les ticks silencieux (60s/tick).
         const last = server.lastHeartbeat ? new Date(server.lastHeartbeat).getTime() : 0;
         const silentTicks = (server.consecutiveFailures || 0) + 1;
-        const stale = last
-          ? Date.now() - last >= AUTONOMOUS_STALE_MS
-          : silentTicks >= 1440; // 1440 ticks × 60s = 24h sans jamais de phone-home
+        const stale = last ? Date.now() - last >= AUTONOMOUS_STALE_MS : silentTicks >= 1440; // 1440 ticks × 60s = 24h sans jamais de phone-home
         if (!stale) {
           if (!last) {
             await db
@@ -516,6 +556,7 @@ const serverHeartbeat = async () => {
             lastError: 'Aucun heartbeat de licence depuis plus de 24h',
           })
           .where(eq(schema.servers.id, server.id));
+        alertServerOffline(server, 'aucun heartbeat de licence depuis plus de 24h');
         continue;
       }
       try {
@@ -529,7 +570,12 @@ const serverHeartbeat = async () => {
       if (online) {
         await db
           .update(schema.servers)
-          .set({ status: 'online', consecutiveFailures: 0, lastChecked: new Date(), lastError: null })
+          .set({
+            status: 'online',
+            consecutiveFailures: 0,
+            lastChecked: new Date(),
+            lastError: null,
+          })
           .where(eq(schema.servers.id, server.id));
       } else {
         const failures = (server.consecutiveFailures || 0) + 1;
@@ -542,6 +588,7 @@ const serverHeartbeat = async () => {
             lastError: errMsg,
           })
           .where(eq(schema.servers.id, server.id));
+        if (failures >= 3) alertServerOffline(server, errMsg || 'sonde SSH en échec');
       }
     }
   } catch (e) {
@@ -551,35 +598,89 @@ const serverHeartbeat = async () => {
   }
 };
 
-// Débit mensuel de crédits : 1 crédit par serveur `online` prélevé sur le
-// portefeuille de son propriétaire. COMPTA INTERNE UNIQUEMENT (décision :
-// la licence reste la source de vérité de l'état serveur — aucune suspension
-// ici). Un solde insuffisant est journalisé/audité, jamais mis à découvert.
-// Anti double-débit : au plus 1 débit par (serveur, mois calendaire), tracé via
-// ledger.ref = `srv:<id>:<YYYY-MM>`.
-let isBillingCredits = false;
-const debitMonthlyCredits = async () => {
-  if (isBillingCredits) return;
-  isBillingCredits = true;
+// ─────────────────────────────────────────────────────────────────────────────
+// Renouvellement de licence PAR CRÉDITS : le crédit est le moyen de paiement de
+// la licence (1 crédit = 30 jours de licence pour 1 serveur). Quand une licence
+// approche de l'échéance (≤ 3 jours), on débite 1 crédit du portefeuille du
+// propriétaire et on prolonge de 30 jours. Solde insuffisant → la licence expire
+// naturellement (création bloquée sur l'instance, JAMAIS de coupure VPN) et
+// l'admin est alerté. Ainsi la marge N1→N2 sur les crédits est inévitable : la
+// seule façon de garder une licence active est de détenir des crédits.
+//
+// Garde-fous :
+//  - serveurs de l'admin : jamais débités (la plateforme ne se facture pas).
+//  - instance morte (aucun heartbeat depuis 30 j) : on ne facture pas un serveur
+//    abandonné ; le renouvellement reprend si l'instance re-heartbeat.
+//  - idempotence naturelle : après prolongation, l'échéance sort de la fenêtre.
+//  - un renouvellement tardif repart de MAINTENANT (on ne facture pas le trou).
+const RENEW_WINDOW_MS = 3 * 24 * 3600 * 1000; // débit à J-3 de l'échéance
+const RENEW_PERIOD_MS = 30 * 24 * 3600 * 1000; // 1 crédit = 30 jours
+const DEAD_INSTANCE_MS = 30 * 24 * 3600 * 1000; // silence > 30 j = abandonné
+const _shortfallAlerted = new Map(); // serverId → ts dernière alerte (throttle 24h)
+let isRenewingLicenses = false;
+const renewLicensesByCredits = async () => {
+  if (isRenewingLicenses) return;
+  isRenewingLicenses = true;
   try {
     const wallet = require('./wallet');
-    const month = new Date().toISOString().slice(0, 7); // YYYY-MM
-    const servers = await db
-      .select({ id: schema.servers.id, ownerId: schema.servers.ownerId, label: schema.servers.label })
-      .from(schema.servers)
-      .where(eq(schema.servers.status, 'online'));
+    const { sendAdminAlert, escapeHtml } = require('./telegramBot');
+    const now = Date.now();
 
-    const alreadyStmt = sqlite.prepare(
-      'SELECT 1 FROM ledger WHERE ref = ? AND reason = ? LIMIT 1'
-    );
+    const servers = await db
+      .select({
+        id: schema.servers.id,
+        ownerId: schema.servers.ownerId,
+        label: schema.servers.label,
+        licenseKey: schema.servers.licenseKey,
+        licenseExpiry: schema.servers.licenseExpiry,
+        lastHeartbeat: schema.servers.lastHeartbeat,
+        createdAt: schema.servers.createdAt,
+        ownerRole: schema.users.role,
+        ownerName: schema.users.username,
+      })
+      .from(schema.servers)
+      .innerJoin(schema.users, eq(schema.servers.ownerId, schema.users.id));
+
     for (const server of servers) {
-      const ref = `srv:${server.id}:${month}`;
-      if (alreadyStmt.get(ref, 'monthly')) continue; // déjà débité ce mois-ci
+      if (!server.licenseKey || server.ownerRole === 'admin') continue;
+      const expiry = server.licenseExpiry ? new Date(server.licenseExpiry).getTime() : 0;
+      if (!expiry || expiry > now + RENEW_WINDOW_MS) continue; // rien d'exigible
+
+      // Instance abandonnée : jamais de heartbeat ET création vieille de 30 j,
+      // ou dernier heartbeat trop ancien → on ne débite pas.
+      const lastSeen = server.lastHeartbeat
+        ? new Date(server.lastHeartbeat).getTime()
+        : server.createdAt
+          ? new Date(server.createdAt).getTime()
+          : 0;
+      if (!lastSeen || now - lastSeen > DEAD_INSTANCE_MS) continue;
+
+      const newExpiry = new Date(Math.max(now, expiry) + RENEW_PERIOD_MS);
+      const ref = `lic:${server.id}:${newExpiry.toISOString().slice(0, 10)}`;
       try {
-        wallet.debit(server.ownerId, 1, 'monthly', { ref });
+        wallet.debit(server.ownerId, 1, 'license_renewal', { ref });
+        await db
+          .update(schema.servers)
+          .set({ licenseExpiry: newExpiry })
+          .where(eq(schema.servers.id, server.id));
+        _shortfallAlerted.delete(server.id);
+        await auditLog({
+          actor: 'system',
+          action: 'renew_license',
+          targetType: 'server',
+          targetName: server.label,
+          details: {
+            serverId: server.id,
+            ownerId: server.ownerId,
+            credits: 1,
+            ref,
+            licenseExpiry: newExpiry.toISOString(),
+          },
+        });
+        log.info('jobs', 'Licence renouvelée par crédit', { serverId: server.id, ref });
       } catch (e) {
         if (e.code === 'INSUFFICIENT_FUNDS') {
-          log.warn('jobs', 'Solde insuffisant pour débit mensuel', {
+          log.warn('jobs', 'Solde insuffisant — la licence va expirer', {
             serverId: server.id,
             ownerId: server.ownerId,
           });
@@ -588,17 +689,28 @@ const debitMonthlyCredits = async () => {
             action: 'credit_shortfall',
             targetType: 'server',
             targetName: server.label,
-            details: { serverId: server.id, ownerId: server.ownerId, month },
+            details: { serverId: server.id, ownerId: server.ownerId },
           });
+          const lastAlert = _shortfallAlerted.get(server.id) || 0;
+          if (now - lastAlert > 24 * 3600 * 1000) {
+            _shortfallAlerted.set(server.id, now);
+            sendAdminAlert(
+              `💳 <b>Solde insuffisant</b>\nServeur <b>${escapeHtml(server.label)}</b> (#${server.id}) de <b>${escapeHtml(server.ownerName)}</b> : ` +
+                `licence expirant le ${new Date(expiry).toISOString().slice(0, 10)} — 1 crédit requis pour renouveler.`
+            ).catch(() => {});
+          }
         } else {
-          log.error('jobs', 'Débit mensuel échoué', { serverId: server.id, err: e.message });
+          log.error('jobs', 'Renouvellement par crédit échoué', {
+            serverId: server.id,
+            err: e.message,
+          });
         }
       }
     }
   } catch (e) {
-    log.error('jobs', 'Monthly credit billing error', { err: e.message });
+    log.error('jobs', 'License renewal error', { err: e.message });
   } finally {
-    isBillingCredits = false;
+    isRenewingLicenses = false;
   }
 };
 
@@ -615,7 +727,7 @@ const startJobs = () => {
   setInterval(reconcileContainers, 86400000); // Daily filesystem↔DB reconciliation
   setInterval(checkClientExpirations, 6 * 3600000); // Every 6h
   setInterval(pruneNotificationSets, 3600000); // Hourly pruning of notification sets
-  setInterval(debitMonthlyCredits, 6 * 3600000); // Débit crédits (idempotent/mois)
+  setInterval(renewLicensesByCredits, 6 * 3600000); // Renouvellement licences par crédits
   reconcileContainers(); // Run once at startup
   checkClientExpirations(); // Check expirations at startup
   scheduleAutomaticBackup();
@@ -708,7 +820,7 @@ module.exports = {
   rotateEnforcerLogs,
   pruneSeenStats,
   checkClientExpirations,
-  debitMonthlyCredits,
+  renewLicensesByCredits,
   invalidateSharedPeersCache,
   SCHEDULE_FILE,
 };

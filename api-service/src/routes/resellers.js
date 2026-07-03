@@ -1,7 +1,8 @@
 // routes/resellers.js — Réseau de distribution. Monté /api/resellers.
 //   POST /            : créer un sous-revendeur (revendeur N1 ou admin).
 //   GET  /            : vue du réseau (sous-arbre : comptes + solde + conso).
-//   PUT  /:id/price   : fixer son prix de revente d'1 crédit (sellPriceCents).
+//   PUT  /price       : fixer son prix de revente d'1 crédit (sellPriceCents).
+//   POST /invites     : générer un lien d'inscription (croissance du réseau).
 
 const express = require('express');
 const { z } = require('zod');
@@ -17,9 +18,14 @@ const { auditLog } = require('../services/audit');
 const { asyncWrap, createError } = require('../utils/errors');
 
 const createSchema = z.object({
-  username: z.string().min(2).max(32).regex(/^[a-zA-Z0-9_-]+$/, 'Nom invalide'),
+  username: z
+    .string()
+    .min(2)
+    .max(32)
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Nom invalide'),
   password: z.string().min(8, 'Mot de passe trop court (min 8)'),
   sellPriceCents: z.number().int().nonnegative().optional(),
+  email: z.string().email('Email invalide').max(255).optional(),
 });
 
 // Crée un sous-revendeur rattaché à req.user. Cap de profondeur 2 : seul un
@@ -35,8 +41,9 @@ router.post(
         .json(createError('Un sous-revendeur ne peut pas créer de revendeurs', null, 'FORBIDDEN'));
     }
     const parsed = createSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json(createError(parsed.error, 'Validation échouée'));
-    const { username, password, sellPriceCents } = parsed.data;
+    if (!parsed.success)
+      return res.status(400).json(createError(parsed.error, 'Validation échouée'));
+    const { username, password, sellPriceCents, email } = parsed.data;
 
     const [exists] = await db
       .select({ id: schema.users.id })
@@ -46,6 +53,11 @@ router.post(
     if (exists) return res.status(409).json(createError('Nom déjà pris', null, 'CONFLICT'));
 
     const { hash, salt } = await hashPassword(password);
+    // Convention de hiérarchie : un revendeur créé par l'ADMIN est top-level
+    // (parentId NULL — il peut revendre et créer des N2). Créé par un N1 →
+    // sous-revendeur (parentId = N1). Sans ça, les N1 créés par l'admin étaient
+    // traités comme des N2 incapables de revendre (incohérence corrigée).
+    const parentId = isAdmin ? null : req.user.id;
     let created;
     try {
       [created] = await db
@@ -55,14 +67,18 @@ router.post(
           hash,
           salt,
           role: 'reseller',
-          parentId: req.user.id,
+          parentId,
+          email: email ?? null,
           sellPriceCents: sellPriceCents ?? null,
           enabled: true,
         })
         .returning({ id: schema.users.id, username: schema.users.username });
     } catch (dbErr) {
       // Course entre le check d'existence et l'insert (index unique username).
-      if (dbErr.code === 'SQLITE_CONSTRAINT_UNIQUE' || dbErr.message?.includes('UNIQUE constraint')) {
+      if (
+        dbErr.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+        dbErr.message?.includes('UNIQUE constraint')
+      ) {
         return res.status(409).json(createError('Nom déjà pris', null, 'CONFLICT'));
       }
       throw dbErr;
@@ -74,7 +90,7 @@ router.post(
       action: 'create_reseller',
       targetType: 'user',
       targetName: username,
-      details: { childId: created.id, parentId: req.user.id },
+      details: { childId: created.id, parentId },
       ip: req.ip,
     });
     res.json({ success: true, id: created.id, username: created.username });
@@ -87,26 +103,77 @@ router.get(
   '/',
   requireReseller,
   asyncWrap(async (req, res) => {
-    const ids = descendantIds(req.user.id).filter((id) => id !== req.user.id);
-    if (ids.length === 0) return res.json([]);
+    const fields = {
+      id: schema.users.id,
+      username: schema.users.username,
+      role: schema.users.role,
+      parentId: schema.users.parentId,
+      sellPriceCents: schema.users.sellPriceCents,
+      enabled: schema.users.enabled,
+      email: schema.users.email,
+    };
 
-    const rows = await db
-      .select({
-        id: schema.users.id,
-        username: schema.users.username,
-        role: schema.users.role,
-        parentId: schema.users.parentId,
-        sellPriceCents: schema.users.sellPriceCents,
-        enabled: schema.users.enabled,
-      })
-      .from(schema.users)
-      .where(inArray(schema.users.id, ids));
+    let rows;
+    if (req.user.role === 'admin') {
+      // L'admin voit TOUT le réseau (les N1 sont top-level : parentId NULL,
+      // donc hors de son sous-arbre — on liste par rôle).
+      rows = await db.select(fields).from(schema.users).where(eq(schema.users.role, 'reseller'));
+    } else {
+      const ids = descendantIds(req.user.id).filter((id) => id !== req.user.id);
+      if (ids.length === 0) return res.json([]);
+      rows = await db.select(fields).from(schema.users).where(inArray(schema.users.id, ids));
+    }
 
     const network = rows.map((u) => ({
       ...u,
       balance: wallet.getBalance(u.id),
     }));
     res.json(network);
+  })
+);
+
+// Génère un lien d'invitation à durée limitée (7 jours, usage unique). L'invité
+// crée son compte via POST /auth/register — rattaché à l'inviteur (admin → N1
+// top-level ; revendeur top-level → N2). Cap de profondeur 2 : un N2 n'invite pas.
+const INVITE_TTL_MS = 7 * 24 * 3600 * 1000;
+router.post(
+  '/invites',
+  requireReseller,
+  asyncWrap(async (req, res) => {
+    if (req.user.role !== 'admin' && req.user.parentId != null) {
+      return res
+        .status(403)
+        .json(
+          createError('Un sous-revendeur ne peut pas inviter de revendeurs', null, 'FORBIDDEN')
+        );
+    }
+
+    const { generateToken, hashToken } = require('../services/sshKeys');
+    const token = generateToken();
+    const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
+    await db.insert(schema.invites).values({
+      tokenHash: hashToken(token),
+      inviterId: req.user.id,
+      expiresAt,
+    });
+
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const base =
+      (process.env.PLATFORM_BASE_URL || '').trim().replace(/\/+$/, '') ||
+      (req.headers.host ? `${proto}://${req.headers.host}` : '');
+    await auditLog({
+      actor: req.user.username,
+      action: 'create_invite',
+      targetType: 'invite',
+      targetName: req.user.username,
+      details: { expiresAt: expiresAt.toISOString() },
+      ip: req.ip,
+    });
+    res.json({
+      token,
+      url: base ? `${base}/?invite=${token}` : null,
+      expiresAt: expiresAt.toISOString(),
+    });
   })
 );
 

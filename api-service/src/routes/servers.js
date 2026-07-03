@@ -47,6 +47,8 @@ function publicServer(s) {
     licenseExpiry: s.licenseExpiry,
     lastHeartbeat: s.lastHeartbeat,
     clientCount: s.clientCount,
+    maxClients: s.maxClients ?? null,
+    updateChannel: s.updateChannel || 'stable',
     scriptsVersion: s.scriptsVersion,
   };
 }
@@ -169,38 +171,74 @@ router.patch(
       return res.status(404).json(createError('Serveur introuvable', null, 'NOT_FOUND'));
     }
 
-    const { extendDays, expiry, revoke } = req.body || {};
-    let newExpiry;
+    const { extendDays, expiry, revoke, maxClients, updateChannel } = req.body || {};
+    const updates = {};
+
+    let newExpiry = null;
     if (revoke === true) {
       newExpiry = new Date(0); // licence coupée immédiatement
     } else if (Number.isInteger(extendDays) && extendDays > 0 && extendDays <= 3650) {
       // Prolonge depuis l'expiry courante si encore valide, sinon depuis maintenant
       // (un renouvellement tardif ne "perd" pas de jours, un anticipé les cumule).
-      const base = Math.max(Date.now(), server.licenseExpiry ? new Date(server.licenseExpiry).getTime() : 0);
+      const base = Math.max(
+        Date.now(),
+        server.licenseExpiry ? new Date(server.licenseExpiry).getTime() : 0
+      );
       newExpiry = new Date(base + extendDays * 24 * 3600 * 1000);
     } else if (expiry && !Number.isNaN(Date.parse(expiry))) {
       newExpiry = new Date(expiry);
-    } else {
-      return res
-        .status(400)
-        .json(createError('extendDays (1-3650), expiry (ISO) ou revoke:true requis'));
+    }
+    if (newExpiry) updates.licenseExpiry = newExpiry;
+
+    // Palier de licence : plafond de clients de l'instance (null = illimité).
+    // Poussé à l'instance au prochain heartbeat, appliqué là-bas à la création.
+    if (maxClients !== undefined) {
+      if (
+        maxClients !== null &&
+        (!Number.isInteger(maxClients) || maxClients < 1 || maxClients > 100000)
+      ) {
+        return res.status(400).json(createError('maxClients : entier ≥ 1 ou null'));
+      }
+      updates.maxClients = maxClients;
     }
 
-    await db
-      .update(schema.servers)
-      .set({ licenseExpiry: newExpiry })
-      .where(eq(schema.servers.id, id));
+    // Canal de mise à jour : stable | canary (serveurs pilotes) | hold (gelé —
+    // aucune mise à jour offerte au heartbeat).
+    if (updateChannel !== undefined) {
+      if (!['stable', 'canary', 'hold'].includes(updateChannel)) {
+        return res.status(400).json(createError('updateChannel : stable | canary | hold'));
+      }
+      updates.updateChannel = updateChannel;
+    }
 
+    if (Object.keys(updates).length === 0) {
+      return res
+        .status(400)
+        .json(
+          createError(
+            'extendDays (1-3650), expiry (ISO), revoke:true, maxClients ou updateChannel requis'
+          )
+        );
+    }
+
+    await db.update(schema.servers).set(updates).where(eq(schema.servers.id, id));
+
+    const changed = {
+      serverId: id,
+      ...(newExpiry ? { licenseExpiry: newExpiry.toISOString() } : {}),
+      ...(updates.maxClients !== undefined ? { maxClients: updates.maxClients } : {}),
+      ...(updates.updateChannel ? { updateChannel: updates.updateChannel } : {}),
+    };
     await auditLog({
       actor: req.user.username,
-      action: revoke ? 'revoke_license' : 'renew_license',
+      action: revoke ? 'revoke_license' : 'update_license',
       targetType: 'server',
       targetName: server.label,
-      details: { serverId: id, licenseExpiry: newExpiry.toISOString() },
+      details: changed,
       ip: req.ip,
     });
 
-    res.json({ success: true, licenseExpiry: newExpiry.toISOString() });
+    res.json({ success: true, ...changed });
   })
 );
 

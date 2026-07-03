@@ -25,6 +25,13 @@ const KNOWN = {
   stripe_webhook_secret: { secret: true },
   stripe_price_id: { secret: false },
   stripe_publishable_key: { secret: false },
+  // Vente de crédits self-service (1 crédit = 1 serveur licencié / 30 jours)
+  credit_price_cents: { secret: false },
+  billing_currency: { secret: false }, // ex. 'eur' (défaut) / 'usd'
+  // CGU : si définie, l'inscription par invitation exige l'acceptation
+  terms_url: { secret: false },
+  // Kill-switch de mise à jour de la flotte : '1' = aucune instance ne reçoit de maj
+  update_paused: { secret: false },
 };
 
 function isSecret(key) {

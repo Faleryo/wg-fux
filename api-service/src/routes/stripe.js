@@ -114,6 +114,55 @@ function parseTarget(obj) {
   };
 }
 
+// Achat de CRÉDITS (flux principal depuis la réconciliation licence↔crédits) :
+// metadata.type='credits' + metadata.userId + metadata.credits. Le crédit devient
+// le moyen de paiement de la licence — le renouvellement débitera le wallet.
+function parseCreditsTarget(obj) {
+  const md = obj.metadata || {};
+  if (md.type !== 'credits') return null;
+  const userId = parseInt(md.userId, 10);
+  const credits = parseInt(md.credits, 10);
+  if (!Number.isInteger(userId) || userId <= 0) return null;
+  if (!Number.isInteger(credits) || credits <= 0 || credits > 1_000_000) return null;
+  return { userId, credits };
+}
+
+// Crédite le wallet après paiement Stripe. priceCents = prix unitaire payé
+// (amount_total / credits) pour la traçabilité de marge dans le ledger.
+async function creditWallet(target, obj, eventId, eventType) {
+  const wallet = require('../services/wallet');
+  const { db: _db, schema: _schema } = require('../../db');
+  const { eq: _eq } = require('drizzle-orm');
+  const [user] = await _db
+    .select({ id: _schema.users.id, username: _schema.users.username })
+    .from(_schema.users)
+    .where(_eq(_schema.users.id, target.userId))
+    .limit(1);
+  if (!user) {
+    log.warn('stripe', 'Paiement de crédits pour un compte inconnu', { userId: target.userId });
+    return false;
+  }
+  const amountTotal = Number.isInteger(obj.amount_total) ? obj.amount_total : null;
+  const priceCents = amountTotal ? Math.round(amountTotal / target.credits) : null;
+  const balance = wallet.credit(target.userId, target.credits, 'topup_stripe', {
+    priceCents,
+    ref: eventId || null,
+  });
+  await auditLog({
+    actor: 'stripe',
+    action: 'topup',
+    targetType: 'wallet',
+    targetName: user.username,
+    details: { userId: target.userId, credits: target.credits, priceCents, eventType, balance },
+  });
+  log.info('stripe', 'Crédits ajoutés par paiement Stripe', {
+    userId: target.userId,
+    credits: target.credits,
+    balance,
+  });
+  return true;
+}
+
 router.post('/webhook', async (req, res) => {
   try {
     const secret = await getSetting('stripe_webhook_secret');
@@ -138,11 +187,21 @@ router.post('/webhook', async (req, res) => {
     }
 
     if (event.type === 'checkout.session.completed' || event.type === 'invoice.paid') {
-      const { serverId, days } = parseTarget(obj);
-      if (serverId) {
-        await extendLicense(serverId, days, event.type);
+      // Flux principal : achat de crédits (metadata.type='credits'). Flux legacy
+      // conservé : prolongation directe de licence via metadata.serverId (anciens
+      // Payment Links déjà distribués).
+      const creditsTarget = parseCreditsTarget(obj);
+      if (creditsTarget) {
+        await creditWallet(creditsTarget, obj, event.id, event.type);
       } else {
-        log.warn('stripe', 'Paiement sans serverId exploitable', { type: event.type });
+        const { serverId, days } = parseTarget(obj);
+        if (serverId) {
+          await extendLicense(serverId, days, event.type);
+        } else {
+          log.warn('stripe', 'Paiement sans cible exploitable (ni credits ni serverId)', {
+            type: event.type,
+          });
+        }
       }
     }
 
@@ -157,3 +216,4 @@ router.post('/webhook', async (req, res) => {
 module.exports = router;
 module.exports.verifyStripeSignature = verifyStripeSignature;
 module.exports.parseTarget = parseTarget;
+module.exports.parseCreditsTarget = parseCreditsTarget;

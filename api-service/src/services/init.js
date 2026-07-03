@@ -242,6 +242,54 @@ async function initializeDatabase() {
         )`,
         label: 'stripe_events table',
       },
+      // Phase 19 — anti-abus d'essai : 1 seul essai gratuit par host, à vie.
+      // (supprimer/recréer un serveur ne re-mint PAS 30 jours gratuits)
+      {
+        version: 19,
+        sql: `CREATE TABLE IF NOT EXISTS trial_grants (
+          host TEXT PRIMARY KEY,
+          firstOwnerId INTEGER,
+          grantedAt INTEGER DEFAULT (strftime('%s','now'))
+        )`,
+        label: 'trial_grants table',
+      },
+      // Phase 20 — palier de licence : plafond de clients par instance (NULL = illimité).
+      {
+        version: 20,
+        sql: 'ALTER TABLE servers ADD COLUMN maxClients INTEGER',
+        label: 'servers.maxClients',
+      },
+      // Phase 21 — canal de mise à jour de la flotte : stable | canary | hold.
+      {
+        version: 21,
+        sql: "ALTER TABLE servers ADD COLUMN updateChannel TEXT DEFAULT 'stable'",
+        label: 'servers.updateChannel',
+      },
+      // Phases 22-23 — cycle de vie compte : email de contact + acceptation CGU.
+      {
+        version: 22,
+        sql: 'ALTER TABLE users ADD COLUMN email TEXT',
+        label: 'users.email',
+      },
+      {
+        version: 23,
+        sql: 'ALTER TABLE users ADD COLUMN acceptedTermsAt INTEGER',
+        label: 'users.acceptedTermsAt',
+      },
+      // Phase 24 — inscription par invitation (croissance du réseau revendeurs).
+      {
+        version: 24,
+        sql: `CREATE TABLE IF NOT EXISTS invites (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          tokenHash TEXT NOT NULL UNIQUE,
+          inviterId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          createdAt INTEGER DEFAULT (strftime('%s','now')),
+          expiresAt INTEGER NOT NULL,
+          usedAt INTEGER,
+          usedByUserId INTEGER
+        )`,
+        label: 'invites table',
+      },
     ];
 
     for (const m of migrations) {

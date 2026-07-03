@@ -1,15 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import {
-  Wallet,
-  Users,
-  Send,
-  Plus,
-  Palette,
-  TrendingUp,
-  RefreshCw,
-  Save,
-} from 'lucide-react';
+
+import { Wallet, Users, Send, Plus, Palette, TrendingUp, RefreshCw, Save } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
@@ -21,9 +12,11 @@ const euros = (cents) => (cents == null ? '—' : (cents / 100).toFixed(2) + ' �
 
 const REASON_LABEL = {
   topup: 'Rechargement',
+  topup_stripe: 'Achat Stripe',
   transfer_in: 'Reçu',
   transfer_out: 'Envoyé',
   monthly: 'Débit mensuel',
+  license_renewal: 'Renouvellement licence',
   refund: 'Remboursement',
 };
 
@@ -42,6 +35,8 @@ const NetworkSection = ({ userRole }) => {
   const [newSub, setNewSub] = useState({ username: '', password: '', sellPriceCents: '' });
   const [transferForm, setTransferForm] = useState({ toUserId: '', credits: '' });
   const [topupForm, setTopupForm] = useState({ userId: '', credits: '', priceCents: '' });
+  const [buyCredits, setBuyCredits] = useState('');
+  const [inviteUrl, setInviteUrl] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -128,6 +123,36 @@ const NetworkSection = ({ userRole }) => {
       }
     });
 
+  // Achat de crédits par Stripe Checkout (réservé aux comptes top-level ; un
+  // sous-revendeur est renvoyé vers son parent par l'API).
+  const doCheckout = () =>
+    guard(async () => {
+      try {
+        const res = await axiosInstance.post('/credits/checkout', {
+          credits: Number(buyCredits),
+        });
+        if (res.data?.url) window.location.href = res.data.url;
+      } catch (e) {
+        addToast(e?.response?.data?.error || 'Erreur de paiement', 'error');
+      }
+    });
+
+  // Lien d'invitation (usage unique, 7 jours) pour agrandir son réseau.
+  const createInvite = () =>
+    guard(async () => {
+      try {
+        const res = await axiosInstance.post('/resellers/invites');
+        const url = res.data?.url || res.data?.token;
+        setInviteUrl(url);
+        if (navigator.clipboard && url) {
+          await navigator.clipboard.writeText(url).catch(() => {});
+          addToast('Lien d’invitation copié (valide 7 jours)', 'success');
+        }
+      } catch (e) {
+        addToast(e?.response?.data?.error || 'Erreur invitation', 'error');
+      }
+    });
+
   const saveBrand = () =>
     guard(async () => {
       try {
@@ -139,8 +164,9 @@ const NetworkSection = ({ userRole }) => {
       }
     });
 
-  const marginCents =
-    wallet?.margin ? wallet.margin.resoldCents - wallet.margin.acquiredCostCents : 0;
+  const marginCents = wallet?.margin
+    ? wallet.margin.resoldCents - wallet.margin.acquiredCostCents
+    : 0;
 
   const inputCls =
     'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/20 font-mono';
@@ -161,7 +187,9 @@ const NetworkSection = ({ userRole }) => {
             <Users size={32} />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-white tracking-tighter italic uppercase">Réseau</h2>
+            <h2 className="text-3xl font-black text-white tracking-tighter italic uppercase">
+              Réseau
+            </h2>
             <p className="text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase opacity-60">
               Crédits · Revendeurs · Marge
             </p>
@@ -176,26 +204,85 @@ const NetworkSection = ({ userRole }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <GlassCard hover={false}>
           <div className="flex items-center gap-3 text-slate-400 mb-3">
-            <Wallet size={18} /> <span className="text-[11px] font-black uppercase tracking-widest">Solde</span>
+            <Wallet size={18} />{' '}
+            <span className="text-[11px] font-black uppercase tracking-widest">Solde</span>
           </div>
           <div className="text-4xl font-black text-white">{wallet?.balance ?? '—'}</div>
           <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">crédits</div>
         </GlassCard>
         <GlassCard hover={false}>
           <div className="flex items-center gap-3 text-slate-400 mb-3">
-            <TrendingUp size={18} /> <span className="text-[11px] font-black uppercase tracking-widest">Marge</span>
+            <TrendingUp size={18} />{' '}
+            <span className="text-[11px] font-black uppercase tracking-widest">Marge</span>
           </div>
-          <div className={cn('text-4xl font-black', marginCents >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+          <div
+            className={cn(
+              'text-4xl font-black',
+              marginCents >= 0 ? 'text-emerald-400' : 'text-red-400'
+            )}
+          >
             {euros(marginCents)}
           </div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">revente − acquisition</div>
+          <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
+            revente − acquisition
+          </div>
         </GlassCard>
         <GlassCard hover={false}>
           <div className="flex items-center gap-3 text-slate-400 mb-3">
-            <Users size={18} /> <span className="text-[11px] font-black uppercase tracking-widest">Sous-revendeurs</span>
+            <Users size={18} />{' '}
+            <span className="text-[11px] font-black uppercase tracking-widest">
+              Sous-revendeurs
+            </span>
           </div>
           <div className="text-4xl font-black text-white">{network.length}</div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">comptes rattachés</div>
+          <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
+            comptes rattachés
+          </div>
+        </GlassCard>
+      </div>
+
+      {/* Acheter des crédits (Stripe) + inviter */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <GlassCard hover={false}>
+          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2 flex items-center gap-2">
+            <Wallet size={18} /> Acheter des crédits
+          </h3>
+          <p className="text-[11px] text-slate-500 mb-4">
+            1 crédit = 30 jours de licence pour 1 serveur. Le renouvellement débite le portefeuille
+            automatiquement. Les sous-revendeurs achètent auprès de leur revendeur parent.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input
+              className={inputCls}
+              placeholder="nombre de crédits"
+              value={buyCredits}
+              onChange={(e) => setBuyCredits(e.target.value)}
+            />
+            <VibeButton
+              variant="primary"
+              icon={Wallet}
+              onClick={doCheckout}
+              disabled={busy || !Number(buyCredits)}
+            >
+              Payer par carte
+            </VibeButton>
+          </div>
+        </GlassCard>
+        <GlassCard hover={false}>
+          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2 flex items-center gap-2">
+            <Send size={18} /> Inviter un revendeur
+          </h3>
+          <p className="text-[11px] text-slate-500 mb-4">
+            Génère un lien d’inscription usage-unique (7 jours). L’invité rejoint votre réseau.
+          </p>
+          <VibeButton variant="secondary" icon={Plus} onClick={createInvite} disabled={busy}>
+            Générer un lien
+          </VibeButton>
+          {inviteUrl && (
+            <div className="mt-3 text-[11px] font-mono text-indigo-300 break-all select-all">
+              {inviteUrl}
+            </div>
+          )}
         </GlassCard>
       </div>
 
@@ -206,13 +293,27 @@ const NetworkSection = ({ userRole }) => {
             <Plus size={18} /> Créditer un compte (top-up)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <input className={inputCls} placeholder="userId" value={topupForm.userId}
-              onChange={(e) => setTopupForm({ ...topupForm, userId: e.target.value })} />
-            <input className={inputCls} placeholder="crédits" value={topupForm.credits}
-              onChange={(e) => setTopupForm({ ...topupForm, credits: e.target.value })} />
-            <input className={inputCls} placeholder="prix/crédit (centimes)" value={topupForm.priceCents}
-              onChange={(e) => setTopupForm({ ...topupForm, priceCents: e.target.value })} />
-            <VibeButton variant="primary" icon={Plus} onClick={doTopup} disabled={busy}>Créditer</VibeButton>
+            <input
+              className={inputCls}
+              placeholder="userId"
+              value={topupForm.userId}
+              onChange={(e) => setTopupForm({ ...topupForm, userId: e.target.value })}
+            />
+            <input
+              className={inputCls}
+              placeholder="crédits"
+              value={topupForm.credits}
+              onChange={(e) => setTopupForm({ ...topupForm, credits: e.target.value })}
+            />
+            <input
+              className={inputCls}
+              placeholder="prix/crédit (centimes)"
+              value={topupForm.priceCents}
+              onChange={(e) => setTopupForm({ ...topupForm, priceCents: e.target.value })}
+            />
+            <VibeButton variant="primary" icon={Plus} onClick={doTopup} disabled={busy}>
+              Créditer
+            </VibeButton>
           </div>
         </GlassCard>
       )}
@@ -241,7 +342,9 @@ const NetworkSection = ({ userRole }) => {
                   <td className="px-6 py-4 text-sm font-bold text-white">{u.username}</td>
                   <td className="px-6 py-4 text-xs font-mono text-slate-500">{u.id}</td>
                   <td className="px-6 py-4 text-sm font-mono text-emerald-400">{u.balance}</td>
-                  <td className="px-6 py-4 text-xs font-mono text-slate-400">{euros(u.sellPriceCents)}</td>
+                  <td className="px-6 py-4 text-xs font-mono text-slate-400">
+                    {euros(u.sellPriceCents)}
+                  </td>
                   <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => setTransferForm({ toUserId: String(u.id), credits: '' })}
@@ -254,7 +357,10 @@ const NetworkSection = ({ userRole }) => {
               ))}
               {network.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-xs uppercase tracking-widest">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-8 text-center text-slate-500 text-xs uppercase tracking-widest"
+                  >
                     Aucun sous-revendeur
                   </td>
                 </tr>
@@ -269,13 +375,32 @@ const NetworkSection = ({ userRole }) => {
             <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <Plus size={14} /> Nouveau sous-revendeur
             </h4>
-            <input className={inputCls} placeholder="nom d'utilisateur" value={newSub.username}
-              onChange={(e) => setNewSub({ ...newSub, username: e.target.value })} />
-            <input className={inputCls} type="password" placeholder="mot de passe (min 8)" value={newSub.password}
-              onChange={(e) => setNewSub({ ...newSub, password: e.target.value })} />
-            <input className={inputCls} placeholder="prix revente/crédit (centimes, opt.)" value={newSub.sellPriceCents}
-              onChange={(e) => setNewSub({ ...newSub, sellPriceCents: e.target.value })} />
-            <VibeButton variant="primary" icon={Plus} onClick={createSub} disabled={busy} className="w-full">
+            <input
+              className={inputCls}
+              placeholder="nom d'utilisateur"
+              value={newSub.username}
+              onChange={(e) => setNewSub({ ...newSub, username: e.target.value })}
+            />
+            <input
+              className={inputCls}
+              type="password"
+              placeholder="mot de passe (min 8)"
+              value={newSub.password}
+              onChange={(e) => setNewSub({ ...newSub, password: e.target.value })}
+            />
+            <input
+              className={inputCls}
+              placeholder="prix revente/crédit (centimes, opt.)"
+              value={newSub.sellPriceCents}
+              onChange={(e) => setNewSub({ ...newSub, sellPriceCents: e.target.value })}
+            />
+            <VibeButton
+              variant="primary"
+              icon={Plus}
+              onClick={createSub}
+              disabled={busy}
+              className="w-full"
+            >
               Créer
             </VibeButton>
           </div>
@@ -285,11 +410,25 @@ const NetworkSection = ({ userRole }) => {
             <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <Send size={14} /> Transférer des crédits
             </h4>
-            <input className={inputCls} placeholder="userId destinataire" value={transferForm.toUserId}
-              onChange={(e) => setTransferForm({ ...transferForm, toUserId: e.target.value })} />
-            <input className={inputCls} placeholder="nombre de crédits" value={transferForm.credits}
-              onChange={(e) => setTransferForm({ ...transferForm, credits: e.target.value })} />
-            <VibeButton variant="primary" icon={Send} onClick={doTransfer} disabled={busy} className="w-full">
+            <input
+              className={inputCls}
+              placeholder="userId destinataire"
+              value={transferForm.toUserId}
+              onChange={(e) => setTransferForm({ ...transferForm, toUserId: e.target.value })}
+            />
+            <input
+              className={inputCls}
+              placeholder="nombre de crédits"
+              value={transferForm.credits}
+              onChange={(e) => setTransferForm({ ...transferForm, credits: e.target.value })}
+            />
+            <VibeButton
+              variant="primary"
+              icon={Send}
+              onClick={doTransfer}
+              disabled={busy}
+              className="w-full"
+            >
               Transférer
             </VibeButton>
           </div>
@@ -302,24 +441,44 @@ const NetworkSection = ({ userRole }) => {
           <Palette size={18} /> Marque (white-label)
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input className={inputCls} placeholder="Nom de marque" value={brand.name}
-            onChange={(e) => setBrand({ ...brand, name: e.target.value })} />
-          <input className={inputCls} placeholder="URL du logo (https://…)" value={brand.logoUrl}
-            onChange={(e) => setBrand({ ...brand, logoUrl: e.target.value })} />
-          <input className={inputCls} placeholder="Couleur (#RRGGBB)" value={brand.primaryColor}
-            onChange={(e) => setBrand({ ...brand, primaryColor: e.target.value })} />
-          <input className={inputCls} placeholder="Domaine perso (vpn.exemple.com)" value={brand.customDomain}
-            onChange={(e) => setBrand({ ...brand, customDomain: e.target.value })} />
+          <input
+            className={inputCls}
+            placeholder="Nom de marque"
+            value={brand.name}
+            onChange={(e) => setBrand({ ...brand, name: e.target.value })}
+          />
+          <input
+            className={inputCls}
+            placeholder="URL du logo (https://…)"
+            value={brand.logoUrl}
+            onChange={(e) => setBrand({ ...brand, logoUrl: e.target.value })}
+          />
+          <input
+            className={inputCls}
+            placeholder="Couleur (#RRGGBB)"
+            value={brand.primaryColor}
+            onChange={(e) => setBrand({ ...brand, primaryColor: e.target.value })}
+          />
+          <input
+            className={inputCls}
+            placeholder="Domaine perso (vpn.exemple.com)"
+            value={brand.customDomain}
+            onChange={(e) => setBrand({ ...brand, customDomain: e.target.value })}
+          />
         </div>
         <div className="flex justify-end mt-4">
-          <VibeButton variant="primary" icon={Save} onClick={saveBrand} disabled={busy}>Enregistrer</VibeButton>
+          <VibeButton variant="primary" icon={Save} onClick={saveBrand} disabled={busy}>
+            Enregistrer
+          </VibeButton>
         </div>
       </GlassCard>
 
       {/* Relevé */}
       <GlassCard hover={false} className="p-0 overflow-hidden">
         <div className="p-6 border-b border-white/5">
-          <h3 className="text-lg font-black text-white uppercase tracking-tight">Relevé de crédits</h3>
+          <h3 className="text-lg font-black text-white uppercase tracking-tight">
+            Relevé de crédits
+          </h3>
         </div>
         <div className="overflow-x-auto max-h-96">
           <table className="w-full text-left">
@@ -334,17 +493,32 @@ const NetworkSection = ({ userRole }) => {
             <tbody className="divide-y divide-white/5">
               {(wallet?.entries || []).map((e) => (
                 <tr key={e.id} className="hover:bg-white/5">
-                  <td className="px-6 py-3 text-xs text-slate-300">{REASON_LABEL[e.reason] || e.reason}</td>
-                  <td className={cn('px-6 py-3 text-xs font-mono font-bold', e.delta >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                    {e.delta >= 0 ? '+' : ''}{e.delta}
+                  <td className="px-6 py-3 text-xs text-slate-300">
+                    {REASON_LABEL[e.reason] || e.reason}
                   </td>
-                  <td className="px-6 py-3 text-xs font-mono text-slate-500">{euros(e.priceCents)}</td>
-                  <td className="px-6 py-3 text-[10px] font-mono text-slate-600 truncate max-w-[160px]">{e.ref || '—'}</td>
+                  <td
+                    className={cn(
+                      'px-6 py-3 text-xs font-mono font-bold',
+                      e.delta >= 0 ? 'text-emerald-400' : 'text-red-400'
+                    )}
+                  >
+                    {e.delta >= 0 ? '+' : ''}
+                    {e.delta}
+                  </td>
+                  <td className="px-6 py-3 text-xs font-mono text-slate-500">
+                    {euros(e.priceCents)}
+                  </td>
+                  <td className="px-6 py-3 text-[10px] font-mono text-slate-600 truncate max-w-[160px]">
+                    {e.ref || '—'}
+                  </td>
                 </tr>
               ))}
               {(!wallet?.entries || wallet.entries.length === 0) && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-slate-500 text-xs uppercase tracking-widest">
+                  <td
+                    colSpan={4}
+                    className="px-6 py-8 text-center text-slate-500 text-xs uppercase tracking-widest"
+                  >
                     {loading ? 'Chargement…' : 'Aucun mouvement'}
                   </td>
                 </tr>
