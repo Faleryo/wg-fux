@@ -63,6 +63,18 @@ esac
 [ -s "$TMP_BUNDLE" ] && gzip -t "$TMP_BUNDLE" 2>/dev/null \
   || fail "Bundle téléchargé invalide (pas un gzip)."
 
+# DÉJÀ À JOUR ? La plateforme annonce sa version (en-tête) : si elle est égale
+# à la nôtre, on s'arrête là — pas de rebuild ni de coupure WireGuard pour rien
+# (le cron tourne toutes les nuits, les releases sont rares).
+REMOTE_VERSION=$(grep -i '^X-WG-Fux-Version:' "$TMP_HDR" | tr -d '\r' | awk '{print $2}')
+LOCAL_VERSION=$(grep -m1 '"version"' "${INSTALL_DIR}/api-service/package.json" 2>/dev/null \
+  | sed 's/.*: *"\([^"]*\)".*/\1/')
+if [ -n "$REMOTE_VERSION" ] && [ -n "$LOCAL_VERSION" ] && [ "$REMOTE_VERSION" = "$LOCAL_VERSION" ]; then
+  log "Déjà à jour (v${LOCAL_VERSION}) — aucune action."
+  exit 0
+fi
+log "Nouvelle version disponible : v${LOCAL_VERSION:-?} → v${REMOTE_VERSION:-?}"
+
 # INTÉGRITÉ : le sha256 annoncé par la plateforme (en-tête) doit correspondre au
 # fichier téléchargé AVANT toute extraction/exécution root. Sans en-tête (vieux
 # serveur), on refuse plutôt que d'exécuter du code non vérifié.
