@@ -175,7 +175,7 @@ const MainLayout = ({ session, onLogout }) => {
   const isAdmin = session?.role === 'admin';
   const isReseller = session?.role === 'reseller';
   const MANAGER_ONLY_SECTIONS = new Set(['logs', 'dns', 'optimization', 'audit']);
-  const ADMIN_ONLY_SECTIONS = new Set(['users', 'settings', 'servers']);
+  const ADMIN_ONLY_SECTIONS = new Set(['users', 'settings']);
   const [activeSection, setActiveSection] = useState(
     localStorage.getItem('active-tab') || 'dashboard'
   );
@@ -338,7 +338,7 @@ const MainLayout = ({ session, onLogout }) => {
     const forbidden =
       (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
       (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection)) ||
-      (activeSection === 'network' && !(isAdmin || isReseller));
+      ((activeSection === 'network' || activeSection === 'servers') && !(isAdmin || isReseller));
     if (forbidden) {
       setActiveSection('dashboard');
       addToast('Accès refusé — section réservée aux administrateurs', 'error');
@@ -412,7 +412,7 @@ const MainLayout = ({ session, onLogout }) => {
     const forbidden =
       (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
       (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection)) ||
-      (activeSection === 'network' && !(isAdmin || isReseller));
+      ((activeSection === 'network' || activeSection === 'servers') && !(isAdmin || isReseller));
     const section = forbidden ? 'dashboard' : activeSection;
     switch (section) {
       case 'dashboard':
@@ -494,7 +494,7 @@ const MainLayout = ({ session, onLogout }) => {
       case 'servers':
         return (
           <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}>
-            <ServersSection />
+            <ServersSection userRole={session?.role || ''} />
           </Suspense>
         );
       case 'network':
@@ -561,7 +561,9 @@ const MainLayout = ({ session, onLogout }) => {
       </button>
 
       <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
-        <ServerSelector userRole={session?.role || ''} />
+        {/* Sur une instance licenciée tout est local : le sélecteur de serveur
+            (concept plateforme mère) n'a pas de sens et sèmerait la confusion. */}
+        {!instanceLicensed && <ServerSelector />}
         <button
           onClick={() => setShowSearch(true)}
           className="hidden md:flex items-center gap-2 px-4 py-2.5 glass-panel border rounded-xl transition-all text-[11px] font-black uppercase tracking-widest shadow-lg hover:scale-105"

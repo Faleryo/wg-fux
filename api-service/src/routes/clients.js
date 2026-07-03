@@ -442,8 +442,14 @@ router.post(
         return res.status(403).json(createError('Forbidden: Vous ne possédez pas ce conteneur.'));
       }
     } else {
-      // Container doesn't exist yet — only admin/manager may implicitly create it
-      if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+      // Container doesn't exist yet — admin/manager, ou un REVENDEUR (il devient
+      // propriétaire du conteneur créé : c'est son espace de travail). Un simple
+      // viewer reste bloqué.
+      if (
+        req.user.role !== 'admin' &&
+        req.user.role !== 'manager' &&
+        req.user.role !== 'reseller'
+      ) {
         return res
           .status(403)
           .json(createError('Forbidden: Conteneur inexistant ou accès refusé.'));

@@ -376,11 +376,15 @@ describe('resolveServer middleware', () => {
     expect(req.server.id).toBe(row.id);
   });
 
-  it('400 si x-server-id manquant pour un revendeur', async () => {
+  it('contexte LOCAL (sans x-server-id) accepté pour un revendeur (pivot instance complète)', async () => {
     const req = { user: { id: 4242, role: 'viewer' }, headers: {} };
     const res = mkRes();
-    await resolveServer(req, res, () => {});
-    expect(res.statusCode).toBe(400);
+    let nexted = false;
+    await resolveServer(req, res, () => {
+      nexted = true;
+    });
+    expect(nexted).toBe(true);
+    expect(req.serverId).toBeUndefined();
   });
 });
 

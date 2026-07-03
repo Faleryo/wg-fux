@@ -132,8 +132,48 @@ async function createServer({ ownerId, label, host, port = 22, actor, req, ip })
   };
 }
 
+/**
+ * Régénère le one-liner de provisioning d'un serveur EXISTANT : nouveau token
+ * usage-unique (TTL 10 min), licence et clé SSH inchangées. Sert quand le token
+ * a expiré avant installation, ou pour ré-installer l'instance sur le VPS.
+ * @param {object} server ligne complète de schema.servers
+ * @param {{ actor?:string, req?:object, ip?:string }} opts
+ */
+async function reprovisionServer(server, { actor, req, ip } = {}) {
+  const { eq } = require('drizzle-orm');
+  const token = generateToken();
+  const provisionTokenHash = hashToken(token);
+  const provisionTokenExpiry = new Date(Date.now() + PROVISION_TOKEN_TTL_MS);
+
+  await db
+    .update(schema.servers)
+    .set({ provisionTokenHash, provisionTokenExpiry })
+    .where(eq(schema.servers.id, server.id));
+
+  const { sha256: scriptSha256 } = await renderBootstrap(server, { req });
+  const oneLiner = buildOneLiner({ token, scriptSha256, base: platformBase(req) });
+
+  await auditLog({
+    actor: actor || 'system',
+    action: 'reprovision_server',
+    targetType: 'server',
+    targetName: server.label,
+    details: { serverId: server.id, host: server.host },
+    ip,
+  });
+  log.info('servers', 'One-liner de provisioning régénéré', { serverId: server.id });
+
+  return {
+    serverId: server.id,
+    oneLiner,
+    scriptSha256,
+    expiresAt: provisionTokenExpiry.toISOString(),
+  };
+}
+
 module.exports = {
   createServer,
+  reprovisionServer,
   ServerConflictError,
   PROVISION_TOKEN_TTL_MS,
   LICENSE_TRIAL_MS,

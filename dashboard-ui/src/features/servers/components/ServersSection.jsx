@@ -1,5 +1,20 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Server, Plus, Trash2, RefreshCw, AlertCircle, KeyRound, Users } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import {
+  Server,
+  Plus,
+  Trash2,
+  RefreshCw,
+  AlertCircle,
+  KeyRound,
+  Users,
+  Search,
+  Terminal,
+  Copy,
+  Check,
+  ArrowUpCircle,
+  Timer,
+  Wifi,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
@@ -84,6 +99,80 @@ const daysUntil = (iso) => {
   const ts = new Date(iso).getTime();
   if (Number.isNaN(ts)) return null;
   return Math.ceil((ts - Date.now()) / 86400000);
+};
+
+// Version de l'instance vs version plateforme (remontée au heartbeat licence).
+const VersionBadge = ({ version, updateAvailable }) => {
+  if (!version) return <span className="text-[11px] font-mono text-slate-600">—</span>;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 text-[11px] font-mono font-bold',
+        updateAvailable ? 'text-amber-400' : 'text-emerald-400/90'
+      )}
+      title={
+        updateAvailable ? 'Mise à jour disponible (appliquée par le cron quotidien)' : 'À jour'
+      }
+    >
+      {updateAvailable ? <ArrowUpCircle size={12} /> : <Check size={12} />}v{version}
+    </span>
+  );
+};
+
+// Modale one-liner : commande de (ré)installation à coller sur le VPS.
+const OneLinerModal = ({ data, onClose }) => {
+  const [copied, setCopied] = useState(false);
+  if (!data) return null;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(data.oneLiner);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard indisponible (http) */
+    }
+  };
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="glass-panel border rounded-2xl shadow-2xl w-full max-w-2xl p-8 space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-sky-500/15 border border-sky-500/20 flex items-center justify-center text-sky-400">
+            <Terminal size={20} />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight">
+              Commande d’installation
+            </h3>
+            <p className="text-[11px] font-mono text-slate-500">
+              {data.label} · valable 10 minutes, usage unique
+            </p>
+          </div>
+        </div>
+        <p className="text-xs text-slate-400">
+          À coller en root sur le VPS. Réinstalle ou installe l’instance ; la licence du serveur est
+          conservée.
+        </p>
+        <pre className="bg-black/40 border border-white/10 rounded-xl p-4 text-[11px] font-mono text-sky-200 whitespace-pre-wrap break-all max-h-48 overflow-y-auto select-all">
+          <code>{data.oneLiner}</code>
+        </pre>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={copy}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-sky-500/20 text-[11px] font-black uppercase tracking-widest text-white transition-colors"
+          >
+            {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+            {copied ? 'Copié' : 'Copier'}
+          </button>
+          <button
+            onClick={onClose}
+            className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const LicenseBadge = ({ expiry }) => {
@@ -220,9 +309,13 @@ const RenewModal = ({ server, onClose, onApply, busy }) => {
   );
 };
 
-const ServersSection = () => {
+const ServersSection = ({ userRole = '' }) => {
   const { theme } = useTheme();
   const { addToast } = useToast();
+  // La gestion de licence (prolonger/couper/palier/canal) est l'acte de
+  // facturation → admin uniquement. Le reste (ajout, one-liner, suppression)
+  // est ouvert au revendeur sur SES serveurs (l'API scope par propriétaire).
+  const isAdmin = userRole === 'admin';
 
   const [servers, setServers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -231,6 +324,8 @@ const ServersSection = () => {
   const [deleting, setDeleting] = useState(false);
   const [renewTarget, setRenewTarget] = useState(null);
   const [renewing, setRenewing] = useState(false);
+  const [oneLiner, setOneLiner] = useState(null); // { label, oneLiner }
+  const [query, setQuery] = useState('');
 
   const pollRef = useRef(null);
 
@@ -293,6 +388,16 @@ const ServersSection = () => {
     }
   };
 
+  // Régénère le one-liner d'installation (token neuf, licence conservée).
+  const handleOneLiner = async (srv) => {
+    try {
+      const { data } = await axiosInstance.post(`/servers/${srv.id}/one-liner`);
+      setOneLiner({ label: srv.label, oneLiner: data.oneLiner });
+    } catch (e) {
+      addToast(e?.response?.data?.error || 'Erreur de génération du one-liner', 'error');
+    }
+  };
+
   const handleRenew = async (payload) => {
     if (!renewTarget || renewing) return;
     setRenewing(true);
@@ -317,6 +422,44 @@ const ServersSection = () => {
       setRenewing(false);
     }
   };
+
+  // Synthèse de flotte + filtre de recherche.
+  const summary = useMemo(() => {
+    const online = servers.filter((s) => s.status === 'online').length;
+    const expiring = servers.filter((s) => {
+      const d = daysUntil(s.licenseExpiry);
+      return d !== null && d <= 7;
+    }).length;
+    const clients = servers.reduce((a, s) => a + (s.clientCount || 0), 0);
+    const outdated = servers.filter((s) => s.updateAvailable).length;
+    return { total: servers.length, online, expiring, clients, outdated };
+  }, [servers]);
+
+  const visibleServers = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return servers;
+    return servers.filter((s) =>
+      [s.label, s.host, s.owner, s.status].some((v) => (v || '').toLowerCase().includes(q))
+    );
+  }, [servers, query]);
+
+  const summaryCards = [
+    { icon: Server, label: 'Serveurs', value: summary.total, cls: 'text-slate-300' },
+    { icon: Wifi, label: 'En ligne', value: summary.online, cls: 'text-emerald-400' },
+    {
+      icon: Timer,
+      label: 'Licences ≤ 7 j',
+      value: summary.expiring,
+      cls: summary.expiring > 0 ? 'text-amber-400' : 'text-slate-300',
+    },
+    { icon: Users, label: 'Clients (flotte)', value: summary.clients, cls: 'text-sky-400' },
+    {
+      icon: ArrowUpCircle,
+      label: 'Maj en attente',
+      value: summary.outdated,
+      cls: summary.outdated > 0 ? 'text-amber-400' : 'text-slate-300',
+    },
+  ];
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
@@ -344,6 +487,18 @@ const ServersSection = () => {
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto items-center">
+          <div className="relative w-full md:w-56">
+            <Search
+              size={14}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
+            />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Filtrer (nom, hôte, statut…)"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-white/20"
+            />
+          </div>
           <VibeButton
             variant="secondary"
             icon={RefreshCw}
@@ -363,6 +518,19 @@ const ServersSection = () => {
         </div>
       </GlassCard>
 
+      {/* Synthèse de flotte */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {summaryCards.map((c) => (
+          <GlassCard key={c.label} hover={false} className="py-5">
+            <div className="flex items-center gap-2 text-slate-500 mb-2">
+              <c.icon size={14} />
+              <span className="text-[10px] font-black uppercase tracking-widest">{c.label}</span>
+            </div>
+            <div className={cn('text-3xl font-black', c.cls)}>{c.value}</div>
+          </GlassCard>
+        ))}
+      </div>
+
       {/* Table */}
       <GlassCard className="p-0 overflow-hidden" hover={false}>
         <div className="overflow-x-auto">
@@ -372,14 +540,15 @@ const ServersSection = () => {
                 <th className="px-10 py-8">Serveur</th>
                 <th className="px-8 py-8">Adresse</th>
                 <th className="px-8 py-8">Statut</th>
+                <th className="px-8 py-8">Version</th>
                 <th className="px-8 py-8">Licence</th>
-                <th className="px-8 py-8">Dernier contrôle</th>
+                <th className="px-8 py-8">Dernier contact</th>
                 <th className="px-10 py-8 text-right">Intervention</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               <AnimatePresence mode="popLayout">
-                {servers.map((srv, idx) => (
+                {visibleServers.map((srv, idx) => (
                   <motion.tr
                     key={srv.id || idx}
                     initial={{ opacity: 0, y: 10 }}
@@ -393,8 +562,13 @@ const ServersSection = () => {
                         <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 transition-all group-hover:scale-110 group-hover:bg-slate-700 shadow-xl border border-white/5">
                           <Server size={20} />
                         </div>
-                        <div className="text-sm font-black text-white uppercase tracking-tight">
-                          {srv.label || 'Sans nom'}
+                        <div>
+                          <div className="text-sm font-black text-white uppercase tracking-tight">
+                            {srv.label || 'Sans nom'}
+                          </div>
+                          {srv.owner && (
+                            <div className="text-[10px] font-mono text-slate-500">{srv.owner}</div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -419,12 +593,21 @@ const ServersSection = () => {
                       </div>
                     </td>
                     <td className="px-8 py-6">
+                      <VersionBadge version={srv.version} updateAvailable={srv.updateAvailable} />
+                    </td>
+                    <td className="px-8 py-6">
                       <div className="flex flex-col gap-1">
                         <LicenseBadge expiry={srv.licenseExpiry} />
                         {typeof srv.clientCount === 'number' && (
                           <span className="flex items-center gap-1 text-[10px] font-mono text-slate-600">
-                            <Users size={11} /> {srv.clientCount} client
+                            <Users size={11} /> {srv.clientCount}
+                            {srv.maxClients != null ? ` / ${srv.maxClients}` : ''} client
                             {srv.clientCount > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {(srv.updateChannel || 'stable') !== 'stable' && (
+                          <span className="text-[9px] font-black uppercase tracking-widest text-sky-400/80">
+                            canal {srv.updateChannel}
                           </span>
                         )}
                       </div>
@@ -439,11 +622,21 @@ const ServersSection = () => {
                         <VibeButton
                           variant="secondary"
                           size="sm"
-                          icon={KeyRound}
+                          icon={Terminal}
                           className="p-2.5"
-                          title="Gérer la licence"
-                          onClick={() => setRenewTarget(srv)}
+                          title="Commande d’installation (one-liner)"
+                          onClick={() => handleOneLiner(srv)}
                         />
+                        {isAdmin && (
+                          <VibeButton
+                            variant="secondary"
+                            size="sm"
+                            icon={KeyRound}
+                            className="p-2.5"
+                            title="Gérer la licence"
+                            onClick={() => setRenewTarget(srv)}
+                          />
+                        )}
                         <VibeButton
                           variant="danger"
                           size="sm"
@@ -460,6 +653,12 @@ const ServersSection = () => {
             </tbody>
           </table>
         </div>
+
+        {servers.length > 0 && visibleServers.length === 0 && (
+          <div className="flex items-center justify-center py-16 text-slate-500 text-xs font-black uppercase tracking-widest">
+            Aucun serveur ne correspond au filtre
+          </div>
+        )}
 
         {servers.length === 0 && !loading && (
           <div className="flex flex-col items-center justify-center py-24">
@@ -501,6 +700,8 @@ const ServersSection = () => {
         onApply={handleRenew}
         onClose={() => setRenewTarget(null)}
       />
+
+      <OneLinerModal data={oneLiner} onClose={() => setOneLiner(null)} />
 
       <ConfirmModal
         isOpen={!!confirmTarget}

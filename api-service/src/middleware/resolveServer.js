@@ -2,8 +2,13 @@
 // l'en-tête `x-server-id`. Voir spec socle SSH (2026-06-27) section 3.7.
 //
 // Sémantique :
-//   - Pas d'en-tête (ou 'local'/'') → contexte LOCAL : admin/manager OK (next),
-//     un revendeur DOIT cibler un serveur → 400.
+//   - Pas d'en-tête (ou 'local'/'') → contexte LOCAL pour TOUT utilisateur
+//     authentifié. Depuis le pivot "instance complète" (2026-07-03), un
+//     revendeur travaille en local — sur son instance comme sur la mère — et
+//     la tenance est garantie par le scoping propriétaire des routes
+//     (containers.owner === username dans clients.js). L'ancien 400
+//     "x-server-id requis" rendait le rôle reseller inutilisable sur une
+//     instance (dashboard vide, création client impossible).
 //   - En-tête présent → on résout le serveur AVEC contrôle de propriété :
 //       admin/manager  : n'importe quel serveur (gèrent tout le parc) ;
 //       revendeur      : uniquement les siens (ownerId === req.user.id), sinon 403.
@@ -20,10 +25,10 @@ function isAdminLike(user) {
 async function resolveServer(req, res, next) {
   const raw = req.headers['x-server-id'];
 
-  // Pas de cible distante explicite → contexte local.
+  // Pas de cible distante explicite → contexte local (tout rôle authentifié ;
+  // le scoping propriétaire des routes fait la tenance).
   if (raw === undefined || raw === '' || raw === 'local') {
-    if (isAdminLike(req.user)) return next();
-    return res.status(400).json({ error: 'En-tête x-server-id requis' });
+    return next();
   }
 
   const serverId = parseInt(raw, 10);

@@ -17,30 +17,21 @@ const EVICT_INTERVAL_MS = 10 * 60 * 1000; // balayage toutes les 10 min
 // serverId → { executor, lastUsed }
 const sshPool = new Map();
 
-// Rôles considérés comme "local" (admin mono-serveur historique).
-// 'reseller' et 'viewer' (alias fonctionnel Phase 0) passent par le SSH distant.
-function isLocalRole(role) {
-  return role === 'admin' || role === 'manager';
-}
-
 /**
  * Résout l'exécuteur pour une requête.
  *  - cible distante explicite (req.serverId, posée par resolveServer) → SSH, QUEL
  *    que soit le rôle. Permet à l'admin de piloter un VPS distant et au revendeur
  *    de cibler le sien (le contrôle de propriété est fait par resolveServer en amont).
- *  - pas de serveur + admin/manager (ou pas d'user) → LocalExecutor (historique)
- *  - pas de serveur + revendeur               → throw Error code=NO_SERVER_SELECTED
+ *  - pas de serveur → LocalExecutor pour TOUT rôle. Depuis le pivot "instance
+ *    complète" (2026-07-03), un revendeur travaille en local (sur son instance
+ *    comme sur la mère) — la tenance est garantie par le scoping propriétaire
+ *    des routes, plus par le choix d'exécuteur.
  */
 async function resolveExecutor(req) {
   if (req && req.serverId) {
     return getExecutorForServer(req.serverId);
   }
-  if (!req || !req.user || isLocalRole(req.user.role)) {
-    return localExecutor;
-  }
-  const e = new Error('NO_SERVER_SELECTED');
-  e.code = 'NO_SERVER_SELECTED';
-  throw e;
+  return localExecutor;
 }
 
 /**

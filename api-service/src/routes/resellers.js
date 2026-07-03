@@ -10,7 +10,7 @@ const router = express.Router();
 
 const { db, schema } = require('../../db');
 const { eq, inArray } = require('drizzle-orm');
-const { requireReseller } = require('../middleware/auth');
+const { requireReseller, invalidateUserCache } = require('../middleware/auth');
 const { hashPassword } = require('../services/auth');
 const { descendantIds } = require('../services/scope');
 const wallet = require('../services/wallet');
@@ -124,11 +124,111 @@ router.get(
       rows = await db.select(fields).from(schema.users).where(inArray(schema.users.id, ids));
     }
 
+    // Vue d'ensemble par compte : nombre de serveurs + clients cumulés + état
+    // licence (la plus proche de l'expiration). Une seule requête agrégée.
+    const ids = rows.map((u) => u.id);
+    const srvByOwner = new Map();
+    if (ids.length > 0) {
+      const srvRows = await db
+        .select({
+          ownerId: schema.servers.ownerId,
+          status: schema.servers.status,
+          clientCount: schema.servers.clientCount,
+          licenseExpiry: schema.servers.licenseExpiry,
+        })
+        .from(schema.servers)
+        .where(inArray(schema.servers.ownerId, ids));
+      for (const s of srvRows) {
+        const agg = srvByOwner.get(s.ownerId) || {
+          serversCount: 0,
+          serversOnline: 0,
+          clientsTotal: 0,
+          nextLicenseExpiry: null,
+        };
+        agg.serversCount += 1;
+        if (s.status === 'online') agg.serversOnline += 1;
+        agg.clientsTotal += s.clientCount || 0;
+        if (
+          s.licenseExpiry &&
+          (!agg.nextLicenseExpiry || new Date(s.licenseExpiry) < new Date(agg.nextLicenseExpiry))
+        ) {
+          agg.nextLicenseExpiry = s.licenseExpiry;
+        }
+        srvByOwner.set(s.ownerId, agg);
+      }
+    }
+
     const network = rows.map((u) => ({
       ...u,
       balance: wallet.getBalance(u.id),
+      serversCount: srvByOwner.get(u.id)?.serversCount || 0,
+      serversOnline: srvByOwner.get(u.id)?.serversOnline || 0,
+      clientsTotal: srvByOwner.get(u.id)?.clientsTotal || 0,
+      nextLicenseExpiry: srvByOwner.get(u.id)?.nextLicenseExpiry || null,
     }));
     res.json(network);
+  })
+);
+
+// Gestion d'un compte du réseau : activer/désactiver, prix de revente, email.
+// Admin : n'importe quel revendeur ; revendeur : uniquement ses descendants.
+const patchSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    sellPriceCents: z.number().int().min(0).max(10_000_000).nullable().optional(),
+    email: z.string().email('Email invalide').max(255).nullable().optional(),
+  })
+  .strict();
+
+router.patch(
+  '/:id',
+  requireReseller,
+  asyncWrap(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json(createError('Identifiant invalide'));
+
+    const parsed = patchSchema.safeParse(req.body);
+    if (!parsed.success)
+      return res.status(400).json(createError(parsed.error, 'Validation échouée'));
+    const updates = parsed.data;
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json(createError('enabled, sellPriceCents ou email requis'));
+    }
+
+    const [target] = await db
+      .select({
+        id: schema.users.id,
+        username: schema.users.username,
+        role: schema.users.role,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, id))
+      .limit(1);
+    if (!target || target.role !== 'reseller') {
+      return res.status(404).json(createError('Revendeur introuvable', null, 'NOT_FOUND'));
+    }
+    // Tenance : un revendeur ne gère que son sous-arbre (jamais lui-même via
+    // cette route — son prix passe par PUT /price).
+    if (req.user.role !== 'admin') {
+      const ids = descendantIds(req.user.id).filter((d) => d !== req.user.id);
+      if (!ids.includes(id)) {
+        return res.status(403).json(createError('Hors de votre réseau', null, 'FORBIDDEN'));
+      }
+    }
+
+    await db.update(schema.users).set(updates).where(eq(schema.users.id, id));
+    // La désactivation doit être immédiate (cache auth 1 min sinon).
+    invalidateUserCache(target.username);
+
+    await auditLog({
+      actor: req.user.username,
+      action: 'update_reseller',
+      targetType: 'user',
+      targetName: target.username,
+      details: { id, ...updates },
+      ip: req.ip,
+    });
+    res.json({ success: true, id, ...updates });
   })
 );
 

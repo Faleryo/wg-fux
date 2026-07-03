@@ -39,6 +39,7 @@ vi.mock('../src/services/shell', () => ({
   writeFileAsRoot: vi.fn().mockResolvedValue({ success: true }),
   appendFileAsRoot: vi.fn().mockResolvedValue({ success: true }),
   unlinkAsRoot: vi.fn().mockResolvedValue({ success: true }),
+  readFileAsRoot: vi.fn().mockResolvedValue({ success: true, content: 'MOCK_FILE_CONTENT' }),
   readdirAsRoot: vi.fn().mockResolvedValue({ success: true, stdout: 'file1.tar.gz' }),
   readFile: vi.fn().mockResolvedValue({ success: true, content: 'config_data=1' }),
   writeFile: vi.fn().mockResolvedValue({ success: true }),

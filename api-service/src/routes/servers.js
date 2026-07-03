@@ -12,7 +12,11 @@ const { db, schema } = require('../../db');
 const { eq, and } = require('drizzle-orm');
 const { auth, requireReseller } = require('../middleware/auth');
 const { auditLog } = require('../services/audit');
-const { createServer, ServerConflictError } = require('../services/serverProvision');
+const {
+  createServer,
+  reprovisionServer,
+  ServerConflictError,
+} = require('../services/serverProvision');
 const { asyncWrap, createError } = require('../utils/errors');
 
 // Validation de la création d'un serveur. `host` accepte IPv4/IPv6/hostname ;
@@ -33,9 +37,17 @@ const createServerSchema = z
   })
   .strict();
 
+// Version publiée par la plateforme (celle que les instances reçoivent au
+// heartbeat) — sert à afficher "à jour / maj disponible" dans l'onglet Serveurs.
+const PLATFORM_VERSION = require('../../package.json').version || '0.0.0';
+
 // Projection publique d'un serveur : JAMAIS de clé privée / hash de token / IV.
 // licenseKey n'est PAS exposée ici (credential de l'instance) — seulement à la création.
-function publicServer(s) {
+function publicServer(s, ownerUsername) {
+  // scriptsVersion est réutilisé par le heartbeat licence pour stocker la
+  // version de l'instance (routes/license.js) — même comparaison que
+  // wg-self-update : différent de la version plateforme = maj disponible.
+  const version = s.scriptsVersion || null;
   return {
     id: s.id,
     label: s.label,
@@ -50,6 +62,11 @@ function publicServer(s) {
     maxClients: s.maxClients ?? null,
     updateChannel: s.updateChannel || 'stable',
     scriptsVersion: s.scriptsVersion,
+    version,
+    updateAvailable: Boolean(version && version !== PLATFORM_VERSION),
+    platformVersion: PLATFORM_VERSION,
+    createdAt: s.createdAt,
+    owner: ownerUsername || undefined,
   };
 }
 
@@ -102,7 +119,51 @@ router.get(
     const rows = isAdmin
       ? await db.select().from(schema.servers)
       : await db.select().from(schema.servers).where(eq(schema.servers.ownerId, req.user.id));
-    res.json(rows.map(publicServer));
+
+    // L'admin voit à qui appartient chaque serveur (vue flotte).
+    let ownerById = new Map();
+    if (isAdmin && rows.length > 0) {
+      const owners = await db
+        .select({ id: schema.users.id, username: schema.users.username })
+        .from(schema.users);
+      ownerById = new Map(owners.map((u) => [u.id, u.username]));
+    }
+    res.json(rows.map((s) => publicServer(s, isAdmin ? ownerById.get(s.ownerId) : undefined)));
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/servers/:id/one-liner — régénère le one-liner de provisioning
+// (nouveau token usage-unique, TTL 10 min). Utile quand le token a expiré avant
+// que le revendeur ait collé la commande, ou pour ré-installer une instance.
+// Ownership : admin/manager tout, revendeur seulement les siens.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:id/one-liner',
+  auth,
+  requireReseller,
+  asyncWrap(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json(createError('Identifiant de serveur invalide'));
+    }
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'manager';
+    const where = isAdmin
+      ? eq(schema.servers.id, id)
+      : and(eq(schema.servers.id, id), eq(schema.servers.ownerId, req.user.id));
+    const [server] = await db.select().from(schema.servers).where(where).limit(1);
+    if (!server) {
+      return res
+        .status(404)
+        .json(createError('Serveur introuvable ou non autorisé', null, 'NOT_FOUND'));
+    }
+
+    const result = await reprovisionServer(server, {
+      actor: req.user.username,
+      req,
+      ip: req.ip,
+    });
+    res.json(result);
   })
 );
 

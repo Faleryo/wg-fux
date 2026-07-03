@@ -58,7 +58,9 @@ const NavItems = ({
       id: 'servers',
       icon: <Server size={20} />,
       label: t('servers'),
-      hidden: !isAdmin || instanceLicensed,
+      // Un revendeur gère SES VPS/licences ici (espace de travail) — masqué
+      // seulement sur une instance licenciée (c'est la mère qui enrôle).
+      hidden: !(isAdmin || isReseller) || instanceLicensed,
     },
     { id: 'logs', icon: <FileText size={20} />, label: t('logs'), hidden: !isManager },
     { id: 'topology', icon: <Activity size={20} />, label: t('topology') },

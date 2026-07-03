@@ -663,10 +663,12 @@ router.post(
   })
 );
 
+// Santé de l'instance : accessible à tout utilisateur authentifié (le dashboard
+// de chaque rôle l'affiche — un revendeur sur son espace de travail y a droit ;
+// rien de sensible : statut binaire + stats système agrégées).
 router.get(
   '/health',
   auth,
-  requireManager,
   asyncWrap(async (req, res) => {
     const iface = process.env.WG_INTERFACE || 'wg0';
     const interfaceExists = fs.existsSync(getInterfacePath(iface));
@@ -680,7 +682,7 @@ router.get(
       interface: success ? 'up' : 'down',
       stats: system,
       jobs: getJobStatus(),
-      version: '3.1.0',
+      version: require('../../package.json').version,
     });
   })
 );

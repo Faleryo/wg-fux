@@ -7,24 +7,23 @@ import { useSelectedServer } from '../../../context/SelectedServerContext';
 // Sélecteur de serveur cible (Local / VPS revendeur). Injecte le choix dans le
 // contexte → l'intercepteur axios pose `x-server-id` sur les appels /clients.
 //
-//  - admin/manager : option « Local » + chaque VPS en ligne.
-//  - revendeur      : uniquement ses VPS (l'API /servers filtre par propriétaire) ;
-//    pas de « Local » (aucun accès au serveur historique) → auto-sélection du
-//    premier VPS en ligne si la valeur courante est 'local'/invalide.
+// Depuis le pivot "instance complète" (2026-07-03), le contexte LOCAL est
+// valide pour TOUT rôle (le backend scope par propriétaire) : un revendeur
+// travaille en local sur son instance, et voit en plus ses VPS encore pilotés
+// par l'ancien socle SSH s'il en reste.
 
-const isAdminLike = (role) => role === 'admin' || role === 'manager';
-
-const ServerSelector = ({ userRole }) => {
+const ServerSelector = () => {
   const { selectedServerId, setSelectedServerId } = useSelectedServer();
   const [servers, setServers] = useState([]);
+  const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const admin = isAdminLike(userRole);
 
   const loadServers = useCallback(async () => {
     try {
       const res = await axiosInstance.get('/servers');
       setServers(Array.isArray(res.data) ? res.data : []);
+      setLoaded(true);
     } catch {
       setServers([]);
     }
@@ -45,27 +44,23 @@ const ServerSelector = ({ userRole }) => {
 
   const onlineServers = servers.filter((s) => s.status === 'online');
 
-  // Pour un revendeur, 'local' n'a pas de sens : on bascule sur son 1er VPS en ligne.
+  // Une sélection persistée (localStorage) qui ne correspond plus à rien —
+  // serveur supprimé, base réinstallée — est ramenée sur 'local' au lieu de
+  // laisser l'UI envoyer un x-server-id mort (403 en boucle sur /clients).
   useEffect(() => {
-    if (admin) return;
+    if (String(selectedServerId) === 'local') return;
+    if (!loaded) return; // liste pas encore chargée
     const valid = onlineServers.some((s) => String(s.id) === String(selectedServerId));
-    if (!valid && onlineServers.length > 0) {
-      setSelectedServerId(String(onlineServers[0].id));
-    }
+    if (!valid) setSelectedServerId('local');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [admin, onlineServers.length, selectedServerId]);
+  }, [loaded, onlineServers.length, selectedServerId]);
 
   const options = [
-    ...(admin ? [{ id: 'local', label: 'Local', host: 'Serveur historique', online: true }] : []),
+    { id: 'local', label: 'Local', host: 'Ce serveur', online: true },
     ...onlineServers.map((s) => ({ id: String(s.id), label: s.label, host: s.host, online: true })),
   ];
 
-  const current =
-    options.find((o) => String(o.id) === String(selectedServerId)) || options[0] || {
-      id: 'local',
-      label: admin ? 'Local' : 'Aucun serveur',
-      host: '',
-    };
+  const current = options.find((o) => String(o.id) === String(selectedServerId)) || options[0];
 
   const isLocal = String(current.id) === 'local';
 
@@ -110,7 +105,9 @@ const ServerSelector = ({ userRole }) => {
                 {String(opt.id) === 'local' ? <Globe size={14} /> : <Server size={14} />}
                 <span className="flex-1 min-w-0">
                   <span className="block text-sm font-semibold truncate">{opt.label}</span>
-                  {opt.host && <span className="block text-[10px] opacity-50 truncate">{opt.host}</span>}
+                  {opt.host && (
+                    <span className="block text-[10px] opacity-50 truncate">{opt.host}</span>
+                  )}
                 </span>
                 {active && <Check size={14} className="text-emerald-400" />}
               </button>

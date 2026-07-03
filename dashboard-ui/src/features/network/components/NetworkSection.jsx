@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-import { Wallet, Users, Send, Plus, Palette, TrendingUp, RefreshCw, Save } from 'lucide-react';
+import {
+  Wallet,
+  Users,
+  Send,
+  Plus,
+  Palette,
+  TrendingUp,
+  RefreshCw,
+  Save,
+  Server,
+  Power,
+  PencilLine,
+  Tag,
+} from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
@@ -37,6 +50,8 @@ const NetworkSection = ({ userRole }) => {
   const [topupForm, setTopupForm] = useState({ userId: '', credits: '', priceCents: '' });
   const [buyCredits, setBuyCredits] = useState('');
   const [inviteUrl, setInviteUrl] = useState(null);
+  const [myPrice, setMyPrice] = useState('');
+  const [priceEdit, setPriceEdit] = useState(null); // { id, username, value }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -153,6 +168,31 @@ const NetworkSection = ({ userRole }) => {
       }
     });
 
+  // Mon prix de revente d'1 crédit (marge sur les transferts vers mon réseau).
+  const saveMyPrice = () =>
+    guard(async () => {
+      try {
+        await axiosInstance.put('/resellers/price', { sellPriceCents: Number(myPrice) });
+        addToast('Prix de revente enregistré', 'success');
+        load();
+      } catch (e) {
+        addToast(e?.response?.data?.error || 'Erreur prix', 'error');
+      }
+    });
+
+  // Gestion d'un compte du réseau : activer/désactiver, prix de revente.
+  const patchAccount = (id, payload, okMsg) =>
+    guard(async () => {
+      try {
+        await axiosInstance.patch(`/resellers/${id}`, payload);
+        addToast(okMsg, 'success');
+        setPriceEdit(null);
+        load();
+      } catch (e) {
+        addToast(e?.response?.data?.error || 'Erreur de mise à jour', 'error');
+      }
+    });
+
   const saveBrand = () =>
     guard(async () => {
       try {
@@ -241,8 +281,8 @@ const NetworkSection = ({ userRole }) => {
         </GlassCard>
       </div>
 
-      {/* Acheter des crédits (Stripe) + inviter */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Acheter des crédits (Stripe) + inviter + mon prix */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <GlassCard hover={false}>
           <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2 flex items-center gap-2">
             <Wallet size={18} /> Acheter des crédits
@@ -283,6 +323,31 @@ const NetworkSection = ({ userRole }) => {
               {inviteUrl}
             </div>
           )}
+        </GlassCard>
+        <GlassCard hover={false}>
+          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2 flex items-center gap-2">
+            <Tag size={18} /> Mon prix de revente
+          </h3>
+          <p className="text-[11px] text-slate-500 mb-4">
+            Prix facturé à votre réseau pour 1 crédit (en centimes). Votre marge = revente −
+            acquisition.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input
+              className={inputCls}
+              placeholder="centimes / crédit"
+              value={myPrice}
+              onChange={(e) => setMyPrice(e.target.value)}
+            />
+            <VibeButton
+              variant="secondary"
+              icon={Save}
+              onClick={saveMyPrice}
+              disabled={busy || myPrice.trim() === '' || Number.isNaN(Number(myPrice))}
+            >
+              Enregistrer
+            </VibeButton>
+          </div>
         </GlassCard>
       </div>
 
@@ -330,35 +395,157 @@ const NetworkSection = ({ userRole }) => {
             <thead>
               <tr className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
                 <th className="px-6 py-4">Compte</th>
-                <th className="px-6 py-4">ID</th>
+                <th className="px-6 py-4">Statut</th>
                 <th className="px-6 py-4">Solde</th>
+                <th className="px-6 py-4">Serveurs</th>
+                <th className="px-6 py-4">Clients</th>
+                <th className="px-6 py-4">Licence proche</th>
                 <th className="px-6 py-4">Prix revente</th>
-                <th className="px-6 py-4 text-right">Transfert</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {network.map((u) => (
-                <tr key={u.id} className="hover:bg-white/5">
-                  <td className="px-6 py-4 text-sm font-bold text-white">{u.username}</td>
-                  <td className="px-6 py-4 text-xs font-mono text-slate-500">{u.id}</td>
-                  <td className="px-6 py-4 text-sm font-mono text-emerald-400">{u.balance}</td>
-                  <td className="px-6 py-4 text-xs font-mono text-slate-400">
-                    {euros(u.sellPriceCents)}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => setTransferForm({ toUserId: String(u.id), credits: '' })}
-                      className="text-indigo-400 hover:text-indigo-300 text-[11px] font-black uppercase tracking-widest"
-                    >
-                      Sélectionner
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {network.map((u) => {
+                const licDays = u.nextLicenseExpiry
+                  ? Math.ceil((new Date(u.nextLicenseExpiry).getTime() - Date.now()) / 86400000)
+                  : null;
+                return (
+                  <tr key={u.id} className={cn('hover:bg-white/5', !u.enabled && 'opacity-50')}>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-bold text-white">{u.username}</div>
+                      <div className="text-[10px] font-mono text-slate-500">
+                        #{u.id}
+                        {u.parentId != null ? ' · sous-revendeur' : ''}
+                        {u.email ? ` · ${u.email}` : ''}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={cn(
+                          'text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border',
+                          u.enabled
+                            ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                            : 'text-red-400 bg-red-500/10 border-red-500/20'
+                        )}
+                      >
+                        {u.enabled ? 'Actif' : 'Désactivé'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-mono text-emerald-400">{u.balance}</td>
+                    <td className="px-6 py-4 text-xs font-mono text-slate-300">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Server size={12} className="text-slate-500" />
+                        {u.serversOnline ?? 0}/{u.serversCount ?? 0} en ligne
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-mono text-slate-300">
+                      {u.clientsTotal ?? 0}
+                    </td>
+                    <td className="px-6 py-4 text-[11px] font-mono">
+                      {licDays === null ? (
+                        <span className="text-slate-600">—</span>
+                      ) : licDays <= 0 ? (
+                        <span className="text-red-400 font-bold">Expirée</span>
+                      ) : (
+                        <span className={licDays <= 7 ? 'text-amber-400' : 'text-slate-400'}>
+                          {licDays} j
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-xs font-mono text-slate-400">
+                      {priceEdit?.id === u.id ? (
+                        <span className="inline-flex items-center gap-2">
+                          <input
+                            autoFocus
+                            className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-white/20"
+                            placeholder="centimes"
+                            value={priceEdit.value}
+                            onChange={(e) => setPriceEdit({ ...priceEdit, value: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter')
+                                patchAccount(
+                                  u.id,
+                                  { sellPriceCents: Number(priceEdit.value) || 0 },
+                                  'Prix mis à jour'
+                                );
+                              if (e.key === 'Escape') setPriceEdit(null);
+                            }}
+                          />
+                          <button
+                            onClick={() =>
+                              patchAccount(
+                                u.id,
+                                { sellPriceCents: Number(priceEdit.value) || 0 },
+                                'Prix mis à jour'
+                              )
+                            }
+                            className="text-emerald-400 hover:text-emerald-300 text-[10px] font-black uppercase"
+                          >
+                            OK
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
+                          title="Modifier le prix de revente"
+                          onClick={() =>
+                            setPriceEdit({
+                              id: u.id,
+                              value: u.sellPriceCents != null ? String(u.sellPriceCents) : '',
+                            })
+                          }
+                        >
+                          {euros(u.sellPriceCents)}
+                          <PencilLine size={11} className="text-slate-600" />
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
+                      <button
+                        onClick={() => setTransferForm({ toUserId: String(u.id), credits: '' })}
+                        className="text-indigo-400 hover:text-indigo-300 text-[11px] font-black uppercase tracking-widest mr-4"
+                        title="Pré-remplir le transfert de crédits"
+                      >
+                        Transférer
+                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() =>
+                            setTopupForm({ userId: String(u.id), credits: '', priceCents: '' })
+                          }
+                          className="text-emerald-400 hover:text-emerald-300 text-[11px] font-black uppercase tracking-widest mr-4"
+                          title="Pré-remplir le top-up"
+                        >
+                          Créditer
+                        </button>
+                      )}
+                      <button
+                        onClick={() =>
+                          patchAccount(
+                            u.id,
+                            { enabled: !u.enabled },
+                            u.enabled ? 'Compte désactivé' : 'Compte réactivé'
+                          )
+                        }
+                        className={cn(
+                          'text-[11px] font-black uppercase tracking-widest',
+                          u.enabled
+                            ? 'text-red-400/80 hover:text-red-400'
+                            : 'text-emerald-400 hover:text-emerald-300'
+                        )}
+                        title={u.enabled ? 'Couper l’accès de ce compte' : 'Rétablir l’accès'}
+                      >
+                        <Power size={13} className="inline -mt-0.5" />{' '}
+                        {u.enabled ? 'Désactiver' : 'Activer'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
               {network.length === 0 && (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={8}
                     className="px-6 py-8 text-center text-slate-500 text-xs uppercase tracking-widest"
                   >
                     Aucun sous-revendeur

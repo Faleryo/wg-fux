@@ -212,11 +212,10 @@ describe('resolveExecutor', () => {
     expect(await resolveExecutor({})).toBe(localExecutor);
   });
 
-  it('throw NO_SERVER_SELECTED pour un revendeur sans serverId', async () => {
+  it('retourne le LocalExecutor pour un revendeur sans serverId (pivot instance complète)', async () => {
     const { resolveExecutor } = require('../src/services/executors');
-    await expect(resolveExecutor({ user: { role: 'reseller', id: 42 } })).rejects.toMatchObject({
-      code: 'NO_SERVER_SELECTED',
-    });
+    const localExecutor = require('../src/services/executors/local');
+    expect(await resolveExecutor({ user: { role: 'reseller', id: 42 } })).toBe(localExecutor);
   });
 
   it('retourne un SshExecutor (via pool) pour un revendeur avec serverId + cache hit', async () => {
