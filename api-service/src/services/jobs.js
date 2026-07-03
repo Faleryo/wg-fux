@@ -574,6 +574,13 @@ const startJobs = () => {
     setTimeout(checkLicenseNow, 15000); // au boot (laisse la DB s'initialiser)
     setInterval(checkLicenseNow, 6 * 3600000); // puis toutes les 6h
   }
+
+  // Bot Telegram admin (no-op tant que token/chat non configurés dans les réglages).
+  try {
+    require('./telegramBot').startTelegramBot();
+  } catch (e) {
+    log.warn('jobs', 'Démarrage bot Telegram échoué', { err: e.message });
+  }
 };
 
 const rotateEnforcerLogs = async () => {
