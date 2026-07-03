@@ -520,6 +520,11 @@ bring_up_services() {
 
     wait_for_healthy 180
 
+    # Réutilise des certificats Let's Encrypt sauvegardés lors d'une précédente
+    # désinstallation (le volume vient d'être créé par `up`) → évite de re-solliciter
+    # Let's Encrypt et sa limite hebdomadaire.
+    restore_letsencrypt_certs
+
     if [ -n "$DOMAIN" ]; then
         log_info "🔐 Running Let's Encrypt setup…"
         setup_ssl || log_warn "SSL setup returned non-zero; nginx remains on self-signed."

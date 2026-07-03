@@ -99,7 +99,13 @@ const REPO_DIR = (process.env.REPO_DIR || '').trim() || path.resolve(__dirname, 
 // prod (ex. chemins Let's Encrypt réécrits dans le template nginx par
 // setup-ssl.sh) sont exclus par définition — et le bundle est reproductible.
 // Chemins trackés mais internes exclus explicitement via pathspec :
-const BUNDLE_GIT_EXCLUDES = [':(exclude)docs', ':(exclude).github', ':(exclude).claude'];
+const BUNDLE_GIT_EXCLUDES = [
+  ':(exclude)docs',
+  ':(exclude).github',
+  ':(exclude).claude',
+  ':(exclude)protected-bundle',
+  ':(exclude)api-service/obfuscator.config.json',
+];
 
 let _bundleCache = null; // { buffer: Buffer, sha256: string, builtAt: number }
 
@@ -111,6 +117,29 @@ let _bundleCache = null; // { buffer: Buffer, sha256: string, builtAt: number }
  */
 function buildBundleTarball({ fresh = false } = {}) {
   if (_bundleCache && !fresh) return Promise.resolve(_bundleCache);
+
+  // Bundle DURCI pré-fabriqué (interface pré-buildée + JS API obfusqué), produit
+  // par scripts/build-protected-bundle.sh et monté en lecture seule. S'il existe,
+  // il est servi tel quel — le client ne reçoit jamais le code source propre.
+  // Sinon on retombe sur `git archive HEAD` (dev / instance non durcie).
+  const protectedPath = (process.env.PROTECTED_BUNDLE_PATH || '').trim();
+  if (protectedPath && !fresh) {
+    try {
+      const buf = fs.readFileSync(protectedPath);
+      const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
+      _bundleCache = { buffer: buf, sha256, builtAt: Date.now() };
+      log.info('provision', 'Bundle durci servi (pré-fabriqué)', {
+        sizeMB: (buf.length / 1048576).toFixed(1),
+        sha256: sha256.slice(0, 12),
+      });
+      return Promise.resolve(_bundleCache);
+    } catch (e) {
+      log.warn('provision', 'Bundle durci illisible — repli git archive', {
+        path: protectedPath,
+        err: e.message,
+      });
+    }
+  }
 
   const { execFile } = require('child_process');
   // -c safe.directory : /repo est monté root:root, le process node tourne en

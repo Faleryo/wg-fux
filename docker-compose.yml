@@ -81,12 +81,17 @@ services:
     environment:
       - AGH_USER=${AGH_USER:-admin}
       # Racine du repo (montée ci-dessous) : source du bundle produit servi aux
-      # VPS revendeurs (GET /provision/:token/bundle.tgz).
+      # VPS revendeurs (GET /provision/:token/bundle.tgz) EN REPLI.
       - REPO_DIR=/repo
+      # Bundle DURCI pré-fabriqué (scripts/build-protected-bundle.sh) : s'il
+      # existe, il est servi à la place du git archive → le revendeur ne reçoit
+      # que du code obfusqué + interface pré-buildée.
+      - PROTECTED_BUNDLE_PATH=/protected/wg-fux-bundle.tgz
     volumes:
       - wg_fux_data:/app/data
       - ./core-vpn:/app/core-vpn:ro
       - .:/repo:ro
+      - ./protected-bundle:/protected:ro
 
       - /etc/wireguard:/etc/wireguard
       - /lib/modules:/lib/modules:ro

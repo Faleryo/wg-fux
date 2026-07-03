@@ -62,3 +62,52 @@ setup_ssl() {
     fi
     DOMAIN="$DOMAIN" EMAIL="$EMAIL" bash "$ssl_script"
 }
+
+# ── Sauvegarde / restauration des certificats Let's Encrypt ──────────────────
+# Les certs vivent dans le volume Docker `*_certbot_certs`. Let's Encrypt limite
+# les émissions (5 certs identiques / semaine) : perdre les certs à une
+# désinstallation puis en redemander à la réinstallation peut BLOQUER l'accès
+# HTTPS pendant une semaine. On sauvegarde donc vers un tarball hôte portable et
+# on restaure automatiquement à l'installation si le volume est vide.
+LE_BACKUP_FILE="${LE_BACKUP_FILE:-/var/backups/wg-fux-letsencrypt.tar.gz}"
+
+_certbot_volume() {
+    sudo docker volume ls -q --filter name=certbot_certs 2>/dev/null | head -1
+}
+
+# Sauvegarde le volume des certificats vers $LE_BACKUP_FILE (best-effort).
+backup_letsencrypt_certs() {
+    local vol; vol=$(_certbot_volume)
+    [ -n "$vol" ] || { log_warn "Aucun volume de certificats à sauvegarder."; return 1; }
+    sudo mkdir -p "$(dirname "$LE_BACKUP_FILE")"
+    if sudo docker run --rm -v "$vol":/data:ro \
+            -v "$(dirname "$LE_BACKUP_FILE")":/backup alpine \
+            tar czf "/backup/$(basename "$LE_BACKUP_FILE")" -C /data . >/dev/null 2>&1; then
+        sudo chmod 600 "$LE_BACKUP_FILE" 2>/dev/null || true
+        log_success "Certificats Let's Encrypt sauvegardés → $LE_BACKUP_FILE"
+        return 0
+    fi
+    log_warn "Échec de la sauvegarde des certificats."
+    return 1
+}
+
+# Restaure les certs depuis le tarball SI le volume ne contient pas déjà de
+# certs live. Appelé à l'installation, après `docker compose up` (volume créé).
+restore_letsencrypt_certs() {
+    [ -f "$LE_BACKUP_FILE" ] || return 0
+    local vol; vol=$(_certbot_volume)
+    [ -n "$vol" ] || return 0   # volume pas encore là : rien à faire
+    # Ne restaure pas par-dessus des certs déjà présents.
+    if sudo docker run --rm -v "$vol":/data alpine \
+            sh -c '[ -d /data/live ] && [ -n "$(ls -A /data/live 2>/dev/null)" ]' >/dev/null 2>&1; then
+        return 0
+    fi
+    log_info "Restauration des certificats Let's Encrypt depuis $LE_BACKUP_FILE…"
+    if sudo docker run --rm -v "$vol":/data \
+            -v "$(dirname "$LE_BACKUP_FILE")":/backup:ro alpine \
+            tar xzf "/backup/$(basename "$LE_BACKUP_FILE")" -C /data >/dev/null 2>&1; then
+        log_success "Certificats restaurés — Let's Encrypt ne sera pas re-sollicité."
+    else
+        log_warn "Échec de la restauration (on continuera avec certbot)."
+    fi
+}

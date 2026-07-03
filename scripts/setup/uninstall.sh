@@ -18,6 +18,7 @@ _uninstall_confirm() {
 do_uninstall() {
     log_warn "Uninstalling wg-fux…"
 
+    _maybe_preserve_certs
     _stop_wg_interfaces
     _stop_docker
     _maybe_remove_images
@@ -29,6 +30,9 @@ do_uninstall() {
     _maybe_remove_swap
     _maybe_remove_wg_dir
 
+    if [ "${KEEP_CERTS:-false}" = true ]; then
+        log_success "Certificats conservés (${LE_BACKUP_FILE:-/var/backups/wg-fux-letsencrypt.tar.gz} + volume Docker). Ils seront réutilisés automatiquement à la réinstallation."
+    fi
     log_success "wg-fux uninstall finished."
 }
 
@@ -44,10 +48,32 @@ _stop_wg_interfaces() {
     done
 }
 
+# Propose de conserver les certificats Let's Encrypt (défaut : OUI). Si accepté,
+# on les sauvegarde dans un tarball hôte ET on garde le volume Docker (KEEP_CERTS)
+# → réutilisables tels quels à la prochaine installation, sans re-solliciter
+# Let's Encrypt (sa limite hebdomadaire peut bloquer l'accès HTTPS 1 semaine).
+KEEP_CERTS=false
+_maybe_preserve_certs() {
+    [ -f docker-compose.yml ] || return 0
+    # Rien à préserver s'il n'y a pas de volume de certs.
+    [ -n "$(_certbot_volume 2>/dev/null)" ] || return 0
+    if _uninstall_confirm "Conserver les certificats Let's Encrypt pour un futur usage ?" "y"; then
+        KEEP_CERTS=true
+        backup_letsencrypt_certs || true
+    fi
+}
+
 _stop_docker() {
     [ -f docker-compose.yml ] || return 0
-    log_info "Stopping containers and removing volumes…"
-    sudo docker compose down -v || true
+    if [ "${KEEP_CERTS:-false}" = true ]; then
+        # `down` SANS -v : les volumes (dont les certificats) survivent et seront
+        # réutilisés si l'on réinstalle dans ce même dossier.
+        log_info "Stopping containers (volumes préservés)…"
+        sudo docker compose down || true
+    else
+        log_info "Stopping containers and removing volumes…"
+        sudo docker compose down -v || true
+    fi
 }
 
 _maybe_remove_images() {

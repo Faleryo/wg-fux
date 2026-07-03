@@ -61,8 +61,13 @@ server.timeout = 300000; // 5 minute timeout for long running tasks (like speedt
 server.headersTimeout = 301000;
 
 // --- Swagger Documentation ---
-const { swaggerUi, specs } = require('./src/utils/swagger');
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+// EXPOSÉ EN DEV UNIQUEMENT : en production, /api-docs livrerait la carte
+// complète de l'API à n'importe quel visiteur (et à tout crawler/IA). On le
+// coupe sauf si ENABLE_API_DOCS=1 est explicitement posé (débogage ponctuel).
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_API_DOCS === '1') {
+  const { swaggerUi, specs } = require('./src/utils/swagger');
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+}
 
 // --- Middleware ---
 app.use(helmet({ contentSecurityPolicy: false }));

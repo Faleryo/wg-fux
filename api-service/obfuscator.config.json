@@ -1,0 +1,20 @@
+{
+  "compact": true,
+  "identifierNamesGenerator": "hexadecimal",
+  "renameGlobals": false,
+  "stringArray": true,
+  "stringArrayThreshold": 0.75,
+  "stringArrayEncoding": ["base64"],
+  "stringArrayRotate": true,
+  "stringArrayShuffle": true,
+  "splitStrings": false,
+  "controlFlowFlattening": false,
+  "deadCodeInjection": false,
+  "selfDefending": false,
+  "debugProtection": false,
+  "disableConsoleOutput": false,
+  "transformObjectKeys": false,
+  "numbersToExpressions": false,
+  "unicodeEscapeSequence": false,
+  "reservedNames": ["^require$", "^module$", "^exports$", "^__dirname$", "^__filename$"]
+}
