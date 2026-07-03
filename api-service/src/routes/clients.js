@@ -38,6 +38,20 @@ const creationLimiter = rateLimit({
 });
 const identifierRegex = /^[a-zA-Z0-9_-]+$/;
 
+// Gate de licence (instances revendeurs uniquement — no-op sans clé configurée).
+// Bloque SEULEMENT la création : les clients existants ne sont jamais coupés.
+const requireLicense = (req, res, next) => {
+  const { isLicensed } = require('../services/license');
+  if (isLicensed()) return next();
+  return res.status(403).json(
+    createError(
+      'Licence expirée — renouvelez votre abonnement pour créer de nouveaux clients.',
+      null,
+      'LICENSE_EXPIRED'
+    )
+  );
+};
+
 // 🛡️ OBSIDIAN-HARDENING: Global parameter validation and RBAC
 router.param('container', async (req, res, next, val) => {
   if (!identifierRegex.test(val))
@@ -141,6 +155,7 @@ router.get(
 router.post(
   '/containers',
   auth,
+  requireLicense,
   creationLimiter,
   asyncWrap(async (req, res) => {
     const parsed = containerSchema.safeParse(req.body);
@@ -360,6 +375,7 @@ router.get(
 router.post(
   '/',
   auth,
+  requireLicense,
   creationLimiter,
   asyncWrap(async (req, res) => {
     const result = clientSchema.safeParse(req.body);

@@ -21,6 +21,10 @@ const { asyncWrap, createError } = require('../utils/errors');
 // TTL du token de provisioning : 10 minutes (usage unique).
 const PROVISION_TOKEN_TTL_MS = 10 * 60 * 1000;
 
+// Période d'essai offerte à l'enregistrement d'un VPS : 30 jours.
+// Ensuite l'admin prolonge licenseExpiry (abonnement payé) via PATCH.
+const LICENSE_TRIAL_MS = 30 * 24 * 3600 * 1000;
+
 // Validation de la création d'un serveur. `host` accepte IPv4/IPv6/hostname ;
 // on reste permissif mais borné (anti-injection : pas d'espaces/quotes).
 const createServerSchema = z
@@ -40,6 +44,7 @@ const createServerSchema = z
   .strict();
 
 // Projection publique d'un serveur : JAMAIS de clé privée / hash de token / IV.
+// licenseKey n'est PAS exposée ici (credential de l'instance) — seulement à la création.
 function publicServer(s) {
   return {
     id: s.id,
@@ -49,6 +54,10 @@ function publicServer(s) {
     status: s.status,
     lastChecked: s.lastChecked,
     lastError: s.lastError,
+    licenseExpiry: s.licenseExpiry,
+    lastHeartbeat: s.lastHeartbeat,
+    clientCount: s.clientCount,
+    scriptsVersion: s.scriptsVersion,
   };
 }
 
@@ -75,6 +84,10 @@ router.post(
     const provisionTokenHash = hashToken(token);
     const provisionTokenExpiry = new Date(Date.now() + PROVISION_TOKEN_TTL_MS);
 
+    // 2bis. Clé de licence de l'instance (256 bits) + essai de 30 jours.
+    const licenseKey = generateToken();
+    const licenseExpiry = new Date(Date.now() + LICENSE_TRIAL_MS);
+
     // 3. INSERT (status 'pending' jusqu'à la vérification SSH).
     let inserted;
     try {
@@ -93,6 +106,8 @@ router.post(
           status: 'pending',
           provisionTokenHash,
           provisionTokenExpiry,
+          licenseKey,
+          licenseExpiry,
         })
         .returning();
     } catch (dbErr) {
@@ -138,6 +153,7 @@ router.post(
       oneLiner,
       scriptSha256,
       expiresAt: provisionTokenExpiry.toISOString(),
+      licenseExpiry: licenseExpiry.toISOString(), // fin d'essai (30 jours)
     });
   })
 );
@@ -193,6 +209,67 @@ router.delete(
     });
 
     res.json({ success: true });
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/servers/:id/license — renouvelle la licence (ADMIN uniquement :
+// c'est l'acte de facturation — le revendeur paie, l'admin prolonge).
+// Body : { extendDays: 30 }  OU  { expiry: "2026-08-01T00:00:00Z" }
+//        { revoke: true } coupe immédiatement (impayé).
+// ─────────────────────────────────────────────────────────────────────────────
+router.patch(
+  '/:id/license',
+  auth,
+  asyncWrap(async (req, res) => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json(createError('Réservé à l’admin', null, 'FORBIDDEN'));
+    }
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json(createError('Identifiant de serveur invalide'));
+    }
+    const [server] = await db
+      .select()
+      .from(schema.servers)
+      .where(eq(schema.servers.id, id))
+      .limit(1);
+    if (!server) {
+      return res.status(404).json(createError('Serveur introuvable', null, 'NOT_FOUND'));
+    }
+
+    const { extendDays, expiry, revoke } = req.body || {};
+    let newExpiry;
+    if (revoke === true) {
+      newExpiry = new Date(0); // licence coupée immédiatement
+    } else if (Number.isInteger(extendDays) && extendDays > 0 && extendDays <= 3650) {
+      // Prolonge depuis l'expiry courante si encore valide, sinon depuis maintenant
+      // (un renouvellement tardif ne "perd" pas de jours, un anticipé les cumule).
+      const base = Math.max(Date.now(), server.licenseExpiry ? new Date(server.licenseExpiry).getTime() : 0);
+      newExpiry = new Date(base + extendDays * 24 * 3600 * 1000);
+    } else if (expiry && !Number.isNaN(Date.parse(expiry))) {
+      newExpiry = new Date(expiry);
+    } else {
+      return res
+        .status(400)
+        .json(createError('extendDays (1-3650), expiry (ISO) ou revoke:true requis'));
+    }
+
+    await db
+      .update(schema.servers)
+      .set({ licenseExpiry: newExpiry })
+      .where(eq(schema.servers.id, id));
+
+    await auditLog({
+      actor: req.user.username,
+      action: revoke ? 'revoke_license' : 'renew_license',
+      targetType: 'server',
+      targetName: server.label,
+      details: { serverId: id, licenseExpiry: newExpiry.toISOString() },
+      ip: req.ip,
+    });
+
+    res.json({ success: true, licenseExpiry: newExpiry.toISOString() });
   })
 );
 

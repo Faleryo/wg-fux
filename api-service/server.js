@@ -138,6 +138,9 @@ app.get('/api/ready', async (req, res) => {
 // Monté HORS /api donc sans le middleware d'auth JWT ni le rate-limit /api.
 app.use('/provision', provisionRoutes);
 
+// --- Licence des instances revendeurs (PUBLIC : la clé de licence EST l'auth) ---
+app.use('/license', require('./src/routes/license'));
+
 // --- Auth Routes (contains both public /login and protected /check) ---
 app.use('/api/auth', authRoutes);
 

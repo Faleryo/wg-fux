@@ -80,9 +80,13 @@ services:
       - ./api-service/.env
     environment:
       - AGH_USER=${AGH_USER:-admin}
+      # Racine du repo (montée ci-dessous) : source du bundle produit servi aux
+      # VPS revendeurs (GET /provision/:token/bundle.tgz).
+      - REPO_DIR=/repo
     volumes:
       - wg_fux_data:/app/data
       - ./core-vpn:/app/core-vpn:ro
+      - .:/repo:ro
 
       - /etc/wireguard:/etc/wireguard
       - /lib/modules:/lib/modules:ro

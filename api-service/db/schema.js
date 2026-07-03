@@ -63,6 +63,12 @@ const servers = sqliteTable(
     provisionTokenHash: text('provisionTokenHash'), // sha256 du token (usage unique)
     provisionTokenExpiry: integer('provisionTokenExpiry', { mode: 'timestamp' }),
     scriptsVersion: text('scriptsVersion'),
+    // Licence (revenu récurrent) : l'instance installée sur le VPS revendeur
+    // phone-home avec sa clé ; expirée = création de clients bloquée là-bas.
+    licenseKey: text('licenseKey'),
+    licenseExpiry: integer('licenseExpiry', { mode: 'timestamp' }),
+    lastHeartbeat: integer('lastHeartbeat', { mode: 'timestamp' }), // dernier phone-home de l'instance
+    clientCount: integer('clientCount').default(0), // télémétrie (tarification par palier)
     createdAt: integer('createdAt', { mode: 'timestamp' }).default(
       sql`(cast(strftime('%s','now') as int))`
     ),

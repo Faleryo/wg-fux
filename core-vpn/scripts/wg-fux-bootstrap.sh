@@ -6,15 +6,18 @@
 # affiché dans le one-liner. Le VPS télécharge, vérifie le hash, puis exécute.
 #
 # Flow :
-#   1. Installe git + prérequis Docker
-#   2. Clone wg-fux depuis le repo officiel
+#   1. Télécharge le BUNDLE produit (token-gaté — le repo n'est pas public),
+#      vérifie son sha256 (injecté ici, donc lui-même couvert par WG_H).
+#   2. Extrait dans /opt/wg-fux.
 #   3. Lance setup.sh --install (interactif : port, domaine, admin, AdGuard…)
-#   4. Callback plateforme → marque le serveur online
+#      avec la licence de l'instance dans l'environnement.
+#   4. Callback plateforme → marque le serveur online.
 
 set -euo pipefail
 
 PLATFORM_BASE='{{PLATFORM_BASE}}'
-REPO_URL='{{REPO_URL}}'
+BUNDLE_SHA256='{{BUNDLE_SHA256}}'
+LICENSE_KEY='{{LICENSE_KEY}}'
 INSTALL_DIR='/opt/wg-fux'
 LOG_FILE='/var/log/wg-fux-provision.log'
 TOKEN="${WG_T:-}"
@@ -32,25 +35,32 @@ command -v apt-get >/dev/null 2>&1 || fail "OS non supporté (apt-get introuvabl
 export DEBIAN_FRONTEND=noninteractive
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 1. Dépendances minimales (git, curl, ca-certificates)
+# 1. Prérequis minimaux
 # ─────────────────────────────────────────────────────────────────────────────
-log "Installation des prérequis (git, curl, ca-certificates)…"
+log "Installation des prérequis (curl, tar, ca-certificates)…"
 apt-get update -qq
-apt-get install -y -qq git curl ca-certificates
+apt-get install -y -qq curl tar ca-certificates coreutils
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2. Téléchargement de wg-fux (idempotent)
+# 2. Téléchargement du bundle produit (token-gaté) + vérification d'intégrité
 # ─────────────────────────────────────────────────────────────────────────────
-if [ -d "$INSTALL_DIR/.git" ]; then
-  log "wg-fux déjà présent dans $INSTALL_DIR — mise à jour vers la dernière version…"
-  BRANCH=$(git -C "$INSTALL_DIR" symbolic-ref --short HEAD 2>/dev/null || echo 'main')
-  git -C "$INSTALL_DIR" fetch --all --prune --quiet
-  git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH" --quiet
-else
-  log "Clonage de wg-fux dans $INSTALL_DIR…"
-  git clone --depth 1 --quiet "$REPO_URL" "$INSTALL_DIR"
-fi
-log "Code wg-fux prêt dans $INSTALL_DIR."
+TMP_BUNDLE="$(mktemp /tmp/wg-fux-bundle.XXXXXX.tgz)"
+trap 'rm -f "$TMP_BUNDLE"' EXIT
+
+log "Téléchargement du bundle wg-fux…"
+curl --proto '=https' --tlsv1.2 -fsSL --max-time 300 \
+  -o "$TMP_BUNDLE" "${PLATFORM_BASE}/provision/${TOKEN}/bundle.tgz" \
+  || fail "Téléchargement du bundle échoué (token expiré ? réseau ?)."
+
+log "Vérification d'intégrité (sha256)…"
+echo "${BUNDLE_SHA256}  ${TMP_BUNDLE}" | sha256sum -c - \
+  || fail "Intégrité du bundle INVALIDE — abandon. Régénérez le one-liner depuis la plateforme."
+
+# Extraction (préserve api-service/.env et les données locales si ré-exécution :
+# le bundle n'en contient pas, tar ne supprime jamais les fichiers non listés).
+mkdir -p "$INSTALL_DIR"
+tar -xzf "$TMP_BUNDLE" -C "$INSTALL_DIR"
+log "Bundle extrait dans ${INSTALL_DIR}."
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. Installation complète (interactif)
@@ -62,6 +72,10 @@ echo "  Répondez aux questions ci-dessous pour configurer votre instance."
 echo "  Vous pourrez modifier ces paramètres plus tard via setup.sh."
 echo "════════════════════════════════════════════════════════════════"
 echo
+
+# La licence de l'instance : setup.sh l'écrit dans api-service/.env.
+export WGFUX_LICENSE_KEY="$LICENSE_KEY"
+export WGFUX_PLATFORM_URL="$PLATFORM_BASE"
 
 cd "$INSTALL_DIR"
 bash setup.sh --install || fail "L'installation wg-fux a échoué (voir $LOG_FILE)."

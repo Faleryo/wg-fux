@@ -68,12 +68,30 @@ describe('renderBootstrap', () => {
   const provision = require('../src/routes/provision');
 
   it('substitue TOUS les jetons {{...}} (aucun résiduel)', async () => {
-    const server = { host: '198.51.100.10' };
+    const server = { host: '198.51.100.10', licenseKey: 'LICKEY-TEST-123' };
     const { script } = await provision.renderBootstrap(server, {});
     expect(script).not.toMatch(/{{[A-Z_0-9]+}}/); // aucun jeton restant
     expect(script).toContain('https://vpn-labs.test'); // PLATFORM_BASE injectée
-    expect(script).toContain('github.com/Faleryo/wg-fux'); // REPO_URL injectée
+    expect(script).toContain('LICKEY-TEST-123'); // licence de l'instance injectée
+    expect(script).toMatch(/BUNDLE_SHA256='[a-f0-9]{64}'/); // intégrité du bundle
     expect(script).toContain('setup.sh --install'); // lance l'installateur interactif
+    expect(script).not.toContain('git clone'); // le code part via bundle, pas via git
+  });
+
+  it('le bundle produit exclut secrets/VCS et contient le produit', async () => {
+    const { buffer, sha256 } = await provision.buildBundleTarball();
+    expect(buffer.length).toBeGreaterThan(1000);
+    expect(sha256).toHaveLength(64);
+    const { execFileSync } = require('child_process');
+    const list = execFileSync('tar', ['-tzf', '-'], { input: buffer, maxBuffer: 64 * 1024 * 1024 })
+      .toString();
+    expect(list).toContain('./setup.sh');
+    expect(list).toContain('./docker-compose.yml');
+    expect(list).toMatch(/\.\/api-service\/server\.js/);
+    expect(list).not.toMatch(/\.git\//); // jamais l'historique git
+    expect(list).not.toMatch(/node_modules/);
+    expect(list).not.toMatch(/^\.\/docs\//m); // doc interne exclue
+    expect(list).not.toMatch(/\.env$/m); // jamais de secrets
   });
 
   it('le sha256 du script rendu est déterministe', async () => {
@@ -193,6 +211,70 @@ describe('findServerByToken : usage unique + expiration', () => {
       .set({ provisionTokenHash: null, provisionTokenExpiry: null })
       .where(eq(schema.servers.id, row.id));
     expect(await provision.findServerByToken(token)).toBeNull();
+  });
+});
+
+describe('POST /license/heartbeat (endpoint de facturation)', () => {
+  let app, request;
+  beforeAll(async () => {
+    request = require('supertest');
+    ({ app } = require('../server'));
+  });
+
+  async function seedLicensed({ key, expiryMs }) {
+    const [row] = await db
+      .insert(schema.servers)
+      .values({
+        ownerId: 4242,
+        label: 'lic-' + Math.random().toString(36).slice(2),
+        host: 'lic-host-' + Math.random().toString(36).slice(2),
+        port: 22,
+        status: 'online',
+        licenseKey: key,
+        licenseExpiry: new Date(Date.now() + expiryMs),
+      })
+      .returning();
+    return row;
+  }
+
+  it('licence valide → { valid: true } + lastHeartbeat/clientCount mis à jour', async () => {
+    const key = 'lic-valid-' + crypto.randomBytes(16).toString('hex');
+    const row = await seedLicensed({ key, expiryMs: 30 * 86400_000 });
+    const res = await request(app)
+      .post('/license/heartbeat')
+      .send({ key, version: '3.1.0', clients: 12 });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.valid).toBe(true);
+    const [after] = await db
+      .select()
+      .from(schema.servers)
+      .where(eq(schema.servers.id, row.id))
+      .limit(1);
+    expect(after.lastHeartbeat).toBeTruthy();
+    expect(after.clientCount).toBe(12);
+    expect(after.status).toBe('online');
+  });
+
+  it('licence expirée → { valid: false } (mais heartbeat enregistré)', async () => {
+    const key = 'lic-expired-' + crypto.randomBytes(16).toString('hex');
+    const row = await seedLicensed({ key, expiryMs: -1000 });
+    const res = await request(app).post('/license/heartbeat').send({ key });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.valid).toBe(false);
+    const [after] = await db
+      .select()
+      .from(schema.servers)
+      .where(eq(schema.servers.id, row.id))
+      .limit(1);
+    expect(after.lastHeartbeat).toBeTruthy(); // la vie de l'instance reste tracée
+  });
+
+  it('clé inconnue → 401 sans fuite', async () => {
+    const res = await request(app)
+      .post('/license/heartbeat')
+      .send({ key: 'x'.repeat(43) });
+    expect(res.statusCode).toBe(401);
+    expect(res.body.valid).toBe(false);
   });
 });
 

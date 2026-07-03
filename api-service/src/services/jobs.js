@@ -471,10 +471,14 @@ const checkClientExpirations = async () => {
   }
 };
 
-// Heartbeat des VPS revendeurs (spec socle §5.3). Exécute une commande triviale
-// allowlistée via l'exécuteur SSH et tient à jour status/consecutiveFailures.
+// Heartbeat des VPS revendeurs. Deux modes de liveness :
+//  - Instances AUTONOMES (nouveau flow, pas de hostKey SSH pinnée) : c'est le
+//    phone-home de licence (lastHeartbeat, toutes les 6h) qui prouve la vie —
+//    silence > 24h = offline. Aucun SSH tenté.
+//  - Mode SSH historique (hostKey pinnée, ex. pi) : sonde wg-fux-verify.sh.
 // On ignore pending/provisioning (transitoires) et offline (terminal — réactivé
 // manuellement ou au prochain provisioning).
+const AUTONOMOUS_STALE_MS = 24 * 3600 * 1000;
 let isHeartbeating = false;
 const serverHeartbeat = async () => {
   if (isHeartbeating) return;
@@ -485,6 +489,35 @@ const serverHeartbeat = async () => {
       if (['pending', 'provisioning', 'offline'].includes(server.status)) continue;
       let online = false;
       let errMsg = null;
+      if (!server.hostKey) {
+        // Instance autonome : la route /license/heartbeat pose lastHeartbeat +
+        // status online (et remet consecutiveFailures à 0) ; ici on ne fait que
+        // détecter le silence prolongé. Sans AUCUN heartbeat reçu (instance qui
+        // vient d'être promue), on compte les ticks silencieux (60s/tick).
+        const last = server.lastHeartbeat ? new Date(server.lastHeartbeat).getTime() : 0;
+        const silentTicks = (server.consecutiveFailures || 0) + 1;
+        const stale = last
+          ? Date.now() - last >= AUTONOMOUS_STALE_MS
+          : silentTicks >= 1440; // 1440 ticks × 60s = 24h sans jamais de phone-home
+        if (!stale) {
+          if (!last) {
+            await db
+              .update(schema.servers)
+              .set({ consecutiveFailures: silentTicks })
+              .where(eq(schema.servers.id, server.id));
+          }
+          continue;
+        }
+        await db
+          .update(schema.servers)
+          .set({
+            status: 'offline',
+            lastChecked: new Date(),
+            lastError: 'Aucun heartbeat de licence depuis plus de 24h',
+          })
+          .where(eq(schema.servers.id, server.id));
+        continue;
+      }
       try {
         const executor = await getExecutorForServer(server.id);
         const result = await executor.run('wg-fux-verify.sh', []);
@@ -534,6 +567,13 @@ const startJobs = () => {
   reconcileContainers(); // Run once at startup
   checkClientExpirations(); // Check expirations at startup
   scheduleAutomaticBackup();
+
+  // Phone-home de licence (instances revendeurs uniquement — no-op sans clé).
+  const { checkLicenseNow, licenseEnabled } = require('./license');
+  if (licenseEnabled()) {
+    setTimeout(checkLicenseNow, 15000); // au boot (laisse la DB s'initialiser)
+    setInterval(checkLicenseNow, 6 * 3600000); // puis toutes les 6h
+  }
 };
 
 const rotateEnforcerLogs = async () => {

@@ -84,6 +84,78 @@ function buildScriptsTarball() {
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Bundle produit : archive du code déployable servie aux VPS revendeurs à la
+// place d'un `git clone` (le repo peut donc être PRIVÉ — le code n'est distribué
+// qu'aux détenteurs d'un token de provisioning valide, sans historique git).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Racine du repo : montée en :ro dans le conteneur (REPO_DIR=/repo via compose) ;
+// en dev/tests, résolue depuis ce fichier (api-service/src/routes → racine).
+const REPO_DIR = (process.env.REPO_DIR || '').trim() || path.resolve(__dirname, '../../..');
+
+// Ce qui ne part JAMAIS chez un revendeur : secrets, données, VCS, artefacts,
+// doc interne. Le reste (api-service, dashboard-ui, core-vpn, infra, setup.sh,
+// docker-compose.yml…) constitue le produit installable.
+const BUNDLE_EXCLUDES = [
+  '.git',
+  '.github',
+  '.claude',
+  'node_modules',
+  '.env',
+  '*.env',
+  '*.env.bak*',
+  'api-service/data',
+  'dashboard-ui/dist',
+  'coverage',
+  'docs',
+  'infra/ssl/*',
+  '*.log',
+  '*.db',
+];
+
+let _bundleCache = null; // { buffer: Buffer, sha256: string, builtAt: number }
+
+/**
+ * Construit le tar.gz du produit depuis REPO_DIR (tar système, exclusions
+ * ci-dessus) et met en cache. Le sha256 du buffer EXACT servi est injecté dans
+ * le bootstrap → le VPS vérifie l'intégrité avant extraction.
+ * @returns {Promise<{ buffer: Buffer, sha256: string }>}
+ */
+function buildBundleTarball({ fresh = false } = {}) {
+  if (_bundleCache && !fresh) return Promise.resolve(_bundleCache);
+
+  const { execFile } = require('child_process');
+  const args = [
+    '-czf',
+    '-',
+    '-C',
+    REPO_DIR,
+    ...BUNDLE_EXCLUDES.map((e) => `--exclude=${e}`),
+    '.',
+  ];
+  return new Promise((resolve, reject) => {
+    execFile(
+      'tar',
+      args,
+      { encoding: 'buffer', maxBuffer: 512 * 1024 * 1024 },
+      (err, stdout) => {
+        if (err) {
+          log.error('provision', 'Construction du bundle échouée', { err: err.message });
+          return reject(err);
+        }
+        const sha256 = crypto.createHash('sha256').update(stdout).digest('hex');
+        _bundleCache = { buffer: stdout, sha256, builtAt: Date.now() };
+        log.info('provision', 'Bundle produit construit', {
+          sizeMB: (stdout.length / 1048576).toFixed(1),
+          sha256: sha256.slice(0, 12),
+        });
+        resolve(_bundleCache);
+      }
+    );
+  });
+}
+
 /**
  * Construit l'URL de base de la plateforme (préférence : env PLATFORM_BASE_URL,
  * sinon reconstruit depuis la requête).
@@ -109,9 +181,14 @@ async function renderBootstrap(server, { req } = {}) {
   const template = fs.readFileSync(templatePath, 'utf8');
   const base = platformBase(req);
 
+  // Bundle depuis le CACHE (même buffer que servira /bundle.tgz) : le sha injecté
+  // ici doit correspondre exactement à l'archive téléchargée par le VPS.
+  const { sha256: bundleSha256 } = await buildBundleTarball();
+
   const replacements = {
     '{{PLATFORM_BASE}}': base,
-    '{{REPO_URL}}': (process.env.WG_FUX_REPO_URL || 'https://github.com/Faleryo/wg-fux.git').trim(),
+    '{{BUNDLE_SHA256}}': bundleSha256,
+    '{{LICENSE_KEY}}': server.licenseKey || '',
   };
 
   let script = template;
@@ -159,6 +236,26 @@ router.get('/scripts.tgz', async (req, res, next) => {
     res.setHeader('Content-Type', 'application/gzip');
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     res.setHeader('Content-Disposition', 'attachment; filename="scripts.tgz"');
+    res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /provision/:token/bundle.tgz — archive du produit complet. TOKEN-GATÉ :
+// le code n'est jamais distribué sans token de provisioning valide (repo privé).
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/:token/bundle.tgz', async (req, res, next) => {
+  try {
+    const server = await findServerByToken(req.params.token);
+    if (!server) {
+      return res.status(404).type('text/plain').send('Not found\n');
+    }
+    const { buffer } = await buildBundleTarball();
+    res.setHeader('Content-Type', 'application/gzip');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Content-Disposition', 'attachment; filename="wg-fux-bundle.tgz"');
     res.send(buffer);
   } catch (err) {
     next(err);
@@ -338,9 +435,11 @@ module.exports = router;
 // Exports internes pour réutilisation (routes/servers.js) et tests.
 module.exports.renderBootstrap = renderBootstrap;
 module.exports.buildScriptsTarball = buildScriptsTarball;
+module.exports.buildBundleTarball = buildBundleTarball;
 module.exports.findServerByToken = findServerByToken;
 module.exports.verifyServer = verifyServer;
 module.exports.SCRIPTS_VERSION = SCRIPTS_VERSION;
 module.exports._resetTarballCache = () => {
   _tarballCache = null;
+  _bundleCache = null;
 };

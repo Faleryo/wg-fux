@@ -341,6 +341,9 @@ WG_FUX_MASTER_KEY=$master_key
 PLATFORM_BASE_URL=${PLATFORM_BASE_URL:-${DOMAIN:+https://$DOMAIN}}
 PLATFORM_PUBLIC_IP=${PLATFORM_PUBLIC_IP:-$SERVER_IP}
 TLS_PINNED_PUBKEY=${TLS_PINNED_PUBKEY:-}
+# --- Licence d'instance (vide = instance mère auto-hébergée, licence désactivée) ---
+WG_FUX_LICENSE_KEY=${WGFUX_LICENSE_KEY:-}
+WG_FUX_PLATFORM_URL=${WGFUX_PLATFORM_URL:-}
 EOF
     chmod 600 "$API_ENV"
 

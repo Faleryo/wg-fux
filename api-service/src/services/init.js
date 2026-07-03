@@ -155,6 +155,27 @@ async function initializeDatabase() {
         sql: 'ALTER TABLE containers ADD COLUMN serverId INTEGER REFERENCES servers(id) ON DELETE SET NULL',
         label: 'containers.serverId',
       },
+      // Phases 8-11 — licence des instances revendeurs (revenu récurrent).
+      {
+        version: 8,
+        sql: 'ALTER TABLE servers ADD COLUMN licenseKey TEXT',
+        label: 'servers.licenseKey',
+      },
+      {
+        version: 9,
+        sql: 'ALTER TABLE servers ADD COLUMN licenseExpiry INTEGER',
+        label: 'servers.licenseExpiry',
+      },
+      {
+        version: 10,
+        sql: 'ALTER TABLE servers ADD COLUMN lastHeartbeat INTEGER',
+        label: 'servers.lastHeartbeat',
+      },
+      {
+        version: 11,
+        sql: 'ALTER TABLE servers ADD COLUMN clientCount INTEGER DEFAULT 0',
+        label: 'servers.clientCount',
+      },
     ];
 
     for (const m of migrations) {
