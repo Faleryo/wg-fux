@@ -58,6 +58,11 @@ COPY dashboard-ui/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 ENTRYPOINT ["nginx", "-g", "daemon off;"]
 DOCKER
+    # Le dist pré-buildé DOIT entrer dans le contexte de build Docker : on retire
+    # toute exclusion de dist du .dockerignore (sinon COPY dashboard-ui/dist échoue).
+    if [ -f "$WORK/.dockerignore" ]; then
+      sed -i "/dist/d" "$WORK/.dockerignore"
+    fi
 
     echo "[3/4] Obfuscation du JS de l API …"
     npm i -g javascript-obfuscator@4 --silent
