@@ -29,6 +29,7 @@ log "Fabrication du bundle durci depuis ${REPO_DIR} …"
 
 # Le build tourne dans node:20-bookworm. /src = repo (ro), /out = destination.
 docker run --rm \
+  --ulimit nofile=65536:65536 \
   -v "$REPO_DIR":/src:ro \
   -v "$OUT_DIR":/out \
   -e OUT_BASE="$OUT_BASE" \
