@@ -111,18 +111,53 @@ const LicenseBanner = () => {
       {(expired || soon) && (
         <div
           className={cn(
-            'flex items-center gap-4 px-5 py-3.5 rounded-2xl border',
+            'px-5 py-3.5 rounded-2xl border space-y-1.5',
             expired
               ? 'bg-red-500/10 border-red-500/20 text-red-300'
               : 'bg-amber-500/10 border-amber-500/20 text-amber-300'
           )}
         >
-          <ShieldAlert size={18} className="flex-shrink-0" />
-          <p className="text-[11px] font-black uppercase tracking-wider flex-1">
-            {expired
-              ? 'Licence expirée — la création de clients est bloquée. Contactez votre revendeur pour renouveler.'
-              : `Licence : ${daysLeft} jour${daysLeft > 1 ? 's' : ''} restant${daysLeft > 1 ? 's' : ''} — pensez à renouveler.`}
-          </p>
+          <div className="flex items-center gap-4">
+            <ShieldAlert size={18} className="flex-shrink-0" />
+            <p className="text-[11px] font-black uppercase tracking-wider flex-1">
+              {expired
+                ? 'Licence expirée — la création de clients est bloquée. Renouvelez pour continuer.'
+                : `Licence : ${daysLeft} jour${daysLeft > 1 ? 's' : ''} restant${daysLeft > 1 ? 's' : ''} — pensez à renouveler.`}
+            </p>
+          </div>
+          {/* Comment payer : contact poussé par la plateforme (vente manuelle sans Stripe) */}
+          {lic.reseller?.contact &&
+            (lic.reseller.contact.whatsapp ||
+              lic.reseller.contact.telegram ||
+              lic.reseller.contact.instructions) && (
+              <p className="text-[11px] pl-9 opacity-90">
+                Pour renouveler :{' '}
+                {lic.reseller.contact.whatsapp && (
+                  <a
+                    href={`https://wa.me/${lic.reseller.contact.whatsapp.replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-bold underline"
+                  >
+                    WhatsApp {lic.reseller.contact.whatsapp}
+                  </a>
+                )}
+                {lic.reseller.contact.whatsapp && lic.reseller.contact.telegram && ' · '}
+                {lic.reseller.contact.telegram && (
+                  <a
+                    href={`https://t.me/${lic.reseller.contact.telegram.replace(/^@/, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-bold underline"
+                  >
+                    Telegram {lic.reseller.contact.telegram}
+                  </a>
+                )}
+                {lic.reseller.contact.instructions && (
+                  <span className="block opacity-80">{lic.reseller.contact.instructions}</span>
+                )}
+              </p>
+            )}
         </div>
       )}
       {lic.updateAvailable && !expired && (

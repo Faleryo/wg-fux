@@ -87,6 +87,9 @@ async function checkLicenseNow() {
       maxClients: Number.isInteger(data.maxClients) ? data.maxClients : null,
       // White-label poussé par la plateforme (nom/logo/couleur du revendeur).
       brand: data.brand && typeof data.brand === 'object' ? data.brand : null,
+      // Comment payer : contact WhatsApp/Telegram + instructions (affiché par
+      // l'UI de l'instance quand la licence expire — vente manuelle sans Stripe).
+      reseller: data.reseller && typeof data.reseller === 'object' ? data.reseller : null,
       lastCheckOk: Date.now(),
       firstFailure: null,
     });
@@ -142,6 +145,8 @@ function licenseStatus() {
     updateAvailable: Boolean(latestVersion && latestVersion !== currentVersion),
     maxClients: Number.isInteger(s.maxClients) ? s.maxClients : null,
     brand: s.brand || null,
+    // Contact de paiement de la plateforme (renouvellement manuel sans Stripe).
+    reseller: s.reseller || null,
   };
 }
 
