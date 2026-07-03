@@ -251,7 +251,7 @@ describe('POST /license/heartbeat (endpoint de facturation)', () => {
     return row;
   }
 
-  it('licence valide → { valid: true } + lastHeartbeat/clientCount mis à jour', async () => {
+  it('licence valide → { valid: true } + latestVersion + lastHeartbeat/clientCount', async () => {
     const key = 'lic-valid-' + crypto.randomBytes(16).toString('hex');
     const row = await seedLicensed({ key, expiryMs: 30 * 86400_000 });
     const res = await request(app)
@@ -259,6 +259,7 @@ describe('POST /license/heartbeat (endpoint de facturation)', () => {
       .send({ key, version: '3.1.0', clients: 12 });
     expect(res.statusCode).toBe(200);
     expect(res.body.valid).toBe(true);
+    expect(res.body.latestVersion).toMatch(/^\d+\.\d+\.\d+/); // version publiée
     const [after] = await db
       .select()
       .from(schema.servers)
@@ -267,6 +268,29 @@ describe('POST /license/heartbeat (endpoint de facturation)', () => {
     expect(after.lastHeartbeat).toBeTruthy();
     expect(after.clientCount).toBe(12);
     expect(after.status).toBe('online');
+  });
+
+  it('GET /license/bundle.tgz : licence valide → gzip ; expirée → 402 ; inconnue → 401', async () => {
+    const validKey = 'lic-upd-ok-' + crypto.randomBytes(16).toString('hex');
+    await seedLicensed({ key: validKey, expiryMs: 30 * 86400_000 });
+    const ok = await request(app)
+      .get('/license/bundle.tgz')
+      .set('Authorization', `Bearer ${validKey}`);
+    expect(ok.statusCode).toBe(200);
+    expect(ok.headers['content-type']).toContain('gzip');
+    expect(ok.headers['x-wg-fux-version']).toMatch(/^\d+\.\d+\.\d+/);
+
+    const expiredKey = 'lic-upd-exp-' + crypto.randomBytes(16).toString('hex');
+    await seedLicensed({ key: expiredKey, expiryMs: -1000 });
+    const expired = await request(app)
+      .get('/license/bundle.tgz')
+      .set('Authorization', `Bearer ${expiredKey}`);
+    expect(expired.statusCode).toBe(402); // expirée = pas de MAJ
+
+    const unknown = await request(app)
+      .get('/license/bundle.tgz')
+      .set('Authorization', 'Bearer ' + 'z'.repeat(43));
+    expect(unknown.statusCode).toBe(401);
   });
 
   it('licence expirée → { valid: false } (mais heartbeat enregistré)', async () => {

@@ -5,7 +5,8 @@
 #   sudo ./setup.sh                # interactive menu
 #   sudo ./setup.sh --install      # non-interactive install (requires WGFUX_* env)
 #   sudo ./setup.sh --update       # rebuild & restart docker services
-#   sudo ./setup.sh --upgrade      # git pull + update
+#   sudo ./setup.sh --upgrade      # git pull + update (instance mère)
+#   sudo ./setup.sh --self-update  # pull le dernier bundle licencié + update (revendeur)
 #   sudo ./setup.sh --restart      # restart nginx proxy only
 #   sudo ./setup.sh --ssl          # (re)run Let's Encrypt setup
 #   sudo ./setup.sh --uninstall    # stop services, ask before deleting data
@@ -590,6 +591,7 @@ cmd_install() {
         sudo bash "$SCRIPT_DIR/core-vpn/scripts/wg-optimize.sh" gaming || true
 
     bring_up_services
+    install_self_update_cron
     print_done_banner
 }
 
@@ -634,6 +636,31 @@ cmd_restart() {
     log_info "Restarting nginx proxy…"
     sudo docker compose restart nginx
     log_success "Done."
+}
+
+cmd_self_update() {
+    require_root
+    local script="$SCRIPT_DIR/scripts/wg-self-update.sh"
+    [ -f "$script" ] || { log_error "scripts/wg-self-update.sh introuvable."; exit 1; }
+    WG_FUX_INSTALL_DIR="$SCRIPT_DIR" bash "$script"
+}
+
+# Installe un cron quotidien de mise à jour (revendeurs uniquement : la présence
+# d'une clé de licence dans api-service/.env conditionne l'exécution effective).
+install_self_update_cron() {
+    local cron_file='/etc/cron.d/wg-fux-update'
+    if ! grep -q '^WG_FUX_LICENSE_KEY=.\+' "$API_ENV" 2>/dev/null; then
+        return 0  # instance mère (pas de licence) → pas d'auto-update par bundle
+    fi
+    # Heure aléatoire (0-59 min, 3-5h) pour lisser la charge sur la plateforme.
+    local minute=$((RANDOM % 60)) hour=$((3 + RANDOM % 3))
+    cat > "$cron_file" <<EOF
+# Mise à jour automatique quotidienne de wg-fux (bundle licencié). Généré par setup.sh.
+SHELL=/bin/bash
+${minute} ${hour} * * * root WG_FUX_INSTALL_DIR=${SCRIPT_DIR} bash ${SCRIPT_DIR}/scripts/wg-self-update.sh >> /var/log/wg-fux-update.log 2>&1
+EOF
+    chmod 0644 "$cron_file"
+    log_success "Auto-update quotidien installé (${hour}h${minute})."
 }
 
 cmd_ssl() {
@@ -694,6 +721,7 @@ while [ "$#" -gt 0 ]; do
         --update)     MODE=update ;;
         --upgrade)    MODE=upgrade ;;
         --restart|--restart-proxy) MODE=restart ;;
+        --self-update) MODE=self_update ;;
         --ssl)        MODE=ssl ;;
         --uninstall)  MODE=uninstall ;;
         --check)      MODE=check ;;
@@ -735,6 +763,7 @@ case "$MODE" in
     update)         cmd_update ;;
     upgrade)        cmd_upgrade ;;
     restart)        cmd_restart ;;
+    self_update)    cmd_self_update ;;
     ssl)            cmd_ssl ;;
     uninstall)      cmd_uninstall ;;
     check)          cmd_check ;;

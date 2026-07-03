@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Server, Plus, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Server, Plus, Trash2, RefreshCw, AlertCircle, KeyRound, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
@@ -78,6 +78,93 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// Nombre de jours restants avant expiration de la licence (négatif = expirée).
+const daysUntil = (iso) => {
+  if (!iso) return null;
+  const ts = new Date(iso).getTime();
+  if (Number.isNaN(ts)) return null;
+  return Math.ceil((ts - Date.now()) / 86400000);
+};
+
+const LicenseBadge = ({ expiry }) => {
+  const days = daysUntil(expiry);
+  if (days === null) {
+    return <span className="text-[11px] font-mono text-slate-600">—</span>;
+  }
+  const expired = days <= 0;
+  const soon = days > 0 && days <= 7;
+  const cls = expired
+    ? 'text-red-400'
+    : soon
+      ? 'text-amber-400'
+      : 'text-emerald-400/90';
+  const label = expired
+    ? `Expirée (${Math.abs(days)} j)`
+    : days === 0
+      ? "Expire aujourd'hui"
+      : `${days} j restants`;
+  return <span className={cn('text-[11px] font-mono font-bold', cls)}>{label}</span>;
+};
+
+// Modale de renouvellement : prolonge/coupe la licence d'une instance (admin).
+const RENEW_OPTIONS = [
+  { days: 30, label: '+ 1 mois' },
+  { days: 90, label: '+ 3 mois' },
+  { days: 365, label: '+ 1 an' },
+];
+const RenewModal = ({ server, onClose, onApply, busy }) => {
+  if (!server) return null;
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="glass-panel border rounded-2xl shadow-2xl w-full max-w-md p-8 space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <KeyRound size={20} />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight">Licence</h3>
+            <p className="text-[11px] font-mono text-slate-500">{server.label} · {server.host}</p>
+          </div>
+        </div>
+
+        <div className="text-xs text-slate-400">
+          Statut actuel : <LicenseBadge expiry={server.licenseExpiry} />
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          {RENEW_OPTIONS.map((opt) => (
+            <button
+              key={opt.days}
+              disabled={busy}
+              onClick={() => onApply({ extendDays: opt.days })}
+              className="py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-indigo-500/20 hover:border-indigo-500/40 text-sm font-black text-white transition-colors disabled:opacity-50"
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+          <button
+            disabled={busy}
+            onClick={() => onApply({ revoke: true })}
+            className="text-[11px] font-black uppercase tracking-widest text-red-400/80 hover:text-red-400 transition-colors disabled:opacity-50"
+          >
+            Couper (impayé)
+          </button>
+          <button
+            disabled={busy}
+            onClick={onClose}
+            className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ServersSection = () => {
   const { theme } = useTheme();
   const { addToast } = useToast();
@@ -87,6 +174,8 @@ const ServersSection = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [renewTarget, setRenewTarget] = useState(null);
+  const [renewing, setRenewing] = useState(false);
 
   const pollRef = useRef(null);
 
@@ -149,6 +238,26 @@ const ServersSection = () => {
     }
   };
 
+  const handleRenew = async (payload) => {
+    if (!renewTarget || renewing) return;
+    setRenewing(true);
+    try {
+      const { data } = await axiosInstance.patch(`/servers/${renewTarget.id}/license`, payload);
+      addToast(
+        payload.revoke
+          ? 'Licence coupée'
+          : `Licence prolongée jusqu'au ${new Date(data.licenseExpiry).toLocaleDateString('fr-FR')}`,
+        'success'
+      );
+      setRenewTarget(null);
+      fetchServers();
+    } catch (e) {
+      addToast(e?.response?.data?.error || 'Erreur lors du renouvellement', 'error');
+    } finally {
+      setRenewing(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
       {/* Header */}
@@ -203,6 +312,7 @@ const ServersSection = () => {
                 <th className="px-10 py-8">Serveur</th>
                 <th className="px-8 py-8">Adresse</th>
                 <th className="px-8 py-8">Statut</th>
+                <th className="px-8 py-8">Licence</th>
                 <th className="px-8 py-8">Dernier contrôle</th>
                 <th className="px-10 py-8 text-right">Intervention</th>
               </tr>
@@ -249,12 +359,30 @@ const ServersSection = () => {
                       </div>
                     </td>
                     <td className="px-8 py-6">
+                      <div className="flex flex-col gap-1">
+                        <LicenseBadge expiry={srv.licenseExpiry} />
+                        {typeof srv.clientCount === 'number' && (
+                          <span className="flex items-center gap-1 text-[10px] font-mono text-slate-600">
+                            <Users size={11} /> {srv.clientCount} client{srv.clientCount > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
                       <span className="text-[11px] font-mono text-slate-500">
-                        {relativeTime(srv.lastChecked)}
+                        {relativeTime(srv.lastHeartbeat || srv.lastChecked)}
                       </span>
                     </td>
                     <td className="px-6 py-6 text-right">
                       <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform lg:translate-x-2 lg:group-hover:translate-x-0">
+                        <VibeButton
+                          variant="secondary"
+                          size="sm"
+                          icon={KeyRound}
+                          className="p-2.5"
+                          title="Gérer la licence"
+                          onClick={() => setRenewTarget(srv)}
+                        />
                         <VibeButton
                           variant="danger"
                           size="sm"
@@ -305,6 +433,13 @@ const ServersSection = () => {
           servers={servers}
         />
       )}
+
+      <RenewModal
+        server={renewTarget}
+        busy={renewing}
+        onApply={handleRenew}
+        onClose={() => setRenewTarget(null)}
+      />
 
       <ConfirmModal
         isOpen={!!confirmTarget}

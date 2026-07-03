@@ -82,6 +82,7 @@ async function checkLicenseNow() {
     saveState({
       valid: Boolean(data.valid),
       expiresAt: data.expiresAt || null,
+      latestVersion: data.latestVersion || null,
       lastCheckOk: Date.now(),
       firstFailure: null,
     });
@@ -120,11 +121,21 @@ function isLicensed() {
 
 function licenseStatus() {
   const s = loadState();
+  let currentVersion = '0.0.0';
+  try {
+    currentVersion = require('../../package.json').version;
+  } catch {
+    /* ignore */
+  }
+  const latestVersion = s.latestVersion || null;
   return {
     enabled: licenseEnabled(),
     valid: isLicensed(),
     expiresAt: s.expiresAt,
     lastCheckOk: s.lastCheckOk,
+    currentVersion,
+    latestVersion,
+    updateAvailable: Boolean(latestVersion && latestVersion !== currentVersion),
   };
 }
 
