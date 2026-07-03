@@ -91,7 +91,9 @@ describe('routes/stripe — signature & renouvellement', () => {
     });
   });
 
-  it('webhook signé → prolonge la licence du serveur ciblé', async () => {
+  // Timeout élargi : ce test amorce le serveur Express complet + supertest, ce
+  // qui peut dépasser 5s au démarrage à froid sous charge (suites parallèles).
+  it('webhook signé → prolonge la licence du serveur ciblé', { timeout: 20000 }, async () => {
     await settings.setSetting('stripe_webhook_secret', 'whsec_e2e');
     const [srv] = await db
       .insert(schema.servers)

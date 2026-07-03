@@ -551,6 +551,57 @@ const serverHeartbeat = async () => {
   }
 };
 
+// Débit mensuel de crédits : 1 crédit par serveur `online` prélevé sur le
+// portefeuille de son propriétaire. COMPTA INTERNE UNIQUEMENT (décision :
+// la licence reste la source de vérité de l'état serveur — aucune suspension
+// ici). Un solde insuffisant est journalisé/audité, jamais mis à découvert.
+// Anti double-débit : au plus 1 débit par (serveur, mois calendaire), tracé via
+// ledger.ref = `srv:<id>:<YYYY-MM>`.
+let isBillingCredits = false;
+const debitMonthlyCredits = async () => {
+  if (isBillingCredits) return;
+  isBillingCredits = true;
+  try {
+    const wallet = require('./wallet');
+    const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const servers = await db
+      .select({ id: schema.servers.id, ownerId: schema.servers.ownerId, label: schema.servers.label })
+      .from(schema.servers)
+      .where(eq(schema.servers.status, 'online'));
+
+    const alreadyStmt = sqlite.prepare(
+      'SELECT 1 FROM ledger WHERE ref = ? AND reason = ? LIMIT 1'
+    );
+    for (const server of servers) {
+      const ref = `srv:${server.id}:${month}`;
+      if (alreadyStmt.get(ref, 'monthly')) continue; // déjà débité ce mois-ci
+      try {
+        wallet.debit(server.ownerId, 1, 'monthly', { ref });
+      } catch (e) {
+        if (e.code === 'INSUFFICIENT_FUNDS') {
+          log.warn('jobs', 'Solde insuffisant pour débit mensuel', {
+            serverId: server.id,
+            ownerId: server.ownerId,
+          });
+          await auditLog({
+            actor: 'system',
+            action: 'credit_shortfall',
+            targetType: 'server',
+            targetName: server.label,
+            details: { serverId: server.id, ownerId: server.ownerId, month },
+          });
+        } else {
+          log.error('jobs', 'Débit mensuel échoué', { serverId: server.id, err: e.message });
+        }
+      }
+    }
+  } catch (e) {
+    log.error('jobs', 'Monthly credit billing error', { err: e.message });
+  } finally {
+    isBillingCredits = false;
+  }
+};
+
 const startJobs = () => {
   if (process.env.VITEST === 'true' || process.env.NODE_ENV === 'test') return;
   loadSchedules();
@@ -564,6 +615,7 @@ const startJobs = () => {
   setInterval(reconcileContainers, 86400000); // Daily filesystem↔DB reconciliation
   setInterval(checkClientExpirations, 6 * 3600000); // Every 6h
   setInterval(pruneNotificationSets, 3600000); // Hourly pruning of notification sets
+  setInterval(debitMonthlyCredits, 6 * 3600000); // Débit crédits (idempotent/mois)
   reconcileContainers(); // Run once at startup
   checkClientExpirations(); // Check expirations at startup
   scheduleAutomaticBackup();
@@ -656,6 +708,7 @@ module.exports = {
   rotateEnforcerLogs,
   pruneSeenStats,
   checkClientExpirations,
+  debitMonthlyCredits,
   invalidateSharedPeersCache,
   SCHEDULE_FILE,
 };

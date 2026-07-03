@@ -213,6 +213,17 @@ const appSettings = sqliteTable('app_settings', {
   ),
 });
 
+// White-label : habillage d'un compte revendeur (résolu au plus proche ancêtre).
+const brands = sqliteTable('brands', {
+  userId: integer('userId')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name'),
+  logoUrl: text('logoUrl'),
+  primaryColor: text('primaryColor'),
+  customDomain: text('customDomain'),
+});
+
 module.exports = {
   users,
   containers,
@@ -224,4 +235,5 @@ module.exports = {
   appSettings,
   wallets,
   ledger,
+  brands,
 };

@@ -12,6 +12,7 @@ import {
   LogOut,
   ChevronRight,
   Globe,
+  Network,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn, COLOR_MAP } from '../../lib/utils';
@@ -32,9 +33,16 @@ const NavItems = ({
   // les sections qui ne feraient que produire des 403 (logs, dns, optimisation,
   // audit). Il ne lui reste que son dashboard scopé, ses conteneurs, la topologie.
   const isManager = userRole === 'admin' || userRole === 'manager';
+  const isReseller = userRole === 'reseller';
   const navItems = [
     { id: 'dashboard', icon: <Home size={20} />, label: t('dashboard') },
     { id: 'containers', icon: <Package size={20} />, label: t('containers') },
+    {
+      id: 'network',
+      icon: <Network size={20} />,
+      label: 'Réseau',
+      hidden: !(isAdmin || isReseller),
+    },
     {
       id: 'users',
       icon: <Users size={20} />,

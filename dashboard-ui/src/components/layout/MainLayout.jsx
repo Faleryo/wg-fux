@@ -39,6 +39,7 @@ import UsersSection from '../../features/users/components/UsersSection';
 // Heavy sections are lazy-loaded so the initial bundle stays small.
 // They are only fetched the first time the user navigates to them.
 const ServersSection = lazy(() => import('../../features/servers/components/ServersSection'));
+const NetworkSection = lazy(() => import('../../features/network/components/NetworkSection'));
 const LogsSection = lazy(() => import('../../features/monitoring/components/LogsSection'));
 const SettingsSection = lazy(() => import('../../features/settings/components/SettingsSection'));
 const OptimizationSection = lazy(() => import('../../features/settings/components/OptimizationSection'));
@@ -88,6 +89,7 @@ const MainLayout = ({ session, onLogout }) => {
   // et widgets qui appellent /system/* (sinon 403 + fuite de métriques globales).
   const isManager = session?.role === 'admin' || session?.role === 'manager';
   const isAdmin = session?.role === 'admin';
+  const isReseller = session?.role === 'reseller';
   const MANAGER_ONLY_SECTIONS = new Set(['logs', 'dns', 'optimization', 'audit']);
   const ADMIN_ONLY_SECTIONS = new Set(['users', 'settings', 'servers']);
   const [activeSection, setActiveSection] = useState(
@@ -235,7 +237,8 @@ const MainLayout = ({ session, onLogout }) => {
   useEffect(() => {
     const forbidden =
       (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
-      (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection));
+      (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection)) ||
+      (activeSection === 'network' && !(isAdmin || isReseller));
     if (forbidden) {
       setActiveSection('dashboard');
       addToast('Accès refusé — section réservée aux administrateurs', 'error');
@@ -293,7 +296,8 @@ const MainLayout = ({ session, onLogout }) => {
     // son dashboard — sinon la section déclencherait des 403 en boucle.
     const forbidden =
       (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
-      (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection));
+      (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection)) ||
+      (activeSection === 'network' && !(isAdmin || isReseller));
     const section = forbidden ? 'dashboard' : activeSection;
     switch (section) {
       case 'dashboard':
@@ -374,6 +378,8 @@ const MainLayout = ({ session, onLogout }) => {
         );
       case 'servers':
         return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><ServersSection /></Suspense>;
+      case 'network':
+        return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><NetworkSection userRole={session?.role || ''} /></Suspense>;
       case 'logs':
         return <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}><LogsSection /></Suspense>;
       case 'settings':

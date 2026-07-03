@@ -83,3 +83,22 @@ describe('scope — sous-arbre', () => {
     expect(scope.isInScope(n1, outsider)).toBe(false);
   });
 });
+
+describe('brand — résolution white-label (T4)', () => {
+  it('hérite de la marque du parent quand le compte n’en a pas', async () => {
+    const brand = require('../src/services/brand');
+    await brand.setBrand(n1, { name: 'Acme VPN', primaryColor: '#ff8800' });
+    // n2 (enfant de n1) sans marque propre → hérite d'Acme.
+    const resolved = await brand.resolveBrand(n2);
+    expect(resolved.name).toBe('Acme VPN');
+    expect(resolved.inherited).toBe(true);
+    expect(resolved.sourceUserId).toBe(n1);
+    // n1 a sa propre marque, non héritée.
+    const own = await brand.resolveBrand(n1);
+    expect(own.name).toBe('Acme VPN');
+    expect(own.inherited).toBe(false);
+    // outsider sans ancêtre marqué → défaut wg-fux.
+    const def = await brand.resolveBrand(outsider);
+    expect(def.name).toBe('wg-fux');
+  });
+});

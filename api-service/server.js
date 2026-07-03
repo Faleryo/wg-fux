@@ -161,6 +161,7 @@ app.use('/api/settings', auth, require('./src/routes/settings')); // réglages p
 app.use('/api/wallet', auth, require('./src/routes/wallet'));
 app.use('/api/credits', auth, require('./src/routes/credits'));
 app.use('/api/resellers', auth, require('./src/routes/resellers'));
+app.use('/api/brand', auth, require('./src/routes/brand'));
 
 // ─── Debug Route (admin only) ─────────────────────────────────────────────────
 // GET /api/debug → rapport de santé complet

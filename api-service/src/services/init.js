@@ -221,6 +221,18 @@ async function initializeDatabase() {
         )`,
         label: 'ledger table',
       },
+      // Phase 17 — white-label (habillage par compte revendeur).
+      {
+        version: 17,
+        sql: `CREATE TABLE IF NOT EXISTS brands (
+          userId INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          name TEXT,
+          logoUrl TEXT,
+          primaryColor TEXT,
+          customDomain TEXT
+        )`,
+        label: 'brands table',
+      },
     ];
 
     for (const m of migrations) {
