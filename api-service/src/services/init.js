@@ -187,6 +187,40 @@ async function initializeDatabase() {
         )`,
         label: 'app_settings table',
       },
+      // Phases 13-16 — réseau de distribution : crédits, hiérarchie, marge.
+      {
+        version: 13,
+        sql: 'ALTER TABLE users ADD COLUMN parentId INTEGER REFERENCES users(id) ON DELETE SET NULL',
+        label: 'users.parentId',
+      },
+      {
+        version: 14,
+        sql: 'ALTER TABLE users ADD COLUMN sellPriceCents INTEGER',
+        label: 'users.sellPriceCents',
+      },
+      {
+        version: 15,
+        sql: `CREATE TABLE IF NOT EXISTS wallets (
+          userId INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          balance INTEGER NOT NULL DEFAULT 0,
+          updatedAt INTEGER
+        )`,
+        label: 'wallets table',
+      },
+      {
+        version: 16,
+        sql: `CREATE TABLE IF NOT EXISTS ledger (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId INTEGER NOT NULL REFERENCES users(id),
+          delta INTEGER NOT NULL,
+          reason TEXT NOT NULL,
+          priceCents INTEGER,
+          counterpartyId INTEGER,
+          ref TEXT,
+          createdAt INTEGER DEFAULT (strftime('%s','now'))
+        )`,
+        label: 'ledger table',
+      },
     ];
 
     for (const m of migrations) {
@@ -225,6 +259,8 @@ async function initializeDatabase() {
  CREATE INDEX IF NOT EXISTS audit_action_idx ON auditLogs(action);
  CREATE INDEX IF NOT EXISTS server_owner_idx ON servers(ownerId);
  CREATE UNIQUE INDEX IF NOT EXISTS server_host_idx ON servers(ownerId, host, port);
+ CREATE INDEX IF NOT EXISTS user_parent_idx ON users(parentId);
+ CREATE INDEX IF NOT EXISTS ledger_user_idx ON ledger(userId);
  `);
 
     logger.info('db', '✅ Schema synchronization complete.');

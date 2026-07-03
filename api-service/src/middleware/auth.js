@@ -93,7 +93,7 @@ const auth = async (req, res, next) => {
       if (tokenBlacklist.has(`${decoded.username}:${decoded.iat}`)) {
         return res.status(401).json({ error: 'Token revoked' });
       }
-      req.user = { ...decoded, role: cached.role, id: cached.id };
+      req.user = { ...decoded, role: cached.role, id: cached.id, parentId: cached.parentId ?? null };
       return next();
     }
 
@@ -115,8 +115,8 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ error: 'Token revoked' });
     }
 
-    userCache.set(decoded.username, { id: user.id, role: user.role, expiry: user.expiry || null, enabled: user.enabled !== false, ts: Date.now() });
-    req.user = { ...decoded, role: user.role, id: user.id };
+    userCache.set(decoded.username, { id: user.id, role: user.role, parentId: user.parentId ?? null, expiry: user.expiry || null, enabled: user.enabled !== false, ts: Date.now() });
+    req.user = { ...decoded, role: user.role, id: user.id, parentId: user.parentId ?? null };
     next();
   } catch (error) {
     if (
@@ -146,6 +146,13 @@ const requireViewer = (req, res, next) => {
   return res.status(403).json({ error: 'Forbidden' });
 };
 
+// Réseau de distribution : admin OU revendeur. Un revendeur niveau 1 a
+// parentId == NULL (peut créer des sous-revendeurs) ; niveau 2 sinon.
+const requireReseller = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'reseller')) return next();
+  return res.status(403).json({ error: 'Forbidden' });
+};
+
 const invalidateUserCache = (username) => {
   if (username) {
     userCache.delete(username);
@@ -159,6 +166,7 @@ module.exports = {
   requireAdmin,
   requireManager,
   requireViewer,
+  requireReseller,
   invalidateUserCache,
   blacklistToken,
 };

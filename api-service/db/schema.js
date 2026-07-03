@@ -12,9 +12,48 @@ const users = sqliteTable(
     twoFactorSecret: text('twoFactorSecret'),
     expiry: text('expiry'),
     enabled: integer('enabled', { mode: 'boolean' }).default(true),
+    // Réseau de distribution (white-label multi-niveau). NULL = créé par l'admin
+    // (revendeur niveau 1 ou rôle historique) ; = id revendeur → sous-revendeur N2.
+    parentId: integer('parentId').references(() => users.id, { onDelete: 'set null' }),
+    // Prix de revente d'1 crédit aux enfants, en centimes (marge = revente − acquisition).
+    sellPriceCents: integer('sellPriceCents'),
   },
   (table) => ({
     usernameIdx: uniqueIndex('username_idx').on(table.username),
+    userParentIdx: index('user_parent_idx').on(table.parentId),
+  })
+);
+
+// Portefeuille de crédits (1:1 user). balance = CACHE dénormalisé ; la vérité
+// comptable est SUM(ledger.delta). Maintenu en transaction avec le ledger.
+const wallets = sqliteTable('wallets', {
+  userId: integer('userId')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  balance: integer('balance').notNull().default(0),
+  updatedAt: integer('updatedAt', { mode: 'timestamp' }),
+});
+
+// Grand livre immuable (append-only) : source de vérité des crédits. Un transfert
+// produit 2 lignes de deltas opposés corrélées par `ref`.
+const ledger = sqliteTable(
+  'ledger',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('userId')
+      .notNull()
+      .references(() => users.id),
+    delta: integer('delta').notNull(), // > 0 crédit, < 0 débit
+    reason: text('reason').notNull(), // topup|transfer_in|transfer_out|monthly|refund
+    priceCents: integer('priceCents'), // prix unitaire appliqué (calcul de marge)
+    counterpartyId: integer('counterpartyId'), // l'autre partie d'un transfert
+    ref: text('ref'), // transferId / serverId / paymentId…
+    createdAt: integer('createdAt', { mode: 'timestamp' }).default(
+      sql`(cast(strftime('%s','now') as int))`
+    ),
+  },
+  (t) => ({
+    ledgerUserIdx: index('ledger_user_idx').on(t.userId),
   })
 );
 
@@ -183,4 +222,6 @@ module.exports = {
   auditLogs,
   servers,
   appSettings,
+  wallets,
+  ledger,
 };

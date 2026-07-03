@@ -157,6 +157,10 @@ app.use('/api/sentinel', auth, sentinelRoutes);
 app.use('/api/dns', auth, dnsRoutes); // individual dns routes carry their own requireAdmin/requireManager
 app.use('/api/servers', auth, serverRoutes); // registre des VPS revendeurs (provisioning one-liner)
 app.use('/api/settings', auth, require('./src/routes/settings')); // réglages plateforme (Telegram, paiement, Stripe)
+// Réseau de distribution : crédits, hiérarchie revendeurs, marge.
+app.use('/api/wallet', auth, require('./src/routes/wallet'));
+app.use('/api/credits', auth, require('./src/routes/credits'));
+app.use('/api/resellers', auth, require('./src/routes/resellers'));
 
 // ─── Debug Route (admin only) ─────────────────────────────────────────────────
 // GET /api/debug → rapport de santé complet
