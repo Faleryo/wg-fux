@@ -79,19 +79,8 @@ const TwoFABanner = ({ onNavigate }) => {
 // Bandeau licence de l'instance revendeur : marque (white-label poussée par la
 // plateforme mère), échéance proche/expirée, mise à jour disponible. Ne rend
 // rien sur l'instance mère (licence désactivée).
-const LicenseBanner = () => {
-  const [lic, setLic] = useState(null);
+const LicenseBanner = ({ lic }) => {
   const [now] = useState(() => Date.now());
-  useEffect(() => {
-    let mounted = true;
-    axiosInstance
-      .get('/system/license')
-      .then((res) => mounted && setLic(res.data))
-      .catch(() => {});
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   // White-label : le nom de marque devient le titre de l'onglet.
   useEffect(() => {
@@ -199,6 +188,22 @@ const MainLayout = ({ session, onLogout }) => {
   });
 
   const isDark = mode === 'dark';
+
+  // Licence de CETTE instance (revendeur) : pilote le bandeau (expiration,
+  // maj, white-label) ET le masquage des onglets plateforme (Serveurs/Réseau
+  // n'ont pas de sens sur une instance licenciée — c'est la mère qui enrôle).
+  const [instanceLic, setInstanceLic] = useState(null);
+  useEffect(() => {
+    let mounted = true;
+    axiosInstance
+      .get('/system/license')
+      .then((res) => mounted && setInstanceLic(res.data))
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  const instanceLicensed = Boolean(instanceLic?.enabled);
 
   // Modal states
   const [showQRModal, setShowQRModal] = useState(false);
@@ -585,6 +590,7 @@ const MainLayout = ({ session, onLogout }) => {
           onLogout={onLogout}
           uptime={uptime}
           userRole={session?.role || ''}
+          instanceLicensed={instanceLicensed}
         />
       </ErrorBoundary>
 
@@ -626,7 +632,7 @@ const MainLayout = ({ session, onLogout }) => {
         )}
 
         {/* Licence de l'instance (revendeur) : expiration, maj, white-label */}
-        <LicenseBanner />
+        <LicenseBanner lic={instanceLic} />
 
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 space-y-12">
           <AnimatePresence mode="wait">

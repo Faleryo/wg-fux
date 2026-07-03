@@ -15,6 +15,7 @@ const Sidebar = ({
   onLogout,
   uptime,
   userRole,
+  instanceLicensed,
 }) => {
   const { theme, setTheme, mode, setMode } = useTheme();
   const isDark = mode === 'dark';
@@ -88,8 +89,8 @@ const Sidebar = ({
               </h1>
               <div className="flex items-center gap-1.5">
                 <p
-                className={'text-[8px] font-extrabold tracking-[0.2em] uppercase opacity-70'}
-                style={{ color: COLOR_MAP[theme]?.[500] || '#6366f1' }}
+                  className={'text-[8px] font-extrabold tracking-[0.2em] uppercase opacity-70'}
+                  style={{ color: COLOR_MAP[theme]?.[500] || '#6366f1' }}
                 >
                   PLATINUM CORE
                 </p>
@@ -146,6 +147,7 @@ const Sidebar = ({
           onLogout={onLogout}
           t={t}
           userRole={userRole}
+          instanceLicensed={instanceLicensed}
         />
 
         <StatusWidget

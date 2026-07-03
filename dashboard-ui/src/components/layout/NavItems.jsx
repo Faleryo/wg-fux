@@ -27,6 +27,7 @@ const NavItems = ({
   onLogout,
   t,
   userRole,
+  instanceLicensed,
 }) => {
   const isAdmin = userRole === 'admin';
   // Un viewer (revendeur) n'a pas accès aux endpoints manager/admin : on masque
@@ -34,6 +35,10 @@ const NavItems = ({
   // audit). Il ne lui reste que son dashboard scopé, ses conteneurs, la topologie.
   const isManager = userRole === 'admin' || userRole === 'manager';
   const isReseller = userRole === 'reseller';
+  // Sur une INSTANCE licenciée (VPS revendeur), les onglets "plateforme"
+  // (enrôlement de serveurs, réseau de crédits) sont masqués : seule la
+  // plateforme mère enrôle et facture — les afficher ne ferait que semer la
+  // confusion chez le client.
   const navItems = [
     { id: 'dashboard', icon: <Home size={20} />, label: t('dashboard') },
     { id: 'containers', icon: <Package size={20} />, label: t('containers') },
@@ -41,7 +46,7 @@ const NavItems = ({
       id: 'network',
       icon: <Network size={20} />,
       label: 'Réseau',
-      hidden: !(isAdmin || isReseller),
+      hidden: !(isAdmin || isReseller) || instanceLicensed,
     },
     {
       id: 'users',
@@ -53,7 +58,7 @@ const NavItems = ({
       id: 'servers',
       icon: <Server size={20} />,
       label: t('servers'),
-      hidden: !isAdmin,
+      hidden: !isAdmin || instanceLicensed,
     },
     { id: 'logs', icon: <FileText size={20} />, label: t('logs'), hidden: !isManager },
     { id: 'topology', icon: <Activity size={20} />, label: t('topology') },
@@ -91,7 +96,14 @@ const NavItems = ({
                     ? 'text-slate-500 hover:bg-white/5 hover:text-slate-200'
                     : 'text-slate-500 hover:bg-black/5 hover:text-slate-900'
               )}
-              style={isActive ? { backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5', boxShadow: `0 4px 14px -4px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}66` } : undefined}
+              style={
+                isActive
+                  ? {
+                      backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
+                      boxShadow: `0 4px 14px -4px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}66`,
+                    }
+                  : undefined
+              }
             >
               {isActive && (
                 <motion.div

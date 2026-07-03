@@ -16,8 +16,10 @@ const fs = require('fs');
 const path = require('path');
 const log = require('./logger');
 
-const LICENSE_KEY = (process.env.WG_FUX_LICENSE_KEY || '').trim();
-const PLATFORM_URL = (process.env.WG_FUX_PLATFORM_URL || '').trim().replace(/\/+$/, '');
+// Lues dynamiquement (pas figées au chargement) : permet de détecter une clé
+// retirée à chaud et rend le module testable sans rechargement.
+const licenseKey = () => (process.env.WG_FUX_LICENSE_KEY || '').trim();
+const platformUrl = () => (process.env.WG_FUX_PLATFORM_URL || '').trim().replace(/\/+$/, '');
 const GRACE_MS = 7 * 24 * 3600 * 1000; // 7 jours de grâce si plateforme injoignable
 
 const STATE_PATH =
@@ -26,7 +28,42 @@ const STATE_PATH =
 // État en mémoire (miroir du fichier). null = jamais chargé.
 let state = null;
 
-const licenseEnabled = () => Boolean(LICENSE_KEY && PLATFORM_URL);
+const licenseEnabled = () => Boolean(licenseKey() && platformUrl());
+
+// ── Verrou anti-sabotage ─────────────────────────────────────────────────────
+// Une instance qui a déjà tourné SOUS LICENCE est marquée en base (app_settings
+// 'license_locked'). Si la clé disparaît ensuite de l'env (client root qui
+// l'efface pour échapper à la facturation), l'instance est traitée comme
+// EXPIRÉE (création bloquée, VPN intact) — et non comme une instance mère
+// illimitée. Statements paresseux : la table existe après initializeDatabase().
+let _lockStmts = null;
+function lockStmts() {
+  if (!_lockStmts) {
+    const { sqlite } = require('../../db');
+    _lockStmts = {
+      get: sqlite.prepare("SELECT value FROM app_settings WHERE key = 'license_locked'"),
+      set: sqlite.prepare(
+        "INSERT INTO app_settings (key, value, secret) VALUES ('license_locked', '1', 0) " +
+          'ON CONFLICT(key) DO NOTHING'
+      ),
+    };
+  }
+  return _lockStmts;
+}
+function isLocked() {
+  try {
+    return Boolean(lockStmts().get.get());
+  } catch {
+    return false; // DB pas prête : ne jamais bloquer le boot pour ça
+  }
+}
+function lockLicense() {
+  try {
+    lockStmts().set.run();
+  } catch {
+    /* DB pas prête : re-tenté au prochain check (6h) */
+  }
+}
 
 function loadState() {
   if (state) return state;
@@ -53,6 +90,8 @@ function saveState(next) {
  */
 async function checkLicenseNow() {
   if (!licenseEnabled()) return { valid: true, disabled: true };
+  // Marque durablement l'instance comme licenciée (voir verrou anti-sabotage).
+  lockLicense();
 
   // Télémétrie légère : version + nb de clients (tarification par palier).
   let clientCount = 0;
@@ -66,11 +105,11 @@ async function checkLicenseNow() {
   }
 
   try {
-    const res = await fetch(`${PLATFORM_URL}/license/heartbeat`, {
+    const res = await fetch(`${platformUrl()}/license/heartbeat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        key: LICENSE_KEY,
+        key: licenseKey(),
         version: require('../../package.json').version,
         clients: clientCount,
       }),
@@ -112,7 +151,9 @@ async function checkLicenseNow() {
  * Lecture synchrone de l'état (jamais de réseau ici — utilisé dans les routes).
  */
 function isLicensed() {
-  if (!licenseEnabled()) return true;
+  // Clé absente : instance mère (jamais licenciée) = tout permis ; instance
+  // DÉJÀ licenciée dont la clé a disparu = sabotage → traitée comme expirée.
+  if (!licenseEnabled()) return !isLocked();
   const s = loadState();
   // La dernière réponse EXPLICITE de la plateforme fait foi.
   if (s.lastCheckOk) {
@@ -135,8 +176,12 @@ function licenseStatus() {
     /* ignore */
   }
   const latestVersion = s.latestVersion || null;
+  const tampered = !licenseEnabled() && isLocked();
   return {
-    enabled: licenseEnabled(),
+    // "enabled" reste vrai pour une instance sabotée : l'UI doit afficher le
+    // bandeau licence (expirée), pas se croire sur une instance mère.
+    enabled: licenseEnabled() || tampered,
+    tampered,
     valid: isLicensed(),
     expiresAt: s.expiresAt,
     lastCheckOk: s.lastCheckOk,
