@@ -88,6 +88,11 @@ app.use(
   })
 );
 app.use(vibeHeaders);
+
+// Webhook Stripe : DOIT recevoir le corps BRUT (vérification de signature) →
+// monté AVANT express.json() qui consommerait le body. La clé webhook = auth.
+app.use('/stripe', express.raw({ type: '*/*' }), require('./src/routes/stripe'));
+
 app.use(express.json());
 
 // Structured HTTP Request Logger (remplace console.log manuel)
@@ -151,6 +156,7 @@ app.use('/api/users', auth, requireAdmin, userRoutes);
 app.use('/api/sentinel', auth, sentinelRoutes);
 app.use('/api/dns', auth, dnsRoutes); // individual dns routes carry their own requireAdmin/requireManager
 app.use('/api/servers', auth, serverRoutes); // registre des VPS revendeurs (provisioning one-liner)
+app.use('/api/settings', auth, require('./src/routes/settings')); // réglages plateforme (Telegram, paiement, Stripe)
 
 // ─── Debug Route (admin only) ─────────────────────────────────────────────────
 // GET /api/debug → rapport de santé complet

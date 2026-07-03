@@ -81,11 +81,20 @@ router.post(
       clients: clients ?? null,
     });
 
+    // Contact de paiement (affiché par l'instance à son propriétaire pour renouveler).
+    let reseller = null;
+    try {
+      reseller = await require('../services/settings').getResellerFacing();
+    } catch {
+      /* réglages absents : pas de contact — non bloquant */
+    }
+
     res.json({
       valid,
       expiresAt: server.licenseExpiry ? new Date(server.licenseExpiry).toISOString() : null,
       // L'instance compare à sa propre version pour décider d'une mise à jour.
       latestVersion: APP_VERSION,
+      reseller,
     });
   })
 );

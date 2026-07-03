@@ -162,6 +162,18 @@ const auditLogs = sqliteTable(
   })
 );
 
+// Réglages plateforme (clé/valeur) : config Telegram, contact de paiement,
+// clés Stripe. Les valeurs sensibles sont chiffrées (secret=1) via crypto.js —
+// jamais renvoyées en clair par l'API.
+const appSettings = sqliteTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: text('value'), // clair OU JSON chiffré {encPrivateKey,encKeyIv,encKeyAuth} si secret=1
+  secret: integer('secret', { mode: 'boolean' }).default(false),
+  updatedAt: integer('updatedAt', { mode: 'timestamp' }).default(
+    sql`(cast(strftime('%s','now') as int))`
+  ),
+});
+
 module.exports = {
   users,
   containers,
@@ -170,4 +182,5 @@ module.exports = {
   logs,
   auditLogs,
   servers,
+  appSettings,
 };

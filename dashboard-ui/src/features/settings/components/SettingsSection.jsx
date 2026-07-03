@@ -8,6 +8,7 @@ import {
   Save,
   ChevronRight,
   Server,
+  CreditCard,
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
@@ -18,6 +19,7 @@ import GeneralSettings from './GeneralSettings';
 import NetworkSettings from './NetworkSettings';
 import SecuritySettings from './SecuritySettings';
 import MaintenanceSettings from './MaintenanceSettings';
+import BillingSettings from './BillingSettings';
 
 const SettingsSection = () => {
   const { theme, isDark } = useTheme();
@@ -102,6 +104,7 @@ const SettingsSection = () => {
     { id: 'general', label: 'Noyau', icon: Server },
     { id: 'network', label: 'Réseau', icon: Globe },
     { id: 'security', label: 'Sûreté', icon: Shield },
+    { id: 'billing', label: 'Facturation', icon: CreditCard },
     { id: 'maintenance', label: 'Terminal', icon: Wrench },
   ];
 
@@ -230,6 +233,9 @@ const SettingsSection = () => {
             )}
             {activeTab === 'security' && (
               <SecuritySettings addToast={addToast} isDark={isDark} theme={theme} />
+            )}
+            {activeTab === 'billing' && (
+              <BillingSettings addToast={addToast} isDark={isDark} />
             )}
             {activeTab === 'maintenance' && (
               <MaintenanceSettings handleBackup={handleBackup} isDark={isDark} theme={theme} />

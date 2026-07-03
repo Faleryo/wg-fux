@@ -176,6 +176,17 @@ async function initializeDatabase() {
         sql: 'ALTER TABLE servers ADD COLUMN clientCount INTEGER DEFAULT 0',
         label: 'servers.clientCount',
       },
+      // Phase 12 — réglages plateforme (Telegram, contact paiement, Stripe).
+      {
+        version: 12,
+        sql: `CREATE TABLE IF NOT EXISTS app_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT,
+          secret INTEGER DEFAULT 0,
+          updatedAt INTEGER DEFAULT (strftime('%s','now'))
+        )`,
+        label: 'app_settings table',
+      },
     ];
 
     for (const m of migrations) {
