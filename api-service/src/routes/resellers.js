@@ -46,18 +46,27 @@ router.post(
     if (exists) return res.status(409).json(createError('Nom déjà pris', null, 'CONFLICT'));
 
     const { hash, salt } = await hashPassword(password);
-    const [created] = await db
-      .insert(schema.users)
-      .values({
-        username,
-        hash,
-        salt,
-        role: 'reseller',
-        parentId: req.user.id,
-        sellPriceCents: sellPriceCents ?? null,
-        enabled: true,
-      })
-      .returning({ id: schema.users.id, username: schema.users.username });
+    let created;
+    try {
+      [created] = await db
+        .insert(schema.users)
+        .values({
+          username,
+          hash,
+          salt,
+          role: 'reseller',
+          parentId: req.user.id,
+          sellPriceCents: sellPriceCents ?? null,
+          enabled: true,
+        })
+        .returning({ id: schema.users.id, username: schema.users.username });
+    } catch (dbErr) {
+      // Course entre le check d'existence et l'insert (index unique username).
+      if (dbErr.code === 'SQLITE_CONSTRAINT_UNIQUE' || dbErr.message?.includes('UNIQUE constraint')) {
+        return res.status(409).json(createError('Nom déjà pris', null, 'CONFLICT'));
+      }
+      throw dbErr;
+    }
 
     wallet.ensureWallet(created.id);
     await auditLog({

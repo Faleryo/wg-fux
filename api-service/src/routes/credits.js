@@ -74,6 +74,16 @@ router.post(
       }
     }
 
+    // Le destinataire doit exister (sinon la FK ledger→users lèverait un 500).
+    const [target] = await db
+      .select({ id: schema.users.id })
+      .from(schema.users)
+      .where(eq(schema.users.id, toUserId))
+      .limit(1);
+    if (!target) {
+      return res.status(404).json(createError('Destinataire introuvable', null, 'NOT_FOUND'));
+    }
+
     const [me] = await db.select().from(schema.users).where(eq(schema.users.id, req.user.id)).limit(1);
     const priceCents = me?.sellPriceCents ?? null;
 

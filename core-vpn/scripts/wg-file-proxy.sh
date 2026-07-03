@@ -60,21 +60,21 @@ case "$TARGET_RAW" in
   ;;
 esac
 
-# Validation d'appartenance au périmètre sécurisé
-# SRE-HARDENING: On s'assure que le chemin commence exactement par le préfixe autorisé
-if [[ "$TARGET/" != "$ALLOWED_DIR"* ]] && [[ "$TARGET/" != "$ALLOWED_LOG"* ]]; then
- echo "ERROR: Access to $TARGET is restricted."
- exit 1
+# Validation d'appartenance au périmètre sécurisé (ALLOWLIST, pas denylist).
+# - Tout sous /etc/wireguard/clients/ est autorisé (configs/clés clients).
+# - Sous /var/log, SEULS les journaux applicatifs wg-*.log sont autorisés. Une
+#   denylist laissait fuir cloud-init-output.log (contient le one-liner + la clé
+#   de licence), wg-fux-provision.log, etc. → exfiltration root. On n'autorise
+#   donc QUE nos propres logs, jamais les logs système porteurs de secrets.
+LOG_BASENAME="$(basename "$TARGET")"
+if [[ "$TARGET/" == "$ALLOWED_DIR"* ]]; then
+  : # OK — périmètre clients
+elif [[ "$TARGET/" == "$ALLOWED_LOG"* ]] && [[ "$LOG_BASENAME" == wg-*.log ]]; then
+  : # OK — journal applicatif wg-*.log
+else
+  echo "ERROR: Access to $TARGET is restricted."
+  exit 1
 fi
-
-# : Blacklist de fichiers critiques (Anti-Exfiltration)
-BLACKLIST=("/var/log/auth.log" "/var/log/syslog" "/var/log/messages" "/var/log/secure" "/var/log/tallylog")
-for blacklisted in "${BLACKLIST[@]}"; do
- if [[ "$TARGET" == "$blacklisted" ]]; then
- echo "ERROR: Access to sensitive file $TARGET is forbidden (Blacklisted)."
- exit 1
- fi
-done
 
 case "$ACTION" in
  "write")

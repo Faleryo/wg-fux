@@ -119,12 +119,14 @@ router.get(
     }
 
     const { buildBundleTarball } = require('./provision');
-    const { buffer } = await buildBundleTarball();
+    const { buffer, sha256 } = await buildBundleTarball();
 
     log.info('license', 'Bundle de mise à jour servi', { serverId: resolved.server.id });
     res.setHeader('Content-Type', 'application/gzip');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-WG-Fux-Version', APP_VERSION);
+    // Intégrité : l'instance vérifie ce sha256 AVANT d'extraire/exécuter en root.
+    res.setHeader('X-WG-Fux-Bundle-Sha256', sha256);
     res.setHeader('Content-Disposition', 'attachment; filename="wg-fux-bundle.tgz"');
     res.send(buffer);
   })

@@ -9,8 +9,14 @@ source "$SCRIPT_DIR/wg-common.sh"
 INTERFACE="${1:-wg0}"
 IPTABLES_BIN=$(command -v iptables || echo "/usr/sbin/iptables")
 IP6TABLES_BIN=$(command -v ip6tables 2>/dev/null || true)
-SERVER_INTERFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
+# awk avec `exit` au 1er match : évite l'abort `set -euo pipefail` que
+# provoquaient `grep default` (retour 1 si absent) et `head -n1` (SIGPIPE).
+SERVER_INTERFACE=$(ip route show default 2>/dev/null | awk '/default/ {print $5; exit}')
 
+# CRITIQUE : aucune règle de pare-feu ne doit faire échouer PostUp. Sous `set -e`,
+# un `-I` en échec (ex. NAT IPv6 indisponible sur le VPS) tuerait le script AVANT
+# la re-synchro des peers (étape 8) → wg-quick démonterait l'interface et
+# déconnecterait TOUS les clients. Chaque insertion est donc non-fatale.
 _add_rule() {
  local cmd="$1"
  shift
@@ -21,11 +27,11 @@ _add_rule() {
  # shellcheck disable=SC2086
  if ! "$cmd" $table_opt -C "$@" &>/dev/null; then
  # shellcheck disable=SC2086
- "$cmd" $table_opt -I "$@"
+ "$cmd" $table_opt -I "$@" || log_warn "iptables insert échoué (ignoré): $cmd $table_opt -I $*"
  fi
  else
  if ! "$cmd" -C "$@" &>/dev/null; then
- "$cmd" -I "$@"
+ "$cmd" -I "$@" || log_warn "iptables insert échoué (ignoré): $cmd -I $*"
  fi
  fi
 }

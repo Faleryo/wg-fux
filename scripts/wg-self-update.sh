@@ -38,14 +38,18 @@ fi
 
 PLATFORM_URL="${PLATFORM_URL%/}"
 TMP_BUNDLE="$(mktemp /tmp/wg-fux-update.XXXXXX.tgz)"
-trap 'rm -f "$TMP_BUNDLE"' EXIT
+TMP_HDR="$(mktemp /tmp/wg-fux-update.XXXXXX.hdr)"
+trap 'rm -f "$TMP_BUNDLE" "$TMP_HDR"' EXIT
 
 log "=== Mise à jour wg-fux depuis ${PLATFORM_URL} ==="
 
-# Télécharge le bundle (clé de licence = auth). -f → échec sur 401/402/5xx.
+# Télécharge le bundle (clé de licence = auth) + capture les en-têtes (sha256).
+# -f → échec sur 401/402/5xx. Épingle la clé publique TLS si configurée.
+TLS_PIN="$(env_get TLS_PINNED_PUBKEY)"
 HTTP_CODE=$(curl --proto '=https' --tlsv1.2 -sS -w '%{http_code}' \
+  ${TLS_PIN:+--pinnedpubkey "$TLS_PIN"} \
   -H "Authorization: Bearer ${LICENSE_KEY}" \
-  -o "$TMP_BUNDLE" --max-time 300 \
+  -D "$TMP_HDR" -o "$TMP_BUNDLE" --max-time 300 \
   "${PLATFORM_URL}/license/bundle.tgz" || echo "000")
 
 case "$HTTP_CODE" in
@@ -58,6 +62,15 @@ esac
 # Sanity : c'est bien un gzip non vide.
 [ -s "$TMP_BUNDLE" ] && gzip -t "$TMP_BUNDLE" 2>/dev/null \
   || fail "Bundle téléchargé invalide (pas un gzip)."
+
+# INTÉGRITÉ : le sha256 annoncé par la plateforme (en-tête) doit correspondre au
+# fichier téléchargé AVANT toute extraction/exécution root. Sans en-tête (vieux
+# serveur), on refuse plutôt que d'exécuter du code non vérifié.
+EXPECTED_SHA=$(grep -i '^X-WG-Fux-Bundle-Sha256:' "$TMP_HDR" | tr -d '\r' | awk '{print tolower($2)}')
+[ -n "$EXPECTED_SHA" ] || fail "En-tête d'intégrité absent — mise à jour refusée (plateforme trop ancienne ?)."
+ACTUAL_SHA=$(sha256sum "$TMP_BUNDLE" | awk '{print $1}')
+[ "$EXPECTED_SHA" = "$ACTUAL_SHA" ] \
+  || fail "Intégrité du bundle INVALIDE (attendu ${EXPECTED_SHA}, obtenu ${ACTUAL_SHA}) — abandon."
 
 log "Extraction par-dessus ${INSTALL_DIR} (préserve .env + data)…"
 tar -xzf "$TMP_BUNDLE" -C "$INSTALL_DIR"

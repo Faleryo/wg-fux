@@ -233,6 +233,15 @@ async function initializeDatabase() {
         )`,
         label: 'brands table',
       },
+      // Phase 18 — idempotence des webhooks Stripe (un event.id traité 1 seule fois).
+      {
+        version: 18,
+        sql: `CREATE TABLE IF NOT EXISTS stripe_events (
+          id TEXT PRIMARY KEY,
+          processedAt INTEGER DEFAULT (strftime('%s','now'))
+        )`,
+        label: 'stripe_events table',
+      },
     ];
 
     for (const m of migrations) {

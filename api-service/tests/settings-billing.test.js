@@ -132,6 +132,47 @@ describe('routes/stripe — signature & renouvellement', () => {
     expect(daysLeft).toBeGreaterThan(31);
   });
 
+  it('idempotence : le MÊME event.id ne prolonge la licence qu\'une fois', async () => {
+    await settings.setSetting('stripe_webhook_secret', 'whsec_idem');
+    const [srv] = await db
+      .insert(schema.servers)
+      .values({
+        ownerId: 4242,
+        label: 'stripe-idem',
+        host: 'stripe-idem-host',
+        port: 22,
+        status: 'online',
+        licenseExpiry: new Date(Date.now() + 5 * 86400_000),
+      })
+      .returning();
+    const request = require('supertest');
+    const { app } = require('../server');
+    const event = {
+      id: 'evt_' + crypto.randomBytes(8).toString('hex'),
+      type: 'invoice.paid',
+      data: { object: { metadata: { serverId: String(srv.id), days: '30' } } },
+    };
+    const body = JSON.stringify(event);
+    const post = () =>
+      request(app)
+        .post('/stripe/webhook')
+        .set('Stripe-Signature', sign(body, 'whsec_idem'))
+        .set('Content-Type', 'application/json')
+        .send(body);
+    await post();
+    const r2 = await post(); // redélivrance du MÊME event
+    expect(r2.body.duplicate).toBe(true);
+    const [after] = await db
+      .select()
+      .from(schema.servers)
+      .where(eq(schema.servers.id, srv.id))
+      .limit(1);
+    // 5j + 30 = ~35j (et NON 65j si double-prolongation).
+    const daysLeft = (new Date(after.licenseExpiry).getTime() - Date.now()) / 86400_000;
+    expect(daysLeft).toBeGreaterThan(34);
+    expect(daysLeft).toBeLessThan(37);
+  }, 20000);
+
   it('webhook avec signature invalide → 400, licence inchangée', async () => {
     const request = require('supertest');
     const { app } = require('../server');

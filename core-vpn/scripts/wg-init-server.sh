@@ -12,6 +12,16 @@ WG_INTERFACE="${4:-wg0}"
 [ "$(id -u)" -eq 0 ] || { echo "Must be root"; exit 1; }
 [ -n "$SERVER_PUBLIC_IP" ] || { echo "SERVER_PUBLIC_IP requis"; exit 1; }
 
+# Validation stricte des entrées : ces valeurs sont interpolées dans les règles
+# iptables PostUp de wg0.conf (exécutées en root par wg-quick). Le SAFE_ARG_RE du
+# dispatcher autorise espaces et tirets → sans ce durcissement, un nom d'interface
+# comme "wg0 -j LOG" injecterait des options iptables. On borne donc chaque champ.
+[[ "$WG_INTERFACE" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "WG_INTERFACE invalide"; exit 1; }
+[[ "$WG_PORT" =~ ^[0-9]+$ ]] && [ "$WG_PORT" -ge 1 ] && [ "$WG_PORT" -le 65535 ] \
+  || { echo "WG_PORT invalide"; exit 1; }
+[[ "$VPN_SUBNET" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}/[0-9]{1,2}$ ]] || { echo "VPN_SUBNET invalide"; exit 1; }
+[[ "$SERVER_PUBLIC_IP" =~ ^[a-zA-Z0-9.:_-]+$ ]] || { echo "SERVER_PUBLIC_IP invalide"; exit 1; }
+
 WG_DIR="/etc/wireguard"
 CONF_FILE="${WG_DIR}/${WG_INTERFACE}.conf"
 MANAGER_CONF="${WG_DIR}/manager.conf"

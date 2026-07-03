@@ -44,8 +44,16 @@ JSON="$(printf '%s' "$PAYLOAD" | base64 -d 2>/dev/null)" || deny "base64 invalid
 echo "$JSON" | jq -e 'type == "array" and length >= 1' >/dev/null 2>&1 \
   || deny "payload JSON invalide"
 
-mapfile -t ARGV < <(printf '%s' "$JSON" | jq -r '.[]')
-SCRIPT="${ARGV[0]}"
+# Décodage élément-par-élément via @base64 : chaque élément JSON est ré-encodé
+# en base64 (jamais de saut de ligne dans du base64) puis décodé. Un élément
+# contenant un saut de ligne reste donc UN seul argv — jq -r brut / mapfile -t
+# l'auraient re-splitté (smuggling d'arguments). Pas de délimiteur NUL : bash
+# retire les octets nuls d'une chaîne de programme jq.
+ARGV=()
+while IFS= read -r _b64; do
+  ARGV+=("$(printf '%s' "$_b64" | base64 -d 2>/dev/null)")
+done < <(printf '%s' "$JSON" | jq -r '.[] | @base64')
+SCRIPT="${ARGV[0]:-}"
 ARGS=("${ARGV[@]:1}")
 
 # Le script doit être un basename pur (pas de chemin, pas de ..)
@@ -58,9 +66,15 @@ ALLOWED=0
 for s in "${ALLOWLIST[@]}"; do [ "$s" = "$SCRIPT" ] && ALLOWED=1 && break; done
 [ "$ALLOWED" -eq 1 ] || deny "script non autorisé: $SCRIPT"
 
-# Validation de chaque argument (PCRE pour rester aligné sur shell.js)
+# Validation de chaque argument. On utilise le test regex natif de bash ([[ =~ ]])
+# et NON `grep -qP` : sur un argument VIDE, grep ne reçoit aucune ligne et renvoie
+# 1 → l'argument vide (légitime : écrire un fichier vide, vider un champ) était
+# refusé à tort. On rejette aussi explicitement tout saut de ligne/retour chariot.
 for a in "${ARGS[@]}"; do
-  printf '%s' "$a" | grep -qP "$SAFE_ARG_RE" || deny "argument non sûr"
+  case "$a" in
+    *$'\n'* | *$'\r'*) deny "argument non sûr (saut de ligne)" ;;
+  esac
+  [[ "$a" =~ $SAFE_ARG_RE ]] || deny "argument non sûr"
 done
 
 # Élévation via l'UNIQUE entrée sudoers. stdin transmis tel quel.

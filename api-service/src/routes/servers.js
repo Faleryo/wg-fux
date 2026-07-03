@@ -10,7 +10,7 @@ const router = express.Router();
 
 const { db, schema } = require('../../db');
 const { eq, and } = require('drizzle-orm');
-const { auth } = require('../middleware/auth');
+const { auth, requireReseller } = require('../middleware/auth');
 const { auditLog } = require('../services/audit');
 const { createServer, ServerConflictError } = require('../services/serverProvision');
 const { asyncWrap, createError } = require('../utils/errors');
@@ -57,6 +57,10 @@ function publicServer(s) {
 router.post(
   '/',
   auth,
+  // Créer un serveur mint un token de provisioning + une licence d'essai et
+  // ouvre le téléchargement du bundle privé → réservé à admin/revendeur (un
+  // viewer/manager ne doit pas pouvoir provisionner ni exfiltrer le bundle).
+  requireReseller,
   asyncWrap(async (req, res) => {
     const parsed = createServerSchema.safeParse(req.body);
     if (!parsed.success) {

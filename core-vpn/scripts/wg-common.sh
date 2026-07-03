@@ -119,10 +119,13 @@ detect_public_ip() {
      "https://icanhazip.com"; do
      # Strip ANSI escape sequences, carriage returns, and any non-IP characters
      # before applying the regex so terminal codes can never pollute the value.
+     # awk 'NR==1{...;exit}' au lieu de `head -n1` : head ferme le tube tôt →
+     # SIGPIPE en amont → sous `set -euo pipefail` (hérité de l'appelant, ex.
+     # setup.sh) la substitution échouerait et abortirait la configuration.
      raw=$(curl -4 -fsSL --connect-timeout 3 --max-time 5 "$service" 2>/dev/null \
            | sed 's/\x1b\[[0-9;]*[mGKHF]//g' \
            | tr -cd '0-9.\n' \
-           | head -n1)
+           | awk 'NR==1{print; exit}')
      if [[ "$raw" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
          ip="$raw"
          echo "$ip"

@@ -490,8 +490,11 @@ bring_up_services() {
     setup_ssl_bootstrap
     setup_firewall
 
-    # Backup current api .env in case build fails
-    cp "$API_ENV" "${API_ENV}.bak.$(date +%s)"
+    # Backup current api .env in case build fails. install -m 0600 : le .env
+    # contient les secrets maîtres (WG_FUX_MASTER_KEY, JWT, licence) → jamais
+    # world-readable (cp les créerait en 0644). On élague aussi les vieux backups.
+    install -m 0600 "$API_ENV" "${API_ENV}.bak.$(date +%s)"
+    ls -1t "${API_ENV}".bak.* 2>/dev/null | tail -n +6 | xargs -r rm -f
 
     # Disk pressure: prune cache if free space < 5 GB
     local free_kb; free_kb=$(df -k / | awk 'NR==2 {print $4}')

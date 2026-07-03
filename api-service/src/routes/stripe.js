@@ -12,32 +12,57 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 
-const { db, schema } = require('../../db');
+const { db, schema, sqlite } = require('../../db');
 const { eq } = require('drizzle-orm');
 const { getSetting } = require('../services/settings');
 const { auditLog } = require('../services/audit');
 const log = require('../services/logger');
 
+// Idempotence : un event.id Stripe n'est traité qu'une seule fois (préparation
+// paresseuse — la table stripe_events est créée par la migration v18, après le
+// chargement des routes). Renvoie true si l'event est NOUVEAU (à traiter).
+let _stmtMarkEvent = null;
+function markEventNew(eventId) {
+  if (!eventId) return true; // pas d'id → on ne peut pas dédupliquer, on traite
+  if (!_stmtMarkEvent) {
+    _stmtMarkEvent = sqlite.prepare('INSERT OR IGNORE INTO stripe_events (id) VALUES (?)');
+  }
+  return _stmtMarkEvent.run(eventId).changes > 0;
+}
+
 // Vérifie la signature Stripe (header "Stripe-Signature: t=...,v1=...").
 // Tolérance 5 min contre le rejeu. rawBody = Buffer (express.raw).
 function verifyStripeSignature(rawBody, sigHeader, secret) {
   if (!sigHeader || !secret) return false;
-  const parts = Object.fromEntries(
-    sigHeader.split(',').map((kv) => kv.split('=').map((s) => s.trim()))
-  );
-  const timestamp = parts.t;
-  const v1 = parts.v1;
-  if (!timestamp || !v1) return false;
-  // Anti-rejeu : horodatage récent.
-  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false;
+  // Un header peut contenir PLUSIEURS v1 (rotation de secret) → on les collecte tous.
+  let timestamp = null;
+  const v1s = [];
+  for (const kv of sigHeader.split(',')) {
+    const idx = kv.indexOf('=');
+    if (idx === -1) continue;
+    const k = kv.slice(0, idx).trim();
+    const v = kv.slice(idx + 1).trim();
+    if (k === 't') timestamp = v;
+    else if (k === 'v1') v1s.push(v);
+  }
+  if (!timestamp || v1s.length === 0) return false;
+
+  // Anti-rejeu : horodatage numérique ET récent (un t non numérique est rejeté).
+  const ts = Number(timestamp);
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 300) return false;
 
   const signedPayload = `${timestamp}.${rawBody.toString('utf8')}`;
   const expected = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
-  try {
-    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
-  } catch {
-    return false;
-  }
+  const expectedBuf = Buffer.from(expected);
+  // Accepte si l'un des v1 correspond (comparaison à temps constant).
+  return v1s.some((v1) => {
+    try {
+      const vBuf = Buffer.from(v1);
+      return vBuf.length === expectedBuf.length && crypto.timingSafeEqual(expectedBuf, vBuf);
+    } catch {
+      return false;
+    }
+  });
 }
 
 // Prolonge la licence d'un serveur de `days` jours (cumul depuis l'expiry
@@ -104,6 +129,13 @@ router.post('/webhook', async (req, res) => {
 
     const event = JSON.parse(raw.toString('utf8'));
     const obj = event.data && event.data.object ? event.data.object : {};
+
+    // Idempotence : ignore un event.id déjà traité (redélivrance Stripe, rejeu
+    // signé, ou double émission checkout.session.completed + invoice.paid).
+    if (!markEventNew(event.id)) {
+      log.info('stripe', 'Event Stripe déjà traité (ignoré)', { id: event.id });
+      return res.json({ received: true, duplicate: true });
+    }
 
     if (event.type === 'checkout.session.completed' || event.type === 'invoice.paid') {
       const { serverId, days } = parseTarget(obj);

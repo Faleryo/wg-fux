@@ -37,8 +37,13 @@ ALLOWED=0
 for s in "${ALLOWLIST[@]}"; do [ "$s" = "$SCRIPT" ] && ALLOWED=1 && break; done
 [ "$ALLOWED" -eq 1 ] || deny "script non autorisé: $SCRIPT"
 
+# Test regex natif bash (gère l'argument vide, contrairement à `grep -qP` qui le
+# refusait à tort) + rejet explicite des sauts de ligne/retours chariot.
 for a in "$@"; do
-  printf '%s' "$a" | grep -qP "$SAFE_ARG_RE" || deny "argument non sûr"
+  case "$a" in
+    *$'\n'* | *$'\r'*) deny "argument non sûr (saut de ligne)" ;;
+  esac
+  [[ "$a" =~ $SAFE_ARG_RE ]] || deny "argument non sûr"
 done
 
 TARGET="${BIN_DIR}/${SCRIPT}"
