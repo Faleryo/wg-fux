@@ -1036,8 +1036,7 @@ router.post(
         // et le bulk-update d'expiry/quota était en réalité inopérant.
         db.transaction((tx) => {
           for (const client of succeededClients) {
-            tx
-              .update(schema.clients)
+            tx.update(schema.clients)
               .set(dbPatch)
               .where(
                 and(

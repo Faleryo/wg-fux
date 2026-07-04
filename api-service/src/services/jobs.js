@@ -180,8 +180,7 @@ const updateUsage = async () => {
             const prevTotal = Number(existingUsage?.total) || 0;
             const newTotal = prevTotal + delta;
 
-            tx
-              .insert(schema.usage)
+            tx.insert(schema.usage)
               .values({
                 publicKey: pubKey,
                 total: newTotal,

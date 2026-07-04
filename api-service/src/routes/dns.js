@@ -92,12 +92,30 @@ router.post(
     }
 
     if (filtering_enabled !== undefined) {
+      // ⚠️ /control/filtering/config attend { enabled, interval } — l'intervalle
+      // de mise à jour des listes (en heures). N'envoyer que `enabled` réinitialise
+      // silencieusement l'intervalle à 0 côté AdGuard (= auto-update désactivé) à
+      // chaque bascule. On lit d'abord l'intervalle courant pour le préserver.
       requests.push(
-        axios.post(
-          `${AGH_BASE_URL}/control/filtering/config`,
-          { enabled: !!filtering_enabled },
-          getAghAuth()
-        )
+        (async () => {
+          let interval = 24;
+          if (process.env.VITEST !== 'true') {
+            try {
+              const status = await axios.get(
+                `${AGH_BASE_URL}/control/filtering/status`,
+                getAghAuth()
+              );
+              if (Number.isFinite(status.data?.interval)) interval = status.data.interval;
+            } catch {
+              /* défaut 24h si le statut est indisponible */
+            }
+          }
+          return axios.post(
+            `${AGH_BASE_URL}/control/filtering/config`,
+            { enabled: !!filtering_enabled, interval },
+            getAghAuth()
+          );
+        })()
       );
     }
 

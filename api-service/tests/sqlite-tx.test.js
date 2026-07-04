@@ -39,8 +39,7 @@ describe('db.transaction — synchrone uniquement (better-sqlite3)', () => {
         .limit(1)
         .get();
       const total = (Number(existing?.total) || 0) + 500;
-      tx
-        .insert(schema.usage)
+      tx.insert(schema.usage)
         .values({ publicKey: pk, total, daily: JSON.stringify({ '2026-07-04': 500 }) })
         .onConflictDoUpdate({
           target: schema.usage.publicKey,
@@ -48,12 +47,7 @@ describe('db.transaction — synchrone uniquement (better-sqlite3)', () => {
         })
         .run();
     });
-    const row = db
-      .select()
-      .from(schema.usage)
-      .where(eq(schema.usage.publicKey, pk))
-      .limit(1)
-      .get();
+    const row = db.select().from(schema.usage).where(eq(schema.usage.publicKey, pk)).limit(1).get();
     expect(row.total).toBe(500);
   });
 });
