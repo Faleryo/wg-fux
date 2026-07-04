@@ -475,6 +475,7 @@ const MainLayout = ({ session, onLogout }) => {
             setActiveInterface={setActiveInterface}
             interfaces={interfaces}
             isManager={isManager}
+            instanceLicensed={instanceLicensed}
             loading={loading}
           />
         );

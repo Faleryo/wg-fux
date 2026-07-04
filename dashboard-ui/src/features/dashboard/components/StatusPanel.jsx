@@ -19,7 +19,17 @@ const computeClientStats = (clients) => {
   return { total: list.length, online, expSoon, expired };
 };
 
-const StatusPanel = ({ sentinel, adguardStatus, systemStats, clients, isManager = true }) => {
+const StatusPanel = ({
+  sentinel,
+  adguardStatus,
+  systemStats,
+  clients,
+  isManager = true,
+  // Instance licenciée : l'admin EST le revendeur — sa page d'accueil parle
+  // business (abonnés/échéances) avec les jauges système en compact. La vue
+  // sysadmin complète (Sentinel/AdGuard en grand) reste pour la plateforme mère.
+  businessMode = false,
+}) => {
   const { theme, isDark } = useTheme();
   const cpu = systemStats?.cpu || 0;
   const ram = systemStats?.memory || 0;
@@ -48,7 +58,7 @@ const StatusPanel = ({ sentinel, adguardStatus, systemStats, clients, isManager 
   }, [clients]);
 
   // Panneau métier du revendeur/vendeur : ses abonnés, pas la machine.
-  if (!isManager) {
+  if (!isManager || businessMode) {
     const bizCards = [
       { icon: Users, label: 'Abonnés', value: clientStats.total, color: 'text-sky-400' },
       {
@@ -83,6 +93,23 @@ const StatusPanel = ({ sentinel, adguardStatus, systemStats, clients, isManager 
             </GlassCard>
           ))}
         </div>
+
+        {/* L'admin de l'instance garde un œil sur SA machine (jauges compactes) —
+            un vendeur (non-manager) n'a pas accès à ces métriques. */}
+        {isManager && (
+          <GlassCard className="p-5 md:p-6" hover={false}>
+            <div className="flex justify-around items-center py-1">
+              <CircularProgress label="CPU" value={cpu} color="text-indigo-500" icon={Cpu} />
+              <CircularProgress label="RAM" value={ram} color="text-purple-500" icon={Zap} />
+              <CircularProgress
+                label="DISK"
+                value={disk}
+                color="text-emerald-500"
+                icon={HardDrive}
+              />
+            </div>
+          </GlassCard>
+        )}
 
         <GlassCard
           className={cn(

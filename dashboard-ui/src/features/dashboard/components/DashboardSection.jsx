@@ -49,6 +49,7 @@ const DashboardSection = ({
   setActiveInterface,
   interfaces,
   isManager = true,
+  instanceLicensed = false,
   loading = false,
 }) => {
   return (
@@ -82,6 +83,7 @@ const DashboardSection = ({
             systemStats={systemStats}
             clients={clients}
             isManager={isManager}
+            businessMode={instanceLicensed}
           />
         </motion.div>
       </div>
