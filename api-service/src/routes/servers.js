@@ -65,6 +65,10 @@ function publicServer(s, ownerUsername) {
     version,
     updateAvailable: Boolean(version && version !== PLATFORM_VERSION),
     platformVersion: PLATFORM_VERSION,
+    // Déploiement gouverné : l'admin a-t-il approuvé la version courante de la
+    // plateforme pour cette instance ? (une approbation d'une release passée
+    // est caduque et affichée comme absente)
+    updateApproved: s.targetVersion === PLATFORM_VERSION,
     createdAt: s.createdAt,
     owner: ownerUsername || undefined,
   };
@@ -203,6 +207,62 @@ router.delete(
     });
 
     res.json({ success: true });
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/servers/push-update — déploiement GOUVERNÉ (admin uniquement).
+// Approuve la version courante de la plateforme pour une sélection d'instances
+// (ou toute la flotte) : elles la verront au prochain heartbeat / cron de maj.
+// Body : { serverIds: [1,2] } OU { all: true } ; { clear: true } annule.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/push-update',
+  auth,
+  asyncWrap(async (req, res) => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json(createError('Réservé à l’admin', null, 'FORBIDDEN'));
+    }
+    const { serverIds, all, clear } = req.body || {};
+    const value = clear === true ? null : PLATFORM_VERSION;
+
+    let targetIds;
+    if (all === true) {
+      const rows = await db.select({ id: schema.servers.id }).from(schema.servers);
+      targetIds = rows.map((r) => r.id);
+    } else {
+      if (!Array.isArray(serverIds) || serverIds.length === 0) {
+        return res.status(400).json(createError('serverIds (liste) ou all:true requis'));
+      }
+      targetIds = serverIds.map((n) => parseInt(n, 10)).filter(Number.isInteger);
+      if (targetIds.length === 0) {
+        return res.status(400).json(createError('serverIds invalides'));
+      }
+    }
+
+    if (targetIds.length > 0) {
+      const { inArray } = require('drizzle-orm');
+      await db
+        .update(schema.servers)
+        .set({ targetVersion: value })
+        .where(inArray(schema.servers.id, targetIds));
+    }
+
+    await auditLog({
+      actor: req.user.username,
+      action: clear === true ? 'cancel_update' : 'push_update',
+      targetType: 'server',
+      targetName: all === true ? 'flotte' : targetIds.join(','),
+      details: { version: value, count: targetIds.length },
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      version: value,
+      count: targetIds.length,
+      serverIds: targetIds,
+    });
   })
 );
 

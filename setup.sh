@@ -656,22 +656,25 @@ cmd_self_update() {
     WG_FUX_INSTALL_DIR="$SCRIPT_DIR" bash "$script"
 }
 
-# Installe un cron quotidien de mise à jour (revendeurs uniquement : la présence
-# d'une clé de licence dans api-service/.env conditionne l'exécution effective).
+# Installe le cron de mise à jour (revendeurs uniquement : la présence d'une
+# clé de licence dans api-service/.env conditionne l'exécution effective).
+# Toutes les 30 min : le déploiement est GOUVERNÉ par la plateforme (l'admin
+# approuve instance par instance) — sans approbation le check répond 204 et ne
+# coûte rien ; avec approbation la maj s'applique en ≤ 30 min après le push.
 install_self_update_cron() {
     local cron_file='/etc/cron.d/wg-fux-update'
     if ! grep -q '^WG_FUX_LICENSE_KEY=.\+' "$API_ENV" 2>/dev/null; then
         return 0  # instance mère (pas de licence) → pas d'auto-update par bundle
     fi
-    # Heure aléatoire (0-59 min, 3-5h) pour lisser la charge sur la plateforme.
-    local minute=$((RANDOM % 60)) hour=$((3 + RANDOM % 3))
+    # Décalage aléatoire (0-29 min) pour lisser la charge sur la plateforme.
+    local minute=$((RANDOM % 30))
     cat > "$cron_file" <<EOF
-# Mise à jour automatique quotidienne de wg-fux (bundle licencié). Généré par setup.sh.
+# Mise à jour automatique de wg-fux (bundle licencié, déploiement gouverné). Généré par setup.sh.
 SHELL=/bin/bash
-${minute} ${hour} * * * root WG_FUX_INSTALL_DIR=${SCRIPT_DIR} bash ${SCRIPT_DIR}/scripts/wg-self-update.sh >> /var/log/wg-fux-update.log 2>&1
+${minute}-59/30 * * * * root WG_FUX_INSTALL_DIR=${SCRIPT_DIR} bash ${SCRIPT_DIR}/scripts/wg-self-update.sh >> /var/log/wg-fux-update.log 2>&1
 EOF
     chmod 0644 "$cron_file"
-    log_success "Auto-update quotidien installé (${hour}h${minute})."
+    log_success "Auto-update installé (toutes les 30 min, offset ${minute} min)."
 }
 
 cmd_ssl() {

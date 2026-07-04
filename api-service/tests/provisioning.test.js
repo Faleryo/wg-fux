@@ -235,7 +235,7 @@ describe('POST /license/heartbeat (endpoint de facturation)', () => {
     ({ app } = require('../server'));
   });
 
-  async function seedLicensed({ key, expiryMs }) {
+  async function seedLicensed({ key, expiryMs, targetVersion = null }) {
     const [row] = await db
       .insert(schema.servers)
       .values({
@@ -246,20 +246,28 @@ describe('POST /license/heartbeat (endpoint de facturation)', () => {
         status: 'online',
         licenseKey: key,
         licenseExpiry: new Date(Date.now() + expiryMs),
+        // Déploiement gouverné : une maj n'est offerte que si approuvée.
+        targetVersion,
       })
       .returning();
     return row;
   }
 
-  it('licence valide → { valid: true } + latestVersion + lastHeartbeat/clientCount', async () => {
+  const PLATFORM_VERSION = require('../package.json').version;
+
+  it('licence valide → { valid: true } + latestVersion (si approuvée) + lastHeartbeat/clientCount', async () => {
     const key = 'lic-valid-' + crypto.randomBytes(16).toString('hex');
-    const row = await seedLicensed({ key, expiryMs: 30 * 86400_000 });
+    const row = await seedLicensed({
+      key,
+      expiryMs: 30 * 86400_000,
+      targetVersion: PLATFORM_VERSION, // maj approuvée par l'admin
+    });
     const res = await request(app)
       .post('/license/heartbeat')
       .send({ key, version: '3.1.0', clients: 12 });
     expect(res.statusCode).toBe(200);
     expect(res.body.valid).toBe(true);
-    expect(res.body.latestVersion).toMatch(/^\d+\.\d+\.\d+/); // version publiée
+    expect(res.body.latestVersion).toBe(PLATFORM_VERSION); // version approuvée
     const [after] = await db
       .select()
       .from(schema.servers)
@@ -272,7 +280,11 @@ describe('POST /license/heartbeat (endpoint de facturation)', () => {
 
   it('GET /license/bundle.tgz : licence valide → gzip ; expirée → 402 ; inconnue → 401', async () => {
     const validKey = 'lic-upd-ok-' + crypto.randomBytes(16).toString('hex');
-    await seedLicensed({ key: validKey, expiryMs: 30 * 86400_000 });
+    await seedLicensed({
+      key: validKey,
+      expiryMs: 30 * 86400_000,
+      targetVersion: PLATFORM_VERSION, // sans approbation → 204 (gouverné)
+    });
     const ok = await request(app)
       .get('/license/bundle.tgz')
       .set('Authorization', `Bearer ${validKey}`);

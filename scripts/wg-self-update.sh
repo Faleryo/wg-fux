@@ -54,6 +54,7 @@ HTTP_CODE=$(curl --proto '=https' --tlsv1.2 -sS -w '%{http_code}' \
 
 case "$HTTP_CODE" in
   200) : ;;
+  204) log "Aucune mise à jour approuvée pour cette instance (déploiement gouverné) — aucune action."; exit 0 ;;
   402) fail "Licence expirée — renouvelez votre abonnement pour recevoir les mises à jour." ;;
   401) fail "Clé de licence refusée par la plateforme." ;;
   *)   fail "Téléchargement du bundle échoué (HTTP ${HTTP_CODE})." ;;

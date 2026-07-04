@@ -166,6 +166,78 @@ describe('POST /api/servers/:id/one-liner — régénération scopée', () => {
   });
 });
 
+describe('déploiement gouverné — push-update + heartbeat/bundle gatés', () => {
+  const PLATFORM_VERSION = require('../package.json').version;
+
+  it("sans approbation : le heartbeat n'offre AUCUNE version", async () => {
+    const srv = await mkServer(admin.id, { scriptsVersion: '1.0.0' });
+    const res = await request(app)
+      .post('/license/heartbeat')
+      .set('Authorization', `Bearer ${srv.licenseKey}`)
+      .send({ version: '1.0.0', clients: 0 });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.latestVersion).toBeNull();
+  });
+
+  it('push-update (admin) approuve la version plateforme → heartbeat + bundle 200', async () => {
+    const srv = await mkServer(admin.id, { scriptsVersion: '1.0.0' });
+    const push = await as(admin)(
+      request(app).post('/api/servers/push-update').send({ serverIds: [srv.id] })
+    );
+    expect(push.statusCode).toBe(200);
+    expect(push.body.version).toBe(PLATFORM_VERSION);
+
+    const hb = await request(app)
+      .post('/license/heartbeat')
+      .set('Authorization', `Bearer ${srv.licenseKey}`)
+      .send({ version: '1.0.0' });
+    expect(hb.body.latestVersion).toBe(PLATFORM_VERSION);
+
+    const list = await as(admin)(request(app).get('/api/servers'));
+    expect(list.body.find((s) => s.id === srv.id).updateApproved).toBe(true);
+  });
+
+  it('sans approbation le bundle répond 204 (rien servi)', async () => {
+    const srv = await mkServer(admin.id);
+    const res = await request(app)
+      .get('/license/bundle.tgz')
+      .set('Authorization', `Bearer ${srv.licenseKey}`);
+    expect(res.statusCode).toBe(204);
+  });
+
+  it('clear:true annule le déploiement', async () => {
+    const srv = await mkServer(admin.id);
+    await as(admin)(request(app).post('/api/servers/push-update').send({ serverIds: [srv.id] }));
+    const cancel = await as(admin)(
+      request(app).post('/api/servers/push-update').send({ serverIds: [srv.id], clear: true })
+    );
+    expect(cancel.statusCode).toBe(200);
+    const hb = await request(app)
+      .post('/license/heartbeat')
+      .set('Authorization', `Bearer ${srv.licenseKey}`)
+      .send({});
+    expect(hb.body.latestVersion).toBeNull();
+  });
+
+  it('réservé à l’admin : un revendeur → 403', async () => {
+    const srv = await mkServer(vendor.id);
+    const res = await as(vendor)(
+      request(app).post('/api/servers/push-update').send({ serverIds: [srv.id] })
+    );
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("le canal 'hold' prime sur l'approbation", async () => {
+    const srv = await mkServer(admin.id, { updateChannel: 'hold' });
+    await as(admin)(request(app).post('/api/servers/push-update').send({ serverIds: [srv.id] }));
+    const hb = await request(app)
+      .post('/license/heartbeat')
+      .set('Authorization', `Bearer ${srv.licenseKey}`)
+      .send({});
+    expect(hb.body.latestVersion).toBeNull();
+  });
+});
+
 describe('PATCH /api/resellers/:id — gestion du réseau', () => {
   it("l'admin désactive puis réactive un revendeur", async () => {
     const off = await as(admin)(

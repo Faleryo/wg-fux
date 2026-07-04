@@ -114,6 +114,11 @@ const servers = sqliteTable(
     clientCount: integer('clientCount').default(0), // télémétrie (tarification par palier)
     maxClients: integer('maxClients'), // palier de licence : plafond de clients (NULL = illimité)
     updateChannel: text('updateChannel').default('stable'), // stable | canary | hold (maj flotte)
+    // Déploiement gouverné : version APPROUVÉE par l'admin pour cette instance
+    // (NULL = aucune maj offerte). L'offre n'est servie que si elle égale la
+    // version courante de la plateforme (une release ultérieure invalide
+    // l'approbation — l'admin ré-approuve depuis la modale Déployer).
+    targetVersion: text('targetVersion'),
     createdAt: integer('createdAt', { mode: 'timestamp' }).default(
       sql`(cast(strftime('%s','now') as int))`
     ),

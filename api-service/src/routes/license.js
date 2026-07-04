@@ -29,6 +29,23 @@ const APP_VERSION = (() => {
   }
 })();
 
+// Déploiement GOUVERNÉ : une mise à jour n'est offerte à une instance que si
+// l'admin l'a explicitement approuvée (servers.targetVersion == version
+// courante de la plateforme, posée par POST /api/servers/push-update). Une
+// release ultérieure invalide l'approbation (l'admin ré-approuve). Le canal
+// 'hold' et le kill-switch global update_paused priment toujours.
+async function offeredVersionFor(server) {
+  if (server.targetVersion !== APP_VERSION) return null;
+  if (server.updateChannel === 'hold') return null;
+  try {
+    const paused = await require('../services/settings').getSetting('update_paused');
+    if (paused === '1' || paused === 'true') return null;
+  } catch {
+    return null; // réglage illisible : on n'offre pas de maj par prudence
+  }
+  return APP_VERSION;
+}
+
 // Résout + valide une clé de licence. Renvoie { server, valid } ou null si la
 // clé est absente/inconnue (réponse de forme constante côté appelant).
 async function resolveLicense(key) {
@@ -89,21 +106,9 @@ router.post(
       /* réglages absents : pas de contact — non bloquant */
     }
 
-    // Mise à jour de flotte gouvernée : canal 'hold' (gel par serveur) et
-    // update_paused (kill-switch global) suppriment l'offre de mise à jour —
-    // l'instance ne voit alors aucune version plus récente.
-    let offeredVersion = APP_VERSION;
-    if (server.updateChannel === 'hold') {
-      offeredVersion = null;
-    } else {
-      try {
-        const paused = await require('../services/settings').getSetting('update_paused');
-        if (paused === '1' || paused === 'true') offeredVersion = null;
-      } catch {
-        /* réglage illisible : on n'offre pas de maj par prudence */
-        offeredVersion = null;
-      }
-    }
+    // Mise à jour de flotte GOUVERNÉE : rien n'est offert sans approbation
+    // explicite de l'admin (targetVersion), voir offeredVersionFor().
+    const offeredVersion = await offeredVersionFor(server);
 
     // White-label : la marque résolue du propriétaire (plus proche ancêtre) est
     // poussée à l'instance, qui habille son UI avec (nom, logo, couleur).
@@ -144,6 +149,17 @@ router.get(
         .status(402)
         .type('text/plain')
         .send('License expired — renew to receive updates.\n');
+    }
+
+    // Déploiement gouverné : sans approbation admin pour CETTE instance,
+    // aucun bundle n'est servi (204 → wg-self-update s'arrête proprement, et
+    // on ne construit même pas le tarball).
+    const offered = await offeredVersionFor(resolved.server);
+    if (!offered) {
+      log.info('license', 'Bundle refusé : aucune mise à jour approuvée pour cette instance', {
+        serverId: resolved.server.id,
+      });
+      return res.status(204).end();
     }
 
     const { buildBundleTarball } = require('./provision');

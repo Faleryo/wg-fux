@@ -290,6 +290,13 @@ async function initializeDatabase() {
         )`,
         label: 'invites table',
       },
+      // Phase 25 — déploiement gouverné : version approuvée par l'admin pour
+      // chaque instance (NULL = aucune mise à jour offerte au heartbeat/bundle).
+      {
+        version: 25,
+        sql: 'ALTER TABLE servers ADD COLUMN targetVersion TEXT',
+        label: 'servers.targetVersion',
+      },
     ];
 
     for (const m of migrations) {

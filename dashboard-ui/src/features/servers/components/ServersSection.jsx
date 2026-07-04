@@ -119,6 +119,138 @@ const VersionBadge = ({ version, updateAvailable }) => {
   );
 };
 
+// Modale de déploiement gouverné : l'admin choisit quelles instances reçoivent
+// la version courante de la plateforme (ou toute la flotte). Une instance non
+// approuvée ne voit JAMAIS la mise à jour (heartbeat muet + bundle 204).
+const PushUpdateModal = ({ servers, onClose, onApply, busy }) => {
+  const [selected, setSelected] = useState(() => new Set());
+  const platformVersion = servers[0]?.platformVersion || '?';
+  // Une instance pas encore installée (pending/provisioning) n'a rien à mettre à jour.
+  const eligible = servers.filter((s) => !PENDING_STATES.has(s.status));
+
+  const toggle = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const allSelected = eligible.length > 0 && eligible.every((s) => selected.has(s.id));
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="glass-panel border rounded-2xl shadow-2xl w-full max-w-2xl p-8 space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <ArrowUpCircle size={20} />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight">
+              Déployer la version v{platformVersion}
+            </h3>
+            <p className="text-[11px] font-mono text-slate-500">
+              Seules les instances approuvées ici recevront la mise à jour (≤ 30 min).
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() =>
+              setSelected(allSelected ? new Set() : new Set(eligible.map((s) => s.id)))
+            }
+            className="text-[11px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300"
+          >
+            {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
+          </button>
+          <span className="text-[11px] font-mono text-slate-500">
+            {selected.size} / {eligible.length} instance{eligible.length > 1 ? 's' : ''}
+          </span>
+        </div>
+
+        <div className="max-h-72 overflow-y-auto divide-y divide-white/5 border border-white/5 rounded-xl">
+          {eligible.map((s) => {
+            const upToDate = s.version && s.version === s.platformVersion;
+            return (
+              <label
+                key={s.id}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/5 transition-colors',
+                  upToDate && 'opacity-50'
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.has(s.id)}
+                  onChange={() => toggle(s.id)}
+                  className="accent-indigo-500"
+                />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-bold text-white truncate">
+                    {s.label}
+                    {s.owner ? (
+                      <span className="text-[10px] font-mono text-slate-500"> · {s.owner}</span>
+                    ) : null}
+                  </span>
+                  <span className="block text-[10px] font-mono text-slate-500 truncate">
+                    {s.host} · {s.status}
+                  </span>
+                </span>
+                <span className="text-[11px] font-mono whitespace-nowrap">
+                  <span className={upToDate ? 'text-emerald-400' : 'text-slate-400'}>
+                    v{s.version || '?'}
+                  </span>
+                  {!upToDate && <span className="text-slate-600"> → v{s.platformVersion}</span>}
+                </span>
+                {s.updateApproved && (
+                  <span
+                    className="text-[9px] font-black uppercase tracking-widest text-amber-400"
+                    title="Déploiement déjà programmé"
+                  >
+                    programmée
+                  </span>
+                )}
+              </label>
+            );
+          })}
+          {eligible.length === 0 && (
+            <div className="px-4 py-8 text-center text-slate-500 text-xs uppercase tracking-widest">
+              Aucune instance enrôlée
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+          <button
+            disabled={busy || selected.size === 0}
+            onClick={() => onApply({ serverIds: [...selected], clear: true })}
+            className="text-[11px] font-black uppercase tracking-widest text-red-400/80 hover:text-red-400 transition-colors disabled:opacity-40"
+            title="Retire l'approbation : ces instances ne recevront plus la mise à jour"
+          >
+            Annuler le déploiement
+          </button>
+          <div className="flex items-center gap-4">
+            <button
+              disabled={busy}
+              onClick={onClose}
+              className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+            >
+              Fermer
+            </button>
+            <button
+              disabled={busy || selected.size === 0}
+              onClick={() => onApply({ serverIds: [...selected] })}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[11px] font-black uppercase tracking-widest text-white transition-colors disabled:opacity-40"
+            >
+              Pousser la mise à jour ({selected.size})
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Modale one-liner : commande de (ré)installation à coller sur le VPS.
 const OneLinerModal = ({ data, onClose }) => {
   const [copied, setCopied] = useState(false);
@@ -326,6 +458,8 @@ const ServersSection = ({ userRole = '' }) => {
   const [renewing, setRenewing] = useState(false);
   const [oneLiner, setOneLiner] = useState(null); // { label, oneLiner }
   const [query, setQuery] = useState('');
+  const [showPushModal, setShowPushModal] = useState(false);
+  const [pushing, setPushing] = useState(false);
 
   const pollRef = useRef(null);
 
@@ -385,6 +519,28 @@ const ServersSection = ({ userRole = '' }) => {
       addToast(e?.response?.data?.error || 'Erreur lors de la suppression', 'error');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // Approuve (ou annule) le déploiement de la version plateforme sur une
+  // sélection d'instances. Elles l'appliquent en ≤ 30 min (cron gouverné).
+  const handlePushUpdate = async (payload) => {
+    if (pushing) return;
+    setPushing(true);
+    try {
+      const { data } = await axiosInstance.post('/servers/push-update', payload);
+      addToast(
+        payload.clear
+          ? `Déploiement annulé pour ${data.count} instance${data.count > 1 ? 's' : ''}`
+          : `v${data.version} approuvée pour ${data.count} instance${data.count > 1 ? 's' : ''}`,
+        'success'
+      );
+      setShowPushModal(false);
+      fetchServers();
+    } catch (e) {
+      addToast(e?.response?.data?.error || 'Erreur de déploiement', 'error');
+    } finally {
+      setPushing(false);
     }
   };
 
@@ -507,6 +663,16 @@ const ServersSection = ({ userRole = '' }) => {
           >
             Actualiser
           </VibeButton>
+          {isAdmin && (
+            <VibeButton
+              variant="secondary"
+              icon={ArrowUpCircle}
+              className="w-full md:w-auto"
+              onClick={() => setShowPushModal(true)}
+            >
+              Déployer{summary.outdated > 0 ? ` (${summary.outdated})` : ''}
+            </VibeButton>
+          )}
           <VibeButton
             variant="primary"
             icon={Plus}
@@ -593,7 +759,14 @@ const ServersSection = ({ userRole = '' }) => {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <VersionBadge version={srv.version} updateAvailable={srv.updateAvailable} />
+                      <div className="flex flex-col gap-1">
+                        <VersionBadge version={srv.version} updateAvailable={srv.updateAvailable} />
+                        {srv.updateApproved && srv.updateAvailable && (
+                          <span className="text-[9px] font-black uppercase tracking-widest text-amber-400/90">
+                            → v{srv.platformVersion} programmée
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex flex-col gap-1">
@@ -702,6 +875,15 @@ const ServersSection = ({ userRole = '' }) => {
       />
 
       <OneLinerModal data={oneLiner} onClose={() => setOneLiner(null)} />
+
+      {showPushModal && (
+        <PushUpdateModal
+          servers={servers}
+          busy={pushing}
+          onApply={handlePushUpdate}
+          onClose={() => setShowPushModal(false)}
+        />
+      )}
 
       <ConfirmModal
         isOpen={!!confirmTarget}
