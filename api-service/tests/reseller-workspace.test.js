@@ -238,6 +238,96 @@ describe('déploiement gouverné — push-update + heartbeat/bundle gatés', () 
   });
 });
 
+describe('GET /license/update-check — sonde légère du déploiement gouverné', () => {
+  const PLATFORM_VERSION = require('../package.json').version;
+
+  it('sans approbation → offeredVersion null + lastHeartbeat rafraîchi', async () => {
+    const srv = await mkServer(admin.id, { lastHeartbeat: null });
+    const res = await request(app)
+      .get('/license/update-check')
+      .set('Authorization', `Bearer ${srv.licenseKey}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.offeredVersion).toBeNull();
+    const [after] = await db
+      .select()
+      .from(schema.servers)
+      .where(eq(schema.servers.id, srv.id))
+      .limit(1);
+    expect(after.lastHeartbeat).toBeTruthy();
+    expect(after.status).toBe('online');
+  });
+
+  it('approuvé → offeredVersion = version plateforme ; clé inconnue → 401', async () => {
+    const srv = await mkServer(admin.id, { targetVersion: PLATFORM_VERSION });
+    const ok = await request(app)
+      .get('/license/update-check')
+      .set('Authorization', `Bearer ${srv.licenseKey}`);
+    expect(ok.body.offeredVersion).toBe(PLATFORM_VERSION);
+
+    const bad = await request(app)
+      .get('/license/update-check')
+      .set('Authorization', 'Bearer ' + 'z'.repeat(43));
+    expect(bad.statusCode).toBe(401);
+  });
+});
+
+describe('réconciliation DB ↔ disque ↔ WireGuard', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  it('détecte les fantômes DB et les purge (admin), conteneur vide compris', async () => {
+    // Fantôme : client en DB, aucun dossier sur le disque.
+    await db
+      .insert(schema.containers)
+      .values({ name: 'ghost-box', owner: admin.username, interface: 'wg0' })
+      .onConflictDoNothing();
+    await db.insert(schema.clients).values({
+      container: 'ghost-box',
+      name: 'ghost-1',
+      publicKey: 'ghostkey-' + crypto.randomBytes(8).toString('hex'),
+      enabled: true,
+    });
+
+    const report = await as(admin)(request(app).get('/api/clients/reconcile'));
+    expect(report.statusCode).toBe(200);
+    expect(report.body.dbOrphans.some((o) => o.container === 'ghost-box')).toBe(true);
+
+    const purge = await as(admin)(
+      request(app).post('/api/clients/reconcile').send({ purgeDbOrphans: true })
+    );
+    expect(purge.statusCode).toBe(200);
+    expect(purge.body.purged).toBeGreaterThanOrEqual(1);
+    expect(purge.body.after.dbOrphans.some((o) => o.container === 'ghost-box')).toBe(false);
+
+    const [ctr] = await db
+      .select()
+      .from(schema.containers)
+      .where(eq(schema.containers.name, 'ghost-box'))
+      .limit(1);
+    expect(ctr).toBeUndefined(); // conteneur fantôme retiré aussi
+  });
+
+  it('un client avec fichiers sur le disque n’est PAS un fantôme', async () => {
+    const dir = path.join(process.env.WG_CLIENTS_DIR, 'real-box', 'real-1');
+    fs.mkdirSync(dir, { recursive: true });
+    await db.insert(schema.clients).values({
+      container: 'real-box',
+      name: 'real-1',
+      publicKey: 'realkey-' + crypto.randomBytes(8).toString('hex'),
+      enabled: true,
+    });
+    const report = await as(admin)(request(app).get('/api/clients/reconcile'));
+    expect(report.body.dbOrphans.some((o) => o.container === 'real-box')).toBe(false);
+  });
+
+  it('RBAC : purge réservée à l’admin (revendeur → 403)', async () => {
+    const res = await as(vendor)(
+      request(app).post('/api/clients/reconcile').send({ purgeDbOrphans: true })
+    );
+    expect(res.statusCode).toBe(403);
+  });
+});
+
 describe('PATCH /api/resellers/:id — gestion du réseau', () => {
   it("l'admin désactive puis réactive un revendeur", async () => {
     const off = await as(admin)(

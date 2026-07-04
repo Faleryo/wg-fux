@@ -653,7 +653,9 @@ cmd_self_update() {
     require_root
     local script="$SCRIPT_DIR/scripts/wg-self-update.sh"
     [ -f "$script" ] || { log_error "scripts/wg-self-update.sh introuvable."; exit 1; }
-    WG_FUX_INSTALL_DIR="$SCRIPT_DIR" bash "$script"
+    # Invocation manuelle : on court-circuite le pré-check gouverné (l'opérateur
+    # du VPS a décidé — le serveur peut toujours répondre 204 s'il refuse).
+    WG_FUX_INSTALL_DIR="$SCRIPT_DIR" WG_SELF_UPDATE_FORCE=1 bash "$script"
 }
 
 # Installe le cron de mise à jour (revendeurs uniquement : la présence d'une
@@ -666,15 +668,15 @@ install_self_update_cron() {
     if ! grep -q '^WG_FUX_LICENSE_KEY=.\+' "$API_ENV" 2>/dev/null; then
         return 0  # instance mère (pas de licence) → pas d'auto-update par bundle
     fi
-    # Décalage aléatoire (0-29 min) pour lisser la charge sur la plateforme.
-    local minute=$((RANDOM % 30))
     cat > "$cron_file" <<EOF
-# Mise à jour automatique de wg-fux (bundle licencié, déploiement gouverné). Généré par setup.sh.
+# Mise à jour de wg-fux (déploiement gouverné, quasi temps réel). Généré par setup.sh.
+# Chaque minute : sonde /license/update-check (JSON minuscule, silencieux) ;
+# le bundle n'est téléchargé QUE si l'admin de la plateforme a approuvé la maj.
 SHELL=/bin/bash
-${minute}-59/30 * * * * root WG_FUX_INSTALL_DIR=${SCRIPT_DIR} bash ${SCRIPT_DIR}/scripts/wg-self-update.sh >> /var/log/wg-fux-update.log 2>&1
+* * * * * root WG_FUX_INSTALL_DIR=${SCRIPT_DIR} bash ${SCRIPT_DIR}/scripts/wg-self-update.sh >> /var/log/wg-fux-update.log 2>&1
 EOF
     chmod 0644 "$cron_file"
-    log_success "Auto-update installé (toutes les 30 min, offset ${minute} min)."
+    log_success "Auto-update installé (sonde chaque minute, déploiement gouverné)."
 }
 
 cmd_ssl() {

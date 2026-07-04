@@ -37,6 +37,32 @@ if [ -z "$LICENSE_KEY" ] || [ -z "$PLATFORM_URL" ]; then
 fi
 
 PLATFORM_URL="${PLATFORM_URL%/}"
+TLS_PIN="$(env_get TLS_PINNED_PUBKEY)"
+
+# ── PRÉ-CHECK ultra-léger (déploiement gouverné) ─────────────────────────────
+# Appelé chaque minute par le cron : on interroge /license/update-check (JSON
+# minuscule) et on sort SILENCIEUSEMENT si aucune version n'est offerte — ni
+# téléchargement de bundle, ni ligne de log (sinon le log gonflerait de 1440
+# entrées/jour). WG_SELF_UPDATE_FORCE=1 (setup.sh --self-update) court-circuite
+# le pré-check ; une mère trop ancienne (404 sur la sonde) aussi.
+LOCAL_VERSION=$(grep -m1 '"version"' "${INSTALL_DIR}/api-service/package.json" 2>/dev/null \
+  | sed 's/.*: *"\([^"]*\)".*/\1/')
+if [ "${WG_SELF_UPDATE_FORCE:-0}" != "1" ]; then
+  CHECK_BODY="$(curl --proto '=https' --tlsv1.2 -sS \
+    ${TLS_PIN:+--pinnedpubkey "$TLS_PIN"} \
+    -H "Authorization: Bearer ${LICENSE_KEY}" \
+    --max-time 20 "${PLATFORM_URL}/license/update-check" 2>/dev/null || echo '__CHECK_FAILED__')"
+  case "$CHECK_BODY" in
+    __CHECK_FAILED__|*'"error"'*'404'*) : ;; # sonde indisponible → chemin legacy complet
+    *)
+      OFFERED=$(printf '%s' "$CHECK_BODY" | grep -o '"offeredVersion":"[^"]*"' | cut -d'"' -f4)
+      if [ -z "$OFFERED" ] || [ "$OFFERED" = "$LOCAL_VERSION" ]; then
+        exit 0 # rien d'approuvé pour cette instance (ou déjà à jour) — silence
+      fi
+      ;;
+  esac
+fi
+
 TMP_BUNDLE="$(mktemp /tmp/wg-fux-update.XXXXXX.tgz)"
 TMP_HDR="$(mktemp /tmp/wg-fux-update.XXXXXX.hdr)"
 trap 'rm -f "$TMP_BUNDLE" "$TMP_HDR"' EXIT
@@ -45,7 +71,6 @@ log "=== Mise à jour wg-fux depuis ${PLATFORM_URL} ==="
 
 # Télécharge le bundle (clé de licence = auth) + capture les en-têtes (sha256).
 # -f → échec sur 401/402/5xx. Épingle la clé publique TLS si configurée.
-TLS_PIN="$(env_get TLS_PINNED_PUBKEY)"
 HTTP_CODE=$(curl --proto '=https' --tlsv1.2 -sS -w '%{http_code}' \
   ${TLS_PIN:+--pinnedpubkey "$TLS_PIN"} \
   -H "Authorization: Bearer ${LICENSE_KEY}" \
@@ -68,8 +93,6 @@ esac
 # à la nôtre, on s'arrête là — pas de rebuild ni de coupure WireGuard pour rien
 # (le cron tourne toutes les nuits, les releases sont rares).
 REMOTE_VERSION=$(grep -i '^X-WG-Fux-Version:' "$TMP_HDR" | tr -d '\r' | awk '{print $2}')
-LOCAL_VERSION=$(grep -m1 '"version"' "${INSTALL_DIR}/api-service/package.json" 2>/dev/null \
-  | sed 's/.*: *"\([^"]*\)".*/\1/')
 if [ -n "$REMOTE_VERSION" ] && [ -n "$LOCAL_VERSION" ] && [ "$REMOTE_VERSION" = "$LOCAL_VERSION" ]; then
   log "Déjà à jour (v${LOCAL_VERSION}) — aucune action."
   exit 0

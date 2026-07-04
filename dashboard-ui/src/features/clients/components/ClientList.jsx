@@ -5,6 +5,7 @@ import { getContainerColor } from './ClientListHelpers';
 import ClientListToolbar from './ClientListToolbar';
 import ContainerGridView from './ContainerGridView';
 import ClientGridView from './ClientGridView';
+import ReconcileBanner from './ReconcileBanner';
 
 export const ClientList = ({
   clients = [],
@@ -46,7 +47,9 @@ export const ClientList = ({
     ? (containerGroups[activeContainer] || []).filter(
         (c) =>
           !search ||
-          String(c?.name || '').toLowerCase().includes(search.toLowerCase()) ||
+          String(c?.name || '')
+            .toLowerCase()
+            .includes(search.toLowerCase()) ||
           String(c?.ip || '').includes(search)
       )
     : [];
@@ -71,10 +74,13 @@ export const ClientList = ({
   }, [clients, selectedIds, onBulkDelete, clearSelection]);
 
   // Clear selection when leaving container view
-  const handleSetActiveContainer = useCallback((name) => {
-    setActiveContainer(name);
-    setSelectedIds(new Set());
-  }, [setActiveContainer]);
+  const handleSetActiveContainer = useCallback(
+    (name) => {
+      setActiveContainer(name);
+      setSelectedIds(new Set());
+    },
+    [setActiveContainer]
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
@@ -94,6 +100,8 @@ export const ClientList = ({
         onBulkDelete={handleBulkDelete}
         onClearSelection={clearSelection}
       />
+
+      <ReconcileBanner />
 
       <AnimatePresence mode="wait">
         {!activeContainer ? (

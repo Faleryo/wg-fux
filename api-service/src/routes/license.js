@@ -133,6 +133,35 @@ router.post(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /license/update-check — sonde ULTRA-LÉGÈRE du déploiement gouverné.
+// L'instance l'appelle chaque minute (cron) : { offeredVersion } (null = rien).
+// Sert aussi de signal de vie fin (lastHeartbeat rafraîchi) → un push depuis la
+// modale Déployer s'applique en ≤ 1-2 min, sans télécharger le moindre bundle.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get(
+  '/update-check',
+  asyncWrap(async (req, res) => {
+    const resolved = await resolveLicense(extractKey(req));
+    if (!resolved) {
+      return res.status(401).json({ error: 'Clé de licence invalide' });
+    }
+    if (!resolved.valid) {
+      return res.status(402).json({ offeredVersion: null, error: 'Licence expirée' });
+    }
+
+    // Signal de vie (pas de télémétrie ici — le heartbeat 6h reste la source
+    // riche : version, clients, brand…).
+    await db
+      .update(schema.servers)
+      .set({ lastHeartbeat: new Date(), status: 'online', consecutiveFailures: 0 })
+      .where(eq(schema.servers.id, resolved.server.id));
+
+    const offeredVersion = await offeredVersionFor(resolved.server);
+    res.json({ offeredVersion });
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /license/bundle.tgz — dernier bundle produit, réservé aux licences VALIDES.
 // Authorization: Bearer <licenseKey>. Une licence expirée reçoit 402 (Payment
 // Required) : l'instance continue de tourner mais ne peut plus se mettre à jour.

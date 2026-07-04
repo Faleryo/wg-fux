@@ -14,7 +14,7 @@ const {
   containerSchema,
   paginationSchema,
 } = require('../../db/validation');
-const { auth } = require('../middleware/auth');
+const { auth, requireManager, requireAdmin } = require('../middleware/auth');
 const {
   runSystemCommand,
   writeFileAsRoot,
@@ -1230,6 +1230,170 @@ router.get(
       };
     }
     res.json(result);
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Réconciliation DB ↔ filesystem ↔ WireGuard (contexte LOCAL uniquement).
+//
+// Trois sources de vérité peuvent diverger (réinstallation, volume Docker
+// survivant à une désinstallation, crash pendant une création…) :
+//   - la DB (clients/containers),
+//   - /etc/wireguard/clients/<container>/<client>/ (clés, ip, conf),
+//   - les peers effectivement chargés dans le noyau (`wg show`).
+// GET  /reconcile → rapport (manager+) ; POST /reconcile → répare (admin).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Inventaire des trois mondes. Retourne aussi les orphelins croisés.
+async function buildReconcileReport() {
+  const clientsBaseDir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
+
+  // 1. Filesystem : container/client (répertoires).
+  const fsSet = new Set(); // "container/name"
+  try {
+    const containers = await fsPromises.readdir(clientsBaseDir, { withFileTypes: true });
+    for (const c of containers) {
+      if (!c.isDirectory()) continue;
+      const sub = await fsPromises
+        .readdir(path.join(clientsBaseDir, c.name), { withFileTypes: true })
+        .catch(() => []);
+      for (const cl of sub) {
+        if (cl.isDirectory()) fsSet.add(`${c.name}/${cl.name}`);
+      }
+    }
+  } catch {
+    /* dossier absent = zéro entrée */
+  }
+
+  // 2. Peers noyau : clés publiques chargées, toutes interfaces WG.
+  const peerKeys = new Set();
+  try {
+    const { getInterfaces } = require('../services/system');
+    const wgIfaces = (await getInterfaces())
+      .filter((i) => i.type === 'WireGuard')
+      .map((i) => i.name);
+    for (const iface of wgIfaces) {
+      const stdout = await getWireGuardStats(iface);
+      for (const p of parseWireGuardDump(stdout)) peerKeys.add(p.publicKey);
+    }
+  } catch {
+    /* interface down : peers = 0, le rapport le montrera */
+  }
+
+  // 3. DB : clients des conteneurs LOCAUX (serverId NULL) — les conteneurs des
+  // VPS distants ont leur propre instance, hors périmètre.
+  const allContainers = await db.select().from(schema.containers);
+  const localNames = new Set(
+    allContainers.filter((c) => c.serverId == null).map((c) => c.name)
+  );
+  const dbClients = (await db.select().from(schema.clients)).filter(
+    (c) => localNames.has(c.container) || !allContainers.some((x) => x.name === c.container)
+  );
+
+  const dbOrphans = []; // en DB, aucun dossier sur le disque (fantômes)
+  const missingPeers = []; // DB + disque OK mais absent du noyau
+  for (const c of dbClients) {
+    const key = `${c.container}/${c.name}`;
+    if (!fsSet.has(key)) {
+      dbOrphans.push({ id: c.id, container: c.container, name: c.name });
+    } else if (c.enabled !== false && c.publicKey && !peerKeys.has(c.publicKey)) {
+      missingPeers.push({ container: c.container, name: c.name });
+    }
+  }
+  const dbKeys = new Set(dbClients.map((c) => `${c.container}/${c.name}`));
+  const fsOrphans = [...fsSet]
+    .filter((k) => !dbKeys.has(k))
+    .map((k) => {
+      const [container, name] = k.split('/');
+      return { container, name };
+    });
+
+  return {
+    counts: { db: dbClients.length, fs: fsSet.size, peers: peerKeys.size },
+    dbOrphans,
+    fsOrphans,
+    missingPeers,
+  };
+}
+
+router.get(
+  '/reconcile',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    if (req.serverId) {
+      return res
+        .status(400)
+        .json(createError('Réconciliation locale uniquement (instance distante = sa propre UI)'));
+    }
+    res.json(await buildReconcileReport());
+  })
+);
+
+// Répare : { purgeDbOrphans: true } supprime les fantômes DB (clients sans
+// aucun fichier — typiquement une vieille base ayant survécu à une réinstall
+// via le volume Docker) ; { applyPeers: true } ré-applique les peers du disque
+// dans le noyau (wg-sync-peers.sh). Les listes sont TOUJOURS recalculées côté
+// serveur — on ne supprime jamais sur la foi d'une liste envoyée par le client.
+router.post(
+  '/reconcile',
+  auth,
+  requireAdmin,
+  asyncWrap(async (req, res) => {
+    if (req.serverId) {
+      return res.status(400).json(createError('Réconciliation locale uniquement'));
+    }
+    const { purgeDbOrphans, applyPeers } = req.body || {};
+    const report = await buildReconcileReport();
+    const result = { purged: 0, peersApplied: false };
+
+    if (purgeDbOrphans === true && report.dbOrphans.length > 0) {
+      const ids = report.dbOrphans.map((o) => o.id);
+      await inArrayBatched(schema.clients, schema.clients.id, ids, (chunk) =>
+        db.delete(schema.clients).where(inArray(schema.clients.id, chunk))
+      );
+      result.purged = ids.length;
+
+      // Conteneurs locaux devenus vides ET sans dossier disque → poussière de
+      // l'ancienne base, on les retire aussi.
+      const remaining = await db.select().from(schema.clients);
+      const still = new Set(remaining.map((c) => c.container));
+      const clientsBaseDir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
+      const allContainers = await db.select().from(schema.containers);
+      for (const ctr of allContainers) {
+        if (ctr.serverId != null || still.has(ctr.name)) continue;
+        const onDisk = await fsPromises
+          .stat(path.join(clientsBaseDir, ctr.name))
+          .then((s) => s.isDirectory())
+          .catch(() => false);
+        if (!onDisk) {
+          await db.delete(schema.containers).where(eq(schema.containers.name, ctr.name));
+          result.purged += 1;
+        }
+      }
+    }
+
+    if (applyPeers === true) {
+      const { success, error } = await runSystemCommand(
+        getScriptPath('wg-sync-peers.sh'),
+        [process.env.WG_INTERFACE || 'wg0'],
+        null,
+        {}
+      );
+      result.peersApplied = success;
+      if (!success) result.peersError = error;
+    }
+
+    await auditLog({
+      actor: req.user.username,
+      action: 'reconcile',
+      targetType: 'system',
+      targetName: 'clients',
+      details: { purgeDbOrphans: !!purgeDbOrphans, applyPeers: !!applyPeers, ...result },
+      ip: req.ip,
+    });
+
+    res.json({ success: true, ...result, after: await buildReconcileReport() });
   })
 );
 
