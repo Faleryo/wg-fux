@@ -1030,9 +1030,13 @@ router.post(
     }
     if (Object.keys(dbPatch).length > 0 && succeededClients.length > 0) {
       try {
-        await db.transaction(async (tx) => {
+        // Transaction SYNCHRONE : une fonction async ici lève systématiquement
+        // ("Transaction function cannot return a promise") côté better-sqlite3
+        // → l'ancien code déclenchait TOUJOURS le rollback filesystem ci-dessous
+        // et le bulk-update d'expiry/quota était en réalité inopérant.
+        db.transaction((tx) => {
           for (const client of succeededClients) {
-            await tx
+            tx
               .update(schema.clients)
               .set(dbPatch)
               .where(
@@ -1040,7 +1044,8 @@ router.post(
                   eq(schema.clients.container, client.container),
                   eq(schema.clients.name, client.name)
                 )
-              );
+              )
+              .run();
           }
         });
       } catch (e) {

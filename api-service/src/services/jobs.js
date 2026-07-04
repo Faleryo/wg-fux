@@ -149,13 +149,20 @@ const updateUsage = async () => {
 
       if (delta > 0) {
         try {
-          await db.transaction(async (tx) => {
-            const usageResults = await tx
+          // ⚠️ better-sqlite3 REFUSE une fonction async dans db.transaction
+          // ("Transaction function cannot return a promise"). L'ancien code
+          // async échouait donc à CHAQUE tick → aucun usage n'était persisté et
+          // aucune alerte quota ne partait. On utilise une transaction SYNCHRONE
+          // (query builders drizzle en .get()/.run()) ; la notification async
+          // (I/O réseau) est différée hors transaction via quotaToNotify.
+          let quotaToNotify = null;
+          db.transaction((tx) => {
+            const existingUsage = tx
               .select()
               .from(schema.usage)
               .where(eq(schema.usage.publicKey, pubKey))
-              .limit(1);
-            const existingUsage = usageResults?.[0];
+              .limit(1)
+              .get();
 
             let daily = {};
             if (existingUsage?.daily) {
@@ -173,7 +180,7 @@ const updateUsage = async () => {
             const prevTotal = Number(existingUsage?.total) || 0;
             const newTotal = prevTotal + delta;
 
-            await tx
+            tx
               .insert(schema.usage)
               .values({
                 publicKey: pubKey,
@@ -183,14 +190,15 @@ const updateUsage = async () => {
               .onConflictDoUpdate({
                 target: schema.usage.publicKey,
                 set: { total: newTotal, daily: JSON.stringify(daily) },
-              });
+              })
+              .run();
 
             // Notify when a client crosses its quota threshold for the first time.
             // _quotaCache avoids a DB round-trip on every tick; the entry is set
             // on first lookup and reused for the lifetime of the process.
             if (!_notifiedQuota.has(pubKey)) {
               if (!_quotaCache.has(pubKey)) {
-                const [client] = await tx
+                const client = tx
                   .select({
                     name: schema.clients.name,
                     container: schema.clients.container,
@@ -198,7 +206,8 @@ const updateUsage = async () => {
                   })
                   .from(schema.clients)
                   .where(eq(schema.clients.publicKey, pubKey))
-                  .limit(1);
+                  .limit(1)
+                  .get();
                 const qb = client?.quota > 0 ? client.quota * 1024 * 1024 * 1024 : 0;
                 _quotaCache.set(pubKey, {
                   bytes: qb,
@@ -210,15 +219,18 @@ const updateUsage = async () => {
               const cached = _quotaCache.get(pubKey);
               if (cached.bytes > 0 && prevTotal < cached.bytes && newTotal >= cached.bytes) {
                 _notifiedQuota.add(pubKey);
-                notify
-                  .send(
-                    'quota',
-                    `🚨 QUOTA DÉPASSÉ: Client '${cached.name}' (${cached.container}) a consommé ${cached.gb} GB — accès suspendu.`
-                  )
-                  .catch(() => {});
+                quotaToNotify = cached;
               }
             }
           });
+          if (quotaToNotify) {
+            notify
+              .send(
+                'quota',
+                `🚨 QUOTA DÉPASSÉ: Client '${quotaToNotify.name}' (${quotaToNotify.container}) a consommé ${quotaToNotify.gb} GB — accès suspendu.`
+              )
+              .catch(() => {});
+          }
         } catch (e) {
           log.error('jobs', 'Usage update transaction failed', { pubKey, err: e.message });
         }
