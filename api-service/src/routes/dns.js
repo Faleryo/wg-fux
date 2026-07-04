@@ -148,8 +148,8 @@ router.post(
           log.warn('dns', 'Some AdGuard config requests failed', {
             failed: failed.map((f) => f.reason?.message),
           });
-          return res.json({
-            success: true,
+          return res.status(207).json({
+            success: false,
             warning: `${failed.length} of ${results.length} AdGuard request(s) failed — configuration may be partially applied`,
           });
         }

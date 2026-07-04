@@ -1,4 +1,6 @@
-FROM node:20-bookworm-slim
+# node:20-bookworm-slim — pinné par digest pour empêcher un retag malveillant
+# du tag mutable de rejouer une image différente à l'insu du build.
+FROM node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -63,9 +65,11 @@ WORKDIR /app
 
 # Copy package files and install production dependencies only
 # --omit=dev exclut drizzle-kit/esbuild (devDependencies) qui causent ETXTBSY dans le container
-# npm install (pas npm ci) utilise prebuild-install pour better-sqlite3 (binaire précompilé = pas besoin de make/g++)
+# npm ci respecte STRICTEMENT package-lock.json (contrairement à npm install qui peut
+# récupérer une version supérieure au lock) — better-sqlite3 utilise toujours
+# prebuild-install pour son binaire précompilé, npm ci exécute les mêmes install scripts.
 COPY api-service/package*.json ./
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 # Copy API source
 COPY api-service/db ./db

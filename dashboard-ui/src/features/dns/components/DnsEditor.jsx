@@ -61,8 +61,12 @@ const DnsEditor = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await axiosInstance.post('/dns/config', config);
-      addToast('Configuration DNS mise à jour avec succès', 'success');
+      const res = await axiosInstance.post('/dns/config', config);
+      if (res.data?.success === false) {
+        addToast(res.data.warning || 'Configuration partiellement appliquée', 'error');
+      } else {
+        addToast('Configuration DNS mise à jour avec succès', 'success');
+      }
     } catch (error) {
       addToast('Erreur lors de la sauvegarde de la configuration', 'error');
     } finally {

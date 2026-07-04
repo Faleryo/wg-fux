@@ -383,7 +383,7 @@ const MainLayout = ({ session, onLogout }) => {
       setActiveSection('dashboard');
       addToast('Accès refusé — section réservée aux administrateurs', 'error');
     }
-  }, [activeSection, isManager, isAdmin, addToast]);
+  }, [activeSection, isManager, isAdmin, isReseller, instanceLicensed, addToast]);
 
   const handleNavigate = (sectionId, opts = {}) => {
     setActiveSection(sectionId);

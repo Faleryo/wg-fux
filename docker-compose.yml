@@ -1,6 +1,7 @@
 services:
   nginx:
-    image: nginx:alpine
+    # Pinné par digest (tag mutable :alpine peut être retaggué sans avertissement)
+    image: nginx:alpine@sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa
     container_name: wg-sentinel-proxy
     restart: always
     ports:
@@ -40,7 +41,8 @@ services:
   # CRITICAL-2 : Let's Encrypt Certbot (renouvellement automatique)
   # Usage : docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d VOTRE_DOMAINE
   certbot:
-    image: certbot/certbot:v2.7.0
+    # Pinné par digest (tag mutable :v2.7.0 peut être retaggué sans avertissement)
+    image: certbot/certbot:v2.7.0@sha256:68e0f51ce9037d3b022d446772277beb1e9c0fe801e75fbf87db105ab165ad54
     container_name: wg-fux-certbot
     depends_on:
       nginx:
@@ -48,8 +50,11 @@ services:
     volumes:
       - certbot_certs:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-    # Renouvellement automatique : vérifie toutes les 12h
-    entrypoint: "/bin/sh -c 'trap exit TERM; sleep 20; while :; do certbot renew; sleep 12h & wait $$!; done'"
+    # Renouvellement automatique : vérifie toutes les 12h. Un échec de `certbot
+    # renew` (rate-limit Let's Encrypt, DNS cassé...) passait inaperçu jusqu'à
+    # l'expiration du cert — on le journalise bruyamment pour qu'il remonte
+    # dans `docker logs`/toute supervision externe branchée dessus.
+    entrypoint: "/bin/sh -c 'trap exit TERM; sleep 20; while :; do certbot renew || echo \"[$(date -u +%Y-%m-%dT%H:%M:%SZ)] CERTBOT RENEW FAILED (exit $?)\" >&2; sleep 12h & wait $$!; done'"
     networks:
       - vpn-internal
     healthcheck:
@@ -148,7 +153,8 @@ services:
           memory: 32M
 
   adguard:
-    image: adguard/adguardhome:v0.107.52
+    # Pinné par digest (tag mutable :v0.107.52 peut être retaggué sans avertissement)
+    image: adguard/adguardhome:v0.107.52@sha256:d16cc7517ab96f843e7f8bf8826402dba98f5e6b175858920296243332391589
     container_name: wg-fux-dns
     restart: always
     depends_on:

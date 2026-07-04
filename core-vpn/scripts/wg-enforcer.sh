@@ -109,11 +109,20 @@ while IFS= read -r -d '' keyfile; do
    rm -f "$CLIENT_DIR/disabled"
    ALLOWED_IPS=$(cat "$CLIENT_DIR/allowed_ips.txt" 2>/dev/null || echo "")
    PSK="$CLIENT_DIR/preshared.key"
-   if [ -n "$ALLOWED_IPS" ] && [ -f "$PSK" ]; then
-   wg set "$WG_INTERFACE" peer "$PUBKEY" preshared-key "$PSK" allowed-ips "$ALLOWED_IPS" 2>/dev/null || true
-   log_info "Peer $CLIENT_NAME re-activé sur $WG_INTERFACE"
-    test -x "$SCRIPT_DIR/wg-apply-qos.sh" && "$SCRIPT_DIR/wg-apply-qos.sh" 2>/dev/null || true
+   # Ne pas exiger le PSK pour réactiver : un peer sans preshared.key (legacy ou
+   # jamais configuré) restait invisiblement coupé — le fichier `disabled` était
+   # déjà supprimé ci-dessus mais aucun `wg set` ne rétablissait le peer.
+   if [ -n "$ALLOWED_IPS" ]; then
+    if [ -f "$PSK" ]; then
+     wg set "$WG_INTERFACE" peer "$PUBKEY" preshared-key "$PSK" allowed-ips "$ALLOWED_IPS" 2>/dev/null || true
+    else
+     wg set "$WG_INTERFACE" peer "$PUBKEY" allowed-ips "$ALLOWED_IPS" 2>/dev/null || true
     fi
+    log_info "Peer $CLIENT_NAME re-activé sur $WG_INTERFACE"
+    test -x "$SCRIPT_DIR/wg-apply-qos.sh" && "$SCRIPT_DIR/wg-apply-qos.sh" 2>/dev/null || true
+   else
+    log_warn "Réactivation impossible pour $CLIENT_NAME : allowed_ips.txt manquant/vide"
+   fi
     # Fall through to re-check all limits after unban
    else
     continue # Still disabled, nothing to do

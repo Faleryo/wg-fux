@@ -345,8 +345,12 @@ router.post('/:token/ready', express.json(), async (req, res, next) => {
       provisionTokenHash: null,
       provisionTokenExpiry: null,
     };
-    // Met à jour l'IP si le VPS la rapporte et qu'elle est valide.
-    if (host && typeof host === 'string' && host.trim()) {
+    // Met à jour l'IP si le VPS la rapporte et qu'elle est valide (IPv4, IPv6
+    // ou hostname RFC1123) — un VPS compromis ne doit pas pouvoir injecter une
+    // valeur arbitraire dans cette colonne via le callback de provisioning.
+    const HOST_RE =
+      /^(\d{1,3}(\.\d{1,3}){3}|[a-fA-F0-9:]+|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)$/;
+    if (host && typeof host === 'string' && HOST_RE.test(host.trim()) && host.trim().length <= 255) {
       updateData.host = host.trim();
     }
 

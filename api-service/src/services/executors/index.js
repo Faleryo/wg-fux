@@ -94,6 +94,20 @@ function evictIdle() {
   }
 }
 
+/**
+ * Ferme toutes les connexions SSH du pool, actives ou non. Appelé à l'arrêt du
+ * processus (SIGTERM/SIGINT) pour éviter de laisser des sockets ouverts qui
+ * ne se libèrent qu'au bout du timeout TCP.
+ */
+function closeAll() {
+  for (const [id, entry] of sshPool) {
+    if (entry.executor && typeof entry.executor._close === 'function') {
+      entry.executor._close();
+    }
+    sshPool.delete(id);
+  }
+}
+
 const _evictTimer = setInterval(evictIdle, EVICT_INTERVAL_MS);
 if (_evictTimer && typeof _evictTimer.unref === 'function') _evictTimer.unref();
 
@@ -102,5 +116,6 @@ module.exports = {
   getExecutorForServer,
   // Exposés pour les tests / outils (heartbeat, etc.)
   evictIdle,
+  closeAll,
   _sshPool: sshPool,
 };

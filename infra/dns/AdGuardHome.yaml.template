@@ -1,10 +1,13 @@
 bind_host: 127.0.0.1
 bind_port: 3000
-# ⚠️ Remplacer par un admin user configuré via setup.sh
-# L'absence d'admin laisse AGH ouvert — configurer AGH_USER/AGH_PASSWORD
+# ⚠️ AGH_USER / AGH_PASSWORD DOIVENT être définis avant tout déploiement — ce
+# template n'a AUCUNE valeur par défaut utilisable : un hash bcrypt "par défaut"
+# serait un mot de passe connu de quiconque lit ce fichier (donc une porte
+# grande ouverte sur l'interface DNS). Si ces variables sont absentes, le
+# rendu de ce template DOIT échouer plutôt que produire un identifiant valide.
 users:
-  - name: {{ .Env.AGH_USER | default "admin" }}
-    password: {{ .Env.AGH_PASSWORD | default "$2a$10$CHANGEME_IMMEDIATELY" }}
+  - name: {{ .Env.AGH_USER | required "AGH_USER must be set — no default allowed" }}
+    password: {{ .Env.AGH_PASSWORD | required "AGH_PASSWORD must be set — no default allowed" }}
 http:
   web_prefix: "/dns"
 dns:

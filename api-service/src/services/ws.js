@@ -262,6 +262,20 @@ class WebSocketService {
   shutdown() {
     clearInterval(this.wsInterval);
     clearInterval(this.broadcastInterval);
+    // wss.close() only stops accepting new connections — it does NOT terminate
+    // already-open client sockets, so their per-connection intervals and any
+    // spawned `tail` child processes would otherwise survive as orphans past
+    // process exit. Terminate every client first so their 'close' handlers
+    // (which clearInterval/kill the tail process) run before shutdown.
+    [this.wssLogs, this.wssStatus].forEach((wss) => {
+      wss.clients.forEach((ws) => {
+        try {
+          ws.terminate();
+        } catch (e) {
+          /* ignore */
+        }
+      });
+    });
     this.wssLogs.close();
     this.wssStatus.close();
   }

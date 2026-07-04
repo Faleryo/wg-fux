@@ -25,19 +25,13 @@ const clientSchema = z
       .optional(),
     quota: z
       .union([z.number(), z.string()])
-      .transform((v) => {
-        const n = parseInt(v, 10);
-        return isNaN(n) ? 0 : n;
-      })
-      .refine((n) => n >= 0, 'Quota doit être positif')
+      .transform((v) => parseInt(v, 10))
+      .refine((n) => Number.isInteger(n) && n >= 0, 'Quota doit être un entier positif')
       .optional(),
     uploadLimit: z
       .union([z.number(), z.string()])
-      .transform((v) => {
-        const n = parseInt(v, 10);
-        return isNaN(n) ? 0 : n;
-      })
-      .refine((n) => n >= 0, 'Limite doit être positive')
+      .transform((v) => parseInt(v, 10))
+      .refine((n) => Number.isInteger(n) && n >= 0, 'Limite doit être un entier positif')
       .optional(),
   })
   .strict();
@@ -48,19 +42,13 @@ const clientPatchSchema = z
     expiry: z.string().regex(dateRegex).or(z.literal('')).or(z.null()).optional(),
     quota: z
       .union([z.number(), z.string()])
-      .transform((v) => {
-        const n = parseInt(v, 10);
-        return isNaN(n) ? 0 : n;
-      })
-      .refine((n) => n >= 0, 'Quota doit être positif')
+      .transform((v) => parseInt(v, 10))
+      .refine((n) => Number.isInteger(n) && n >= 0, 'Quota doit être un entier positif')
       .optional(),
     uploadLimit: z
       .union([z.number(), z.string()])
-      .transform((v) => {
-        const n = parseInt(v, 10);
-        return isNaN(n) ? 0 : n;
-      })
-      .refine((n) => n >= 0, 'Limite doit être positive')
+      .transform((v) => parseInt(v, 10))
+      .refine((n) => Number.isInteger(n) && n >= 0, 'Limite doit être un entier positif')
       .optional(),
   })
   .strict();
@@ -85,11 +73,8 @@ const bulkUpdateSchema = z.object({
     expiry: z.string().regex(dateRegex).or(z.literal('')).or(z.null()).optional(),
     quota: z
       .union([z.number(), z.string()])
-      .transform((v) => {
-        const n = parseInt(v, 10);
-        return isNaN(n) ? 0 : n;
-      })
-      .refine((n) => n >= 0, 'Quota doit être positif')
+      .transform((v) => parseInt(v, 10))
+      .refine((n) => Number.isInteger(n) && n >= 0, 'Quota doit être un entier positif')
       .optional(),
   }),
 });
@@ -157,10 +142,9 @@ const systemConfigSchema = z.object({
     .union([z.number(), z.string(), z.boolean()])
     .transform((v) => {
       if (typeof v === 'boolean') return v ? 25 : 0;
-      const n = parseInt(v);
-      return isNaN(n) ? 0 : n;
+      return parseInt(v, 10);
     })
-    .refine((n) => n >= 0 && n <= 120, 'Keepalive doit être entre 0 et 120s')
+    .refine((n) => Number.isInteger(n) && n >= 0 && n <= 120, 'Keepalive doit être entre 0 et 120s')
     .optional(),
   wg_endpoint: z
     .string()

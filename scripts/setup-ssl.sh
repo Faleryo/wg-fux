@@ -74,6 +74,25 @@ if [ -z "$DOMAIN" ]; then
  exit 0
 fi
 
+# Validation stricte du format hostname (RFC 1952/1123) AVANT toute utilisation :
+# DOMAIN et EXTRA_DOMAINS finissent interpolés dans des sed (délimiteur `|`),
+# un grep -E ("$DOMAIN_RE"), ET dans une commande passée à `sh -c` côté conteneur
+# certbot (CERTBOT_CMD) — une valeur malformée (espaces, `;`, backticks, `|`)
+# casserait ces commandes ou, pire, s'exécuterait comme shell additionnel.
+HOSTNAME_RE='^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$'
+if ! [[ "$DOMAIN" =~ $HOSTNAME_RE ]]; then
+ log_error "DOMAIN invalide : '$DOMAIN' (attendu un nom d'hôte, ex: vpn.example.com)"
+ exit 1
+fi
+if [ -n "$EXTRA_DOMAINS" ]; then
+ for _d in ${EXTRA_DOMAINS//,/ }; do
+  if [ -n "$_d" ] && ! [[ "$_d" =~ $HOSTNAME_RE ]]; then
+   log_error "EXTRA_DOMAINS invalide : '$_d' (attendu un nom d'hôte, ex: vpn2.example.com)"
+   exit 1
+  fi
+ done
+fi
+
 log_info "[SSL v5.0] Lancement de la gestion SSL à deux phases..."
 log_info "Domaine cible : $DOMAIN"
 

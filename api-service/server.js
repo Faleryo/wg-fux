@@ -371,6 +371,7 @@ if (require.main === module) {
 const gracefulShutdown = async (signal) => {
   console.log(`\n⚠️ Received ${signal}. Shutting down gracefully...`);
   wsService.shutdown();
+  require('./src/services/executors').closeAll();
   server.close(() => {
     console.log('✅ HTTP server closed.');
     process.exit(0);

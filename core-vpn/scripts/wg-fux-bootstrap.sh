@@ -89,6 +89,15 @@ SERVER_IP=$(curl -fsSL --max-time 5 https://ifconfig.me/ip 2>/dev/null \
   || curl -fsSL --max-time 5 https://api4.ipify.org 2>/dev/null \
   || hostname -I | awk '{print $1}' \
   || echo "")
+SERVER_IP=$(printf '%s' "$SERVER_IP" | tr -d '[:space:]')
+
+# Validation stricte (IPv4/IPv6) avant interpolation JSON : une réponse
+# corrompue/MITM d'ifconfig.me/ipify contenant des guillemets casserait le
+# JSON et pourrait injecter des champs dans le payload envoyé à la plateforme.
+if ! [[ "$SERVER_IP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ || "$SERVER_IP" =~ ^[a-fA-F0-9:]+$ ]]; then
+  log "IP publique invalide/non détectée ('$SERVER_IP') — callback envoyé sans host."
+  SERVER_IP=""
+fi
 
 curl --proto '=https' --tlsv1.2 -fsSL -X POST \
   -H 'Content-Type: application/json' \
