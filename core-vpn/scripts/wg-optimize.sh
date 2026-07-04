@@ -103,6 +103,70 @@ tc_safe() {
  tc "$@" 2>/dev/null || true
 }
 
+# ============================================================
+# TUNING SYSTÈME COMMUN (CPU / mémoire / conntrack / limites)
+# Appliqué par les profils gaming ET streaming — tout est
+# best-effort et idempotent (VPS/conteneurs sans certains knobs).
+# ============================================================
+apply_common_system_tuning() {
+ log "⚙️ Tuning système commun (CPU / VM / conntrack / limites)…"
+
+ # --- CPU : governor performance -------------------------------------------
+ # Les VPS n'exposent pas toujours cpufreq ; quand il existe (dédiés, KVM
+ # avec cpufreq), 'performance' élimine les rampes de fréquence = jitter.
+ local gov_applied=0
+ for gov in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+  [ -w "$gov" ] || continue
+  echo performance > "$gov" 2>/dev/null && gov_applied=1
+ done
+ if [ "$gov_applied" = "1" ]; then
+  log "✓ CPU governor = performance (fréquence stable, jitter réduit)"
+ else
+  log "⚠ cpufreq non exposé (VPS) — governor inchangé"
+ fi
+
+ # Ordonnanceur : ne pas migrer les tâches réseau entre CPUs trop vite
+ # (cache locality pour le thread de chiffrement WireGuard).
+ apply_sysctl kernel.sched_migration_cost_ns 5000000
+ apply_sysctl kernel.timer_migration 0
+
+ # --- MÉMOIRE / VM : jamais de swap sur le chemin des paquets ---------------
+ # Un chiffrement ChaCha20 qui attend une page swappée = pic de latence.
+ apply_sysctl vm.swappiness 10
+ apply_sysctl vm.dirty_ratio 15
+ apply_sysctl vm.dirty_background_ratio 5
+ # min_free garde de la marge pour les allocations atomiques réseau (skb).
+ apply_sysctl vm.min_free_kbytes 32768
+
+ # --- CONNTRACK : le chemin NAT du tunnel -----------------------------------
+ # Chaque flux client (jeu, DNS, web) = 1 entrée conntrack. Table pleine =
+ # paquets DROPPÉS silencieusement. On dimensionne large et on raccourcit
+ # les timeouts UDP (les flux de jeu re-créent leur entrée sans douleur).
+ if [ -e /proc/sys/net/netfilter/nf_conntrack_max ]; then
+  apply_sysctl net.netfilter.nf_conntrack_max 262144
+  apply_sysctl net.netfilter.nf_conntrack_buckets 65536
+  apply_sysctl net.netfilter.nf_conntrack_udp_timeout 60
+  apply_sysctl net.netfilter.nf_conntrack_udp_timeout_stream 180
+  apply_sysctl net.netfilter.nf_conntrack_tcp_timeout_established 7440
+ else
+  log "⚠ conntrack non chargé — skip (pas de NAT actif ?)"
+ fi
+
+ # --- ROUTAGE TUNNEL --------------------------------------------------------
+ # rp_filter strict casse les retours asymétriques via le tunnel → loose.
+ apply_sysctl net.ipv4.conf.all.rp_filter 2
+ [ -e "/proc/sys/net/ipv4/conf/$INTERFACE/rp_filter" ] && \
+  apply_sysctl "net.ipv4.conf.$INTERFACE.rp_filter" 2
+ # PMTU discovery à travers le tunnel (évite la fragmentation silencieuse).
+ apply_sysctl net.ipv4.tcp_mtu_probing 1
+
+ # --- LIMITES SYSTÈME (grosses flottes de clients) --------------------------
+ apply_sysctl net.core.somaxconn 4096
+ apply_sysctl fs.file-max 1048576
+
+ log "⚙️ Tuning système commun appliqué"
+}
+
 if [ -z "${PROFILE:-}" ]; then
  echo "Usage: wg-optimize.sh [gaming|streaming|auto|restore|default]"
  exit 1
@@ -271,6 +335,11 @@ if [ "$PROFILE" = "gaming" ]; then
   fi
  fi
 
+ # ----------------------------------------------------------
+ # 10. Tuning système commun (CPU / VM / conntrack / limites)
+ # ----------------------------------------------------------
+ apply_common_system_tuning
+
  log "🎮 Gaming Profile DONE — Latence cible ≤20ms activée"
 
 # ============================================================
@@ -308,6 +377,8 @@ elif [ "$PROFILE" = "streaming" ]; then
  "diffserv4" \
  "nat overhead 80" \
  "10ms"
+
+ apply_common_system_tuning
 
  log "📺 Streaming Profile DONE"
 
@@ -357,6 +428,12 @@ elif [ "$PROFILE" = "restore" ] || [ "$PROFILE" = "default" ] || [ "$PROFILE" = 
  apply_sysctl net.ipv4.tcp_rmem "4096 87380 6291456"
  apply_sysctl net.ipv4.tcp_wmem "4096 16384 4194304"
  apply_sysctl net.ipv4.tcp_tw_reuse 0
+ # Défaits du tuning système commun
+ apply_sysctl vm.swappiness 60
+ apply_sysctl vm.dirty_ratio 20
+ apply_sysctl vm.dirty_background_ratio 10
+ apply_sysctl net.ipv4.conf.all.rp_filter 1
+ apply_sysctl kernel.timer_migration 1
 
  # Récupération du MTU cible depuis la config (ex: 1280 pour PUBG)
  # Si non défini, on repasse sur le standard 1420

@@ -45,10 +45,12 @@ const NavItems = ({
     { id: 'containers', icon: <Package size={20} />, label: t('containers') },
     {
       // Le comptoir du vendeur : abonnements, renouvellements payants, crédits.
+      // UNIQUEMENT sur une instance licenciée — sur la plateforme mère, le
+      // business passe par Réseau/Serveurs, pas par la vente au détail.
       id: 'sales',
       icon: <BadgeDollarSign size={20} />,
       label: 'Ventes',
-      hidden: !(isReseller || isAdmin || userRole === 'manager'),
+      hidden: !instanceLicensed || !(isReseller || isAdmin || userRole === 'manager'),
     },
     {
       id: 'network',

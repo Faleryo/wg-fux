@@ -48,11 +48,24 @@ TLS_PIN="$(env_get TLS_PINNED_PUBKEY)"
 LOCAL_VERSION=$(grep -m1 '"version"' "${INSTALL_DIR}/api-service/package.json" 2>/dev/null \
   | sed 's/.*: *"\([^"]*\)".*/\1/')
 
-# Marqueurs partagés avec l'API de l'instance (bind-mount api-service/data) :
+# Marqueurs partagés avec l'API de l'instance :
 #   update-pending.json  — écrit ICI (root) : { version, mode, applyAt? } → l'UI
 #                          de l'instance affiche le bandeau (Installer / heure).
 #   update-confirmed     — écrit par l'API quand l'opérateur clique Installer.
-DATA_DIR="${INSTALL_DIR}/api-service/data"
+# ⚠️ /app/data est un VOLUME DOCKER NOMMÉ (wg_fux_data), pas un bind-mount :
+# écrire dans ${INSTALL_DIR}/api-service/data ne servait à rien (le conteneur
+# ne le voit pas) et le dossier n'existait même pas (le script mourait en
+# boucle sur la redirection). On résout le vrai Mountpoint du volume.
+resolve_data_dir() {
+  local vol
+  vol=$(docker volume ls -q 2>/dev/null | grep 'wg_fux_data$' | head -1)
+  if [ -n "$vol" ]; then
+    docker volume inspect -f '{{.Mountpoint}}' "$vol" 2>/dev/null && return 0
+  fi
+  echo "${INSTALL_DIR}/api-service/data" # repli (vieilles installs bind-mount)
+}
+DATA_DIR="$(resolve_data_dir)"
+mkdir -p "$DATA_DIR" 2>/dev/null || true
 PENDING="${DATA_DIR}/update-pending.json"
 CONFIRMED="${DATA_DIR}/update-confirmed"
 
@@ -85,7 +98,8 @@ if [ "${WG_SELF_UPDATE_FORCE:-0}" != "1" ]; then
           log "Mise à jour v${OFFERED} confirmée par l'opérateur — installation."
         else
           if [ ! -f "$PENDING" ]; then
-            printf '{"version":"%s","mode":"instant","seenAt":%s}\n' "$OFFERED" "$(date +%s)" > "$PENDING"
+            printf '{"version":"%s","mode":"instant","seenAt":%s}\n' "$OFFERED" "$(date +%s)" > "$PENDING" 2>/dev/null \
+              || log "⚠ Impossible d'écrire ${PENDING} — bandeau UI indisponible."
             chmod 0644 "$PENDING" 2>/dev/null || true
             log "Mise à jour v${OFFERED} (mode instantané) en attente de confirmation de l'opérateur."
           fi
@@ -107,10 +121,16 @@ if [ "${WG_SELF_UPDATE_FORCE:-0}" != "1" ]; then
         else
           APPLY_AT=$(( $(date +%s) + 6 * 3600 ))
           printf '{"version":"%s","mode":"auto","seenAt":%s,"applyAt":%s}\n' \
-            "$OFFERED" "$(date +%s)" "$APPLY_AT" > "$PENDING"
+            "$OFFERED" "$(date +%s)" "$APPLY_AT" > "$PENDING" 2>/dev/null || true
           chmod 0644 "$PENDING" 2>/dev/null || true
-          log "Mise à jour v${OFFERED} (mode auto) programmée pour $(date -d "@${APPLY_AT}" '+%H:%M' 2>/dev/null || echo '+6h')."
-          exit 0
+          if [ ! -f "$PENDING" ]; then
+            # Marqueur inécrivable : sans lui, on reprogrammerait +6 h à chaque
+            # minute pour l'éternité → on applique tout de suite à la place.
+            log "⚠ Marqueur indisponible — application immédiate de v${OFFERED}."
+          else
+            log "Mise à jour v${OFFERED} (mode auto) programmée pour $(date -d "@${APPLY_AT}" '+%H:%M' 2>/dev/null || echo '+6h')."
+            exit 0
+          fi
         fi
       fi
       ;;

@@ -378,7 +378,7 @@ const MainLayout = ({ session, onLogout }) => {
       (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
       (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection)) ||
       ((activeSection === 'network' || activeSection === 'servers') && !(isAdmin || isReseller)) ||
-      (activeSection === 'sales' && !(isManager || isReseller));
+      (activeSection === 'sales' && (!instanceLicensed || !(isManager || isReseller)));
     if (forbidden) {
       setActiveSection('dashboard');
       addToast('Accès refusé — section réservée aux administrateurs', 'error');
@@ -453,7 +453,7 @@ const MainLayout = ({ session, onLogout }) => {
       (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
       (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection)) ||
       ((activeSection === 'network' || activeSection === 'servers') && !(isAdmin || isReseller)) ||
-      (activeSection === 'sales' && !(isManager || isReseller));
+      (activeSection === 'sales' && (!instanceLicensed || !(isManager || isReseller)));
     const section = forbidden ? 'dashboard' : activeSection;
     switch (section) {
       case 'dashboard':
