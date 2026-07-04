@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Package, Trash2, ChevronRight } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
@@ -83,7 +84,11 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
                     if (clients.length === 0) onDeleteContainer(name);
                   }}
                   disabled={clients.length > 0}
-                  title={clients.length > 0 ? `Supprimez d'abord les ${clients.length} peer(s)` : 'Supprimer le conteneur'}
+                  title={
+                    clients.length > 0
+                      ? `Supprimez d'abord les ${clients.length} peer(s)`
+                      : 'Supprimer le conteneur'
+                  }
                   className={cn(
                     'w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 border-white/5',
                     clients.length === 0
@@ -144,10 +149,14 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
                       'w-6 h-6 rounded-lg border-2 border-slate-950 flex items-center justify-center text-[8px] font-black text-white',
                       isOnlineClient(c) ? '' : 'bg-slate-800'
                     )}
-                    style={isOnlineClient(c) ? {
-                      backgroundColor: getHex(color, 500),
-                      boxShadow: `0 4px 12px ${getHex(color, 500)}33`,
-                    } : undefined}
+                    style={
+                      isOnlineClient(c)
+                        ? {
+                            backgroundColor: getHex(color, 500),
+                            boxShadow: `0 4px 12px ${getHex(color, 500)}33`,
+                          }
+                        : undefined
+                    }
                   >
                     {(c.name || '?').charAt(0)}
                   </div>
@@ -170,4 +179,6 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
   );
 };
 
-export default ContainerCard;
+// memo : avec beaucoup de conteneurs, le polling 5 s re-rendait toutes les
+// cartes à chaque tick même sans changement.
+export default memo(ContainerCard);

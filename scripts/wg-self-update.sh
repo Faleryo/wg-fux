@@ -47,6 +47,17 @@ TLS_PIN="$(env_get TLS_PINNED_PUBKEY)"
 # le pré-check ; une mère trop ancienne (404 sur la sonde) aussi.
 LOCAL_VERSION=$(grep -m1 '"version"' "${INSTALL_DIR}/api-service/package.json" 2>/dev/null \
   | sed 's/.*: *"\([^"]*\)".*/\1/')
+
+# Marqueurs partagés avec l'API de l'instance (bind-mount api-service/data) :
+#   update-pending.json  — écrit ICI (root) : { version, mode, applyAt? } → l'UI
+#                          de l'instance affiche le bandeau (Installer / heure).
+#   update-confirmed     — écrit par l'API quand l'opérateur clique Installer.
+DATA_DIR="${INSTALL_DIR}/api-service/data"
+PENDING="${DATA_DIR}/update-pending.json"
+CONFIRMED="${DATA_DIR}/update-confirmed"
+
+cleanup_markers() { rm -f "$PENDING" "$CONFIRMED" 2>/dev/null || true; }
+
 if [ "${WG_SELF_UPDATE_FORCE:-0}" != "1" ]; then
   CHECK_BODY="$(curl --proto '=https' --tlsv1.2 -sS \
     ${TLS_PIN:+--pinnedpubkey "$TLS_PIN"} \
@@ -56,8 +67,51 @@ if [ "${WG_SELF_UPDATE_FORCE:-0}" != "1" ]; then
     __CHECK_FAILED__|*'"error"'*'404'*) : ;; # sonde indisponible → chemin legacy complet
     *)
       OFFERED=$(printf '%s' "$CHECK_BODY" | grep -o '"offeredVersion":"[^"]*"' | cut -d'"' -f4)
+      MODE=$(printf '%s' "$CHECK_BODY" | grep -o '"mode":"[^"]*"' | cut -d'"' -f4)
       if [ -z "$OFFERED" ] || [ "$OFFERED" = "$LOCAL_VERSION" ]; then
-        exit 0 # rien d'approuvé pour cette instance (ou déjà à jour) — silence
+        cleanup_markers # offre retirée ou déjà à jour → plus rien en attente
+        exit 0
+      fi
+
+      # Un marqueur d'une AUTRE version est périmé (nouvelle release approuvée).
+      if [ -f "$PENDING" ] && ! grep -q "\"version\":\"${OFFERED}\"" "$PENDING"; then
+        cleanup_markers
+      fi
+
+      if [ "$MODE" = "instant" ]; then
+        # Instantané : on attend la CONFIRMATION de l'opérateur de l'instance
+        # (bouton « Installer maintenant » dans son UI) — puis on applique.
+        if [ -f "$CONFIRMED" ] && grep -q "$OFFERED" "$CONFIRMED"; then
+          log "Mise à jour v${OFFERED} confirmée par l'opérateur — installation."
+        else
+          if [ ! -f "$PENDING" ]; then
+            printf '{"version":"%s","mode":"instant","seenAt":%s}\n' "$OFFERED" "$(date +%s)" > "$PENDING"
+            chmod 0644 "$PENDING" 2>/dev/null || true
+            log "Mise à jour v${OFFERED} (mode instantané) en attente de confirmation de l'opérateur."
+          fi
+          exit 0
+        fi
+      else
+        # Auto (défaut) : programmée ~6 h après la première détection — laisse
+        # une fenêtre à l'opérateur, lisse la charge, zéro intervention.
+        if [ -f "$PENDING" ]; then
+          APPLY_AT=$(grep -o '"applyAt":[0-9]*' "$PENDING" | cut -d: -f2)
+          # Confirmation anticipée possible depuis l'UI, même en mode auto.
+          if [ -f "$CONFIRMED" ] && grep -q "$OFFERED" "$CONFIRMED"; then
+            log "Mise à jour v${OFFERED} avancée par l'opérateur — installation."
+          elif [ -n "$APPLY_AT" ] && [ "$(date +%s)" -ge "$APPLY_AT" ]; then
+            log "Mise à jour v${OFFERED} (mode auto) : échéance atteinte — installation."
+          else
+            exit 0
+          fi
+        else
+          APPLY_AT=$(( $(date +%s) + 6 * 3600 ))
+          printf '{"version":"%s","mode":"auto","seenAt":%s,"applyAt":%s}\n' \
+            "$OFFERED" "$(date +%s)" "$APPLY_AT" > "$PENDING"
+          chmod 0644 "$PENDING" 2>/dev/null || true
+          log "Mise à jour v${OFFERED} (mode auto) programmée pour $(date -d "@${APPLY_AT}" '+%H:%M' 2>/dev/null || echo '+6h')."
+          exit 0
+        fi
       fi
       ;;
   esac
@@ -127,6 +181,8 @@ log "Rebuild + redémarrage des services (peers ré-appliqués au PostUp)…"
 cd "$INSTALL_DIR"
 # setup.sh --update : rebuild api+ui puis up -d, sans toucher à la config.
 bash setup.sh --update || fail "Le rebuild a échoué — l'ancienne stack tourne toujours."
+
+cleanup_markers 2>/dev/null || true # plus rien en attente : bandeau UI retiré
 
 log "=== Mise à jour terminée avec succès ==="
 echo "✅ wg-fux à jour. Les clients WireGuard se reconnectent automatiquement."

@@ -124,6 +124,7 @@ const VersionBadge = ({ version, updateAvailable }) => {
 // approuvée ne voit JAMAIS la mise à jour (heartbeat muet + bundle 204).
 const PushUpdateModal = ({ servers, onClose, onApply, busy }) => {
   const [selected, setSelected] = useState(() => new Set());
+  const [mode, setMode] = useState('auto');
   const platformVersion = servers[0]?.platformVersion || '?';
   // Une instance pas encore installée (pending/provisioning) n'a rien à mettre à jour.
   const eligible = servers.filter((s) => !PENDING_STATES.has(s.status));
@@ -220,6 +221,47 @@ const PushUpdateModal = ({ servers, onClose, onApply, busy }) => {
           )}
         </div>
 
+        {/* Mode de déploiement */}
+        <div className="space-y-2">
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+            Mode de déploiement
+          </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <button
+              onClick={() => setMode('auto')}
+              className={cn(
+                'text-left px-4 py-3 rounded-xl border transition-colors',
+                mode === 'auto'
+                  ? 'border-indigo-500/50 bg-indigo-500/15'
+                  : 'border-white/10 bg-white/5 hover:bg-white/10'
+              )}
+            >
+              <span className="block text-xs font-black uppercase tracking-widest text-white">
+                Programmé (défaut)
+              </span>
+              <span className="block text-[10px] text-slate-400 mt-1">
+                Appliquée automatiquement sous ~6 h, sans intervention.
+              </span>
+            </button>
+            <button
+              onClick={() => setMode('instant')}
+              className={cn(
+                'text-left px-4 py-3 rounded-xl border transition-colors',
+                mode === 'instant'
+                  ? 'border-amber-500/50 bg-amber-500/15'
+                  : 'border-white/10 bg-white/5 hover:bg-white/10'
+              )}
+            >
+              <span className="block text-xs font-black uppercase tracking-widest text-white">
+                Instantané
+              </span>
+              <span className="block text-[10px] text-slate-400 mt-1">
+                L’instance la reçoit tout de suite — son opérateur confirme l’installation.
+              </span>
+            </button>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between pt-2 border-t border-white/5">
           <button
             disabled={busy || selected.size === 0}
@@ -239,7 +281,7 @@ const PushUpdateModal = ({ servers, onClose, onApply, busy }) => {
             </button>
             <button
               disabled={busy || selected.size === 0}
-              onClick={() => onApply({ serverIds: [...selected] })}
+              onClick={() => onApply({ serverIds: [...selected], mode })}
               className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[11px] font-black uppercase tracking-widest text-white transition-colors disabled:opacity-40"
             >
               Pousser la mise à jour ({selected.size})

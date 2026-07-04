@@ -201,11 +201,39 @@ class WebSocketService {
   }
 
   startBroadcast() {
+    // Détection de déconnexion QUASI-INSTANTANÉE : le seuil handshake de
+    // wg-stats.sh (180 s) est trop lent pour l'UI. Les clients ont
+    // PersistentKeepalive=15 → un peer connecté fait bouger ses compteurs rx
+    // au moins toutes les 15 s. On suit donc l'ACTIVITÉ réelle : un peer sans
+    // aucun octet reçu depuis ACTIVITY_WINDOW_MS est affiché hors-ligne
+    // (≤ ~40 s après la coupure, au lieu de 3 min).
+    const ACTIVITY_WINDOW_MS = 40 * 1000;
+    this._peerActivity = new Map(); // publicKey → { rx, lastChange }
     this.broadcastInterval = setInterval(async () => {
       if (this.wssStatus.clients.size === 0) return;
       try {
         const peers = await getWireGuardStats();
-        const onlinePeers = peers.filter((p) => p.isOnline).map((p) => p.publicKey);
+        const now = Date.now();
+        const seen = new Set();
+        const onlinePeers = [];
+        for (const p of peers) {
+          seen.add(p.publicKey);
+          const prev = this._peerActivity.get(p.publicKey);
+          const rx = Number(p.rx) || 0;
+          if (!prev || rx !== prev.rx) {
+            this._peerActivity.set(p.publicKey, { rx, lastChange: now });
+          }
+          const { lastChange } = this._peerActivity.get(p.publicKey);
+          // Online = seuil handshake classique ET activité récente.
+          // (1er passage après boot : lastChange=now → on suit le handshake.)
+          if (p.isOnline && now - lastChange < ACTIVITY_WINDOW_MS) {
+            onlinePeers.push(p.publicKey);
+          }
+        }
+        // Purge des peers disparus (clients supprimés) pour borner la Map.
+        for (const key of this._peerActivity.keys()) {
+          if (!seen.has(key)) this._peerActivity.delete(key);
+        }
         this.wssStatus.clients.forEach(
           (c) => c.readyState === 1 && c.send(JSON.stringify({ type: 'peer_status', onlinePeers }))
         );

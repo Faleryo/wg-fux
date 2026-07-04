@@ -39,7 +39,7 @@ const MapSvg = ({
       {/* Radar Sweeper */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200vmax] h-[200vmax] pointer-events-none flex items-center justify-center">
         <div
-          className='w-full h-full rounded-full bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,transparent_320deg,currentColor_360deg)] opacity-[0.07] animate-[spin_8s_linear_infinite]'
+          className="w-full h-full rounded-full bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,transparent_320deg,currentColor_360deg)] opacity-[0.07] animate-[spin_8s_linear_infinite]"
           style={{ color: COLOR_MAP[theme]?.[500] || '#6366f1' }}
         ></div>
       </div>

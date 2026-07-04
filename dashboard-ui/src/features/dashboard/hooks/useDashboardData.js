@@ -7,6 +7,10 @@ import { formatBytes } from '../../../lib/utils';
 const CACHE_KEY = 'wg-fux-cache';
 const CACHE_TTL = 30000; // 30s
 const POLL_INTERVAL = 5000;
+// Au-delà de ce nombre de clients, on espace le polling : re-render de toute
+// la grille toutes les 5 s = UI qui rame sur les grosses flottes.
+const POLL_INTERVAL_LARGE = 15000;
+const LARGE_FLEET_THRESHOLD = 150;
 const SENTINEL_INTERVAL = 15000;
 
 const HEAVY_SECTIONS = new Set(['dashboard', 'containers', 'topology']);
@@ -136,9 +140,13 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
           ? axiosInstance.get('/clients', { signal })
           : Promise.resolve({ data: clientsRef.current }),
         isManager
-          ? axiosInstance.get(`/system/stats?interface=${iface}`, { signal }).catch(() => ({ data: {} }))
+          ? axiosInstance
+              .get(`/system/stats?interface=${iface}`, { signal })
+              .catch(() => ({ data: {} }))
           : Promise.resolve({ data: {} }),
-        axiosInstance.get('/system/health', { signal }).catch(() => ({ data: { status: 'unhealthy' } })),
+        axiosInstance
+          .get('/system/health', { signal })
+          .catch(() => ({ data: { status: 'unhealthy' } })),
         axiosInstance.get('/ready', { signal }).catch(() => ({ data: { status: 'not ready' } })),
         needsHeavy
           ? axiosInstance.get('/clients/containers', { signal }).catch(() => ({ data: [] }))
@@ -170,7 +178,8 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
         const currentUp = Number(client.uploadBytes) || 0;
         const prevDown = prevClient ? Number(prevClient.downloadBytes) || 0 : 0;
         const prevUp = prevClient ? Number(prevClient.uploadBytes) || 0 : 0;
-        let downloadRate = 0, uploadRate = 0;
+        let downloadRate = 0,
+          uploadRate = 0;
         if (prevClient && timeDiff > 0) {
           downloadRate = Math.max(0, (currentDown - prevDown) / timeDiff);
           uploadRate = Math.max(0, (currentUp - prevUp) / timeDiff);
@@ -300,12 +309,26 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
     fetchSentinel();
     fetchAdguard();
 
-    const iMain = setInterval(fetchData, POLL_INTERVAL);
+    // Polling adaptatif : setTimeout récursif (pas setInterval) pour relire la
+    // taille de flotte à chaque tick — grosses flottes = cadence relâchée.
+    let mainTimer = null;
+    let stopped = false;
+    const scheduleNext = () => {
+      if (stopped) return;
+      const delay =
+        clientsRef.current.length > LARGE_FLEET_THRESHOLD ? POLL_INTERVAL_LARGE : POLL_INTERVAL;
+      mainTimer = setTimeout(async () => {
+        await fetchData();
+        scheduleNext();
+      }, delay);
+    };
+    scheduleNext();
     const iSent = setInterval(fetchSentinel, SENTINEL_INTERVAL);
     const iAdg = setInterval(fetchAdguard, SENTINEL_INTERVAL);
 
     return () => {
-      clearInterval(iMain);
+      stopped = true;
+      if (mainTimer) clearTimeout(mainTimer);
       clearInterval(iSent);
       clearInterval(iAdg);
       if (abortControllerRef.current) abortControllerRef.current.abort();

@@ -37,9 +37,11 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
           </p>
           {Icon && (
             <div
-              className='p-2.5 rounded-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-lg shadow-black/20'
+              className="p-2.5 rounded-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-lg shadow-black/20"
               style={{
-                backgroundColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '1a' : '#6366f11a',
+                backgroundColor: COLOR_MAP[theme]?.[500]
+                  ? COLOR_MAP[theme][500] + '1a'
+                  : '#6366f11a',
                 color: COLOR_MAP[theme]?.[400] || '#818cf8',
                 borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '1a' : '#6366f11a',
               }}
@@ -61,14 +63,14 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
             )}
           >
             <span
-              className='h-1.5 w-1.5 rounded-full animate-pulse'
+              className="h-1.5 w-1.5 rounded-full animate-pulse"
               style={{
                 backgroundColor: COLOR_MAP[theme]?.[500] || '#6366f1',
                 boxShadow: `0 0 8px ${COLOR_MAP[theme]?.[500] || '#6366f1'}`,
               }}
             ></span>
             <span
-              className='text-[10px] font-black uppercase tracking-widest opacity-60'
+              className="text-[10px] font-black uppercase tracking-widest opacity-60"
               style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
             >
               {sub}

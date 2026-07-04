@@ -157,7 +157,12 @@ router.get(
       .where(eq(schema.servers.id, resolved.server.id));
 
     const offeredVersion = await offeredVersionFor(resolved.server);
-    res.json({ offeredVersion });
+    res.json({
+      offeredVersion,
+      // 'instant' = à installer tout de suite (l'opérateur de l'instance
+      // confirme) ; 'auto' = le cron applique sous ~6 h sans intervention.
+      mode: resolved.server.updateMode === 'instant' ? 'instant' : 'auto',
+    });
   })
 );
 

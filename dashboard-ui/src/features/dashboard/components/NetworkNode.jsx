@@ -3,7 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 
-const NetworkNode = ({ client, index, total, centerX, centerY, radius, isDark, isMobile, selectedNodeId, nowSec, onNodeClick, getContainerColor }) => {
+const NetworkNode = ({
+  client,
+  index,
+  total,
+  centerX,
+  centerY,
+  radius,
+  isDark,
+  isMobile,
+  selectedNodeId,
+  nowSec,
+  onNodeClick,
+  getContainerColor,
+}) => {
   const angle = (index * (2 * Math.PI)) / total - Math.PI / 2;
   const x = centerX + radius * Math.cos(angle);
   const y = centerY + radius * Math.sin(angle);
@@ -25,9 +38,7 @@ const NetworkNode = ({ client, index, total, centerX, centerY, radius, isDark, i
           'backdrop-blur-md border-[3px] rounded-2xl flex items-center justify-center transition-all duration-500 group-hover/node:scale-125 shadow-2xl',
           isMobile ? 'w-10 h-10' : 'w-16 h-16',
           isOnline
-            ? cn(
-                isDark ? 'bg-slate-900/80' : 'bg-white/80'
-              )
+            ? cn(isDark ? 'bg-slate-900/80' : 'bg-white/80')
             : cn(
                 isDark
                   ? 'bg-slate-950/80 border-white/5 group-hover/node:bg-slate-900'
@@ -35,10 +46,18 @@ const NetworkNode = ({ client, index, total, centerX, centerY, radius, isDark, i
                 'group-hover/node:border-white/20'
               )
         )}
-        style={isOnline ? {
-          borderColor: COLOR_MAP[color.name]?.[500] ? COLOR_MAP[color.name][500] + '80' : '#6366f180',
-          backgroundColor: COLOR_MAP[color.name]?.[800] ? COLOR_MAP[color.name][800] + 'e6' : '#312e81e6',
-        } : undefined}
+        style={
+          isOnline
+            ? {
+                borderColor: COLOR_MAP[color.name]?.[500]
+                  ? COLOR_MAP[color.name][500] + '80'
+                  : '#6366f180',
+                backgroundColor: COLOR_MAP[color.name]?.[800]
+                  ? COLOR_MAP[color.name][800] + 'e6'
+                  : '#312e81e6',
+              }
+            : undefined
+        }
       >
         <Users
           size={isMobile ? 18 : 28}
@@ -95,8 +114,8 @@ const NetworkNode = ({ client, index, total, centerX, centerY, radius, isDark, i
                 {client.name}
               </span>
               <span
-              className='text-[9px] font-black uppercase tracking-widest'
-              style={{ color: COLOR_MAP[color.name]?.[400] || '#818cf8' }}
+                className="text-[9px] font-black uppercase tracking-widest"
+                style={{ color: COLOR_MAP[color.name]?.[400] || '#818cf8' }}
               >
                 {client.container}
               </span>
@@ -118,9 +137,7 @@ const NetworkNode = ({ client, index, total, centerX, centerY, radius, isDark, i
           <div className="space-y-3 font-mono text-[10px] text-slate-500">
             <div className="flex justify-between">
               <span>Tact IP</span>{' '}
-              <span className={isDark ? 'text-slate-100' : 'text-slate-900'}>
-                {client.ip}
-              </span>
+              <span className={isDark ? 'text-slate-100' : 'text-slate-900'}>{client.ip}</span>
             </div>
             <div className="flex justify-between">
               <span>Endpoint</span>{' '}
@@ -148,9 +165,7 @@ const NetworkNode = ({ client, index, total, centerX, centerY, radius, isDark, i
                 )}
               >
                 <span>Total usage</span>
-                <span className="text-amber-400 font-bold">
-                  {formatBytes(client.usageTotal)}
-                </span>
+                <span className="text-amber-400 font-bold">{formatBytes(client.usageTotal)}</span>
               </div>
             )}
             {client.lastHandshake > 0 && (

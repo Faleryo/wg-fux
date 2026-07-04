@@ -119,6 +119,9 @@ const servers = sqliteTable(
     // version courante de la plateforme (une release ultérieure invalide
     // l'approbation — l'admin ré-approuve depuis la modale Déployer).
     targetVersion: text('targetVersion'),
+    // Mode de déploiement de la maj approuvée : 'auto' (cron ~6 h) ou
+    // 'instant' (immédiat, confirmé par l'opérateur de l'instance).
+    updateMode: text('updateMode').default('auto'),
     createdAt: integer('createdAt', { mode: 'timestamp' }).default(
       sql`(cast(strftime('%s','now') as int))`
     ),

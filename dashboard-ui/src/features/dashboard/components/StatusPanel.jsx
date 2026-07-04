@@ -1,20 +1,35 @@
 import React, { useMemo } from 'react';
-import { Shield, ShieldCheck, Activity, Cpu, Zap, HardDrive } from 'lucide-react';
+import { Shield, ShieldCheck, Activity, Cpu, Zap, HardDrive, Users, Timer } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import { CircularProgress } from './StatCards';
 import GlassCard from '../../../components/ui/Card';
 
-const StatusPanel = ({
-  sentinel,
-  adguardStatus,
-  systemStats,
-  clients,
-}) => {
+// Agrégats métier (helper module : Date.now interdit dans le rendu React).
+const computeClientStats = (clients) => {
+  const now = Date.now();
+  const list = Array.isArray(clients) ? clients : [];
+  const online = list.filter((c) => c.isOnline).length;
+  const expSoon = list.filter((c) => {
+    if (!c.expiry) return false;
+    const d = (new Date(c.expiry).getTime() - now) / 86400000;
+    return d > 0 && d <= 7;
+  }).length;
+  const expired = list.filter((c) => c.expiry && new Date(c.expiry).getTime() <= now).length;
+  return { total: list.length, online, expSoon, expired };
+};
+
+const StatusPanel = ({ sentinel, adguardStatus, systemStats, clients, isManager = true }) => {
   const { theme, isDark } = useTheme();
   const cpu = systemStats?.cpu || 0;
   const ram = systemStats?.memory || 0;
   const disk = systemStats?.disk || 0;
+
+  // Vue NON-manager (revendeur/vendeur) : les widgets système (Sentinel,
+  // AdGuard, CPU/RAM/DISK) n'ont aucun sens pour lui — ses endpoints sont
+  // interdits (403) et affichaient des états rouges/0 % trompeurs. On lui
+  // montre SON activité : abonnés, en ligne, échéances.
+  const clientStats = useMemo(() => computeClientStats(clients), [clients]);
 
   const { topClient, topClientRate } = useMemo(() => {
     if (!clients || !Array.isArray(clients) || clients.length === 0) {
@@ -31,6 +46,87 @@ const StatusPanel = ({
     const rate = (top.downloadRate || 0) + (top.uploadRate || 0);
     return { topClient: top, topClientRate: rate };
   }, [clients]);
+
+  // Panneau métier du revendeur/vendeur : ses abonnés, pas la machine.
+  if (!isManager) {
+    const bizCards = [
+      { icon: Users, label: 'Abonnés', value: clientStats.total, color: 'text-sky-400' },
+      {
+        icon: Activity,
+        label: 'En ligne',
+        value: clientStats.online,
+        color: 'text-emerald-400',
+      },
+      {
+        icon: Timer,
+        label: 'Expirent ≤ 7 j',
+        value: clientStats.expSoon,
+        color: clientStats.expSoon > 0 ? 'text-amber-400' : 'text-slate-400',
+      },
+      {
+        icon: Shield,
+        label: 'Expirés',
+        value: clientStats.expired,
+        color: clientStats.expired > 0 ? 'text-red-400' : 'text-slate-400',
+      },
+    ];
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-2 gap-4">
+          {bizCards.map((c) => (
+            <GlassCard key={c.label} className="p-5" hover={false}>
+              <div className="flex items-center gap-2 mb-2 text-slate-500">
+                <c.icon size={14} />
+                <span className="text-[9px] font-black uppercase tracking-widest">{c.label}</span>
+              </div>
+              <div className={cn('text-3xl font-black font-mono', c.color)}>{c.value}</div>
+            </GlassCard>
+          ))}
+        </div>
+
+        <GlassCard
+          className={cn(
+            'p-5 md:p-6 flex items-center gap-4 group transition-all',
+            isDark
+              ? 'bg-gradient-to-br from-slate-900/60 to-indigo-900/20'
+              : 'bg-white/80 border-indigo-500/5 shadow-sm'
+          )}
+        >
+          <div
+            className={cn(
+              'p-3 rounded-2xl bg-white/5 shadow-2xl flex-shrink-0',
+              topClientRate > 0 ? '' : 'text-slate-600'
+            )}
+            style={topClientRate > 0 ? { color: COLOR_MAP[theme]?.[400] || '#818cf8' } : undefined}
+          >
+            <Activity
+              size={22}
+              className={topClientRate > 0 ? 'animate-[pulse_1s_infinite]' : ''}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+              Client le plus actif
+            </p>
+            <h4
+              className={cn(
+                'text-base md:text-lg font-black truncate italic tracking-tight',
+                isDark ? 'text-white' : 'text-slate-900'
+              )}
+            >
+              {topClient.name || 'Aucun'}
+            </h4>
+            <p
+              className="text-xs font-mono font-bold mt-0.5"
+              style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
+            >
+              {formatBytes(topClientRate)}/s
+            </p>
+          </div>
+        </GlassCard>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -144,12 +240,7 @@ const StatusPanel = ({
         <div className="flex justify-around items-center py-2">
           <CircularProgress label="CPU" value={cpu} color="text-indigo-500" icon={Cpu} />
           <CircularProgress label="RAM" value={ram} color="text-purple-500" icon={Zap} />
-          <CircularProgress
-            label="DISK"
-            value={disk}
-            color="text-emerald-500"
-            icon={HardDrive}
-          />
+          <CircularProgress label="DISK" value={disk} color="text-emerald-500" icon={HardDrive} />
         </div>
       </GlassCard>
 
@@ -168,10 +259,7 @@ const StatusPanel = ({
           )}
           style={topClientRate > 0 ? { color: COLOR_MAP[theme]?.[400] || '#818cf8' } : undefined}
         >
-          <Activity
-            size={22}
-            className={topClientRate > 0 ? 'animate-[pulse_1s_infinite]' : ''}
-          />
+          <Activity size={22} className={topClientRate > 0 ? 'animate-[pulse_1s_infinite]' : ''} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
@@ -185,7 +273,10 @@ const StatusPanel = ({
           >
             {topClient.name || 'Station Inactive'}
           </h4>
-          <p className='text-xs font-mono font-bold mt-0.5' style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}>
+          <p
+            className="text-xs font-mono font-bold mt-0.5"
+            style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
+          >
             {formatBytes(topClientRate)}/s Burst
           </p>
         </div>

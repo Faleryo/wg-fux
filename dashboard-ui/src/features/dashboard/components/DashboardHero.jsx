@@ -41,7 +41,7 @@ const DashboardHero = ({
           <div>
             <div className="flex items-center gap-3 mb-2">
               <Shield
-                className='fill-current opacity-80'
+                className="fill-current opacity-80"
                 size={28}
                 style={{ color: COLOR_MAP[theme]?.[500] || '#6366f1' }}
               />
@@ -90,18 +90,8 @@ const DashboardHero = ({
             icon={Users}
             delay={0}
           />
-          <StatBlock
-            label="MTU Tunnel"
-            value={config?.mtu || '1420'}
-            icon={Activity}
-            delay={0.1}
-          />
-          <StatBlock
-            label="Port Liaison"
-            value={config?.port || '51820'}
-            icon={Wifi}
-            delay={0.2}
-          />
+          <StatBlock label="MTU Tunnel" value={config?.mtu || '1420'} icon={Activity} delay={0.1} />
+          <StatBlock label="Port Liaison" value={config?.port || '51820'} icon={Wifi} delay={0.2} />
           <StatBlock
             label="Health Shield"
             value={health.status === 'healthy' ? 'Optimal' : 'Checking'}

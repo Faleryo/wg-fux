@@ -81,13 +81,14 @@ const DashboardSection = ({
             adguardStatus={adguardStatus}
             systemStats={systemStats}
             clients={clients}
+            isManager={isManager}
           />
         </motion.div>
       </div>
 
       {/* EdgeNodeHeatmap (interfaces) réservé aux managers : /system/interfaces */}
-      {isManager && (
-        loading && interfaces.length === 0 ? (
+      {isManager &&
+        (loading && interfaces.length === 0 ? (
           <motion.div variants={itemVariants}>
             <Skeleton className="h-36 rounded-[2rem]" />
           </motion.div>
@@ -97,28 +98,24 @@ const DashboardSection = ({
               <EdgeNodeHeatmap interfaces={interfaces} />
             </GlassCard>
           </motion.div>
-        ) : null
-      )}
+        ) : null)}
 
       <motion.div
         variants={itemVariants}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-12 gap-6 lg:gap-8"
       >
-        {/* LiveTelemetryChart appelle /system/traffic-history (manager+) */}
-        {isManager && (
-          <div className="md:col-span-2 lg:col-span-2 2xl:col-span-8">
-            <LiveTelemetryChart realtimeData={trafficData} />
-          </div>
-        )}
+        {/* Courbe de trafic temps réel pour TOUS les rôles ; l'onglet 24 h
+            (historique /system/traffic-history) est réservé aux managers. */}
+        <div className="md:col-span-2 lg:col-span-2 2xl:col-span-8">
+          <LiveTelemetryChart realtimeData={trafficData} isManager={isManager} />
+        </div>
 
         <motion.div
           variants={itemVariants}
           className="lg:col-span-1 2xl:col-span-4 flex flex-col gap-6"
         >
           <TrafficPieChart clients={clients} />
-          {isManager && (
-            <SpeedtestSection speedtest={speedtest} onRunSpeedtest={onRunSpeedtest} />
-          )}
+          {isManager && <SpeedtestSection speedtest={speedtest} onRunSpeedtest={onRunSpeedtest} />}
         </motion.div>
       </motion.div>
     </motion.div>

@@ -167,6 +167,42 @@ function isLicensed() {
   return Date.now() - ref < GRACE_MS;
 }
 
+// Marqueurs de déploiement partagés avec wg-self-update.sh (même dossier data) :
+// update-pending.json (écrit par le script root) / update-confirmed (écrit ici
+// quand l'opérateur clique « Installer maintenant »).
+const PENDING_PATH = path.join(path.dirname(STATE_PATH), 'update-pending.json');
+const CONFIRMED_PATH = path.join(path.dirname(STATE_PATH), 'update-confirmed');
+
+function pendingUpdate() {
+  try {
+    const p = JSON.parse(fs.readFileSync(PENDING_PATH, 'utf8'));
+    if (!p || !p.version) return null;
+    let confirmed = false;
+    try {
+      confirmed = fs.readFileSync(CONFIRMED_PATH, 'utf8').includes(p.version);
+    } catch {
+      /* pas encore confirmé */
+    }
+    return {
+      version: p.version,
+      mode: p.mode === 'instant' ? 'instant' : 'auto',
+      applyAt: Number.isInteger(p.applyAt) ? p.applyAt * 1000 : null, // → ms
+      confirmed,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Confirme l'installation de la maj en attente (opérateur de l'instance).
+// Le cron (1 min) la voit et lance wg-self-update. Renvoie la version, ou null.
+function confirmPendingUpdate() {
+  const p = pendingUpdate();
+  if (!p) return null;
+  fs.writeFileSync(CONFIRMED_PATH, p.version, { mode: 0o644 });
+  return p.version;
+}
+
 function licenseStatus() {
   const s = loadState();
   let currentVersion = '0.0.0';
@@ -192,6 +228,8 @@ function licenseStatus() {
     brand: s.brand || null,
     // Contact de paiement de la plateforme (renouvellement manuel sans Stripe).
     reseller: s.reseller || null,
+    // Déploiement gouverné : maj en attente sur CETTE instance (bandeau UI).
+    pendingUpdate: pendingUpdate(),
   };
 }
 
@@ -204,4 +242,12 @@ function clientLimit() {
   return Number.isInteger(s.maxClients) ? s.maxClients : null;
 }
 
-module.exports = { checkLicenseNow, isLicensed, licenseStatus, licenseEnabled, clientLimit };
+module.exports = {
+  checkLicenseNow,
+  isLicensed,
+  licenseStatus,
+  licenseEnabled,
+  clientLimit,
+  pendingUpdate,
+  confirmPendingUpdate,
+};

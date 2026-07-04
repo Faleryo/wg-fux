@@ -297,6 +297,14 @@ async function initializeDatabase() {
         sql: 'ALTER TABLE servers ADD COLUMN targetVersion TEXT',
         label: 'servers.targetVersion',
       },
+      // Phase 26 — mode de déploiement par instance : 'auto' (appliqué par le
+      // cron sous ~6 h) ou 'instant' (offert immédiatement, l'opérateur de
+      // l'instance confirme l'installation depuis son UI).
+      {
+        version: 26,
+        sql: "ALTER TABLE servers ADD COLUMN updateMode TEXT DEFAULT 'auto'",
+        label: 'servers.updateMode',
+      },
     ];
 
     for (const m of migrations) {
@@ -449,15 +457,47 @@ async function initializeDNS() {
   const DELAY_MS = Number(process.env.AGH_INIT_DELAY_MS) || 2000;
   const HTTP_TIMEOUT = 5000;
 
-  // /control/status returns 200 + JSON once configured, or 302 → install.html
-  // while the setup wizard is still pending. maxRedirects:0 lets us tell them apart.
-  const isInitialized = async () => {
+  // /control/status : 200 + JSON une fois configuré (avec Basic auth), 302 →
+  // install.html tant que l'assistant est en attente, 401/403 si configuré
+  // mais credentials refusés. AVANT, l'appel était fait SANS auth → un AdGuard
+  // configuré répondait 403 → interprété « pas prêt » → boucle infinie et
+  // filtrage DNS déclaré mort alors qu'il tournait.
+  // Renvoie : 'ready' | 'wizard' | 'auth_mismatch'.
+  const aghState = async () => {
     const res = await axios.get(`${AGH_BASE_URL}/control/status`, {
       maxRedirects: 0,
       timeout: HTTP_TIMEOUT,
-      validateStatus: (s) => s >= 200 && s < 400,
+      auth: { username, password: password || '' },
+      validateStatus: (s) => (s >= 200 && s < 400) || s === 401 || s === 403,
     });
-    return res.status === 200 && res.data !== null && typeof res.data === 'object';
+    if (res.status === 200 && res.data && typeof res.data === 'object') return 'ready';
+    if (res.status === 401 || res.status === 403) return 'auth_mismatch';
+    return 'wizard'; // 302 → assistant d'installation en attente
+  };
+
+  // Upstreams à faible latence : Google DNS (anycast, très rapide) + Cloudflare,
+  // interrogés en mode fastest_addr (AdGuard course les upstreams et sert la
+  // réponse la plus rapide) + cache optimiste → latence de résolution minimale
+  // pour le gaming. Poussé à chaque boot (idempotent).
+  const tuneDns = async () => {
+    try {
+      await axios.post(
+        `${AGH_BASE_URL}/control/dns_config`,
+        {
+          upstream_dns: ['8.8.8.8', '8.8.4.4', '1.1.1.1'],
+          bootstrap_dns: ['8.8.8.8', '1.1.1.1'],
+          upstream_mode: 'fastest_addr',
+          cache_size: 4194304,
+          cache_optimistic: true,
+        },
+        { auth: { username, password }, timeout: HTTP_TIMEOUT }
+      );
+      logger.info('dns', '🚀 Upstreams DNS optimisés (Google/Cloudflare, fastest_addr, cache).');
+    } catch (e) {
+      logger.warn('dns', 'Tuning des upstreams AdGuard échoué (non bloquant)', {
+        err: e.message,
+      });
+    }
   };
 
   const initAGH = async () => {
@@ -483,13 +523,28 @@ async function initializeDNS() {
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      if (await isInitialized()) {
+      const state = await aghState();
+      if (state === 'ready') {
         logger.info('dns', '✅ AdGuard Home is already initialized.');
+        await tuneDns();
+        return;
+      }
+      if (state === 'auth_mismatch') {
+        // Configuré, mais avec d'AUTRES credentials (ex. volume AdGuard ayant
+        // survécu à une réinstallation alors que .env a été regénéré). Inutile
+        // de boucler : rien ne changera tout seul.
+        logger.error(
+          'dns',
+          '❌ AdGuard est configuré mais refuse AGH_USER/AGH_PASSWORD (.env ≠ AdGuardHome.yaml). ' +
+            'Le filtrage DNS tourne mais l’API ne peut pas le piloter. ' +
+            'Réparation : bash scripts/wg-fix-adguard.sh (réinitialise la conf AdGuard avec les credentials du .env).'
+        );
         return;
       }
       logger.info('dns', `🚀 Initializing AdGuard Home (attempt ${attempt}/${MAX_ATTEMPTS})...`);
       await initAGH();
       logger.info('dns', '✅ AdGuard Home initialized successfully.');
+      await tuneDns();
       return;
     } catch (error) {
       const code = error.code || (error.response && error.response.status);

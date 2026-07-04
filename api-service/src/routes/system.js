@@ -50,6 +50,27 @@ router.get(
   })
 );
 
+// Confirme l'installation de la mise à jour en attente (déploiement gouverné,
+// mode instantané — ou avance une maj programmée). Le cron de l'hôte (1 min)
+// voit la confirmation et lance wg-self-update (coupure ~30-60 s).
+router.post(
+  '/update/confirm',
+  auth,
+  requireManager,
+  asyncWrap(async (req, res) => {
+    const { confirmPendingUpdate } = require('../services/license');
+    const version = confirmPendingUpdate();
+    if (!version) {
+      return res.status(404).json({ error: 'Aucune mise à jour en attente' });
+    }
+    log.info('system', 'Mise à jour confirmée par l’opérateur', {
+      version,
+      actor: req.user.username,
+    });
+    res.json({ success: true, version, appliesInSeconds: 60 });
+  })
+);
+
 router.get(
   '/adguard-status',
   auth,

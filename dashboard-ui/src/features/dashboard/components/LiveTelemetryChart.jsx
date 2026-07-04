@@ -18,7 +18,7 @@ import { cn } from '../../../lib/utils';
 // Defined outside the host component so React doesn't see "component creation
 // during render" (purity rule) and so the tooltip identity is stable across
 // re-renders.
-const CustomTooltip = ({ active, payload, label, isDark }) => {
+const CustomTooltip = ({ active, payload, label, isDark, unit }) => {
   if (!active || !payload || !payload.length) return null;
   return (
     <div
@@ -43,7 +43,7 @@ const CustomTooltip = ({ active, payload, label, isDark }) => {
           <span
             className={cn('text-sm font-black font-mono', isDark ? 'text-white' : 'text-slate-900')}
           >
-            {(payload[0]?.value ?? 0).toFixed(2)} MB
+            {(payload[0]?.value ?? 0).toFixed(2)} {unit}
           </span>
         </div>
         <div className="flex items-center justify-between gap-8">
@@ -53,7 +53,7 @@ const CustomTooltip = ({ active, payload, label, isDark }) => {
           <span
             className={cn('text-sm font-black font-mono', isDark ? 'text-white' : 'text-slate-900')}
           >
-            {(payload[1]?.value ?? 0).toFixed(2)} MB
+            {(payload[1]?.value ?? 0).toFixed(2)} {unit}
           </span>
         </div>
       </div>
@@ -61,13 +61,20 @@ const CustomTooltip = ({ active, payload, label, isDark }) => {
   );
 };
 
-export const LiveTelemetryChart = ({ realtimeData = [] }) => {
+export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
   const { isDark } = useTheme();
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  // 'live' (défaut, tous rôles) = débits instantanés Mbit/s issus du polling ;
+  // '24h' (managers) = volumes horaires depuis /system/traffic-history.
+  const [view, setView] = useState('live');
 
   useEffect(() => {
+    if (!isManager) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     const fetchHistory = async () => {
       try {
@@ -94,20 +101,21 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [isManager]);
 
-  // Prefer history when available, fall back to realtime polling
-  const data = historyData.length > 0
-    ? historyData
-    : realtimeData.map((d) => ({
+  const usingRealtime = view === 'live' || historyData.length === 0;
+  // Live : débits en Mbit/s (octets/s × 8 ÷ 1e6) — avant, les débits étaient
+  // affichés en « MB » (unité fausse) et masqués dès qu'un historique existait.
+  const data = usingRealtime
+    ? realtimeData.map((d) => ({
         name: d.time,
-        down: (d.download || 0) / (1024 * 1024),
-        up: (d.upload || 0) / (1024 * 1024),
-      }));
+        down: ((d.download || 0) * 8) / 1_000_000,
+        up: ((d.upload || 0) * 8) / 1_000_000,
+      }))
+    : historyData;
+  const unit = usingRealtime ? 'Mbit/s' : 'MB';
 
-  const usingRealtime = historyData.length === 0;
-
-  if (loading)
+  if (loading && isManager && view === '24h')
     return (
       <div
         className={cn(
@@ -148,7 +156,26 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
             <span className="h-2 w-2 rounded-full bg-indigo-500 animate-ping"></span>
           </h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Sélecteur Live / 24 h (l'historique 24 h est réservé aux managers) */}
+          {isManager && (
+            <div className="flex rounded-full border border-white/10 overflow-hidden mr-2">
+              {['live', '24h'].map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={cn(
+                    'px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors',
+                    view === v
+                      ? 'bg-indigo-500/30 text-white'
+                      : 'text-slate-500 hover:text-slate-300'
+                  )}
+                >
+                  {v === 'live' ? 'Live' : '24 h'}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full">
             <Download size={12} className="text-indigo-400" />
             <span
@@ -232,9 +259,11 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#475569', fontSize: 10, fontWeight: 900 }}
-                tickFormatter={(value) => `${value}MB`}
+                tickFormatter={(value) => `${Number(value).toFixed(1)} ${unit}`}
               />
-              <Tooltip content={<CustomTooltip isDark={isDark} />} />
+              <Tooltip content={<CustomTooltip isDark={isDark} unit={unit} />} />
+              {/* En live, l'animation recharts (2 s) rejouée à chaque point
+                  toutes les 5 s rendait la courbe saccadée et coûteuse. */}
               <Area
                 type="monotone"
                 dataKey="down"
@@ -242,8 +271,8 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
                 strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorDown)"
-                animationDuration={2000}
-                isAnimationActive={true}
+                animationDuration={800}
+                isAnimationActive={!usingRealtime}
               />
               <Area
                 type="monotone"
@@ -252,8 +281,8 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
                 strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorUp)"
-                animationDuration={2000}
-                isAnimationActive={true}
+                animationDuration={800}
+                isAnimationActive={!usingRealtime}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -269,7 +298,7 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
         <div className="flex items-center gap-3">
           <Activity size={18} className="text-indigo-500 animate-pulse" />
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            {usingRealtime ? 'Polling temps réel (5s)' : 'Historique 24h · SQLite'}
+            {usingRealtime ? 'Débits temps réel (5 s) · Mbit/s' : 'Historique 24 h · volumes MB'}
           </span>
         </div>
         <div
@@ -279,7 +308,12 @@ export const LiveTelemetryChart = ({ realtimeData = [] }) => {
           )}
         >
           <span className="text-[10px] font-black text-slate-400">SOURCE:</span>
-          <span className={cn('text-[10px] font-black tracking-widest', usingRealtime ? 'text-amber-400' : 'text-emerald-500')}>
+          <span
+            className={cn(
+              'text-[10px] font-black tracking-widest',
+              usingRealtime ? 'text-amber-400' : 'text-emerald-500'
+            )}
+          >
             {usingRealtime ? 'LIVE' : 'DB'}
           </span>
         </div>

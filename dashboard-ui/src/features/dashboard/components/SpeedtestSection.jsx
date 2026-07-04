@@ -30,7 +30,11 @@ const SpeedtestSection = ({ speedtest, onRunSpeedtest }) => {
 
       {speedtest?.loading ? (
         <div className="flex flex-col items-center justify-center py-4 gap-3">
-          <RefreshCw size={36} className='animate-spin' style={{ color: COLOR_MAP[theme]?.[600] || '#4f46e5' }} />
+          <RefreshCw
+            size={36}
+            className="animate-spin"
+            style={{ color: COLOR_MAP[theme]?.[600] || '#4f46e5' }}
+          />
           <p
             className={cn(
               'text-[10px] font-black animate-pulse uppercase tracking-[0.3em] transition-colors',

@@ -82,6 +82,7 @@ const TwoFABanner = ({ onNavigate }) => {
 // rien sur l'instance mère (licence désactivée).
 const LicenseBanner = ({ lic }) => {
   const [now] = useState(() => Date.now());
+  const [confirmState, setConfirmState] = useState(null); // null | 'busy' | 'done'
 
   // White-label : le nom de marque devient le titre de l'onglet.
   useEffect(() => {
@@ -94,7 +95,19 @@ const LicenseBanner = ({ lic }) => {
     : null;
   const expired = !lic.valid;
   const soon = !expired && daysLeft != null && daysLeft <= 7;
-  if (!expired && !soon && !lic.updateAvailable) return null;
+  const pending = lic.pendingUpdate || null;
+  if (!expired && !soon && !lic.updateAvailable && !pending) return null;
+
+  const confirmUpdate = async () => {
+    if (confirmState) return;
+    setConfirmState('busy');
+    try {
+      await axiosInstance.post('/system/update/confirm');
+      setConfirmState('done');
+    } catch {
+      setConfirmState(null);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 pt-4 space-y-2">
@@ -150,11 +163,36 @@ const LicenseBanner = ({ lic }) => {
             )}
         </div>
       )}
-      {lic.updateAvailable && !expired && (
+      {/* Déploiement gouverné : maj en attente sur cette instance */}
+      {pending && !expired && (
+        <div className="flex flex-col md:flex-row md:items-center gap-3 px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+          <p className="text-[10px] font-black uppercase tracking-wider flex-1">
+            {confirmState === 'done' || pending.confirmed
+              ? `Mise à jour v${pending.version} confirmée — installation dans ≤ 1 min (coupure ~30 s).`
+              : pending.mode === 'instant'
+                ? `Mise à jour v${pending.version} prête — votre confirmation est requise pour l'installer.`
+                : `Mise à jour v${pending.version} programmée${
+                    pending.applyAt
+                      ? ` vers ${new Date(pending.applyAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+                      : ''
+                  } — vous pouvez l'avancer.`}
+          </p>
+          {!(confirmState === 'done' || pending.confirmed) && (
+            <button
+              onClick={confirmUpdate}
+              disabled={confirmState === 'busy'}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[10px] font-black uppercase tracking-widest text-white transition-colors disabled:opacity-50 flex-shrink-0"
+            >
+              Installer maintenant
+            </button>
+          )}
+        </div>
+      )}
+      {lic.updateAvailable && !expired && !pending && (
         <div className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
           <p className="text-[10px] font-black uppercase tracking-wider">
-            Mise à jour disponible ({lic.currentVersion} → {lic.latestVersion}) — appliquée
-            automatiquement par le cron quotidien.
+            Mise à jour disponible ({lic.currentVersion} → {lic.latestVersion}) — en attente
+            d’approbation par la plateforme.
           </p>
         </div>
       )}

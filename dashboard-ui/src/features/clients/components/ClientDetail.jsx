@@ -45,9 +45,12 @@ const txtColorMap = {
 };
 
 const btnBgMap = {
-  indigo: 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:border-indigo-500/20 shadow-indigo-500/5',
-  amber: 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/20 shadow-amber-500/5',
-  emerald: 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/20 shadow-emerald-500/5',
+  indigo:
+    'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:border-indigo-500/20 shadow-indigo-500/5',
+  amber:
+    'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/20 shadow-amber-500/5',
+  emerald:
+    'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/20 shadow-emerald-500/5',
   cyan: 'bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 hover:border-cyan-500/20 shadow-cyan-500/5',
   rose: 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/20 shadow-rose-500/5',
 };
@@ -80,6 +83,18 @@ const INLINE_ICON_MAP = {
   Trash2: Trash2,
 };
 
+// Cache module des courbes Spectre Réseau (clé = publicKey, max 50 peers) :
+// la courbe d'un client persiste tant que l'onglet du navigateur est ouvert.
+const spectrumCache = new Map();
+const SPECTRUM_CACHE_MAX = 50;
+const spectrumCacheSet = spectrumCache.set.bind(spectrumCache);
+spectrumCache.set = (k, v) => {
+  if (!spectrumCache.has(k) && spectrumCache.size >= SPECTRUM_CACHE_MAX) {
+    spectrumCache.delete(spectrumCache.keys().next().value); // évince le plus ancien
+  }
+  return spectrumCacheSet(k, v);
+};
+
 const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) => {
   const { theme } = useTheme();
   const [history, setHistory] = useState([]);
@@ -89,8 +104,15 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
   const [loadingHistory72h, setLoadingHistory72h] = useState(false);
   const [viewMode, setViewMode] = useState('realtime');
 
-  // Initialize the traffic buffer when the client identity changes
+  // Initialise le buffer du Spectre Réseau — repris du CACHE module si ce
+  // client a déjà été observé : la courbe SURVIT aux remounts du composant et
+  // aux (re)connexions du peer (avant : réinitialisée à zéro à chaque événement).
   useEffect(() => {
+    const cached = spectrumCache.get(client.publicKey);
+    if (cached && cached.length > 0) {
+      setTrafficHistory60(cached);
+      return;
+    }
     const initial = Array.from({ length: 60 }, (_, i) => ({
       time: new Date(Date.now() - (60 - i) * 5000).toLocaleTimeString('fr-FR', {
         hour: '2-digit',
@@ -100,8 +122,9 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
       download: 0,
       upload: 0,
     }));
+    spectrumCache.set(client.publicKey, initial);
     setTrafficHistory60(initial);
-  }, [client.id || client.name]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [client.publicKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Append a new data point whenever the live rates change
   useEffect(() => {
@@ -111,14 +134,18 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
       minute: '2-digit',
       second: '2-digit',
     });
-    setTrafficHistory60((prev) => [
-      ...prev.slice(1),
-      {
-        time: now,
-        download: client.downloadRate || 0,
-        upload: client.uploadRate || 0,
-      },
-    ]);
+    setTrafficHistory60((prev) => {
+      const next = [
+        ...prev.slice(1),
+        {
+          time: now,
+          download: client.downloadRate || 0,
+          upload: client.uploadRate || 0,
+        },
+      ];
+      spectrumCache.set(client.publicKey, next);
+      return next;
+    });
   }, [client.downloadRate, client.uploadRate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load connection history
@@ -128,7 +155,9 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
     axiosInstance
       .get(`/clients/${client.container}/${client.name}/history`, { signal: controller.signal })
       .then((res) => setHistory(res.data))
-      .catch((err) => { if (err.name !== 'CanceledError') console.error(err); })
+      .catch((err) => {
+        if (err.name !== 'CanceledError') console.error(err);
+      })
       .finally(() => setLoadingHistory(false));
     return () => controller.abort();
   }, [client.id, client.container, client.name]);
@@ -139,7 +168,9 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
     const controller = new AbortController();
     setLoadingHistory72h(true);
     axiosInstance
-      .get(`/clients/${client.container}/${client.name}/history-hours`, { signal: controller.signal })
+      .get(`/clients/${client.container}/${client.name}/history-hours`, {
+        signal: controller.signal,
+      })
       .then((res) => {
         const data = res.data.map((h, i) => {
           const prev = res.data[i - 1] || h;
@@ -162,14 +193,15 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
     return () => controller.abort();
   }, [viewMode, client.id, client.container, client.name]);
 
-  const lastActivity = client.lastHandshake && client.lastHandshake > 0
-    ? new Date(client.lastHandshake * 1000).toLocaleString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : 'Jamais';
+  const lastActivity =
+    client.lastHandshake && client.lastHandshake > 0
+      ? new Date(client.lastHandshake * 1000).toLocaleString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : 'Jamais';
 
   return (
     <motion.div
@@ -265,7 +297,12 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                   {client.name}
                 </h2>
                 <div className="flex items-center gap-3">
-                  <span className={cn('text-sm font-mono font-bold', txtColorMap[theme] || 'text-indigo-400')}>
+                  <span
+                    className={cn(
+                      'text-sm font-mono font-bold',
+                      txtColorMap[theme] || 'text-indigo-400'
+                    )}
+                  >
                     {client.ip}
                   </span>
                   <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
@@ -305,7 +342,8 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                 onClick={btn.onClick}
                 className={cn(
                   'p-5 rounded-2xl transition-all duration-300 hover:scale-110 active:scale-95 shadow-xl border border-white/5',
-                  btnBgMap[btn.color] || 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:border-indigo-500/20 shadow-indigo-500/5'
+                  btnBgMap[btn.color] ||
+                    'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:border-indigo-500/20 shadow-indigo-500/5'
                 )}
                 title={btn.label}
               >
@@ -321,7 +359,8 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
         <div className="xl:col-span-2 bg-slate-950/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 shadow-2xl">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
             <h3 className="text-xl font-black text-white flex items-center gap-4 uppercase tracking-tighter">
-              <Activity size={24} className={cn(txtColorMap[theme] || 'text-indigo-400')} /> Spectre Réseau
+              <Activity size={24} className={cn(txtColorMap[theme] || 'text-indigo-400')} /> Spectre
+              Réseau
             </h3>
             <div className="flex bg-slate-900/60 p-2 rounded-2xl border border-white/5 shadow-inner">
               {[
@@ -334,7 +373,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                   className={cn(
                     'px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500',
                     viewMode === opt.id
-                      ? (toggleActiveMap[theme] || 'bg-indigo-600 text-white shadow-2xl')
+                      ? toggleActiveMap[theme] || 'bg-indigo-600 text-white shadow-2xl'
                       : 'text-slate-500 hover:text-white'
                   )}
                 >
@@ -442,7 +481,9 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                 </span>
               </div>
             ) : (
-              history.map((entry, i) => (
+              // 10 dernières entrées seulement : au-delà, la liste noyait la
+              // page (et l'historique complet reste requêtable côté API).
+              history.slice(0, 10).map((entry, i) => (
                 <div
                   key={i}
                   className="bg-white/5 p-4 rounded-2xl border border-white/5 hover:border-white/10 hover:bg-white/10 transition-all group"

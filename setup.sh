@@ -613,6 +613,11 @@ cmd_update() {
     # Les instances enrôlées AVANT l'auto-update (ou dont le cron a sauté)
     # doivent le récupérer à la première mise à jour — pas seulement à l'install.
     install_self_update_cron
+    # Tuning réseau gaming (BBR, fq, buffers UDP, busy_poll) : ré-appliqué à
+    # chaque mise à jour — avant, seul l'install initial en profitait, les
+    # améliorations du script ne touchaient jamais la flotte existante.
+    [ -x "$SCRIPT_DIR/core-vpn/scripts/wg-optimize.sh" ] && \
+        sudo bash "$SCRIPT_DIR/core-vpn/scripts/wg-optimize.sh" gaming || true
     print_done_banner
 }
 

@@ -207,6 +207,34 @@ describe('déploiement gouverné — push-update + heartbeat/bundle gatés', () 
     expect(res.statusCode).toBe(204);
   });
 
+  it('mode instant : persisté et renvoyé par update-check', async () => {
+    const srv = await mkServer(admin.id, { scriptsVersion: '1.0.0' });
+    const push = await as(admin)(
+      request(app)
+        .post('/api/servers/push-update')
+        .send({ serverIds: [srv.id], mode: 'instant' })
+    );
+    expect(push.body.mode).toBe('instant');
+
+    const check = await request(app)
+      .get('/license/update-check')
+      .set('Authorization', `Bearer ${srv.licenseKey}`);
+    expect(check.body.offeredVersion).toBe(PLATFORM_VERSION);
+    expect(check.body.mode).toBe('instant');
+
+    const list = await as(admin)(request(app).get('/api/servers'));
+    expect(list.body.find((s) => s.id === srv.id).updateMode).toBe('instant');
+  });
+
+  it('mode par défaut = auto', async () => {
+    const srv = await mkServer(admin.id);
+    await as(admin)(request(app).post('/api/servers/push-update').send({ serverIds: [srv.id] }));
+    const check = await request(app)
+      .get('/license/update-check')
+      .set('Authorization', `Bearer ${srv.licenseKey}`);
+    expect(check.body.mode).toBe('auto');
+  });
+
   it('clear:true annule le déploiement', async () => {
     const srv = await mkServer(admin.id);
     await as(admin)(

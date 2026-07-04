@@ -69,6 +69,7 @@ function publicServer(s, ownerUsername) {
     // plateforme pour cette instance ? (une approbation d'une release passée
     // est caduque et affichée comme absente)
     updateApproved: s.targetVersion === PLATFORM_VERSION,
+    updateMode: s.updateMode || 'auto',
     createdAt: s.createdAt,
     owner: ownerUsername || undefined,
   };
@@ -223,8 +224,11 @@ router.post(
     if (req.user.role !== 'admin') {
       return res.status(403).json(createError('Réservé à l’admin', null, 'FORBIDDEN'));
     }
-    const { serverIds, all, clear } = req.body || {};
+    const { serverIds, all, clear, mode } = req.body || {};
     const value = clear === true ? null : PLATFORM_VERSION;
+    // Mode de déploiement : 'auto' (défaut — le cron applique sous ~6 h) ou
+    // 'instant' (offert tout de suite, l'opérateur de l'instance confirme).
+    const updateMode = mode === 'instant' ? 'instant' : 'auto';
 
     let targetIds;
     if (all === true) {
@@ -244,7 +248,7 @@ router.post(
       const { inArray } = require('drizzle-orm');
       await db
         .update(schema.servers)
-        .set({ targetVersion: value })
+        .set({ targetVersion: value, ...(clear === true ? {} : { updateMode }) })
         .where(inArray(schema.servers.id, targetIds));
     }
 
@@ -253,7 +257,7 @@ router.post(
       action: clear === true ? 'cancel_update' : 'push_update',
       targetType: 'server',
       targetName: all === true ? 'flotte' : targetIds.join(','),
-      details: { version: value, count: targetIds.length },
+      details: { version: value, count: targetIds.length, mode: updateMode },
       ip: req.ip,
     });
 
@@ -262,6 +266,7 @@ router.post(
       version: value,
       count: targetIds.length,
       serverIds: targetIds,
+      mode: updateMode,
     });
   })
 );

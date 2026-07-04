@@ -167,7 +167,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
           )}
         >
           <div
-            className='p-3 rounded-2xl shadow-2xl animate-pulse text-white'
+            className="p-3 rounded-2xl shadow-2xl animate-pulse text-white"
             style={{ backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5' }}
           >
             <Activity size={24} />
@@ -182,7 +182,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
               Tactical Radar
             </h3>
             <p
-              className='text-[10px] font-black tracking-widest uppercase opacity-60'
+              className="text-[10px] font-black tracking-widest uppercase opacity-60"
               style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
             >
               Deep Space Network Monitoring
@@ -249,7 +249,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
             return (
               <div key={c} className="flex items-center gap-3">
                 <span
-                  className='w-2 h-2 rounded-full'
+                  className="w-2 h-2 rounded-full"
                   style={{
                     backgroundColor: COLOR_MAP[color.name]?.[500] || '#6366f1',
                     boxShadow: `0 0 8px ${COLOR_MAP[color.name]?.[500] || '#6366f1'}`,
