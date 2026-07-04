@@ -29,6 +29,7 @@ const REASON_LABEL = {
   transfer_in: 'Reçu',
   transfer_out: 'Envoyé',
   monthly: 'Débit mensuel',
+  client_renewal: 'Renouvellement client',
   license_renewal: 'Renouvellement licence',
   refund: 'Remboursement',
 };

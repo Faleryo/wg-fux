@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Home,
   Package,
+  BadgeDollarSign,
   Users,
   FileText,
   Activity,
@@ -42,6 +43,13 @@ const NavItems = ({
   const navItems = [
     { id: 'dashboard', icon: <Home size={20} />, label: t('dashboard') },
     { id: 'containers', icon: <Package size={20} />, label: t('containers') },
+    {
+      // Le comptoir du vendeur : abonnements, renouvellements payants, crédits.
+      id: 'sales',
+      icon: <BadgeDollarSign size={20} />,
+      label: 'Ventes',
+      hidden: !(isReseller || isAdmin || userRole === 'manager'),
+    },
     {
       id: 'network',
       icon: <Network size={20} />,

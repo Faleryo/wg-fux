@@ -63,6 +63,11 @@ vi.mock('../src/services/system', () => ({
     .mockResolvedValue([{ name: 'wg0', type: 'WireGuard', status: 'up', mtu: '1420' }]),
   formatBytes: vi.fn((b) => `${b} B`),
   getInterfacePath: vi.fn((i) => `/sys/class/net/${i}`),
+  getClientDir: vi.fn(
+    (container, name) =>
+      `${process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients'}/${container}/${name}`
+  ),
+  parseWireGuardDump: vi.fn(() => []),
   checkScripts: vi.fn().mockResolvedValue(true),
   isValidName: vi.fn(() => true),
   isValidExpiry: vi.fn(() => true),

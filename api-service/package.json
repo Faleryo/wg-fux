@@ -1,6 +1,6 @@
 {
   "name": "wg-fux-api",
-  "version": "3.5.1",
+  "version": "3.6.0",
   "description": "WireGuard Management API",
   "main": "server.js",
   "scripts": {

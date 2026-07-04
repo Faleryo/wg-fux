@@ -25,7 +25,7 @@ process.env.WG_CLIENTS_DIR = require('fs').mkdtempSync(
   require('path').join(require('os').tmpdir(), 'wg-clients-test-')
 );
 
-let app, db, schema, eq;
+let app, db, schema, eq, and;
 let admin, vendor, otherVendor; // { id, username, token }
 
 const sign = (username) =>
@@ -62,7 +62,7 @@ beforeAll(async () => {
   const { initializeDatabase } = require('../src/services/init');
   await initializeDatabase().catch(() => {});
   ({ db, schema } = require('../db'));
-  ({ eq } = require('drizzle-orm'));
+  ({ eq, and } = require('drizzle-orm'));
   ({ app } = require('../server'));
 
   admin = await mkUser('ws-admin', 'admin');
@@ -182,7 +182,9 @@ describe('déploiement gouverné — push-update + heartbeat/bundle gatés', () 
   it('push-update (admin) approuve la version plateforme → heartbeat + bundle 200', async () => {
     const srv = await mkServer(admin.id, { scriptsVersion: '1.0.0' });
     const push = await as(admin)(
-      request(app).post('/api/servers/push-update').send({ serverIds: [srv.id] })
+      request(app)
+        .post('/api/servers/push-update')
+        .send({ serverIds: [srv.id] })
     );
     expect(push.statusCode).toBe(200);
     expect(push.body.version).toBe(PLATFORM_VERSION);
@@ -207,9 +209,15 @@ describe('déploiement gouverné — push-update + heartbeat/bundle gatés', () 
 
   it('clear:true annule le déploiement', async () => {
     const srv = await mkServer(admin.id);
-    await as(admin)(request(app).post('/api/servers/push-update').send({ serverIds: [srv.id] }));
+    await as(admin)(
+      request(app)
+        .post('/api/servers/push-update')
+        .send({ serverIds: [srv.id] })
+    );
     const cancel = await as(admin)(
-      request(app).post('/api/servers/push-update').send({ serverIds: [srv.id], clear: true })
+      request(app)
+        .post('/api/servers/push-update')
+        .send({ serverIds: [srv.id], clear: true })
     );
     expect(cancel.statusCode).toBe(200);
     const hb = await request(app)
@@ -222,19 +230,115 @@ describe('déploiement gouverné — push-update + heartbeat/bundle gatés', () 
   it('réservé à l’admin : un revendeur → 403', async () => {
     const srv = await mkServer(vendor.id);
     const res = await as(vendor)(
-      request(app).post('/api/servers/push-update').send({ serverIds: [srv.id] })
+      request(app)
+        .post('/api/servers/push-update')
+        .send({ serverIds: [srv.id] })
     );
     expect(res.statusCode).toBe(403);
   });
 
   it("le canal 'hold' prime sur l'approbation", async () => {
     const srv = await mkServer(admin.id, { updateChannel: 'hold' });
-    await as(admin)(request(app).post('/api/servers/push-update').send({ serverIds: [srv.id] }));
+    await as(admin)(
+      request(app)
+        .post('/api/servers/push-update')
+        .send({ serverIds: [srv.id] })
+    );
     const hb = await request(app)
       .post('/license/heartbeat')
       .set('Authorization', `Bearer ${srv.licenseKey}`)
       .send({});
     expect(hb.body.latestVersion).toBeNull();
+  });
+});
+
+describe('POST /clients/:container/:name/renew — renouvellement payant', () => {
+  const wallet = () => require('../src/services/wallet');
+  const mkClient = async (container, name, owner, expiry = null) => {
+    await db
+      .insert(schema.containers)
+      .values({ name: container, owner, interface: 'wg0' })
+      .onConflictDoNothing();
+    // Dossier disque présent (client réel, pas un fantôme).
+    require('fs').mkdirSync(require('path').join(process.env.WG_CLIENTS_DIR, container, name), {
+      recursive: true,
+    });
+    const [c] = await db
+      .insert(schema.clients)
+      .values({
+        container,
+        name,
+        publicKey: 'renew-' + crypto.randomBytes(8).toString('hex'),
+        enabled: true,
+        expiry,
+      })
+      .returning();
+    return c;
+  };
+
+  // ⚠️ Environnement de test : writeFileAsRoot passe par sudo + wg-file-proxy,
+  // qui échoue hors root (les mocks de module ne s'appliquent pas aux require
+  // CJS dans cette suite). On teste donc la LOGIQUE MÉTIER : calcul d'échéance
+  // (helper pur), tarification/tenance, et l'invariant clé — un débit dont
+  // l'écriture disque échoue est REMBOURSÉ.
+  const { computeNewExpiry } = require('../src/routes/clients');
+
+  it("computeNewExpiry : +30 j depuis aujourd'hui quand pas d'échéance", () => {
+    const d = Math.round((new Date(computeNewExpiry(null, 30)) - Date.now()) / 86400_000);
+    expect(d).toBeGreaterThanOrEqual(29);
+    expect(d).toBeLessThanOrEqual(31);
+  });
+
+  it('computeNewExpiry : un renouvellement anticipé CUMULE, un tardif ne perd rien', () => {
+    const in10 = new Date(Date.now() + 10 * 86400_000).toISOString().slice(0, 10);
+    const early = Math.round((new Date(computeNewExpiry(in10, 30)) - Date.now()) / 86400_000);
+    expect(early).toBeGreaterThanOrEqual(39); // ~10 restants + 30
+
+    const past = '2020-01-01';
+    const late = Math.round((new Date(computeNewExpiry(past, 30)) - Date.now()) / 86400_000);
+    expect(late).toBeGreaterThanOrEqual(29); // base = maintenant, pas 2020
+  });
+
+  it("échec d'écriture disque → le crédit débité est REMBOURSÉ (solde intact)", async () => {
+    wallet().credit(vendor.id, 3, 'topup');
+    const before = wallet().getBalance(vendor.id);
+    await mkClient('sale-box', 'abo-1', vendor.username, null);
+
+    // Dans cet environnement, l'écriture root échoue toujours → 503 attendu,
+    // ET le portefeuille doit être re-crédité (débit + refund dans le ledger).
+    const res = await as(vendor)(
+      request(app).post('/api/clients/sale-box/abo-1/renew').send({ days: 30 })
+    );
+    expect(res.statusCode).toBe(503);
+    expect(wallet().getBalance(vendor.id)).toBe(before);
+    const { entries } = wallet().statement(vendor.id, 10);
+    expect(entries.some((e) => e.reason === 'client_renewal' && e.delta === -1)).toBe(true);
+    expect(entries.some((e) => e.reason === 'refund' && e.delta === 1)).toBe(true);
+  });
+
+  it('solde insuffisant → 402, expiry inchangée', async () => {
+    const broke = await mkUser('ws-broke', 'reseller');
+    await mkClient('broke-box', 'abo-3', broke.username, null);
+    const res = await as(broke)(
+      request(app).post('/api/clients/broke-box/abo-3/renew').send({ days: 90 })
+    );
+    expect(res.statusCode).toBe(402);
+    const [c] = await db
+      .select()
+      .from(schema.clients)
+      .where(and(eq(schema.clients.container, 'broke-box'), eq(schema.clients.name, 'abo-3')))
+      .limit(1);
+    expect(c.expiry).toBeNull();
+  });
+
+  it("conteneur d'autrui → 403 pour un vendeur (aucun débit)", async () => {
+    await mkClient('adm-box', 'abo-4', admin.username, null);
+    const before = wallet().getBalance(vendor.id);
+    const res = await as(vendor)(
+      request(app).post('/api/clients/adm-box/abo-4/renew').send({ days: 30 })
+    );
+    expect(res.statusCode).toBe(403);
+    expect(wallet().getBalance(vendor.id)).toBe(before);
   });
 });
 

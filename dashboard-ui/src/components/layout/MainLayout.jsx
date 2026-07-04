@@ -41,6 +41,7 @@ import UsersSection from '../../features/users/components/UsersSection';
 // They are only fetched the first time the user navigates to them.
 const ServersSection = lazy(() => import('../../features/servers/components/ServersSection'));
 const NetworkSection = lazy(() => import('../../features/network/components/NetworkSection'));
+const SalesSection = lazy(() => import('../../features/sales/components/SalesSection'));
 const LogsSection = lazy(() => import('../../features/monitoring/components/LogsSection'));
 const SettingsSection = lazy(() => import('../../features/settings/components/SettingsSection'));
 const OptimizationSection = lazy(
@@ -338,7 +339,8 @@ const MainLayout = ({ session, onLogout }) => {
     const forbidden =
       (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
       (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection)) ||
-      ((activeSection === 'network' || activeSection === 'servers') && !(isAdmin || isReseller));
+      ((activeSection === 'network' || activeSection === 'servers') && !(isAdmin || isReseller)) ||
+      (activeSection === 'sales' && !(isManager || isReseller));
     if (forbidden) {
       setActiveSection('dashboard');
       addToast('Accès refusé — section réservée aux administrateurs', 'error');
@@ -412,7 +414,8 @@ const MainLayout = ({ session, onLogout }) => {
     const forbidden =
       (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
       (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection)) ||
-      ((activeSection === 'network' || activeSection === 'servers') && !(isAdmin || isReseller));
+      ((activeSection === 'network' || activeSection === 'servers') && !(isAdmin || isReseller)) ||
+      (activeSection === 'sales' && !(isManager || isReseller));
     const section = forbidden ? 'dashboard' : activeSection;
     switch (section) {
       case 'dashboard':
@@ -501,6 +504,12 @@ const MainLayout = ({ session, onLogout }) => {
         return (
           <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}>
             <NetworkSection userRole={session?.role || ''} />
+          </Suspense>
+        );
+      case 'sales':
+        return (
+          <Suspense fallback={<div className="h-48 animate-pulse bg-white/5 rounded-3xl" />}>
+            <SalesSection userRole={session?.role || ''} />
           </Suspense>
         );
       case 'logs':

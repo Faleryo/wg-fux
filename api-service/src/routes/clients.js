@@ -852,6 +852,113 @@ router.patch(
   })
 );
 
+// Nouvelle échéance d'abonnement : un renouvellement tardif ne perd pas de
+// jours, un anticipé les cumule (même règle que les licences d'instance).
+// Format YYYY-MM-DD (celui de clients.expiry et du fichier `expiry`).
+function computeNewExpiry(currentExpiry, days) {
+  const currentMs = currentExpiry ? new Date(currentExpiry).getTime() : 0;
+  const base = Math.max(Date.now(), Number.isNaN(currentMs) ? 0 : currentMs);
+  return new Date(base + days * 86400_000).toISOString().slice(0, 10);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /:container/:name/renew — RENOUVELLEMENT PAYANT (le business du vendeur).
+//
+// Prolonge l'abonnement du client : nouvelle expiry = max(aujourd'hui, expiry
+// courante) + days. Un revendeur/vendeur PAIE en crédits de son portefeuille
+// (1 crédit par tranche de 30 jours entamée — le vendeur encaisse son client
+// final comme il veut, le système garantit qu'il a payé son fournisseur).
+// Admin/manager : gratuit (c'est leur instance). Ownership via router.param.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:container/:name/renew',
+  auth,
+  asyncWrap(async (req, res) => {
+    const { container, name } = req.params;
+    const days = parseInt(req.body?.days, 10);
+    if (!Number.isInteger(days) || days < 1 || days > 365) {
+      return res.status(400).json(createError('days : entier entre 1 et 365'));
+    }
+
+    const [client] = await db
+      .select()
+      .from(schema.clients)
+      .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
+      .limit(1);
+    if (!client) {
+      return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
+    }
+
+    // Tarif : 1 crédit / 30 jours entamés. Gratuit pour admin/manager.
+    const isPaying = req.user.role !== 'admin' && req.user.role !== 'manager';
+    const cost = Math.ceil(days / 30);
+    if (isPaying) {
+      const wallet = require('../services/wallet');
+      try {
+        wallet.debit(req.user.id, cost, 'client_renewal', {
+          ref: `client:${client.id}:${new Date().toISOString().slice(0, 10)}`,
+          priceCents: null,
+        });
+      } catch (err) {
+        if (/insuffisant/i.test(err.message || '')) {
+          return res
+            .status(402)
+            .json(
+              createError(
+                `Solde insuffisant : ${cost} crédit${cost > 1 ? 's' : ''} requis. Achetez des crédits auprès de votre fournisseur.`,
+                null,
+                'INSUFFICIENT_CREDITS'
+              )
+            );
+        }
+        throw err;
+      }
+    }
+
+    const newExpiry = computeNewExpiry(client.expiry, days);
+
+    const clientDir = getClientDir(container, name);
+    const executor = await resolveExecutor(req);
+    const { success } = await writeFileAsRoot(path.join(clientDir, 'expiry'), newExpiry, {
+      executor,
+    });
+    if (!success) {
+      // Écriture disque échouée → on rembourse le débit (pas de crédit perdu).
+      if (isPaying) {
+        require('../services/wallet').credit(req.user.id, cost, 'refund', {
+          ref: `client:${client.id}:refund`,
+        });
+      }
+      throw createError('Failed to write expiry flag', null, 'SYSTEM_ERROR');
+    }
+    await db
+      .update(schema.clients)
+      .set({ expiry: newExpiry })
+      .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)));
+
+    // L'enforcer ré-évalue tout de suite (réactive un client expiré/désactivé
+    // pour cause d'expiration — la coupure ne survit pas au paiement).
+    const { success: enfSuccess, error: enfError } = await runSystemCommand(
+      getScriptPath('wg-enforcer.sh'),
+      [],
+      null,
+      { executor }
+    );
+    if (!enfSuccess) log.error('clients', 'wg-enforcer failed after renew', { error: enfError });
+
+    await auditLog({
+      actor: req.user.username,
+      action: 'renew_client',
+      targetType: 'client',
+      targetName: `${container}/${name}`,
+      details: { days, cost: isPaying ? cost : 0, newExpiry },
+      ip: req.ip,
+    });
+
+    res.json({ success: true, expiry: newExpiry, cost: isPaying ? cost : 0 });
+  })
+);
+
 router.post(
   '/bulk-update',
   auth,
@@ -1283,9 +1390,7 @@ async function buildReconcileReport() {
   // 3. DB : clients des conteneurs LOCAUX (serverId NULL) — les conteneurs des
   // VPS distants ont leur propre instance, hors périmètre.
   const allContainers = await db.select().from(schema.containers);
-  const localNames = new Set(
-    allContainers.filter((c) => c.serverId == null).map((c) => c.name)
-  );
+  const localNames = new Set(allContainers.filter((c) => c.serverId == null).map((c) => c.name));
   const dbClients = (await db.select().from(schema.clients)).filter(
     (c) => localNames.has(c.container) || !allContainers.some((x) => x.name === c.container)
   );
@@ -1398,3 +1503,4 @@ router.post(
 );
 
 module.exports = router;
+module.exports.computeNewExpiry = computeNewExpiry;
