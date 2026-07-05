@@ -278,7 +278,20 @@ const MainLayout = ({ session, onLogout }) => {
   // ── Modal state for QR + create/edit (owned here; delete modal owned by useDeleteActions) ─
 
   // Serveur cible courant (Local / VPS). Pilote l'en-tête x-server-id et le re-fetch.
-  const { selectedServerId } = useSelectedServer();
+  const { selectedServerId, setSelectedServerId } = useSelectedServer();
+
+  // Le sélecteur de serveur est masqué sur une instance licenciée ET pour un
+  // revendeur (ils travaillent en local) → plus aucun composant pour nettoyer une
+  // sélection persistée (localStorage `wg-selected-server`). Une valeur morte (id
+  // d'un serveur inexistant ici) faisait envoyer un `x-server-id` que
+  // resolveServer rejetait en 403 « Serveur inaccessible » → création de conteneur
+  // impossible. On force donc le contexte LOCAL quand le sélecteur est masqué.
+  const serverSelectorHidden = instanceLicensed || isReseller;
+  useEffect(() => {
+    if (serverSelectorHidden && selectedServerId !== 'local') {
+      setSelectedServerId('local');
+    }
+  }, [serverSelectorHidden, selectedServerId, setSelectedServerId]);
 
   // ── All data comes from the dedicated hook ────────────────────────────────
   const {
