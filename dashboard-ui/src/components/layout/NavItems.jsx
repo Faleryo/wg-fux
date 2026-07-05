@@ -29,6 +29,7 @@ const NavItems = ({
   t,
   userRole,
   instanceLicensed,
+  needsOnboarding,
 }) => {
   const isAdmin = userRole === 'admin';
   // Un viewer (revendeur) n'a pas accès aux endpoints manager/admin : on masque
@@ -88,7 +89,9 @@ const NavItems = ({
   return (
     <nav className="flex-1 px-3 space-y-1.5 overflow-y-auto custom-scrollbar">
       {navItems
-        .filter((i) => !i.hidden)
+        // Un revendeur invité par lien n'a accès qu'à l'onglet Serveurs tant
+        // qu'il n'a pas enregistré son propre VPS (l'API refuse déjà le reste).
+        .filter((i) => (needsOnboarding ? i.id === 'servers' : !i.hidden))
         .map((item) => {
           const isActive = activeSection === item.id;
           return (

@@ -14,6 +14,7 @@ import {
   ArrowUpCircle,
   Timer,
   Wifi,
+  PowerOff,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
@@ -378,10 +379,19 @@ const UPDATE_CHANNELS = [
 ];
 const RenewModal = ({ server, onClose, onApply, busy }) => {
   const [maxClients, setMaxClients] = useState('');
+  const [customDays, setCustomDays] = useState('');
   useEffect(() => {
     setMaxClients(server?.maxClients != null ? String(server.maxClients) : '');
+    setCustomDays('');
   }, [server]);
   if (!server) return null;
+
+  const customDaysInt = Number(customDays);
+  const customDaysValid =
+    customDays.trim() !== '' &&
+    Number.isInteger(customDaysInt) &&
+    customDaysInt > 0 &&
+    customDaysInt <= 3650;
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="glass-panel border rounded-2xl shadow-2xl w-full max-w-md p-8 space-y-6">
@@ -412,6 +422,24 @@ const RenewModal = ({ server, onClose, onApply, busy }) => {
               {opt.label}
             </button>
           ))}
+        </div>
+
+        {/* Délai personnalisé : durée libre en jours (au-delà des 3 préréglages) */}
+        <div className="flex gap-3">
+          <input
+            value={customDays}
+            onChange={(e) => setCustomDays(e.target.value)}
+            inputMode="numeric"
+            placeholder="Délai personnalisé (jours)"
+            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-white/20"
+          />
+          <button
+            disabled={busy || !customDaysValid}
+            onClick={() => onApply({ extendDays: customDaysInt })}
+            className="px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-indigo-500/20 hover:border-indigo-500/40 text-[11px] font-black uppercase tracking-widest text-white transition-colors disabled:opacity-50"
+          >
+            Appliquer
+          </button>
         </div>
 
         {/* Palier : plafond de clients (appliqué par l'instance au heartbeat suivant) */}
@@ -483,6 +511,75 @@ const RenewModal = ({ server, onClose, onApply, busy }) => {
   );
 };
 
+// Modale de désinstallation à distance : action destructive et irréversible sur
+// le VPS lui-même (pas seulement l'enregistrement) — on exige de retaper le
+// label du serveur avant d'activer le bouton, comme pour un `terraform destroy`.
+const UninstallModal = ({ server, onClose, onConfirm, busy }) => {
+  const [typed, setTyped] = useState('');
+  useEffect(() => {
+    setTyped('');
+  }, [server]);
+  if (!server) return null;
+  const matches = typed === server.label;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="glass-panel border rounded-2xl shadow-2xl w-full max-w-md p-8 space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/20 flex items-center justify-center text-red-400">
+            <PowerOff size={20} />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight">
+              Désinstaller wg-fux
+            </h3>
+            <p className="text-[11px] font-mono text-slate-500">
+              {server.label} · {server.host}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/15">
+          <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-[11px] text-red-400 font-bold leading-relaxed">
+            Arrête et supprime les conteneurs, volumes (clients WireGuard inclus) et la
+            configuration sur le VPS lui-même. Irréversible.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+            Tapez « {server.label} » pour confirmer
+          </label>
+          <input
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-red-500/40"
+            autoFocus
+          />
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="flex-1 py-3 rounded-2xl text-xs font-black uppercase tracking-widest bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/5 transition-all disabled:opacity-50"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={busy || !matches}
+            className="flex-1 py-3 rounded-2xl text-white text-xs font-black uppercase tracking-widest bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {busy ? 'Désinstallation…' : 'Désinstaller définitivement'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ServersSection = ({ userRole = '' }) => {
   const { theme } = useTheme();
   const { addToast } = useToast();
@@ -499,6 +596,8 @@ const ServersSection = ({ userRole = '' }) => {
   const [renewTarget, setRenewTarget] = useState(null);
   const [renewing, setRenewing] = useState(false);
   const [oneLiner, setOneLiner] = useState(null); // { label, oneLiner }
+  const [uninstallTarget, setUninstallTarget] = useState(null);
+  const [uninstalling, setUninstalling] = useState(false);
   const [query, setQuery] = useState('');
   const [showPushModal, setShowPushModal] = useState(false);
   const [pushing, setPushing] = useState(false);
@@ -561,6 +660,21 @@ const ServersSection = ({ userRole = '' }) => {
       addToast(e?.response?.data?.error || 'Erreur lors de la suppression', 'error');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleUninstall = async () => {
+    if (!uninstallTarget || uninstalling) return;
+    setUninstalling(true);
+    try {
+      await axiosInstance.post(`/servers/${uninstallTarget.id}/uninstall`);
+      addToast('wg-fux désinstallé du VPS', 'success');
+      setUninstallTarget(null);
+      fetchServers();
+    } catch (e) {
+      addToast(e?.response?.data?.error || 'Erreur lors de la désinstallation', 'error');
+    } finally {
+      setUninstalling(false);
     }
   };
 
@@ -855,6 +969,14 @@ const ServersSection = ({ userRole = '' }) => {
                         <VibeButton
                           variant="danger"
                           size="sm"
+                          icon={PowerOff}
+                          className="p-2.5"
+                          title="Désinstaller wg-fux du VPS"
+                          onClick={() => setUninstallTarget(srv)}
+                        />
+                        <VibeButton
+                          variant="danger"
+                          size="sm"
                           icon={Trash2}
                           className="p-2.5"
                           title="Supprimer le serveur"
@@ -917,6 +1039,13 @@ const ServersSection = ({ userRole = '' }) => {
       />
 
       <OneLinerModal data={oneLiner} onClose={() => setOneLiner(null)} />
+
+      <UninstallModal
+        server={uninstallTarget}
+        busy={uninstalling}
+        onConfirm={handleUninstall}
+        onClose={() => setUninstallTarget(null)}
+      />
 
       {showPushModal && (
         <PushUpdateModal

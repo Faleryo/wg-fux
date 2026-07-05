@@ -18,7 +18,7 @@ ALLOWLIST=(
   wg-stats.sh wg-health.sh wg-file-proxy.sh
   wg-backup.sh wg-restore.sh wg-check-expiry.sh
   wg-apply-qos.sh wg-enforcer.sh
-  wg-init-server.sh
+  wg-init-server.sh wg-uninstall.sh
 )
 SAFE_ARG_RE="^[[:alnum:][:space:]._,:@+/=~!'()%&#-]*$"
 BIN_DIR='/usr/local/bin'

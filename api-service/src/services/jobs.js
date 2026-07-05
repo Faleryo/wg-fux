@@ -267,6 +267,11 @@ const logTrafficHistory = async () => {
 
     for (const peer of peers || []) {
       if (!peer.publicKey) continue;
+      // BUG-FIX: wg show dump lists every CONFIGURED peer, handshaked or not.
+      // Without this check, a peer that has never connected still got a
+      // 'snapshot' log entry every cycle, making the blackbox log show fake
+      // activity for peers that never actually handshaked.
+      if (!peer.lastHandshake || peer.lastHandshake <= 0) continue;
       await db
         .insert(schema.logs)
         .values({

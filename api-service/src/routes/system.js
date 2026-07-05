@@ -515,13 +515,29 @@ router.get(
 
     const history = await query.orderBy(desc(schema.logs.timestamp)).limit(limit).offset(offset);
     res.json(
-      history.map((h) => ({
-        time: h.timestamp,
-        username: h.name,
-        ip: h.realIp,
-        message: h.virtualIp,
-        status: h.status === 'success' ? 'SUCCESS' : 'FAILED',
-      }))
+      history.map((h) => {
+        // Traffic snapshots store the peer's public key in `name` — they are
+        // handshake activity, not login attempts, so they must not be forced
+        // into the SUCCESS/FAILED auth binary (that previously showed "FAILED"
+        // for every peer snapshot, since their status is 'captured' not 'success').
+        if (h.type === 'snapshot') {
+          return {
+            time: h.timestamp,
+            peer: h.name,
+            username: h.name,
+            ip: h.realIp,
+            message: `Handshake actif — ${h.name || 'peer inconnu'}`,
+            status: 'ONLINE',
+          };
+        }
+        return {
+          time: h.timestamp,
+          username: h.name,
+          ip: h.realIp,
+          message: h.virtualIp,
+          status: h.status === 'success' ? 'SUCCESS' : 'FAILED',
+        };
+      })
     );
   })
 );

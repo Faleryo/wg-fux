@@ -4,7 +4,7 @@ import { cn } from '../../../lib/utils';
 
 const getStatusStyle = (status, isDark) => {
   const s = (status || '').toUpperCase();
-  if (s === 'SUCCESS' || s === 'CONNECTED' || s === 'INFO')
+  if (s === 'SUCCESS' || s === 'CONNECTED' || s === 'INFO' || s === 'ONLINE')
     return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
   if (s === 'LIVE' || s === 'DEBUG')
     return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 animate-pulse';

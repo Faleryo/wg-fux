@@ -17,6 +17,7 @@ const {
   reprovisionServer,
   ServerConflictError,
 } = require('../services/serverProvision');
+const { getExecutorForServer } = require('../services/executors');
 const { asyncWrap, createError } = require('../utils/errors');
 
 // Validation de la création d'un serveur. `host` accepte IPv4/IPv6/hostname ;
@@ -204,6 +205,60 @@ router.delete(
       targetType: 'server',
       targetName: server.label,
       details: { serverId: server.id },
+      ip: req.ip,
+    });
+
+    res.json({ success: true });
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/servers/:id/uninstall — désinstalle wg-fux À DISTANCE sur le VPS
+// (SSH → wg-fux-uninstall.sh : arrêt des conteneurs/volumes, nettoyage système)
+// puis retire l'enregistrement. Action destructive et irréversible sur le VPS
+// du revendeur — la confirmation forte se fait côté UI avant cet appel.
+// Ownership : admin tout, revendeur seulement les siens.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:id/uninstall',
+  auth,
+  requireReseller,
+  asyncWrap(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json(createError('Identifiant de serveur invalide'));
+    }
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'manager';
+    const where = isAdmin
+      ? eq(schema.servers.id, id)
+      : and(eq(schema.servers.id, id), eq(schema.servers.ownerId, req.user.id));
+    const [server] = await db.select().from(schema.servers).where(where).limit(1);
+    if (!server) {
+      return res
+        .status(404)
+        .json(createError('Serveur introuvable ou non autorisé', null, 'NOT_FOUND'));
+    }
+
+    const executor = await getExecutorForServer(server.id);
+    const result = await executor.run('wg-uninstall.sh', []);
+    if (!result.success) {
+      return res.status(502).json(
+        createError(
+          `Désinstallation distante échouée : ${result.error || 'erreur inconnue'}`,
+          null,
+          'UNINSTALL_FAILED'
+        )
+      );
+    }
+
+    await db.delete(schema.servers).where(eq(schema.servers.id, server.id));
+
+    await auditLog({
+      actor: req.user.username,
+      action: 'uninstall_server',
+      targetType: 'server',
+      targetName: server.label,
+      details: { serverId: server.id, host: server.host },
       ip: req.ip,
     });
 

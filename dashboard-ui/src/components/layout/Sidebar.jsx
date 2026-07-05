@@ -16,6 +16,7 @@ const Sidebar = ({
   uptime,
   userRole,
   instanceLicensed,
+  needsOnboarding,
 }) => {
   const { theme, setTheme, mode, setMode } = useTheme();
   const isDark = mode === 'dark';
@@ -148,6 +149,7 @@ const Sidebar = ({
           t={t}
           userRole={userRole}
           instanceLicensed={instanceLicensed}
+          needsOnboarding={needsOnboarding}
         />
 
         <StatusWidget

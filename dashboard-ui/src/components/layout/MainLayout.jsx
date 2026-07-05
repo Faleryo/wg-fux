@@ -244,6 +244,24 @@ const MainLayout = ({ session, onLogout }) => {
   }, []);
   const instanceLicensed = Boolean(instanceLic?.enabled);
 
+  // Un revendeur invité par lien n'a accès qu'à l'onglet Serveurs tant qu'il n'a
+  // pas enregistré son propre VPS — le reste (conteneurs, logs, réseau…) n'a pas
+  // de sens avant ça, et l'API refuse déjà ces routes (403 ONBOARDING_REQUIRED).
+  const [hasServers, setHasServers] = useState(null); // null = pas encore su
+  useEffect(() => {
+    if (!isReseller) return;
+    let mounted = true;
+    axiosInstance
+      .get('/servers')
+      .then((res) => mounted && setHasServers(Array.isArray(res.data) && res.data.length > 0))
+      .catch(() => mounted && setHasServers(true)); // en cas d'erreur, ne pas bloquer à tort
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReseller]);
+  const needsOnboarding = isReseller && hasServers === false;
+
   // Modal states
   const [showQRModal, setShowQRModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -374,6 +392,11 @@ const MainLayout = ({ session, onLogout }) => {
 
   // Redirect + toast when a viewer navigates to a forbidden section
   useEffect(() => {
+    if (needsOnboarding && activeSection !== 'servers') {
+      setActiveSection('servers');
+      addToast('Ajoutez votre VPS pour accéder au reste de la plateforme', 'error');
+      return;
+    }
     const forbidden =
       (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
       (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection)) ||
@@ -383,7 +406,7 @@ const MainLayout = ({ session, onLogout }) => {
       setActiveSection('dashboard');
       addToast('Accès refusé — section réservée aux administrateurs', 'error');
     }
-  }, [activeSection, isManager, isAdmin, isReseller, instanceLicensed, addToast]);
+  }, [activeSection, isManager, isAdmin, isReseller, instanceLicensed, needsOnboarding, addToast]);
 
   const handleNavigate = (sectionId, opts = {}) => {
     setActiveSection(sectionId);
@@ -450,11 +473,12 @@ const MainLayout = ({ session, onLogout }) => {
     // droits (recherche globale, tab persisté en localStorage…) est renvoyé sur
     // son dashboard — sinon la section déclencherait des 403 en boucle.
     const forbidden =
+      (needsOnboarding && activeSection !== 'servers') ||
       (!isManager && MANAGER_ONLY_SECTIONS.has(activeSection)) ||
       (!isAdmin && ADMIN_ONLY_SECTIONS.has(activeSection)) ||
       ((activeSection === 'network' || activeSection === 'servers') && !(isAdmin || isReseller)) ||
       (activeSection === 'sales' && (!instanceLicensed || !(isManager || isReseller)));
-    const section = forbidden ? 'dashboard' : activeSection;
+    const section = forbidden ? (needsOnboarding ? 'servers' : 'dashboard') : activeSection;
     switch (section) {
       case 'dashboard':
         return (
@@ -610,8 +634,10 @@ const MainLayout = ({ session, onLogout }) => {
 
       <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
         {/* Sur une instance licenciée tout est local : le sélecteur de serveur
-            (concept plateforme mère) n'a pas de sens et sèmerait la confusion. */}
-        {!instanceLicensed && <ServerSelector />}
+            (concept plateforme mère) n'a pas de sens et sèmerait la confusion.
+            Un revendeur ne gère qu'un seul VPS (le sien) : le switch local/VPS
+            est un concept admin/manager (pilotage de plusieurs instances). */}
+        {!instanceLicensed && !isReseller && <ServerSelector />}
         <button
           onClick={() => setShowSearch(true)}
           className="hidden md:flex items-center gap-2 px-4 py-2.5 glass-panel border rounded-xl transition-all text-[11px] font-black uppercase tracking-widest shadow-lg hover:scale-105"
@@ -641,6 +667,7 @@ const MainLayout = ({ session, onLogout }) => {
           uptime={uptime}
           userRole={session?.role || ''}
           instanceLicensed={instanceLicensed}
+          needsOnboarding={needsOnboarding}
         />
       </ErrorBoundary>
 

@@ -36,10 +36,13 @@ const LogsSection = () => {
     setLoading(true);
     try {
       const endpoint =
-        activeTab === 'access' ? '/system/logs'
-        : activeTab === 'security' ? '/system/security-logs'
-        : activeTab === 'system' ? '/system/container-logs'
-        : '/system/logs';
+        activeTab === 'access'
+          ? '/system/logs'
+          : activeTab === 'security'
+            ? '/system/security-logs'
+            : activeTab === 'system'
+              ? '/system/container-logs'
+              : '/system/logs';
 
       const res = await axios.get(endpoint);
       const rawData = res.data || [];
@@ -102,7 +105,8 @@ const LogsSection = () => {
     doFetch();
 
     const connectWs = () => {
-      const type = activeTab === 'security' ? 'logs-wg' : activeTab === 'system' ? 'logs-system' : 'logs-api';
+      const type =
+        activeTab === 'security' ? 'logs-wg' : activeTab === 'system' ? 'logs-system' : 'logs-api';
       const wsUrl = getWsUri(type);
       if (!wsUrl) return;
 
@@ -218,13 +222,13 @@ const LogsSection = () => {
         )}
       >
         <div className="flex items-center gap-4 md:gap-6">
-            <div
-              className={cn(
-                'p-3 md:p-4 rounded-2xl shadow-2xl flex-shrink-0 transition-colors',
-                isDark ? 'bg-white/5' : 'bg-black/5'
-              )}
-              style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
-            >
+          <div
+            className={cn(
+              'p-3 md:p-4 rounded-2xl shadow-2xl flex-shrink-0 transition-colors',
+              isDark ? 'bg-white/5' : 'bg-black/5'
+            )}
+            style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
+          >
             <Terminal size={28} />
           </div>
           <div>

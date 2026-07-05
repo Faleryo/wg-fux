@@ -23,7 +23,7 @@ const { rateLimit } = require('express-rate-limit');
 const wsService = require('./src/services/ws');
 
 // Internal Imports
-const { auth, requireAdmin } = require('./src/middleware/auth');
+const { auth, requireAdmin, requireOnboardedReseller } = require('./src/middleware/auth');
 const { startJobs } = require('./src/services/jobs');
 const { checkScripts } = require('./src/services/system');
 const log = require('./src/services/logger');
@@ -155,18 +155,22 @@ app.use('/license', require('./src/routes/license'));
 app.use('/api/auth', authRoutes);
 
 // --- Protected Routes (Global Auth applied at mount point) ---
-app.use('/api/clients', auth, resolveServer, clientRoutes);
-app.use('/api/system', auth, systemRoutes);
+// requireOnboardedReseller : un revendeur invité par lien n'a de sens que pour
+// enregistrer son VPS (onglet Serveurs) tant qu'il n'en a aucun — voir
+// middleware/auth.js. N'affecte pas admin/manager/viewer, et /api/servers ainsi
+// que /api/settings restent volontairement hors de cette liste.
+app.use('/api/clients', auth, requireOnboardedReseller, resolveServer, clientRoutes);
+app.use('/api/system', auth, requireOnboardedReseller, systemRoutes);
 app.use('/api/users', auth, requireAdmin, userRoutes);
-app.use('/api/sentinel', auth, sentinelRoutes);
-app.use('/api/dns', auth, dnsRoutes); // individual dns routes carry their own requireAdmin/requireManager
+app.use('/api/sentinel', auth, requireOnboardedReseller, sentinelRoutes);
+app.use('/api/dns', auth, requireOnboardedReseller, dnsRoutes); // individual dns routes carry their own requireAdmin/requireManager
 app.use('/api/servers', auth, serverRoutes); // registre des VPS revendeurs (provisioning one-liner)
 app.use('/api/settings', auth, require('./src/routes/settings')); // réglages plateforme (Telegram, paiement, Stripe)
 // Réseau de distribution : crédits, hiérarchie revendeurs, marge.
-app.use('/api/wallet', auth, require('./src/routes/wallet'));
-app.use('/api/credits', auth, require('./src/routes/credits'));
-app.use('/api/resellers', auth, require('./src/routes/resellers'));
-app.use('/api/brand', auth, require('./src/routes/brand'));
+app.use('/api/wallet', auth, requireOnboardedReseller, require('./src/routes/wallet'));
+app.use('/api/credits', auth, requireOnboardedReseller, require('./src/routes/credits'));
+app.use('/api/resellers', auth, requireOnboardedReseller, require('./src/routes/resellers'));
+app.use('/api/brand', auth, requireOnboardedReseller, require('./src/routes/brand'));
 
 // ─── Debug Route (admin only) ─────────────────────────────────────────────────
 // GET /api/debug → rapport de santé complet

@@ -153,6 +153,36 @@ const requireReseller = (req, res, next) => {
   return res.status(403).json({ error: 'Forbidden' });
 };
 
+// Un revendeur enrôlé via lien d'invitation n'a de sens fonctionnel que pour
+// enregistrer SON VPS : tant qu'il n'en a aucun, on refuse le reste de l'API
+// (conteneurs, logs, réseau, portefeuille…) — pas seulement masqué côté UI,
+// sinon un appel direct à l'API contournerait la restriction.
+// N'affecte ni l'admin ni le manager (fondateurs de la plateforme).
+// GET /system/license reste accessible : le shell du dashboard l'appelle au
+// montage pour TOUT rôle (bandeau de licence de l'instance mère elle-même,
+// rien à voir avec le VPS du revendeur) — le bloquer casserait l'UI avant même
+// d'afficher l'onglet Serveurs.
+const ONBOARDING_EXEMPT_PATHS = ['/license'];
+
+const requireOnboardedReseller = async (req, res, next) => {
+  if (!req.user || req.user.role !== 'reseller') return next();
+  if (ONBOARDING_EXEMPT_PATHS.some((p) => req.path.startsWith(p))) return next();
+  try {
+    const [row] = await db
+      .select({ id: schema.servers.id })
+      .from(schema.servers)
+      .where(eq(schema.servers.ownerId, req.user.id))
+      .limit(1);
+    if (row) return next();
+  } catch (e) {
+    log.error('auth', 'requireOnboardedReseller check failed', { err: e.message });
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+  return res
+    .status(403)
+    .json({ error: 'Enregistrez votre VPS avant d’accéder à cette section', code: 'ONBOARDING_REQUIRED' });
+};
+
 const invalidateUserCache = (username) => {
   if (username) {
     userCache.delete(username);
@@ -167,6 +197,7 @@ module.exports = {
   requireManager,
   requireViewer,
   requireReseller,
+  requireOnboardedReseller,
   invalidateUserCache,
   blacklistToken,
 };
