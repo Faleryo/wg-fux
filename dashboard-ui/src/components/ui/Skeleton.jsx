@@ -16,7 +16,7 @@ export const SkeletonDashboard = () => (
     {/* Row 1 */}
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
       <div className="xl:col-span-8">
-        <div className="glass-card p-8 space-y-8 min-h-[320px] shadow-2xl">
+        <div className="glass-card p-8 space-y-6 min-h-[320px] shadow-2xl">
           <div className="flex justify-between items-start flex-wrap gap-4">
             <div className="space-y-3">
               <Skeleton className="h-10 w-56" />

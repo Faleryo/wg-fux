@@ -151,7 +151,7 @@ const InvitesPanel = () => {
               <tr>
                 <td
                   colSpan={5}
-                  className="px-6 py-6 text-center text-slate-500 text-xs tracking-widest"
+                  className="px-6 py-4 text-center text-slate-500 text-xs tracking-widest"
                 >
                   {loading ? 'Chargement…' : 'Aucune invitation'}
                 </td>

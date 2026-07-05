@@ -181,7 +181,7 @@ const SalesSection = ({ userRole = '' }) => {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
       {/* Header */}
       <GlassCard className="flex flex-col lg:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-6">

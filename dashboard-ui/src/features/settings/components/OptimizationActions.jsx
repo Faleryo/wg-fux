@@ -6,7 +6,7 @@ const OptimizationActions = ({ telemetry, isEnabled }) => {
   const { isDark } = useTheme();
 
   return (
-    <div className="xl:col-span-1 space-y-8">
+    <div className="xl:col-span-1 space-y-6">
       <div
         className={cn(
           'rounded-[2rem] border p-8 shadow-2xl relative overflow-hidden group transition-all',

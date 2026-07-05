@@ -325,7 +325,7 @@ const NetworkSection = ({ userRole }) => {
     'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/20 font-mono';
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
       {/* Header */}
       <GlassCard className="flex flex-col lg:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-6">

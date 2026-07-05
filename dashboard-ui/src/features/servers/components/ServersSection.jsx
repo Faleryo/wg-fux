@@ -881,7 +881,7 @@ const ServersSection = ({ userRole = '' }) => {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
       {/* Header */}
       <GlassCard className="flex flex-col lg:flex-row justify-between items-center gap-8">
         <div className="flex items-center gap-6">
@@ -1027,13 +1027,13 @@ const ServersSection = ({ userRole = '' }) => {
                   />
                 </th>
                 <th className="px-6 py-8">Serveur</th>
-                <th className="px-8 py-8">Adresse</th>
-                <th className="px-8 py-8">Statut</th>
-                <th className="px-8 py-8">Charge</th>
-                <th className="px-8 py-8">Version</th>
-                <th className="px-8 py-8">Licence</th>
-                <th className="px-8 py-8">Dernier contact</th>
-                <th className="px-10 py-8 text-right">Intervention</th>
+                <th className="px-6 py-4">Adresse</th>
+                <th className="px-6 py-4">Statut</th>
+                <th className="px-6 py-4">Charge</th>
+                <th className="px-6 py-4">Version</th>
+                <th className="px-6 py-4">Licence</th>
+                <th className="px-6 py-4">Dernier contact</th>
+                <th className="px-6 py-4 text-right">Intervention</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -1058,7 +1058,7 @@ const ServersSection = ({ userRole = '' }) => {
                         onChange={() => toggleSelect(srv.id)}
                       />
                     </td>
-                    <td className="px-6 py-6">
+                    <td className="px-6 py-4">
                       <button
                         type="button"
                         onClick={() => setDetailId(srv.id)}
@@ -1090,13 +1090,13 @@ const ServersSection = ({ userRole = '' }) => {
                         </div>
                       </button>
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-6 py-4">
                       <span className="text-xs font-mono text-slate-400">
                         {srv.host}
                         <span className="text-slate-600">:{srv.port ?? 22}</span>
                       </span>
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-6 py-4">
                       <div className="flex flex-col gap-1.5">
                         <StatusBadge status={srv.status} />
                         {srv.status === 'error' && srv.lastError && (
@@ -1110,7 +1110,7 @@ const ServersSection = ({ userRole = '' }) => {
                         )}
                       </div>
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-6 py-4">
                       {srv.cpuPct == null && srv.memPct == null && srv.diskPct == null ? (
                         <span className="text-[11px] font-mono text-slate-600">—</span>
                       ) : (
@@ -1147,7 +1147,7 @@ const ServersSection = ({ userRole = '' }) => {
                         </div>
                       )}
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">
                         <VersionBadge version={srv.version} updateAvailable={srv.updateAvailable} />
                         {srv.updateApproved && srv.updateAvailable && (
@@ -1157,7 +1157,7 @@ const ServersSection = ({ userRole = '' }) => {
                         )}
                       </div>
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">
                         <LicenseBadge expiry={srv.licenseExpiry} />
                         {typeof srv.clientCount === 'number' && (
@@ -1174,12 +1174,12 @@ const ServersSection = ({ userRole = '' }) => {
                         )}
                       </div>
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-6 py-4">
                       <span className="text-[11px] font-mono text-slate-500">
                         {relativeTime(srv.lastHeartbeat || srv.lastChecked)}
                       </span>
                     </td>
-                    <td className="px-6 py-6 text-right">
+                    <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform lg:translate-x-2 lg:group-hover:translate-x-0">
                         <VibeButton
                           variant="secondary"

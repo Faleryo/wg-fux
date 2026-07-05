@@ -11,7 +11,7 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
       initial={{ opacity: 0, x: 10 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -10 }}
-      className="space-y-8"
+      className="space-y-6"
     >
       <div className="flex items-center justify-between">
         <h3

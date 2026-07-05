@@ -12,7 +12,7 @@ const MaintenanceSettings = ({ handleBackup, isDark, theme }) => {
       exit={{ opacity: 0, x: -10 }}
       className="grid grid-cols-1 md:grid-cols-2 gap-10"
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         <h3
           className={cn(
             'text-xl font-black flex items-center gap-3 italic transition-colors',
@@ -35,7 +35,7 @@ const MaintenanceSettings = ({ handleBackup, isDark, theme }) => {
           </span>
         </button>
       </div>
-      <div className="space-y-8">
+      <div className="space-y-6">
         <h3
           className={cn(
             'text-xl font-black flex items-center gap-3 italic uppercase transition-colors',

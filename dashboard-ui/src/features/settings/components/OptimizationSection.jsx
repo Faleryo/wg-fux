@@ -140,7 +140,7 @@ const OptimizationSection = ({ systemStats }) => {
       <OptimizationSummary isEnabled={isEnabled} handleToggleSync={handleToggleSync} />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        <div className="xl:col-span-2 space-y-8">
+        <div className="xl:col-span-2 space-y-6">
           <div
             className={cn(
               'rounded-[2rem] border p-8 shadow-2xl h-80 relative overflow-hidden group transition-all',

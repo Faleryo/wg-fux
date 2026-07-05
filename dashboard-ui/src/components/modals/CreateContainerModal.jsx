@@ -38,7 +38,7 @@ const CreateContainerModal = ({ isOpen, onClose, onCreate }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Nouveau Conteneur" maxWidth="max-w-md">
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-6">
           <div>
             <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">

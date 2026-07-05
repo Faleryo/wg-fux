@@ -51,7 +51,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Éditer Peer`} maxWidth="max-w-lg">
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Peer Identity Card */}
         <div className="flex items-center gap-4 p-5 rounded-2xl border bg-white/5 border-white/10">
           <div

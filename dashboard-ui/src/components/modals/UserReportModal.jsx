@@ -84,7 +84,7 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
           />
         </div>
       ) : report ? (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* User role badge */}
           <div className="flex items-center gap-3">
             <div

@@ -37,7 +37,7 @@ const UsersSection = ({
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
       {/* Header Liquid Glass */}
       <GlassCard className="flex flex-col lg:flex-row justify-between items-center gap-8">
         <div className="flex items-center gap-6">
@@ -104,10 +104,10 @@ const UsersSection = ({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
-                <th className="px-10 py-8">Identité Opérateur</th>
-                <th className="px-8 py-8">Rôle Système</th>
-                <th className="px-8 py-8">Statut</th>
-                <th className="px-10 py-8 text-right">Intervention</th>
+                <th className="px-6 py-4">Identité Opérateur</th>
+                <th className="px-6 py-4">Rôle Système</th>
+                <th className="px-6 py-4">Statut</th>
+                <th className="px-6 py-4 text-right">Intervention</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -129,7 +129,7 @@ const UsersSection = ({
                       }
                     }}
                   >
-                    <td className="px-10 py-6">
+                    <td className="px-6 py-4">
                       {(() => {
                         const rc = ROLE_CONFIG[user.role] || ROLE_CONFIG.viewer;
                         const isElevated = user.role === 'admin' || user.role === 'manager';
@@ -170,7 +170,7 @@ const UsersSection = ({
                         );
                       })()}
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-6 py-4">
                       {(() => {
                         const rc = ROLE_CONFIG[user.role] || ROLE_CONFIG.viewer;
                         const accentColor =
@@ -201,7 +201,7 @@ const UsersSection = ({
                         );
                       })()}
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-6 py-4">
                       {(() => {
                         const isExpired = user.expiry && new Date(user.expiry) < new Date();
                         const isSuspended = user.enabled === false;
@@ -229,7 +229,7 @@ const UsersSection = ({
                         );
                       })()}
                     </td>
-                    <td className="px-6 py-6 text-right">
+                    <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform lg:translate-x-2 lg:group-hover:translate-x-0">
                         <VibeButton
                           variant="secondary"
