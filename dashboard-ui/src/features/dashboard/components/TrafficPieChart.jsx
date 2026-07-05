@@ -28,7 +28,7 @@ const TrafficPieChart = ({ clients }) => {
 
   return (
     <GlassCard className="p-6 group flex-1" hover={true}>
-      <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 flex items-center gap-3">
+      <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 flex items-center gap-3">
         <PieIcon size={13} style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }} /> Répartition
         Tactique
       </h3>
@@ -65,7 +65,7 @@ const TrafficPieChart = ({ clients }) => {
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-40 italic gap-3">
             <PieIcon size={28} />
-            <span className="text-[10px] font-black uppercase tracking-widest">
+            <span className="text-[11px] font-black uppercase tracking-widest">
               Aucun flux détecté
             </span>
           </div>

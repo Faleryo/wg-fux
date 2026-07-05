@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Key,
-  Shield,
-  Eye,
-  EyeOff,
-  RefreshCw,
-  Save,
-  Calendar,
-  Power,
-} from 'lucide-react';
+import { Key, Shield, Eye, EyeOff, RefreshCw, Save, Calendar, Power } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
@@ -102,17 +93,12 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
   if (!user) return null;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={`Éditer: ${user.username}`}
-      maxWidth="max-w-md"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title={`Éditer: ${user.username}`} maxWidth="max-w-md">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Identity Info (ReadOnly) */}
         <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4">
           <div
-            className='w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black'
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black"
             style={{ backgroundColor: COLOR_MAP[theme]?.[600] || '#6366f1' }}
           >
             {user.username.charAt(0).toUpperCase()}
@@ -121,7 +107,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
             <div className="text-xs font-black text-white uppercase tracking-tight">
               {user.username}
             </div>
-            <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest italic">
               Identité Verrouillée
             </div>
           </div>
@@ -129,7 +115,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
 
         {/* Role Selector */}
         <div>
-          <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest">
+          <label className="block text-[11px] font-black text-slate-500 mb-3 uppercase tracking-widest">
             Niveau d'Accès
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -146,7 +132,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
                 )}
               >
                 <Shield size={16} />
-                <div className="text-[9px] font-black uppercase tracking-tighter">{r.label}</div>
+                <div className="text-[11px] font-black uppercase tracking-tighter">{r.label}</div>
               </button>
             ))}
           </div>
@@ -154,12 +140,15 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
 
         {/* Expiry Date */}
         <div>
-          <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+          <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
             Date d'Expiration
             <span className="ml-2 text-emerald-500/60">Optionnel</span>
           </label>
           <div className="relative group">
-            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <Calendar
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+              size={18}
+            />
             <input
               type="date"
               value={expiry}
@@ -172,7 +161,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
             <button
               type="button"
               onClick={() => setExpiry('')}
-              className="mt-1 text-[9px] text-red-400/70 hover:text-red-400 uppercase tracking-widest"
+              className="mt-1 text-[11px] text-red-400/70 hover:text-red-400 uppercase tracking-widest"
             >
               Supprimer l'expiration
             </button>
@@ -181,7 +170,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
 
         {/* Account Status Toggle */}
         <div>
-          <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest">
+          <label className="block text-[11px] font-black text-slate-500 mb-3 uppercase tracking-widest">
             Statut du Compte
           </label>
           <button
@@ -198,18 +187,22 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
               <Power size={16} />
               {enabled ? 'Compte Actif' : 'Compte Suspendu'}
             </span>
-            <span className={cn(
-              'w-10 h-5 rounded-full relative transition-colors duration-300',
-              enabled ? 'bg-emerald-500' : 'bg-slate-700'
-            )}>
-              <span className={cn(
-                'absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-300',
-                enabled ? 'translate-x-5' : 'translate-x-0.5'
-              )} />
+            <span
+              className={cn(
+                'w-10 h-5 rounded-full relative transition-colors duration-300',
+                enabled ? 'bg-emerald-500' : 'bg-slate-700'
+              )}
+            >
+              <span
+                className={cn(
+                  'absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-300',
+                  enabled ? 'translate-x-5' : 'translate-x-0.5'
+                )}
+              />
             </span>
           </button>
           {!enabled && (
-            <p className="mt-2 text-[9px] text-orange-400/70 uppercase tracking-widest">
+            <p className="mt-2 text-[11px] text-orange-400/70 uppercase tracking-widest">
               L'utilisateur ne pourra plus se connecter jusqu'à réactivation.
             </p>
           )}
@@ -218,7 +211,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
         {/* Change Password (Optional) */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest">
               Nouveau Mot de Passe
             </label>
             <span className="text-[8px] font-bold text-emerald-500/60 uppercase">Optionnel</span>
@@ -261,7 +254,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
             type="button"
             onClick={handleReset2FA}
             disabled={resetting || saving}
-            className="w-full py-3 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-40"
+            className="w-full py-3 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-40"
           >
             <RefreshCw size={14} className={resetting ? 'animate-spin' : ''} />
             {resetting ? 'Réinitialisation...' : 'Réinitialiser 2FA (TOTP)'}
@@ -270,12 +263,12 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
 
         {/* Messages */}
         {error && (
-          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase">
+          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-black uppercase">
             {error}
           </div>
         )}
         {success && (
-          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase">
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-black uppercase">
             {success}
           </div>
         )}

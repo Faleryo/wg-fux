@@ -61,12 +61,12 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             {client?.name?.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-lg font-black text-white uppercase tracking-tight truncate">
+            <div className="text-lg font-black text-white tracking-tight truncate">
               {client?.name}
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span
-                className="text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest"
+                className="text-[11px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest"
                 style={{
                   backgroundColor: `${COLOR_MAP[color]?.[500] || '#6366f1'}20`,
                   color: COLOR_MAP[color]?.[400] || '#818cf8',
@@ -75,16 +75,20 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
               >
                 {client?.container}
               </span>
-              <span className="text-[10px] font-mono text-slate-500">{client?.ip}</span>
+              <span className="text-[11px] font-mono text-slate-500">{client?.ip}</span>
             </div>
           </div>
-          <Shield size={20} style={{ color: `${COLOR_MAP[color]?.[500] || '#6366f1'}80` }} className="flex-shrink-0" />
+          <Shield
+            size={20}
+            style={{ color: `${COLOR_MAP[color]?.[500] || '#6366f1'}80` }}
+            className="flex-shrink-0"
+          />
         </div>
 
         {/* Quota */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <Database size={14} /> Quota de Données
             </label>
             <div className="flex items-center gap-2">
@@ -98,7 +102,9 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
                 aria-label="Quota en GB"
               />
               <span className="text-xs font-black font-mono text-slate-500">GB</span>
-              {quota === 0 && <span className="text-[10px] text-slate-600 font-black">Illimité</span>}
+              {quota === 0 && (
+                <span className="text-[11px] text-slate-600 font-black">Illimité</span>
+              )}
             </div>
           </div>
           <input
@@ -111,7 +117,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             className="w-full accent-indigo-500"
             aria-label="Quota de données (curseur)"
           />
-          <div className="flex justify-between text-[9px] font-mono text-slate-600">
+          <div className="flex justify-between text-[11px] font-mono text-slate-600">
             <span>0 (illimité)</span>
             <span>50 GB</span>
             <span>100 GB</span>
@@ -122,7 +128,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
         {/* Upload Limit */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <Gauge size={14} /> Bande Passante Max
             </label>
             <div className="flex items-center gap-2">
@@ -136,7 +142,9 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
                 aria-label="Limite upload en Mbps"
               />
               <span className="text-xs font-black font-mono text-slate-500">Mbps</span>
-              {uploadLimit === 0 && <span className="text-[10px] text-slate-600 font-black">Illimité</span>}
+              {uploadLimit === 0 && (
+                <span className="text-[11px] text-slate-600 font-black">Illimité</span>
+              )}
             </div>
           </div>
           <input
@@ -149,7 +157,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             className="w-full accent-indigo-500"
             aria-label="Bande passante max (curseur)"
           />
-          <div className="flex justify-between text-[9px] font-mono text-slate-600">
+          <div className="flex justify-between text-[11px] font-mono text-slate-600">
             <span>0 (illimité)</span>
             <span>250 Mbps</span>
             <span>500 Mbps</span>
@@ -160,7 +168,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
         {/* Expiry */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <Clock size={14} /> Expiration
             </label>
             <label className="flex items-center gap-2 cursor-pointer group">
@@ -171,7 +179,10 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
                 aria-label={isUnlimited ? 'Durée illimitée activée' : 'Durée illimitée désactivée'}
                 onClick={() => setIsUnlimited(!isUnlimited)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsUnlimited(!isUnlimited); }
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setIsUnlimited(!isUnlimited);
+                  }
                 }}
                 className={cn(
                   'w-10 h-5 rounded-full transition-all relative border border-white/10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500',
@@ -185,7 +196,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
                   )}
                 />
               </div>
-              <span className="text-[10px] font-black uppercase text-slate-400 group-hover:text-white transition-colors">
+              <span className="text-[11px] font-black uppercase text-slate-400 group-hover:text-white transition-colors">
                 Illimité
               </span>
             </label>
@@ -224,8 +235,12 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
               backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
               boxShadow: `0 10px 20px -5px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}4D`,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[500] || '#6366f1'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[600] || '#4f46e5'; }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[500] || '#6366f1';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[600] || '#4f46e5';
+            }}
           >
             {loading ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
             Sauvegarder

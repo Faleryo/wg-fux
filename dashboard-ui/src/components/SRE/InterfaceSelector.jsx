@@ -23,7 +23,7 @@ const InterfaceSelector = ({ onSelect, current }) => {
 
   return (
     <div className="flex items-center gap-3 bg-slate-900/50 p-1.5 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-2">
+      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-2">
         Node
       </span>
       <div className="flex gap-1">

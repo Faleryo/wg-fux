@@ -88,10 +88,8 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
             return;
           }
           const date = new Date();
-          if (expiryDuration.unit === 'days')
-            date.setDate(date.getDate() + duration);
-          if (expiryDuration.unit === 'hours')
-            date.setHours(date.getHours() + duration);
+          if (expiryDuration.unit === 'days') date.setDate(date.getDate() + duration);
+          if (expiryDuration.unit === 'hours') date.setHours(date.getHours() + duration);
           expiry = date.toISOString().split('T')[0];
         }
 
@@ -124,7 +122,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
           {/* Basic Info */}
           <div className="space-y-6">
             <div>
-              <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">
+              <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">
                 Nom du Client
               </label>
               <div className="relative group">
@@ -144,7 +142,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
             </div>
 
             <div>
-              <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">
+              <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">
                 Groupe Tactique (Conteneur)
               </label>
               <div className="relative group">
@@ -178,7 +176,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
                   </select>
                 )}
               </div>
-              <p className="mt-2 text-[9px] text-slate-500 italic">
+              <p className="mt-2 text-[11px] text-slate-500 italic">
                 {targetContainer
                   ? 'Le client sera ajouté dans ce conteneur en cours.'
                   : 'Choisissez le conteneur de destination.'}
@@ -190,7 +188,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
           <div className="space-y-6">
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                   Validité temporelle
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer group">
@@ -198,12 +196,10 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
                     type="checkbox"
                     checked={isUnlimited}
                     onChange={(e) => setIsUnlimited(e.target.checked)}
-                    className={cn(
-                      'w-4 h-4 rounded border-white/10 bg-slate-950'
-                    )}
+                    className={cn('w-4 h-4 rounded border-white/10 bg-slate-950')}
                     style={{ accentColor: COLOR_MAP[theme]?.[500] || '#6366f1' }}
                   />
-                  <span className="text-[10px] font-black uppercase text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                  <span className="text-[11px] font-black uppercase text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                     Illimité
                   </span>
                 </label>
@@ -227,7 +223,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
                   <select
                     value={expiryDuration.unit}
                     onChange={(e) => setExpiryDuration({ ...expiryDuration, unit: e.target.value })}
-                    className="px-4 py-4 glass-input rounded-2xl font-bold uppercase tracking-widest text-[10px]"
+                    className="px-4 py-4 glass-input rounded-2xl font-bold uppercase tracking-widest text-[11px]"
                   >
                     <option value="days">Jours</option>
                     <option value="hours">Heures</option>
@@ -238,11 +234,11 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
 
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                   Quota de Données
                 </label>
                 <span
-                  className="text-[10px] font-black font-mono"
+                  className="text-[11px] font-black font-mono"
                   style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
                 >
                   {quota > 0 ? `${quota} GB` : '∞ GB'}
@@ -264,11 +260,11 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
 
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                   Bande passante
                 </label>
                 <span
-                  className="text-[10px] font-black font-mono"
+                  className="text-[11px] font-black font-mono"
                   style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
                 >
                   {uploadLimit > 0 ? `${uploadLimit} Mbps` : '∞ Mbps'}
@@ -307,8 +303,12 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
               backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
               boxShadow: `0 10px 20px -5px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}4D`,
             }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[500] || '#6366f1'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[600] || '#4f46e5'}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[500] || '#6366f1')
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[600] || '#4f46e5')
+            }
           >
             {loading ? (
               <RefreshCw className="animate-spin" size={18} />

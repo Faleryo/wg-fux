@@ -49,24 +49,27 @@ const AuditSection = () => {
       {/* Header */}
       <div
         className={cn(
-          'flex flex-col lg:flex-row justify-between items-center p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border shadow-2xl gap-8 transition-all',
-          isDark ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl' : 'bg-white border-black/5'
+          'flex flex-col lg:flex-row justify-between items-center p-6 md:p-8 rounded-[2rem] md:rounded-[2rem] border shadow-2xl gap-8 transition-all',
+          isDark ? 'bg-slate-900/40 border-white/5 backdrop-blur-xl' : 'bg-white border-black/5'
         )}
       >
         <div className="flex items-center gap-6">
-          <div className='p-5 rounded-[2rem] bg-white/5 shadow-2xl' style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}>
+          <div
+            className="p-5 rounded-[2rem] bg-white/5 shadow-2xl"
+            style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
+          >
             <ShieldCheck size={36} />
           </div>
           <div>
             <h2
               className={cn(
-                'text-4xl font-black tracking-tighter italic uppercase transition-colors',
+                'text-4xl font-black tracking-tighter italic transition-colors',
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >
               Audit de Sécurité
             </h2>
-            <p className="text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60">
+            <p className="text-slate-500 text-[11px] font-black tracking-[0.4em] uppercase opacity-60">
               System Security Analysis Protocol
             </p>
           </div>
@@ -98,9 +101,9 @@ const AuditSection = () => {
         {/* Main Score Board */}
         <div
           className={cn(
-            'xl:col-span-1 rounded-[3rem] border p-10 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center transition-all',
+            'xl:col-span-1 rounded-[2rem] border p-10 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center transition-all',
             isDark
-              ? 'bg-slate-900/40 border-white/10 backdrop-blur-3xl'
+              ? 'bg-slate-900/40 border-white/10 backdrop-blur-xl'
               : 'bg-white border-black/5 shadow-sm'
           )}
         >
@@ -143,20 +146,20 @@ const AuditSection = () => {
               >
                 {securityScore}%
               </span>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-2">
+              <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-2">
                 {securityScore > 80 ? 'Safe' : 'Watch'}
               </span>
             </div>
           </div>
           <h3
             className={cn(
-              'text-lg font-black uppercase tracking-tighter italic transition-colors',
+              'text-lg font-black tracking-tighter italic transition-colors',
               isDark ? 'text-white' : 'text-slate-900'
             )}
           >
             Indice d'Intégrité
           </h3>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-4 leading-loose">
+          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-4 leading-loose">
             Calcul basé sur l'état du noyau, du firewall et des protections logicielles.
           </p>
         </div>
@@ -165,9 +168,9 @@ const AuditSection = () => {
         <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
           <div
             className={cn(
-              'rounded-[3rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
+              'rounded-[2rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
               isDark
-                ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10'
+                ? 'bg-slate-900/40 border-white/5 backdrop-blur-xl hover:border-white/10'
                 : 'bg-white border-black/5 shadow-sm hover:border-indigo-500/20'
             )}
           >
@@ -184,16 +187,16 @@ const AuditSection = () => {
                 {loading ? (
                   <RefreshCw className="animate-spin text-slate-700" size={16} />
                 ) : data?.firewall ? (
-                  <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase rounded-lg">
+                  <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-black uppercase rounded-lg">
                     Actif
                   </div>
                 ) : (
-                  <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black uppercase rounded-lg">
+                  <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-black uppercase rounded-lg">
                     Critique
                   </div>
                 )}
               </div>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
+              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
                 Vérification de l'interface UFW et des règles de filtrage pré-configurées.
               </p>
             </div>
@@ -206,7 +209,7 @@ const AuditSection = () => {
               >
                 {data?.firewall ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
               </div>
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
                 {data?.firewall ? 'Protection Périphérique OK' : 'Vulnérabilité Réseau Possible'}
               </span>
             </div>
@@ -214,9 +217,9 @@ const AuditSection = () => {
 
           <div
             className={cn(
-              'rounded-[2.5rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
+              'rounded-[2rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
               isDark
-                ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10'
+                ? 'bg-slate-900/40 border-white/5 backdrop-blur-xl hover:border-white/10'
                 : 'bg-white border-black/5 shadow-sm hover:border-indigo-500/20'
             )}
           >
@@ -233,16 +236,16 @@ const AuditSection = () => {
                 {loading ? (
                   <RefreshCw className="animate-spin text-slate-700" size={16} />
                 ) : data?.ipForwarding ? (
-                  <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase rounded-lg">
+                  <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-black uppercase rounded-lg">
                     OK
                   </div>
                 ) : (
-                  <div className="px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-black uppercase rounded-lg">
+                  <div className="px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] font-black uppercase rounded-lg">
                     FAILED
                   </div>
                 )}
               </div>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
+              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
                 État de l'option sysctl net.ipv4.ip_forward nécessaire au transit vpn.
               </p>
             </div>
@@ -255,7 +258,7 @@ const AuditSection = () => {
               >
                 {data?.ipForwarding ? <CheckCircle2 size={18} /> : <X size={18} />}
               </div>
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
                 {data?.ipForwarding ? 'Transit de Données Actif' : 'Interruption Flux Tunnel'}
               </span>
             </div>
@@ -263,9 +266,9 @@ const AuditSection = () => {
 
           <div
             className={cn(
-              'rounded-[2.5rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
+              'rounded-[2rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
               isDark
-                ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10'
+                ? 'bg-slate-900/40 border-white/5 backdrop-blur-xl hover:border-white/10'
                 : 'bg-white border-black/5 shadow-sm hover:border-indigo-500/20'
             )}
           >
@@ -282,16 +285,16 @@ const AuditSection = () => {
                 {loading ? (
                   <RefreshCw className="animate-spin text-slate-700" size={16} />
                 ) : data?.fail2ban ? (
-                  <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase rounded-lg">
+                  <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-black uppercase rounded-lg">
                     Online
                   </div>
                 ) : (
-                  <div className="px-3 py-1 bg-slate-800 border border-white/5 text-slate-500 text-[9px] font-black uppercase rounded-lg">
+                  <div className="px-3 py-1 bg-slate-800 border border-white/5 text-slate-500 text-[11px] font-black uppercase rounded-lg">
                     N/A
                   </div>
                 )}
               </div>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
+              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
                 Surveillance des tentatives de brute-force SSH et des bannissements IP.
               </p>
             </div>
@@ -304,7 +307,7 @@ const AuditSection = () => {
               >
                 {data?.fail2ban ? <ShieldCheck size={18} /> : <AlertTriangle size={18} />}
               </div>
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
                 {data?.fail2ban ? 'Defense Brute-Force OK' : 'Vulnérabilité SSH Détectée'}
               </span>
             </div>
@@ -312,9 +315,9 @@ const AuditSection = () => {
 
           <div
             className={cn(
-              'rounded-[2.5rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
+              'rounded-[2rem] border p-8 shadow-2xl relative group transition-all flex flex-col justify-between',
               isDark
-                ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl hover:border-white/10'
+                ? 'bg-slate-900/40 border-white/5 backdrop-blur-xl hover:border-white/10'
                 : 'bg-white border-black/5 shadow-sm hover:border-indigo-500/20'
             )}
           >
@@ -337,7 +340,7 @@ const AuditSection = () => {
                   {data?.disk || '0%'}
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
+              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
                 Utilisation de la partition racine (SSD/NVMe) pour le cache système.
               </p>
             </div>
@@ -349,7 +352,11 @@ const AuditSection = () => {
                   'h-full transition-all duration-1000',
                   parseInt(data?.disk || 0) > 80 ? 'bg-rose-500' : ''
                 )}
-                style={parseInt(data?.disk || 0) <= 80 ? { backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5' } : undefined}
+                style={
+                  parseInt(data?.disk || 0) <= 80
+                    ? { backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5' }
+                    : undefined
+                }
               />
             </div>
           </div>

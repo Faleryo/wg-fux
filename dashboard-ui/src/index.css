@@ -23,8 +23,15 @@
   --glass-card: rgba(255, 255, 255, 0.4);
   --glass-border: rgba(148, 163, 184, 0.15);
   --glass-text: #0f172a;
-  --glass-text-muted: #64748b;
+  /* Remonté de #64748b (slate-500, ~3.9:1 sur verre clair) à slate-600 pour
+     franchir le seuil WCAG AA (4.5:1) sur le texte secondaire. */
+  --glass-text-muted: #475569;
   --glass-shadow: 0 10px 40px -15px rgba(15, 23, 42, 0.08);
+
+  /* Rayons standardisés (fin des valeurs ad hoc 2.5/3/3.5rem éparpillées). */
+  --radius-sm: 0.75rem;
+  --radius-md: 1.25rem;
+  --radius-lg: 2rem;
 
   /* Brand Colors */
   --brand-primary: #6366f1;
@@ -38,7 +45,8 @@
   --glass-card: rgba(30, 41, 59, 0.4);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-text: #ffffff;
-  --glass-text-muted: rgba(255, 255, 255, 0.5);
+  /* 0.5 → 0.68 : le texte secondaire passait sous le seuil AA sur verre sombre. */
+  --glass-text-muted: rgba(255, 255, 255, 0.68);
   --glass-shadow: 10px 0 30px -15px rgba(0, 0, 0, 0.4);
 }
 
@@ -74,8 +82,10 @@ body {
 
 @layer components {
   /* Glass Panels & Cards (Standardized Architecture) */
+  /* blur-3xl (64px) → blur-xl (24px) : le flou extrême, souvent empilé
+     (panneau dans panneau), coûtait cher au GPU pour un rendu « boueux ». */
   .glass-panel {
-    @apply backdrop-blur-3xl transition-all duration-500;
+    @apply backdrop-blur-xl transition-all duration-500;
     background: var(--glass-bg);
     border-color: var(--glass-border);
     box-shadow: var(--glass-shadow);
@@ -83,7 +93,7 @@ body {
   }
 
   .glass-card {
-    @apply backdrop-blur-3xl border rounded-[1.5rem] transition-all duration-500;
+    @apply backdrop-blur-xl border rounded-[1.5rem] transition-all duration-500;
     background: var(--glass-card);
     border-color: var(--glass-border);
     color: var(--glass-text);
@@ -128,40 +138,54 @@ body {
   height: 100%;
   z-index: -20;
   filter: blur(100px);
-  opacity: 0.15;
+  opacity: 0.1;
   pointer-events: none;
 }
 
 .mesh-bg::before {
-  content: "";
+  content: '';
   position: absolute;
   top: -50%;
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at 50% 50%, var(--brand-primary) 0%, transparent 50%),
-              radial-gradient(circle at 20% 80%, var(--brand-secondary) 0%, transparent 40%),
-              radial-gradient(circle at 80% 20%, #ec4899 0%, transparent 40%);
+  background:
+    radial-gradient(circle at 50% 50%, var(--brand-primary) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--brand-secondary) 0%, transparent 40%),
+    radial-gradient(circle at 80% 20%, #ec4899 0%, transparent 40%);
   animation: mesh-rotate 20s linear infinite;
 }
 
 @keyframes mesh-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes premium-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
   background-size: 200% 100%;
   animation: premium-shimmer 3s infinite linear;
 }
@@ -170,7 +194,10 @@ body {
   animation: float 6s ease-in-out infinite;
 }
 
-h1, h2, h3, .font-heading {
+h1,
+h2,
+h3,
+.font-heading {
   font-family: 'Outfit', sans-serif;
   letter-spacing: -0.02em;
 }
@@ -191,4 +218,29 @@ h1, h2, h3, .font-heading {
 
 table {
   min-width: 600px;
+}
+
+/* Accessibilité : anneau de focus visible et cohérent au clavier (les boutons
+   custom en verre n'avaient aucun état focus perceptible). */
+:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect de la préférence système « animations réduites » : on coupe le mesh
+   rotatif, le float et le shimmer, et on neutralise les transitions longues —
+   confort vestibulaire + économie GPU (mobile, VPS à faible RAM). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .mesh-bg::before {
+    animation: none !important;
+  }
 }

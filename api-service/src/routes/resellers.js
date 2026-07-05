@@ -277,6 +277,134 @@ router.post(
   })
 );
 
+// Liste des invitations émises (statut : active | utilisée | expirée). Admin =
+// toutes ; revendeur = les siennes. Sert à suivre/révoquer les liens en cours.
+router.get(
+  '/invites',
+  requireReseller,
+  asyncWrap(async (req, res) => {
+    const { desc } = require('drizzle-orm');
+    const base = db
+      .select({
+        id: schema.invites.id,
+        inviterId: schema.invites.inviterId,
+        createdAt: schema.invites.createdAt,
+        expiresAt: schema.invites.expiresAt,
+        usedAt: schema.invites.usedAt,
+        usedByUserId: schema.invites.usedByUserId,
+      })
+      .from(schema.invites);
+    const rows =
+      req.user.role === 'admin'
+        ? await base.orderBy(desc(schema.invites.createdAt)).limit(200)
+        : await base
+            .where(eq(schema.invites.inviterId, req.user.id))
+            .orderBy(desc(schema.invites.createdAt))
+            .limit(200);
+
+    // Résout les noms des invités consommés (une requête).
+    const usedIds = rows.map((r) => r.usedByUserId).filter(Boolean);
+    let nameById = new Map();
+    if (usedIds.length > 0) {
+      const us = await db
+        .select({ id: schema.users.id, username: schema.users.username })
+        .from(schema.users)
+        .where(inArray(schema.users.id, usedIds));
+      nameById = new Map(us.map((u) => [u.id, u.username]));
+    }
+    const now = Date.now();
+    res.json(
+      rows.map((r) => ({
+        id: r.id,
+        createdAt: r.createdAt,
+        expiresAt: r.expiresAt,
+        usedAt: r.usedAt,
+        usedBy: r.usedByUserId ? nameById.get(r.usedByUserId) || `#${r.usedByUserId}` : null,
+        status: r.usedAt
+          ? 'used'
+          : r.expiresAt && new Date(r.expiresAt).getTime() < now
+            ? 'expired'
+            : 'active',
+      }))
+    );
+  })
+);
+
+// Révoque une invitation NON consommée (le lien devient inutilisable). Un
+// revendeur ne peut révoquer que les siennes.
+router.delete(
+  '/invites/:id',
+  requireReseller,
+  asyncWrap(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json(createError('Identifiant invalide'));
+    const [inv] = await db
+      .select()
+      .from(schema.invites)
+      .where(eq(schema.invites.id, id))
+      .limit(1);
+    if (!inv) return res.status(404).json(createError('Invitation introuvable', null, 'NOT_FOUND'));
+    if (req.user.role !== 'admin' && inv.inviterId !== req.user.id) {
+      return res.status(403).json(createError('Hors de votre réseau', null, 'FORBIDDEN'));
+    }
+    if (inv.usedAt) {
+      return res.status(409).json(createError('Invitation déjà utilisée', null, 'CONFLICT'));
+    }
+    await db.delete(schema.invites).where(eq(schema.invites.id, id));
+    await auditLog({
+      actor: req.user.username,
+      action: 'revoke_invite',
+      targetType: 'invite',
+      targetName: `#${id}`,
+      details: { inviteId: id },
+      ip: req.ip,
+    });
+    res.json({ success: true });
+  })
+);
+
+// Réinitialise le mot de passe d'un compte du réseau. Renvoie le nouveau mot de
+// passe en clair UNE fois (à transmettre au revendeur). Tenance : descendants.
+router.post(
+  '/:id/reset-password',
+  requireReseller,
+  asyncWrap(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json(createError('Identifiant invalide'));
+
+    const [target] = await db
+      .select({ id: schema.users.id, username: schema.users.username, role: schema.users.role })
+      .from(schema.users)
+      .where(eq(schema.users.id, id))
+      .limit(1);
+    if (!target || target.role !== 'reseller') {
+      return res.status(404).json(createError('Revendeur introuvable', null, 'NOT_FOUND'));
+    }
+    if (req.user.role !== 'admin') {
+      const ids = descendantIds(req.user.id).filter((d) => d !== req.user.id);
+      if (!ids.includes(id)) {
+        return res.status(403).json(createError('Hors de votre réseau', null, 'FORBIDDEN'));
+      }
+    }
+
+    // Mot de passe fort aléatoire (12 octets base64url ≈ 16 caractères).
+    const newPassword = require('crypto').randomBytes(12).toString('base64url');
+    const { hash, salt } = await hashPassword(newPassword);
+    await db.update(schema.users).set({ hash, salt }).where(eq(schema.users.id, id));
+    invalidateUserCache(target.username);
+
+    await auditLog({
+      actor: req.user.username,
+      action: 'reset_reseller_password',
+      targetType: 'user',
+      targetName: target.username,
+      details: { id },
+      ip: req.ip,
+    });
+    res.json({ success: true, username: target.username, password: newPassword });
+  })
+);
+
 // Fixe son propre prix de revente (marge future sur les transferts).
 router.put(
   '/price',

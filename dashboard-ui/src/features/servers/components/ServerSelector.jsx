@@ -79,7 +79,7 @@ const ServerSelector = () => {
 
       {open && (
         <div className="absolute right-0 mt-2 w-64 glass-panel border rounded-xl shadow-2xl z-50 overflow-hidden">
-          <div className="px-3 py-2 text-[10px] font-black uppercase tracking-widest opacity-50">
+          <div className="px-3 py-2 text-[11px] font-black uppercase tracking-widest opacity-50">
             Serveur cible
           </div>
           {options.length === 0 && (
@@ -106,7 +106,7 @@ const ServerSelector = () => {
                 <span className="flex-1 min-w-0">
                   <span className="block text-sm font-semibold truncate">{opt.label}</span>
                   {opt.host && (
-                    <span className="block text-[10px] opacity-50 truncate">{opt.host}</span>
+                    <span className="block text-[11px] opacity-50 truncate">{opt.host}</span>
                   )}
                 </span>
                 {active && <Check size={14} className="text-emerald-400" />}

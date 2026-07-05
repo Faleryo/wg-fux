@@ -71,7 +71,7 @@ router.post(
   '/heartbeat',
   express.json(),
   asyncWrap(async (req, res) => {
-    const { version, clients } = req.body || {};
+    const { version, clients, cpu, mem, disk, uptime } = req.body || {};
     const resolved = await resolveLicense(extractKey(req));
 
     // Réponse de forme constante : pas de fuite sur l'existence de la clé.
@@ -80,17 +80,38 @@ router.post(
     }
     const { server, valid } = resolved;
 
+    // Télémétrie machine (optionnelle : agents antérieurs ne l'envoient pas).
+    // Bornée à [0,100] pour les pourcentages, entier ≥ 0 pour l'uptime.
+    const pct = (v) => (typeof v === 'number' && v >= 0 && v <= 100 ? Math.round(v * 10) / 10 : null);
+    const cpuPct = pct(cpu);
+    const memPct = pct(mem);
+    const diskPct = pct(disk);
+    const uptimeSec = Number.isInteger(uptime) && uptime >= 0 ? uptime : null;
+    const now = new Date();
+    const clientCount =
+      Number.isInteger(clients) && clients >= 0 ? clients : server.clientCount;
+
     await db
       .update(schema.servers)
       .set({
-        lastHeartbeat: new Date(),
+        lastHeartbeat: now,
         status: 'online', // le phone-home prouve que l'instance tourne
         consecutiveFailures: 0,
         lastError: null,
-        clientCount: Number.isInteger(clients) && clients >= 0 ? clients : server.clientCount,
+        clientCount,
         scriptsVersion: typeof version === 'string' ? version.slice(0, 32) : server.scriptsVersion,
+        ...(cpuPct !== null ? { cpuPct } : {}),
+        ...(memPct !== null ? { memPct } : {}),
+        ...(diskPct !== null ? { diskPct } : {}),
+        ...(uptimeSec !== null ? { uptimeSec } : {}),
+        ...(cpuPct !== null || memPct !== null || diskPct !== null ? { healthAt: now } : {}),
       })
       .where(eq(schema.servers.id, server.id));
+
+    // Point d'historique de santé (courbe uptime + charge). Best-effort.
+    db.insert(schema.serverHealthHistory)
+      .values({ serverId: server.id, ts: now, status: 'online', cpuPct, memPct, diskPct, clientCount })
+      .catch(() => {});
 
     log.info('license', 'Heartbeat instance', {
       serverId: server.id,

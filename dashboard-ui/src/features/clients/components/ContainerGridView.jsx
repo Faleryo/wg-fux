@@ -21,10 +21,10 @@ const ContainerGridView = ({ containerEntries, onSelectContainer, onDeleteContai
           <div className="p-8 bg-white/5 rounded-full mb-6">
             <Package size={64} className="text-slate-600" />
           </div>
-          <h3 className="text-2xl font-black text-white tracking-widest uppercase mb-2">
+          <h3 className="text-2xl font-black text-white tracking-widest mb-2">
             Initialisation Requise
           </h3>
-          <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
+          <p className="text-slate-500 font-bold uppercase text-[11px] tracking-widest">
             Créez votre premier conteneur depuis le bouton "+" ci-dessus
           </p>
         </GlassCard>

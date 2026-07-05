@@ -85,7 +85,7 @@ const MapSvg = ({
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center group/hub">
         <div
           className={cn(
-            'rounded-[3.5rem] shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] flex items-center justify-center relative z-10 transition-all duration-700 group-hover/hub:scale-110 border-4',
+            'rounded-[2rem] shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] flex items-center justify-center relative z-10 transition-all duration-700 group-hover/hub:scale-110 border-4',
             isMobile ? 'w-16 h-16 rounded-[2rem]' : 'w-32 h-32'
           )}
           style={{
@@ -98,7 +98,7 @@ const MapSvg = ({
           <div
             className={cn(
               'absolute inset-0 border border-white/20 animate-pulse',
-              isMobile ? 'rounded-[2rem]' : 'rounded-[3.5rem]'
+              isMobile ? 'rounded-[2rem]' : 'rounded-[2rem]'
             )}
           ></div>
         </div>
@@ -108,7 +108,7 @@ const MapSvg = ({
             boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[500] || '#6366f1'}1a`,
           }}
           className={cn(
-            'mt-8 px-6 py-2 backdrop-blur-3xl border rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] opacity-0 group-hover/hub:opacity-100 transition-all duration-500 transform translate-y-4 group-hover/hub:translate-y-0 shadow-2xl',
+            'mt-8 px-6 py-2 backdrop-blur-xl border rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] opacity-0 group-hover/hub:opacity-100 transition-all duration-500 transform translate-y-4 group-hover/hub:translate-y-0 shadow-2xl',
             isDark ? 'bg-slate-950/90 border-white/10' : 'bg-white border-black/10'
           )}
         >

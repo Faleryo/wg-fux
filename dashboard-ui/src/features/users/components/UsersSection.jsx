@@ -7,12 +7,20 @@ import GlassCard from '../../../components/ui/Card';
 import VibeButton from '../../../components/ui/Button';
 
 const ROLE_CONFIG = {
-  admin:   { label: 'Root Access',     badge: 'Admin',   variant: 'theme' },
-  manager: { label: 'Manager Access',  badge: 'Manager', variant: 'indigo' },
-  viewer:  { label: 'Operator Access', badge: 'Viewer',  variant: 'slate' },
+  admin: { label: 'Root Access', badge: 'Admin', variant: 'theme' },
+  manager: { label: 'Manager Access', badge: 'Manager', variant: 'indigo' },
+  viewer: { label: 'Operator Access', badge: 'Viewer', variant: 'slate' },
 };
 
-const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDelete, onRefresh, onViewReport }) => {
+const UsersSection = ({
+  users = [],
+  loading = false,
+  onCreateUser,
+  onEdit,
+  onDelete,
+  onRefresh,
+  onViewReport,
+}) => {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -40,16 +48,16 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
             style={{
               backgroundColor: COLOR_MAP[theme]?.[600] ? COLOR_MAP[theme][600] + '33' : '#4f46e533',
               color: COLOR_MAP[theme]?.[400] || '#818cf8',
-              borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '33' : '#6366f133'
+              borderColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '33' : '#6366f133',
             }}
           >
             <Users size={32} />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-white tracking-tighter italic uppercase">
+            <h2 className="text-3xl font-black text-white tracking-tighter italic">
               Gestion des Opérateurs
             </h2>
-            <p className="text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase opacity-60">
+            <p className="text-slate-500 text-[11px] font-black tracking-[0.3em] uppercase opacity-60">
               System Access Control
             </p>
           </div>
@@ -95,7 +103,7 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
+              <tr className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
                 <th className="px-10 py-8">Identité Opérateur</th>
                 <th className="px-8 py-8">Rôle Système</th>
                 <th className="px-8 py-8">Statut</th>
@@ -125,20 +133,27 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                       {(() => {
                         const rc = ROLE_CONFIG[user.role] || ROLE_CONFIG.viewer;
                         const isElevated = user.role === 'admin' || user.role === 'manager';
-                        const accentColor = user.role === 'admin'
-                          ? COLOR_MAP[theme]?.[500] || '#6366f1'
-                          : user.role === 'manager'
-                          ? '#6366f1'
-                          : null;
+                        const accentColor =
+                          user.role === 'admin'
+                            ? COLOR_MAP[theme]?.[500] || '#6366f1'
+                            : user.role === 'manager'
+                              ? '#6366f1'
+                              : null;
                         return (
                           <div className="flex items-center gap-5">
                             <div
                               className={cn(
-                                'w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-white text-lg transition-all group-hover:scale-110 group-hover:bg-slate-700 shadow-xl border',
+                                'w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-white text-lg transition-all group-hover:scale-110 group-hover:bg-slate-700 shadow-xl border'
                               )}
-                              style={isElevated && accentColor ? { borderColor: accentColor + '4d' } : { borderColor: 'rgba(255,255,255,0.05)' }}
+                              style={
+                                isElevated && accentColor
+                                  ? { borderColor: accentColor + '4d' }
+                                  : { borderColor: 'rgba(255,255,255,0.05)' }
+                              }
                             >
-                              {String(user?.username || '?').charAt(0).toUpperCase()}
+                              {String(user?.username || '?')
+                                .charAt(0)
+                                .toUpperCase()}
                             </div>
                             <div>
                               <div className="text-sm font-black text-white uppercase tracking-tight flex items-center gap-2">
@@ -147,7 +162,7 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                                   <Shield size={14} style={{ color: accentColor + 'cc' }} />
                                 )}
                               </div>
-                              <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                                 {rc.label}
                               </div>
                             </div>
@@ -158,19 +173,28 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                     <td className="px-8 py-6">
                       {(() => {
                         const rc = ROLE_CONFIG[user.role] || ROLE_CONFIG.viewer;
-                        const accentColor = user.role === 'admin'
-                          ? COLOR_MAP[theme]?.[500] || '#6366f1'
-                          : user.role === 'manager'
-                          ? '#6366f1'
-                          : null;
+                        const accentColor =
+                          user.role === 'admin'
+                            ? COLOR_MAP[theme]?.[500] || '#6366f1'
+                            : user.role === 'manager'
+                              ? '#6366f1'
+                              : null;
                         return (
                           <span
-                            className="text-[10px] font-black px-4 py-1.5 rounded-xl border uppercase tracking-widest inline-block"
-                            style={accentColor ? {
-                              backgroundColor: accentColor + '1a',
-                              color: accentColor,
-                              borderColor: accentColor + '33',
-                            } : { background: 'rgba(255,255,255,0.05)', color: '#94a3b8', borderColor: 'rgba(255,255,255,0.05)' }}
+                            className="text-[11px] font-black px-4 py-1.5 rounded-xl border uppercase tracking-widest inline-block"
+                            style={
+                              accentColor
+                                ? {
+                                    backgroundColor: accentColor + '1a',
+                                    color: accentColor,
+                                    borderColor: accentColor + '33',
+                                  }
+                                : {
+                                    background: 'rgba(255,255,255,0.05)',
+                                    color: '#94a3b8',
+                                    borderColor: 'rgba(255,255,255,0.05)',
+                                  }
+                            }
                           >
                             {rc.badge}
                           </span>
@@ -184,16 +208,21 @@ const UsersSection = ({ users = [], loading = false, onCreateUser, onEdit, onDel
                         const statusClass = isSuspended
                           ? 'text-orange-400 bg-orange-500/5 border-orange-500/10'
                           : isExpired
-                          ? 'text-red-400 bg-red-500/5 border-red-500/10'
-                          : 'text-emerald-400 bg-emerald-500/5 border-emerald-500/10';
+                            ? 'text-red-400 bg-red-500/5 border-red-500/10'
+                            : 'text-emerald-400 bg-emerald-500/5 border-emerald-500/10';
                         const dotClass = isSuspended
                           ? 'bg-orange-500'
                           : isExpired
-                          ? 'bg-red-500 shadow-[0_0_8px_#ef4444]'
-                          : 'bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]';
+                            ? 'bg-red-500 shadow-[0_0_8px_#ef4444]'
+                            : 'bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]';
                         const label = isSuspended ? 'Suspendu' : isExpired ? 'Expiré' : 'Actif';
                         return (
-                          <div className={cn('flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-xl border w-fit', statusClass)}>
+                          <div
+                            className={cn(
+                              'flex items-center gap-2 text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-xl border w-fit',
+                              statusClass
+                            )}
+                          >
                             <div className={cn('h-1.5 w-1.5 rounded-full', dotClass)} />
                             {label}
                           </div>

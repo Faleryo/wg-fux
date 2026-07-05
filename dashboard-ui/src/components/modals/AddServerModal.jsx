@@ -156,7 +156,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
     <form onSubmit={handleSubmitForm} className="space-y-6">
       {/* Label */}
       <div>
-        <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+        <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
           Label
         </label>
         <div className="relative group">
@@ -177,7 +177,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
 
       {/* Host */}
       <div>
-        <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+        <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
           Host / IP
         </label>
         <div className="relative group">
@@ -197,7 +197,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
 
       {/* Port */}
       <div>
-        <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+        <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
           Port SSH
         </label>
         <div className="relative group">
@@ -255,7 +255,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
     <div className="space-y-6">
       {/* One-liner */}
       <div>
-        <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+        <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
           Commande de provisioning
         </label>
         <div className="relative">

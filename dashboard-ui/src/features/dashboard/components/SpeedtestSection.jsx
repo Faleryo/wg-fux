@@ -24,7 +24,7 @@ const SpeedtestSection = ({ speedtest, onRunSpeedtest }) => {
       >
         <Gauge size={80} />
       </div>
-      <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-5">
+      <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-5">
         System Speedtest
       </h3>
 
@@ -37,7 +37,7 @@ const SpeedtestSection = ({ speedtest, onRunSpeedtest }) => {
           />
           <p
             className={cn(
-              'text-[10px] font-black animate-pulse uppercase tracking-[0.3em] transition-colors',
+              'text-[11px] font-black animate-pulse uppercase tracking-[0.3em] transition-colors',
               isDark ? 'text-white' : 'text-slate-900'
             )}
           >
@@ -48,7 +48,7 @@ const SpeedtestSection = ({ speedtest, onRunSpeedtest }) => {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-emerald-400">
-              <ArrowDown size={13} /> <span className="text-[9px] font-black uppercase">Down</span>
+              <ArrowDown size={13} /> <span className="text-[11px] font-black uppercase">Down</span>
             </div>
             <div
               className={cn(
@@ -58,13 +58,13 @@ const SpeedtestSection = ({ speedtest, onRunSpeedtest }) => {
             >
               {formatSpeed(speedtest.data?.download || 0)}
             </div>
-            <div className="text-[9px] text-slate-500 font-bold uppercase">
+            <div className="text-[11px] text-slate-500 font-bold uppercase">
               {speedUnit(speedtest.data?.download || 0)}
             </div>
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-indigo-400">
-              <ArrowUp size={13} /> <span className="text-[9px] font-black uppercase">Up</span>
+              <ArrowUp size={13} /> <span className="text-[11px] font-black uppercase">Up</span>
             </div>
             <div
               className={cn(
@@ -74,19 +74,19 @@ const SpeedtestSection = ({ speedtest, onRunSpeedtest }) => {
             >
               {formatSpeed(speedtest.data?.upload || 0)}
             </div>
-            <div className="text-[9px] text-slate-500 font-bold uppercase">
+            <div className="text-[11px] text-slate-500 font-bold uppercase">
               {speedUnit(speedtest.data?.upload || 0)}
             </div>
           </div>
           <div className="col-span-2 pt-3 border-t border-white/5 flex justify-between items-center">
-            <span className="text-[10px] font-mono text-slate-500 uppercase">
+            <span className="text-[11px] font-mono text-slate-500 uppercase">
               Ping: {speedtest.data?.ping ? `${speedtest.data.ping.toFixed(0)}ms` : 'N/A'}
             </span>
             <VibeButton
               variant="ghost"
               size="sm"
               onClick={onRunSpeedtest}
-              className="text-indigo-400 text-[10px]"
+              className="text-indigo-400 text-[11px]"
             >
               Relancer
             </VibeButton>

@@ -11,7 +11,7 @@ const GlassCard = ({ children, className, animate = true, delay = 0, hover = tru
     <div
       onClick={onClick}
       className={cn(
-        'relative overflow-hidden glass-card rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500',
+        'relative overflow-hidden glass-card rounded-[2rem] p-8 shadow-2xl transition-all duration-500',
         hover && 'hover:shadow-indigo-500/5 hover:-translate-y-1',
         onClick && 'cursor-pointer active:scale-95',
         className

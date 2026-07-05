@@ -27,15 +27,13 @@ export default {
       pattern:
         /^(bg|text|border|from|shadow|via)-(emerald|amber|purple|sky|indigo|cyan|rose|green|teal|red)-(300|400|500|600|900)(\/(5|10|15|20|30|40|50|80|90))?$/,
     },
-    // group-hover variants for gradient/tint overlays
+    // hover / group-hover tint overlays construits dynamiquement.
+    // Les variants passent par la clé `variants` (les préfixer dans la regex ne
+    // matche rien — c'était la cause des warnings safelist au build).
     {
       pattern:
-        /^group-hover:(bg|text|border|from|via|shadow)-(indigo|cyan|rose|emerald|amber|purple|sky|green|teal|red)-(400|500|600)(\/(10|20|30|40|50))?$/,
-    },
-    // hover state variants
-    {
-      pattern:
-        /^hover:(bg|text|border)-(indigo|cyan|rose|emerald|amber|purple|sky|green|teal|red)-(400|500|600)(\/(10|20|30|40|50))?$/,
+        /^(bg|text|border|from|via|shadow)-(indigo|cyan|rose|emerald|amber|purple|sky|green|teal|red)-(400|500|600)(\/(10|20|30|40|50))?$/,
+      variants: ['hover', 'group-hover'],
     },
     // shadow with color opacity (Sidebar, LogTabs, QRCodeModal, etc.)
     {
@@ -55,6 +53,17 @@ export default {
           900: '#171717',
           950: '#0a0a0a',
         },
+      },
+      // Interlettrage « widest » adouci (0.1em → 0.06em) : atténue d'un seul
+      // geste les 57 fichiers qui empilent uppercase + tracking-widest, sans
+      // toucher au JSX. Reste assez marqué pour les petits labels/badges.
+      letterSpacing: {
+        widest: '0.06em',
+      },
+      // Rayons cohérents alignés sur les tokens CSS (--radius-*).
+      borderRadius: {
+        card: '1.25rem',
+        panel: '2rem',
       },
     },
   },

@@ -60,12 +60,13 @@ const ClientListToolbar = ({
             transition={{ duration: 0.2 }}
             className="flex items-center gap-3 px-4 py-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl overflow-hidden"
           >
-            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex-1">
-              {selectionCount} peer{selectionCount > 1 ? 's' : ''} sélectionné{selectionCount > 1 ? 's' : ''}
+            <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest flex-1">
+              {selectionCount} peer{selectionCount > 1 ? 's' : ''} sélectionné
+              {selectionCount > 1 ? 's' : ''}
             </span>
             <button
               onClick={onBulkDelete}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-black uppercase tracking-widest hover:bg-rose-500/20 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[11px] font-black uppercase tracking-widest hover:bg-rose-500/20 transition-all"
             >
               <Trash2 size={12} />
               Supprimer
@@ -94,14 +95,18 @@ const ClientListToolbar = ({
                   setActiveContainer(null);
                   setSearch('');
                 }}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all flex-shrink-0"
+                className="flex items-center gap-2 px-3 py-2.5 rounded-2xl border font-black text-[11px] uppercase tracking-widest transition-all flex-shrink-0"
                 style={{
                   backgroundColor: `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}1A`,
                   color: COLOR_MAP[selectedColor]?.[400] || '#818cf8',
                   borderColor: `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}33`,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}33`; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}1A`; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}33`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}1A`;
+                }}
               >
                 <ChevronLeft size={15} />
                 <span className="hidden sm:inline">Conteneurs</span>
@@ -112,12 +117,15 @@ const ClientListToolbar = ({
           <div className="min-w-0">
             {activeContainer ? (
               <div className="flex items-center gap-2">
-                <Package size={16} style={{ color: COLOR_MAP[selectedColor]?.[400] || '#818cf8' }} />
+                <Package
+                  size={16}
+                  style={{ color: COLOR_MAP[selectedColor]?.[400] || '#818cf8' }}
+                />
                 <span className="text-white font-black text-sm uppercase tracking-tight truncate">
                   {activeContainer}
                 </span>
                 <span
-                  className="text-[9px] px-2 py-0.5 rounded-full border font-black uppercase"
+                  className="text-[11px] px-2 py-0.5 rounded-full border font-black uppercase"
                   style={{
                     backgroundColor: `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}1A`,
                     color: COLOR_MAP[selectedColor]?.[400] || '#818cf8',

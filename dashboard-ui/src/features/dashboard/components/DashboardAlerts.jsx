@@ -24,14 +24,14 @@ const DashboardAlerts = ({ clients, onNavigate }) => {
         <AlertTriangle size={18} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2">
+        <p className="text-[11px] font-black text-rose-400 uppercase tracking-widest mb-2">
           ⚠ {quotaAlerts.length} Peer{quotaAlerts.length > 1 ? 's' : ''} en Quota Critique
         </p>
         <div className="flex flex-wrap gap-2">
           {quotaAlerts.map((a) => (
             <span
               key={a.name}
-              className="inline-flex items-center gap-1.5 text-[9px] font-mono text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20"
+              className="inline-flex items-center gap-1.5 text-[11px] font-mono text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20"
             >
               <span
                 className={cn(
@@ -47,7 +47,7 @@ const DashboardAlerts = ({ clients, onNavigate }) => {
       {onNavigate && (
         <button
           onClick={() => onNavigate('containers')}
-          className="flex items-center gap-1 text-[10px] font-black text-rose-400 hover:text-rose-300 uppercase tracking-widest flex-shrink-0 transition-colors"
+          className="flex items-center gap-1 text-[11px] font-black text-rose-400 hover:text-rose-300 uppercase tracking-widest flex-shrink-0 transition-colors"
         >
           Gérer <ChevronRight size={12} />
         </button>

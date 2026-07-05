@@ -71,6 +71,21 @@ function publicServer(s, ownerUsername) {
     // est caduque et affichée comme absente)
     updateApproved: s.targetVersion === PLATFORM_VERSION,
     updateMode: s.updateMode || 'auto',
+    // Métadonnées de flotte (descriptif).
+    region: s.region || null,
+    provider: s.provider || null,
+    tags: s.tags ? s.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+    notes: s.notes || null,
+    // Télémétrie machine (dernier heartbeat) — null tant que l'instance ne l'a
+    // pas encore remontée (agent antérieur à la télémétrie).
+    cpuPct: s.cpuPct ?? null,
+    memPct: s.memPct ?? null,
+    diskPct: s.diskPct ?? null,
+    uptimeSec: s.uptimeSec ?? null,
+    healthAt: s.healthAt || null,
+    // Seuils d'alerte par serveur (NULL = désactivé).
+    alertOfflineMin: s.alertOfflineMin ?? null,
+    alertLicenseDays: s.alertLicenseDays ?? null,
     createdAt: s.createdAt,
     owner: ownerUsername || undefined,
   };
@@ -209,6 +224,240 @@ router.delete(
     });
 
     res.json({ success: true });
+  })
+);
+
+// Schéma d'édition d'un serveur (métadonnées + réseau + seuils d'alerte).
+// Tous les champs optionnels — on ne met à jour que ceux fournis.
+const editServerSchema = z
+  .object({
+    label: z.string().min(1).max(64).optional(),
+    host: z
+      .string()
+      .min(1)
+      .max(255)
+      .regex(/^[a-zA-Z0-9.:_-]+$/, 'Host invalide')
+      .optional(),
+    port: z
+      .union([z.number(), z.string()])
+      .transform((v) => parseInt(v, 10))
+      .refine((n) => Number.isInteger(n) && n > 0 && n < 65536, 'Port invalide')
+      .optional(),
+    region: z.string().max(64).nullable().optional(),
+    provider: z.string().max(64).nullable().optional(),
+    tags: z.array(z.string().max(32)).max(20).nullable().optional(),
+    notes: z.string().max(2000).nullable().optional(),
+    alertOfflineMin: z.number().int().min(1).max(10080).nullable().optional(),
+    alertLicenseDays: z.number().int().min(1).max(365).nullable().optional(),
+  })
+  .strict();
+
+// Résout un serveur en respectant l'ownership (admin/manager = tout).
+async function findOwnedServer(req, id) {
+  const isAdmin = req.user.role === 'admin' || req.user.role === 'manager';
+  const where = isAdmin
+    ? eq(schema.servers.id, id)
+    : and(eq(schema.servers.id, id), eq(schema.servers.ownerId, req.user.id));
+  const [server] = await db.select().from(schema.servers).where(where).limit(1);
+  return server || null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/servers/:id — édite label/host/port, métadonnées de flotte et
+// seuils d'alerte. Ownership : admin tout, revendeur les siens.
+// ─────────────────────────────────────────────────────────────────────────────
+router.patch(
+  '/:id',
+  auth,
+  requireReseller,
+  asyncWrap(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json(createError('Identifiant de serveur invalide'));
+    }
+    const parsed = editServerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(createError(parsed.error, 'Validation échouée'));
+    }
+    const server = await findOwnedServer(req, id);
+    if (!server) {
+      return res
+        .status(404)
+        .json(createError('Serveur introuvable ou non autorisé', null, 'NOT_FOUND'));
+    }
+
+    const d = parsed.data;
+    const updates = {};
+    for (const k of ['label', 'host', 'region', 'provider', 'notes', 'alertOfflineMin', 'alertLicenseDays']) {
+      if (d[k] !== undefined) updates[k] = d[k];
+    }
+    if (d.port !== undefined) updates.port = d.port;
+    if (d.tags !== undefined) updates.tags = d.tags ? d.tags.join(',') : null;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json(createError('Aucun champ à mettre à jour'));
+    }
+
+    try {
+      await db.update(schema.servers).set(updates).where(eq(schema.servers.id, id));
+    } catch (dbErr) {
+      if (dbErr.code === 'SQLITE_CONSTRAINT_UNIQUE' || dbErr.message?.includes('UNIQUE')) {
+        return res.status(409).json(createError('Ce host:port est déjà enregistré', null, 'CONFLICT'));
+      }
+      throw dbErr;
+    }
+
+    await auditLog({
+      actor: req.user.username,
+      action: 'edit_server',
+      targetType: 'server',
+      targetName: updates.label || server.label,
+      details: { serverId: id, fields: Object.keys(updates) },
+      ip: req.ip,
+    });
+
+    const [updated] = await db.select().from(schema.servers).where(eq(schema.servers.id, id)).limit(1);
+    res.json(publicServer(updated));
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/servers/:id — détail d'un serveur + historique de santé (courbe).
+// ─────────────────────────────────────────────────────────────────────────────
+router.get(
+  '/:id',
+  auth,
+  asyncWrap(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json(createError('Identifiant de serveur invalide'));
+    }
+    const server = await findOwnedServer(req, id);
+    if (!server) {
+      return res
+        .status(404)
+        .json(createError('Serveur introuvable ou non autorisé', null, 'NOT_FOUND'));
+    }
+    const { desc } = require('drizzle-orm');
+    const history = await db
+      .select({
+        ts: schema.serverHealthHistory.ts,
+        status: schema.serverHealthHistory.status,
+        cpuPct: schema.serverHealthHistory.cpuPct,
+        memPct: schema.serverHealthHistory.memPct,
+        diskPct: schema.serverHealthHistory.diskPct,
+        clientCount: schema.serverHealthHistory.clientCount,
+      })
+      .from(schema.serverHealthHistory)
+      .where(eq(schema.serverHealthHistory.serverId, id))
+      .orderBy(desc(schema.serverHealthHistory.ts))
+      .limit(288); // ~24 h à un point / 5 min
+    res.json({ ...publicServer(server), history: history.reverse() });
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/servers/:id/healthcheck — sonde SSH à la demande (wg-health.sh) et
+// rafraîchit status/lastError/lastChecked sans attendre le heartbeat passif.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:id/healthcheck',
+  auth,
+  requireReseller,
+  asyncWrap(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json(createError('Identifiant de serveur invalide'));
+    }
+    const server = await findOwnedServer(req, id);
+    if (!server) {
+      return res
+        .status(404)
+        .json(createError('Serveur introuvable ou non autorisé', null, 'NOT_FOUND'));
+    }
+    const executor = await getExecutorForServer(server.id);
+    const result = await executor.run('wg-health.sh', []);
+    const now = new Date();
+    if (result.success) {
+      await db
+        .update(schema.servers)
+        .set({ status: 'online', lastChecked: now, lastError: null, consecutiveFailures: 0 })
+        .where(eq(schema.servers.id, id));
+    } else {
+      await db
+        .update(schema.servers)
+        .set({
+          status: 'error',
+          lastChecked: now,
+          lastError: (result.error || 'Sonde SSH échouée').slice(0, 500),
+        })
+        .where(eq(schema.servers.id, id));
+    }
+    const [updated] = await db.select().from(schema.servers).where(eq(schema.servers.id, id)).limit(1);
+    res.json({ success: result.success, server: publicServer(updated) });
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/servers/bulk — actions groupées sur une sélection.
+// Body : { ids:[...], action:'delete' | 'renew', extendDays? }
+//  - 'delete' : ownership respecté (revendeur = les siens).
+//  - 'renew'  : ADMIN uniquement (acte de facturation).
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/bulk',
+  auth,
+  requireReseller,
+  asyncWrap(async (req, res) => {
+    const { ids, action, extendDays } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json(createError('ids (liste) requis'));
+    }
+    const cleanIds = ids.map((n) => parseInt(n, 10)).filter(Number.isInteger).slice(0, 500);
+    if (cleanIds.length === 0) return res.status(400).json(createError('ids invalides'));
+
+    let affected = 0;
+    if (action === 'delete') {
+      for (const id of cleanIds) {
+        const server = await findOwnedServer(req, id);
+        if (!server) continue;
+        await db.delete(schema.servers).where(eq(schema.servers.id, id));
+        affected++;
+      }
+    } else if (action === 'renew') {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json(createError('Renouvellement réservé à l’admin', null, 'FORBIDDEN'));
+      }
+      const days = parseInt(extendDays, 10);
+      if (!Number.isInteger(days) || days < 1 || days > 3650) {
+        return res.status(400).json(createError('extendDays (1-3650) requis pour renew'));
+      }
+      for (const id of cleanIds) {
+        const [server] = await db.select().from(schema.servers).where(eq(schema.servers.id, id)).limit(1);
+        if (!server) continue;
+        const base = Math.max(
+          Date.now(),
+          server.licenseExpiry ? new Date(server.licenseExpiry).getTime() : 0
+        );
+        await db
+          .update(schema.servers)
+          .set({ licenseExpiry: new Date(base + days * 24 * 3600 * 1000) })
+          .where(eq(schema.servers.id, id));
+        affected++;
+      }
+    } else {
+      return res.status(400).json(createError("action doit être 'delete' ou 'renew'"));
+    }
+
+    await auditLog({
+      actor: req.user.username,
+      action: `bulk_${action}`,
+      targetType: 'server',
+      targetName: `${affected} serveur(s)`,
+      details: { ids: cleanIds, affected, ...(action === 'renew' ? { extendDays } : {}) },
+      ip: req.ip,
+    });
+    res.json({ success: true, affected });
   })
 );
 

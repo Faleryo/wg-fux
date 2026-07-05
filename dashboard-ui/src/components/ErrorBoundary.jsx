@@ -38,7 +38,7 @@ class ErrorBoundary extends Component {
           <div className="p-4 rounded-2xl bg-red-500/10 text-red-400 mb-6">
             <AlertTriangle size={32} />
           </div>
-          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2">
+          <h3 className="text-lg font-black text-white tracking-tight mb-2">
             {sectionName || 'Composant'} — Erreur Critique
           </h3>
           <p className="text-xs text-slate-500 font-mono mb-1 max-w-sm">
@@ -46,10 +46,10 @@ class ErrorBoundary extends Component {
           </p>
           {this.state.errorInfo?.componentStack && (
             <details className="mt-4 text-left w-full max-w-md">
-              <summary className="text-[10px] text-slate-600 uppercase tracking-widest cursor-pointer mb-2">
+              <summary className="text-[11px] text-slate-600 uppercase tracking-widest cursor-pointer mb-2">
                 Stack Trace
               </summary>
-              <pre className="text-[9px] text-slate-700 overflow-auto bg-slate-950 rounded-xl p-4 max-h-48">
+              <pre className="text-[11px] text-slate-700 overflow-auto bg-slate-950 rounded-xl p-4 max-h-48">
                 {this.state.errorInfo.componentStack}
               </pre>
             </details>

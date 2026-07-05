@@ -59,9 +59,7 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
                 <Package size={24} />
               </div>
               <div className="min-w-0">
-                <h3 className="text-xl font-black text-white uppercase tracking-tight truncate">
-                  {name}
-                </h3>
+                <h3 className="text-xl font-black text-white tracking-tight truncate">{name}</h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span
                     className={cn(
@@ -116,25 +114,25 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+              <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest block">
                 Flux Sortant
               </span>
               <div className="flex items-end gap-1.5">
                 <span className="text-lg font-mono font-black text-white italic">
                   {formatBytes(totalDl)}
                 </span>
-                <span className="text-[9px] text-slate-600 mb-1">/S</span>
+                <span className="text-[11px] text-slate-600 mb-1">/S</span>
               </div>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+              <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest block">
                 Flux Entrant
               </span>
               <div className="flex items-end gap-1.5">
                 <span className="text-lg font-mono font-black text-white italic">
                   {formatBytes(totalUl)}
                 </span>
-                <span className="text-[9px] text-slate-600 mb-1">/S</span>
+                <span className="text-[11px] text-slate-600 mb-1">/S</span>
               </div>
             </div>
           </div>
@@ -163,12 +161,12 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
                 ))}
               </div>
               {clients.length > 3 && (
-                <span className="text-[9px] font-black text-slate-600">+{clients.length - 3}</span>
+                <span className="text-[11px] font-black text-slate-600">+{clients.length - 3}</span>
               )}
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-[9px] font-mono text-slate-500 uppercase">Volume Total</span>
-              <span className="text-[10px] font-mono font-black text-white">
+              <span className="text-[11px] font-mono text-slate-500 uppercase">Volume Total</span>
+              <span className="text-[11px] font-mono font-black text-white">
                 {formatBytes(totalDlBytes + totalUlBytes)}
               </span>
             </div>

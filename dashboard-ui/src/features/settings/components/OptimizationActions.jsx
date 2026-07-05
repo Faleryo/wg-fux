@@ -9,9 +9,9 @@ const OptimizationActions = ({ telemetry, isEnabled }) => {
     <div className="xl:col-span-1 space-y-8">
       <div
         className={cn(
-          'rounded-[3rem] border p-8 shadow-2xl relative overflow-hidden group transition-all',
+          'rounded-[2rem] border p-8 shadow-2xl relative overflow-hidden group transition-all',
           isDark
-            ? 'bg-slate-950/40 border-white/5 backdrop-blur-3xl'
+            ? 'bg-slate-950/40 border-white/5 backdrop-blur-xl'
             : 'bg-white border-black/5 shadow-sm'
         )}
       >
@@ -20,7 +20,7 @@ const OptimizationActions = ({ telemetry, isEnabled }) => {
         </div>
         <h3
           className={cn(
-            'text-lg font-black uppercase mb-8 flex items-center gap-3 transition-colors',
+            'text-lg font-black mb-8 flex items-center gap-3 transition-colors',
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
@@ -53,7 +53,7 @@ const OptimizationActions = ({ telemetry, isEnabled }) => {
             >
               <div className="flex items-center gap-3">
                 <m.icon size={16} className="text-slate-500" />
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
                   {m.label}
                 </div>
               </div>
@@ -69,9 +69,7 @@ const OptimizationActions = ({ telemetry, isEnabled }) => {
                 <div
                   className={cn(
                     'text-[8px] font-black uppercase tracking-widest',
-                    m.status === 'Optimal' ||
-                      m.status === 'Ultra-Stable' ||
-                      m.status === 'Fixed'
+                    m.status === 'Optimal' || m.status === 'Ultra-Stable' || m.status === 'Fixed'
                       ? 'text-emerald-500'
                       : 'text-slate-500'
                   )}
@@ -86,9 +84,9 @@ const OptimizationActions = ({ telemetry, isEnabled }) => {
 
       <div
         className={cn(
-          'border rounded-[3rem] p-10 shadow-2xl relative group overflow-hidden transition-all',
+          'border rounded-[2rem] p-10 shadow-2xl relative group overflow-hidden transition-all',
           isDark
-            ? 'bg-gradient-to-br from-indigo-900/20 to-slate-900/60 border-white/10 backdrop-blur-3xl'
+            ? 'bg-gradient-to-br from-indigo-900/20 to-slate-900/60 border-white/10 backdrop-blur-xl'
             : 'bg-white border-black/5 shadow-sm'
         )}
       >
@@ -98,13 +96,13 @@ const OptimizationActions = ({ telemetry, isEnabled }) => {
         </div>
         <h3
           className={cn(
-            'text-2xl font-black tracking-widest italic uppercase mb-2 transition-colors',
+            'text-2xl font-black tracking-widest italic mb-2 transition-colors',
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
           Sync Neural
         </h3>
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-loose mb-8">
+        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-loose mb-8">
           Maintenance heuristique du noyau système active. Surveillance en temps réel des fuites
           mémoires.
         </p>

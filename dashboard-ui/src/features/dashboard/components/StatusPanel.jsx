@@ -87,7 +87,7 @@ const StatusPanel = ({
             <GlassCard key={c.label} className="p-5" hover={false}>
               <div className="flex items-center gap-2 mb-2 text-slate-500">
                 <c.icon size={14} />
-                <span className="text-[9px] font-black uppercase tracking-widest">{c.label}</span>
+                <span className="text-[11px] font-black uppercase tracking-widest">{c.label}</span>
               </div>
               <div className={cn('text-3xl font-black font-mono', c.color)}>{c.value}</div>
             </GlassCard>
@@ -132,7 +132,7 @@ const StatusPanel = ({
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">
               Client le plus actif
             </p>
             <h4
@@ -176,13 +176,13 @@ const StatusPanel = ({
                     : 'bg-red-500'
                 )}
               />
-              <p className="text-[10px] font-black text-emerald-500/80 uppercase tracking-widest truncate">
+              <p className="text-[11px] font-black text-emerald-500/80 uppercase tracking-widest truncate">
                 Sentinel Watchdog V2
               </p>
             </div>
             <h4
               className={cn(
-                'text-lg md:text-xl font-black italic tracking-tight uppercase transition-colors',
+                'text-lg md:text-xl font-black italic tracking-tight transition-colors',
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >
@@ -192,7 +192,7 @@ const StatusPanel = ({
                   ? 'Offline'
                   : 'Searching'}
             </h4>
-            <p className="text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight truncate">
+            <p className="text-[11px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight truncate">
               Pulse:{' '}
               {sentinel?.lastHeartbeat
                 ? new Date(sentinel.lastHeartbeat).toLocaleTimeString()
@@ -222,19 +222,19 @@ const StatusPanel = ({
                     : 'bg-red-500'
                 )}
               />
-              <p className="text-[10px] font-black text-blue-500/80 uppercase tracking-widest truncate">
+              <p className="text-[11px] font-black text-blue-500/80 uppercase tracking-widest truncate">
                 DNS Safe Filter
               </p>
             </div>
             <h4
               className={cn(
-                'text-lg md:text-xl font-black italic tracking-tight uppercase transition-colors',
+                'text-lg md:text-xl font-black italic tracking-tight transition-colors',
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >
               {adguardStatus?.status === 'active' ? 'Filtered' : 'Disabled'}
             </h4>
-            <p className="text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight truncate">
+            <p className="text-[11px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-tight truncate">
               Engine: AdGuard Home
             </p>
           </div>
@@ -258,7 +258,7 @@ const StatusPanel = ({
         </div>
         <h3
           className={cn(
-            'text-lg font-black flex items-center gap-3 italic uppercase tracking-tighter transition-colors',
+            'text-lg font-black flex items-center gap-3 italic tracking-tighter transition-colors',
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
@@ -289,7 +289,7 @@ const StatusPanel = ({
           <Activity size={22} className={topClientRate > 0 ? 'animate-[pulse_1s_infinite]' : ''} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+          <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">
             Top Active Client
           </p>
           <h4

@@ -217,7 +217,7 @@ const LogsSection = () => {
       {/* Header */}
       <div
         className={cn(
-          'flex flex-col lg:flex-row justify-between items-start lg:items-center backdrop-blur-3xl p-6 md:p-8 rounded-[2rem] border shadow-2xl gap-6 transition-all',
+          'flex flex-col lg:flex-row justify-between items-start lg:items-center backdrop-blur-xl p-6 md:p-8 rounded-[2rem] border shadow-2xl gap-6 transition-all',
           isDark ? 'bg-slate-900/40 border-white/5' : 'bg-white/80 border-black/5'
         )}
       >
@@ -234,13 +234,13 @@ const LogsSection = () => {
           <div>
             <h2
               className={cn(
-                'text-2xl md:text-3xl font-black tracking-tighter italic uppercase transition-colors',
+                'text-2xl md:text-3xl font-black tracking-tighter italic transition-colors',
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >
               Blackbox Protocol
             </h2>
-            <p className="text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase opacity-60">
+            <p className="text-slate-500 text-[11px] font-black tracking-[0.3em] uppercase opacity-60">
               System Event History
             </p>
           </div>
@@ -267,7 +267,7 @@ const LogsSection = () => {
       {wsStatus === 'error' && (activeTab === 'security' || activeTab === 'system') && (
         <div className="flex items-center gap-3 p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl">
           <WifiOff size={16} className="text-rose-400 flex-shrink-0" />
-          <p className="text-[10px] font-bold text-rose-400/80 uppercase tracking-widest">
+          <p className="text-[11px] font-bold text-rose-400/80 uppercase tracking-widest">
             Connexion temps réel perdue — Reconnexion automatique en cours...
           </p>
         </div>
@@ -277,7 +277,7 @@ const LogsSection = () => {
       {activeTab === 'system' && (
         <div className="flex items-center gap-3 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
           <Cpu size={16} className="text-amber-400 flex-shrink-0" />
-          <p className="text-[10px] font-bold text-amber-400/80 uppercase tracking-widest">
+          <p className="text-[11px] font-bold text-amber-400/80 uppercase tracking-widest">
             Logs des conteneurs Docker — wg-fux-api · wg-fux-dashboard · wg-sentinel-proxy
           </p>
         </div>
@@ -286,7 +286,7 @@ const LogsSection = () => {
       {/* Table */}
       <div
         className={cn(
-          'backdrop-blur-3xl rounded-[2rem] border overflow-hidden shadow-2xl transition-all',
+          'backdrop-blur-xl rounded-[2rem] border overflow-hidden shadow-2xl transition-all',
           isDark ? 'bg-slate-900/40 border-white/5' : 'bg-white border-black/5'
         )}
       >
@@ -297,17 +297,17 @@ const LogsSection = () => {
               <p className="text-sm font-black text-slate-300 uppercase tracking-wider">
                 Effacer tous les journaux ?
               </p>
-              <p className="text-[10px] text-slate-500">Cette action est irréversible.</p>
+              <p className="text-[11px] text-slate-500">Cette action est irréversible.</p>
               <div className="flex gap-3">
                 <button
                   onClick={handleClearLogs}
-                  className="flex-1 py-3 bg-red-500/20 text-red-400 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-red-500/30"
+                  className="flex-1 py-3 bg-red-500/20 text-red-400 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-red-500/30"
                 >
                   Confirmer l'effacement
                 </button>
                 <button
                   onClick={() => setConfirmClear(false)}
-                  className="flex-1 py-3 bg-white/5 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-white/5"
+                  className="flex-1 py-3 bg-white/5 text-slate-400 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-white/5"
                 >
                   Annuler
                 </button>

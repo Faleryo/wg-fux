@@ -15,6 +15,9 @@ import {
   Timer,
   Wifi,
   PowerOff,
+  Activity,
+  PencilLine,
+  Download,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
@@ -25,6 +28,8 @@ import GlassCard from '../../../components/ui/Card';
 import VibeButton from '../../../components/ui/Button';
 import ConfirmModal from '../../../components/modals/ConfirmModal';
 import AddServerModal from '../../../components/modals/AddServerModal';
+import EditServerModal from './EditServerModal';
+import ServerDetailModal from './ServerDetailModal';
 
 // Délai de polling tant qu'au moins un serveur est en attente.
 const POLL_INTERVAL = 3000;
@@ -84,7 +89,7 @@ const StatusBadge = ({ status }) => {
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-xl border w-fit',
+        'inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-xl border w-fit',
         cfg.cls
       )}
     >
@@ -191,10 +196,10 @@ const PushUpdateModal = ({ servers, onClose, onApply, busy }) => {
                   <span className="block text-sm font-bold text-white truncate">
                     {s.label}
                     {s.owner ? (
-                      <span className="text-[10px] font-mono text-slate-500"> · {s.owner}</span>
+                      <span className="text-[11px] font-mono text-slate-500"> · {s.owner}</span>
                     ) : null}
                   </span>
-                  <span className="block text-[10px] font-mono text-slate-500 truncate">
+                  <span className="block text-[11px] font-mono text-slate-500 truncate">
                     {s.host} · {s.status}
                   </span>
                 </span>
@@ -206,7 +211,7 @@ const PushUpdateModal = ({ servers, onClose, onApply, busy }) => {
                 </span>
                 {s.updateApproved && (
                   <span
-                    className="text-[9px] font-black uppercase tracking-widest text-amber-400"
+                    className="text-[11px] font-black uppercase tracking-widest text-amber-400"
                     title="Déploiement déjà programmé"
                   >
                     programmée
@@ -224,7 +229,7 @@ const PushUpdateModal = ({ servers, onClose, onApply, busy }) => {
 
         {/* Mode de déploiement */}
         <div className="space-y-2">
-          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+          <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
             Mode de déploiement
           </span>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -240,7 +245,7 @@ const PushUpdateModal = ({ servers, onClose, onApply, busy }) => {
               <span className="block text-xs font-black uppercase tracking-widest text-white">
                 Programmé (défaut)
               </span>
-              <span className="block text-[10px] text-slate-400 mt-1">
+              <span className="block text-[11px] text-slate-400 mt-1">
                 Appliquée automatiquement sous ~6 h, sans intervention.
               </span>
             </button>
@@ -256,7 +261,7 @@ const PushUpdateModal = ({ servers, onClose, onApply, busy }) => {
               <span className="block text-xs font-black uppercase tracking-widest text-white">
                 Instantané
               </span>
-              <span className="block text-[10px] text-slate-400 mt-1">
+              <span className="block text-[11px] text-slate-400 mt-1">
                 L’instance la reçoit tout de suite — son opérateur confirme l’installation.
               </span>
             </button>
@@ -276,14 +281,14 @@ const PushUpdateModal = ({ servers, onClose, onApply, busy }) => {
             <button
               disabled={busy}
               onClick={onClose}
-              className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+              className="text-[11px] font-black tracking-widest text-slate-400 hover:text-white transition-colors disabled:opacity-50"
             >
               Fermer
             </button>
             <button
               disabled={busy || selected.size === 0}
               onClick={() => onApply({ serverIds: [...selected], mode })}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[11px] font-black uppercase tracking-widest text-white transition-colors disabled:opacity-40"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[11px] font-black tracking-widest text-white transition-colors disabled:opacity-40"
             >
               Pousser la mise à jour ({selected.size})
             </button>
@@ -315,7 +320,7 @@ const OneLinerModal = ({ data, onClose }) => {
             <Terminal size={20} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-white uppercase tracking-tight">
+            <h3 className="text-lg font-black text-white tracking-tight">
               Commande d’installation
             </h3>
             <p className="text-[11px] font-mono text-slate-500">
@@ -333,7 +338,7 @@ const OneLinerModal = ({ data, onClose }) => {
         <div className="flex items-center justify-between">
           <button
             onClick={copy}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-sky-500/20 text-[11px] font-black uppercase tracking-widest text-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-sky-500/20 text-[11px] font-black tracking-widest text-white transition-colors"
           >
             {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
             {copied ? 'Copié' : 'Copier'}
@@ -444,7 +449,7 @@ const RenewModal = ({ server, onClose, onApply, busy }) => {
 
         {/* Palier : plafond de clients (appliqué par l'instance au heartbeat suivant) */}
         <div className="space-y-2 pt-2 border-t border-white/5">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+          <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
             Plafond de clients (vide = illimité)
           </label>
           <div className="flex gap-3">
@@ -468,7 +473,7 @@ const RenewModal = ({ server, onClose, onApply, busy }) => {
 
         {/* Canal de mise à jour */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+          <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
             Canal de mise à jour
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -478,7 +483,7 @@ const RenewModal = ({ server, onClose, onApply, busy }) => {
                 disabled={busy}
                 onClick={() => onApply({ updateChannel: ch.value })}
                 className={cn(
-                  'py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50',
+                  'py-2 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-colors disabled:opacity-50',
                   (server.updateChannel || 'stable') === ch.value
                     ? 'border-indigo-500/50 bg-indigo-500/20 text-indigo-300'
                     : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'
@@ -548,7 +553,7 @@ const UninstallModal = ({ server, onClose, onConfirm, busy }) => {
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+          <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
             Tapez « {server.label} » pour confirmer
           </label>
           <input
@@ -601,6 +606,12 @@ const ServersSection = ({ userRole = '' }) => {
   const [query, setQuery] = useState('');
   const [showPushModal, setShowPushModal] = useState(false);
   const [pushing, setPushing] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [detailId, setDetailId] = useState(null);
+  const [checkingId, setCheckingId] = useState(null);
+  const [selected, setSelected] = useState(() => new Set());
+  const [bulkRenewDays, setBulkRenewDays] = useState('30');
 
   const pollRef = useRef(null);
 
@@ -700,6 +711,102 @@ const ServersSection = ({ userRole = '' }) => {
     }
   };
 
+  // Édite un serveur (label/host/port/métadonnées/alertes).
+  const handleEdit = async (payload) => {
+    if (!editTarget || editing) return;
+    setEditing(true);
+    try {
+      await axiosInstance.patch(`/servers/${editTarget.id}`, payload);
+      addToast('Serveur mis à jour', 'success');
+      setEditTarget(null);
+      fetchServers();
+    } catch (e) {
+      addToast(e?.response?.data?.error || 'Erreur de mise à jour', 'error');
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  // Sonde SSH à la demande (rafraîchit statut/erreur sans attendre le heartbeat).
+  const handleHealthcheck = async (srv) => {
+    if (checkingId) return;
+    setCheckingId(srv.id);
+    try {
+      const { data } = await axiosInstance.post(`/servers/${srv.id}/healthcheck`);
+      addToast(
+        data.success ? `${srv.label} : en ligne` : `${srv.label} : injoignable`,
+        data.success ? 'success' : 'error'
+      );
+      fetchServers();
+    } catch (e) {
+      addToast(e?.response?.data?.error || 'Sonde échouée', 'error');
+    } finally {
+      setCheckingId(null);
+    }
+  };
+
+  // Sélection groupée.
+  const toggleSelect = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const clearSelection = () => setSelected(new Set());
+
+  const handleBulk = async (action) => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    try {
+      const payload = { ids, action };
+      if (action === 'renew') payload.extendDays = Number(bulkRenewDays) || 30;
+      const { data } = await axiosInstance.post('/servers/bulk', payload);
+      addToast(
+        action === 'delete'
+          ? `${data.affected} serveur(s) supprimé(s)`
+          : `${data.affected} licence(s) prolongée(s)`,
+        'success'
+      );
+      clearSelection();
+      fetchServers();
+    } catch (e) {
+      addToast(e?.response?.data?.error || 'Action groupée échouée', 'error');
+    }
+  };
+
+  // Export CSV de la flotte (client-side, sur la vue filtrée).
+  const handleExportCsv = () => {
+    const cols = [
+      'id',
+      'label',
+      'host',
+      'port',
+      'status',
+      'version',
+      'clientCount',
+      'cpuPct',
+      'memPct',
+      'diskPct',
+      'region',
+      'provider',
+      'licenseExpiry',
+      'lastHeartbeat',
+    ];
+    const esc = (v) => {
+      const s = v == null ? '' : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [cols.join(',')];
+    for (const s of visibleServers) lines.push(cols.map((c) => esc(s[c])).join(','));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `wg-fux-serveurs-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  };
+
   // Régénère le one-liner d'installation (token neuf, licence conservée).
   const handleOneLiner = async (srv) => {
     try {
@@ -792,7 +899,7 @@ const ServersSection = ({ userRole = '' }) => {
             <h2 className="text-3xl font-black text-white tracking-tighter italic uppercase">
               Serveurs
             </h2>
-            <p className="text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase opacity-60">
+            <p className="text-slate-500 text-[11px] font-black tracking-[0.3em] uppercase opacity-60">
               Reseller Fleet Management
             </p>
           </div>
@@ -818,6 +925,15 @@ const ServersSection = ({ userRole = '' }) => {
             onClick={fetchServers}
           >
             Actualiser
+          </VibeButton>
+          <VibeButton
+            variant="secondary"
+            icon={Download}
+            className="w-full md:w-auto"
+            onClick={handleExportCsv}
+            disabled={visibleServers.length === 0}
+          >
+            Export CSV
           </VibeButton>
           {isAdmin && (
             <VibeButton
@@ -846,22 +962,74 @@ const ServersSection = ({ userRole = '' }) => {
           <GlassCard key={c.label} hover={false} className="py-5">
             <div className="flex items-center gap-2 text-slate-500 mb-2">
               <c.icon size={14} />
-              <span className="text-[10px] font-black uppercase tracking-widest">{c.label}</span>
+              <span className="text-[11px] font-black uppercase tracking-widest">{c.label}</span>
             </div>
             <div className={cn('text-3xl font-black', c.cls)}>{c.value}</div>
           </GlassCard>
         ))}
       </div>
 
+      {/* Barre d'actions groupées */}
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+          <span className="text-[11px] font-black tracking-widest text-indigo-300">
+            {selected.size} sélectionné{selected.size > 1 ? 's' : ''}
+          </span>
+          <div className="flex-1" />
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <input
+                value={bulkRenewDays}
+                onChange={(e) => setBulkRenewDays(e.target.value)}
+                className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-white/20"
+                title="Jours à ajouter"
+              />
+              <button
+                onClick={() => handleBulk('renew')}
+                className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-[11px] font-black tracking-widest text-emerald-300 hover:bg-emerald-500/25 transition-colors"
+              >
+                Prolonger licences
+              </button>
+            </div>
+          )}
+          <button
+            onClick={() => handleBulk('delete')}
+            className="px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-500/30 text-[11px] font-black tracking-widest text-red-300 hover:bg-red-500/25 transition-colors"
+          >
+            Supprimer
+          </button>
+          <button
+            onClick={clearSelection}
+            className="px-3 py-1.5 text-[11px] font-black tracking-widest text-slate-400 hover:text-white transition-colors"
+          >
+            Annuler
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <GlassCard className="p-0 overflow-hidden" hover={false}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
-                <th className="px-10 py-8">Serveur</th>
+              <tr className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
+                <th className="pl-8 py-8 w-10">
+                  <input
+                    type="checkbox"
+                    className="accent-indigo-500 cursor-pointer"
+                    checked={visibleServers.length > 0 && selected.size === visibleServers.length}
+                    onChange={(e) =>
+                      setSelected(
+                        e.target.checked ? new Set(visibleServers.map((s) => s.id)) : new Set()
+                      )
+                    }
+                    title="Tout sélectionner"
+                  />
+                </th>
+                <th className="px-6 py-8">Serveur</th>
                 <th className="px-8 py-8">Adresse</th>
                 <th className="px-8 py-8">Statut</th>
+                <th className="px-8 py-8">Charge</th>
                 <th className="px-8 py-8">Version</th>
                 <th className="px-8 py-8">Licence</th>
                 <th className="px-8 py-8">Dernier contact</th>
@@ -877,22 +1045,50 @@ const ServersSection = ({ userRole = '' }) => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="group hover:bg-white/5 transition-colors"
+                    className={cn(
+                      'group hover:bg-white/5 transition-colors',
+                      selected.has(srv.id) && 'bg-indigo-500/5'
+                    )}
                   >
-                    <td className="px-10 py-6">
-                      <div className="flex items-center gap-5">
+                    <td className="pl-8 py-6">
+                      <input
+                        type="checkbox"
+                        className="accent-indigo-500 cursor-pointer"
+                        checked={selected.has(srv.id)}
+                        onChange={() => toggleSelect(srv.id)}
+                      />
+                    </td>
+                    <td className="px-6 py-6">
+                      <button
+                        type="button"
+                        onClick={() => setDetailId(srv.id)}
+                        className="flex items-center gap-5 text-left"
+                        title="Voir le détail"
+                      >
                         <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 transition-all group-hover:scale-110 group-hover:bg-slate-700 shadow-xl border border-white/5">
                           <Server size={20} />
                         </div>
                         <div>
-                          <div className="text-sm font-black text-white uppercase tracking-tight">
+                          <div className="text-sm font-black text-white tracking-tight hover:text-indigo-300 transition-colors">
                             {srv.label || 'Sans nom'}
                           </div>
                           {srv.owner && (
-                            <div className="text-[10px] font-mono text-slate-500">{srv.owner}</div>
+                            <div className="text-[11px] font-mono text-slate-500">{srv.owner}</div>
+                          )}
+                          {Array.isArray(srv.tags) && srv.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {srv.tags.slice(0, 3).map((t) => (
+                                <span
+                                  key={t}
+                                  className="px-1.5 py-0.5 rounded bg-indigo-500/10 text-[9px] font-bold text-indigo-300"
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </div>
-                      </div>
+                      </button>
                     </td>
                     <td className="px-8 py-6">
                       <span className="text-xs font-mono text-slate-400">
@@ -906,7 +1102,7 @@ const ServersSection = ({ userRole = '' }) => {
                         {srv.status === 'error' && srv.lastError && (
                           <span
                             title={srv.lastError}
-                            className="flex items-center gap-1.5 text-[10px] text-red-400/80 font-mono max-w-[260px] truncate"
+                            className="flex items-center gap-1.5 text-[11px] text-red-400/80 font-mono max-w-[260px] truncate"
                           >
                             <AlertCircle size={12} className="flex-shrink-0" />
                             {srv.lastError}
@@ -915,10 +1111,47 @@ const ServersSection = ({ userRole = '' }) => {
                       </div>
                     </td>
                     <td className="px-8 py-6">
+                      {srv.cpuPct == null && srv.memPct == null && srv.diskPct == null ? (
+                        <span className="text-[11px] font-mono text-slate-600">—</span>
+                      ) : (
+                        <div className="flex flex-col gap-1 min-w-[120px]">
+                          {[
+                            ['CPU', srv.cpuPct],
+                            ['RAM', srv.memPct],
+                            ['DSK', srv.diskPct],
+                          ].map(([lab, v]) => (
+                            <div key={lab} className="flex items-center gap-2">
+                              <span className="text-[9px] font-black text-slate-600 w-6">
+                                {lab}
+                              </span>
+                              <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
+                                <div
+                                  className={cn(
+                                    'h-full rounded-full',
+                                    v == null
+                                      ? 'bg-slate-600'
+                                      : v >= 90
+                                        ? 'bg-red-500'
+                                        : v >= 70
+                                          ? 'bg-amber-500'
+                                          : 'bg-emerald-500'
+                                  )}
+                                  style={{ width: `${v == null ? 0 : Math.min(100, v)}%` }}
+                                />
+                              </div>
+                              <span className="text-[9px] font-mono text-slate-500 w-7 text-right">
+                                {v == null ? '—' : `${Math.round(v)}`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-8 py-6">
                       <div className="flex flex-col gap-1">
                         <VersionBadge version={srv.version} updateAvailable={srv.updateAvailable} />
                         {srv.updateApproved && srv.updateAvailable && (
-                          <span className="text-[9px] font-black uppercase tracking-widest text-amber-400/90">
+                          <span className="text-[11px] font-black uppercase tracking-widest text-amber-400/90">
                             → v{srv.platformVersion} programmée
                           </span>
                         )}
@@ -928,14 +1161,14 @@ const ServersSection = ({ userRole = '' }) => {
                       <div className="flex flex-col gap-1">
                         <LicenseBadge expiry={srv.licenseExpiry} />
                         {typeof srv.clientCount === 'number' && (
-                          <span className="flex items-center gap-1 text-[10px] font-mono text-slate-600">
+                          <span className="flex items-center gap-1 text-[11px] font-mono text-slate-600">
                             <Users size={11} /> {srv.clientCount}
                             {srv.maxClients != null ? ` / ${srv.maxClients}` : ''} client
                             {srv.clientCount > 1 ? 's' : ''}
                           </span>
                         )}
                         {(srv.updateChannel || 'stable') !== 'stable' && (
-                          <span className="text-[9px] font-black uppercase tracking-widest text-sky-400/80">
+                          <span className="text-[11px] font-black uppercase tracking-widest text-sky-400/80">
                             canal {srv.updateChannel}
                           </span>
                         )}
@@ -948,6 +1181,23 @@ const ServersSection = ({ userRole = '' }) => {
                     </td>
                     <td className="px-6 py-6 text-right">
                       <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform lg:translate-x-2 lg:group-hover:translate-x-0">
+                        <VibeButton
+                          variant="secondary"
+                          size="sm"
+                          icon={Activity}
+                          className="p-2.5"
+                          title="Sonder maintenant (SSH)"
+                          loading={checkingId === srv.id}
+                          onClick={() => handleHealthcheck(srv)}
+                        />
+                        <VibeButton
+                          variant="secondary"
+                          size="sm"
+                          icon={PencilLine}
+                          className="p-2.5"
+                          title="Éditer (métadonnées, alertes)"
+                          onClick={() => setEditTarget(srv)}
+                        />
                         <VibeButton
                           variant="secondary"
                           size="sm"
@@ -1046,6 +1296,25 @@ const ServersSection = ({ userRole = '' }) => {
         onConfirm={handleUninstall}
         onClose={() => setUninstallTarget(null)}
       />
+
+      <EditServerModal
+        server={editTarget}
+        busy={editing}
+        onApply={handleEdit}
+        onClose={() => setEditTarget(null)}
+      />
+
+      {detailId && (
+        <ServerDetailModal
+          serverId={detailId}
+          checking={checkingId === detailId}
+          onHealthcheck={() => {
+            const srv = servers.find((s) => s.id === detailId);
+            if (srv) handleHealthcheck(srv);
+          }}
+          onClose={() => setDetailId(null)}
+        />
+      )}
 
       {showPushModal && (
         <PushUpdateModal

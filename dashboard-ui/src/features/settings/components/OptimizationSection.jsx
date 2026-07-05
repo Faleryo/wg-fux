@@ -143,9 +143,9 @@ const OptimizationSection = ({ systemStats }) => {
         <div className="xl:col-span-2 space-y-8">
           <div
             className={cn(
-              'rounded-[3rem] border p-8 shadow-2xl h-80 relative overflow-hidden group transition-all',
+              'rounded-[2rem] border p-8 shadow-2xl h-80 relative overflow-hidden group transition-all',
               isDark
-                ? 'bg-slate-900/40 border-white/10 backdrop-blur-3xl'
+                ? 'bg-slate-900/40 border-white/10 backdrop-blur-xl'
                 : 'bg-white border-black/5',
               !isEnabled && 'opacity-40 grayscale'
             )}
@@ -153,7 +153,7 @@ const OptimizationSection = ({ systemStats }) => {
             <div className="flex justify-between items-center mb-8">
               <h3
                 className={cn(
-                  'text-lg font-black uppercase tracking-tighter flex items-center gap-3 transition-colors',
+                  'text-lg font-black tracking-tighter flex items-center gap-3 transition-colors',
                   isDark ? 'text-white' : 'text-slate-900'
                 )}
               >
@@ -168,7 +168,7 @@ const OptimizationSection = ({ systemStats }) => {
                       : 'bg-slate-500 border-slate-400'
                   )}
                 />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                   Real-time Spectrum
                 </span>
               </div>

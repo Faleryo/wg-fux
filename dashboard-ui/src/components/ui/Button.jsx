@@ -28,7 +28,7 @@ const VibeButton = ({
   };
 
   const sizes = {
-    sm: 'px-4 py-2 text-[10px]',
+    sm: 'px-4 py-2 text-[11px]',
     md: 'px-6 py-3 text-xs',
     lg: 'px-8 py-4 text-sm',
   };
@@ -40,7 +40,7 @@ const VibeButton = ({
       disabled={disabled || loading}
       onClick={onClick}
       className={cn(
-        'relative flex items-center justify-center gap-3 font-black uppercase tracking-widest border transition-all duration-300 rounded-2xl shadow-xl group',
+        'relative flex items-center justify-center gap-3 font-semibold tracking-wide border transition-all duration-300 rounded-2xl shadow-xl group',
         variants[variant],
         sizes[size],
         (disabled || loading) && 'opacity-50 cursor-not-allowed grayscale',

@@ -83,13 +83,13 @@ const ConfirmModal = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-            className="relative w-full max-w-sm glass-panel border rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+            className="relative w-full max-w-sm glass-panel border rounded-[2rem] p-8 shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Inner glow (pointer-events-none to let clicks through) */}
             <div
               className={cn(
-                'absolute inset-0 rounded-[2.5rem] opacity-[0.06] pointer-events-none',
+                'absolute inset-0 rounded-[2rem] opacity-[0.06] pointer-events-none',
                 isDanger
                   ? 'bg-gradient-to-br from-red-500 to-transparent'
                   : 'bg-gradient-to-br from-amber-500 to-transparent'
@@ -127,7 +127,7 @@ const ConfirmModal = ({
             <h2
               id="confirm-modal-title"
               className={cn(
-                'text-xl font-black text-center uppercase tracking-tight mb-3 transition-colors',
+                'text-xl font-black text-center tracking-tight mb-3 transition-colors',
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >

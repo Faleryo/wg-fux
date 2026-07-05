@@ -104,6 +104,23 @@ async function checkLicenseNow() {
     /* db pas prête : tant pis pour la télémétrie */
   }
 
+  // Télémétrie machine (CPU/RAM/disque/uptime) pour la supervision de flotte
+  // côté plateforme. Best-effort : jamais bloquant pour le heartbeat.
+  let machine = {};
+  try {
+    const os = require('os');
+    const { getSystemStats } = require('./system');
+    const st = await getSystemStats();
+    machine = {
+      cpu: parseFloat(st.cpu),
+      mem: parseFloat(st.memory),
+      disk: parseFloat(st.disk),
+      uptime: Math.round(os.uptime()),
+    };
+  } catch {
+    /* pas de télémétrie machine cette fois */
+  }
+
   try {
     const res = await fetch(`${platformUrl()}/license/heartbeat`, {
       method: 'POST',
@@ -112,6 +129,7 @@ async function checkLicenseNow() {
         key: licenseKey(),
         version: require('../../package.json').version,
         clients: clientCount,
+        ...machine,
       }),
       signal: AbortSignal.timeout(15000),
     });

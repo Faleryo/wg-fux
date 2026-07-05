@@ -147,11 +147,8 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
             <div className="flex items-center gap-4 px-6 py-5 border-b border-white/5 relative z-10">
               <Search
                 size={20}
-                style={{ color: query ? (COLOR_MAP[theme]?.[400] || '#818cf8') : undefined }}
-                className={cn(
-                  'flex-shrink-0 transition-colors',
-                  !query && 'text-slate-500'
-                )}
+                style={{ color: query ? COLOR_MAP[theme]?.[400] || '#818cf8' : undefined }}
+                className={cn('flex-shrink-0 transition-colors', !query && 'text-slate-500')}
               />
               <input
                 ref={inputRef}
@@ -169,7 +166,7 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <kbd
                   className={cn(
-                    'hidden sm:block px-2 py-1 border rounded-lg text-[10px] font-black uppercase tracking-widest',
+                    'hidden sm:block px-2 py-1 border rounded-lg text-[11px] font-black uppercase tracking-widest',
                     isDark
                       ? 'bg-white/5 border-white/10 text-slate-500'
                       : 'bg-black/5 border-slate-200 text-slate-400'
@@ -196,11 +193,11 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
               {query.length === 0 ? (
                 <div className="py-10 text-center">
                   <div
-                  className={'inline-flex p-4 rounded-2xl mb-4'}
-                  style={{
-                    backgroundColor: `${COLOR_MAP[theme]?.[600] || '#4f46e5'}1A`,
-                    color: COLOR_MAP[theme]?.[400] || '#818cf8',
-                  }}
+                    className={'inline-flex p-4 rounded-2xl mb-4'}
+                    style={{
+                      backgroundColor: `${COLOR_MAP[theme]?.[600] || '#4f46e5'}1A`,
+                      color: COLOR_MAP[theme]?.[400] || '#818cf8',
+                    }}
                   >
                     <Command size={28} />
                   </div>
@@ -212,7 +209,7 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                   >
                     Recherche Globale
                   </p>
-                  <p className="text-[10px] text-slate-600 mt-1">Peers · Sections · Adresses IP</p>
+                  <p className="text-[11px] text-slate-600 mt-1">Peers · Sections · Adresses IP</p>
                   <div className="flex justify-center gap-4 mt-5">
                     {NAV_ITEMS.slice(0, 4).map((n) => (
                       <button
@@ -228,7 +225,7 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                             'p-2.5 rounded-xl transition-all',
                             isDark
                               ? 'bg-white/5 group-hover:bg-white/10'
-                              : 'bg-black/5 group-hover:bg-black/10',
+                              : 'bg-black/5 group-hover:bg-black/10'
                           )}
                           style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
                         >
@@ -236,7 +233,7 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                         </div>
                         <span
                           className={cn(
-                            'text-[9px] font-black uppercase tracking-widest transition-colors',
+                            'text-[11px] font-black uppercase tracking-widest transition-colors',
                             isDark
                               ? 'text-slate-500 group-hover:text-white'
                               : 'text-slate-400 group-hover:text-slate-900'
@@ -253,12 +250,12 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                   <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                     Aucun résultat
                   </p>
-                  <p className="text-[10px] text-slate-700 mt-1">pour « {query} »</p>
+                  <p className="text-[11px] text-slate-700 mt-1">pour « {query} »</p>
                 </div>
               ) : (
                 categories.map((cat) => (
                   <div key={cat} className="mb-2">
-                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest px-3 py-2">
+                    <div className="text-[11px] font-black text-slate-600 uppercase tracking-widest px-3 py-2">
                       {cat}
                     </div>
                     {results
@@ -269,27 +266,39 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                           <button
                             key={`${item.id}-${idx}`}
                             onClick={() => handleSelect(item)}
-                              className={cn(
-                                'w-full flex items-center gap-4 px-3 py-3 rounded-2xl transition-all group text-left',
-                                selectedIdx === idx ? 'border' : 'hover:bg-white/5 border border-transparent'
-                              )}
-                              style={selectedIdx === idx ? {
-                                backgroundColor: `${COLOR_MAP[theme]?.[600] || '#4f46e5'}1A`,
-                                borderColor: `${COLOR_MAP[theme]?.[500] || '#6366f1'}33`,
-                              } : undefined}
+                            className={cn(
+                              'w-full flex items-center gap-4 px-3 py-3 rounded-2xl transition-all group text-left',
+                              selectedIdx === idx
+                                ? 'border'
+                                : 'hover:bg-white/5 border border-transparent'
+                            )}
+                            style={
+                              selectedIdx === idx
+                                ? {
+                                    backgroundColor: `${COLOR_MAP[theme]?.[600] || '#4f46e5'}1A`,
+                                    borderColor: `${COLOR_MAP[theme]?.[500] || '#6366f1'}33`,
+                                  }
+                                : undefined
+                            }
                           >
                             <div
                               className={cn(
                                 'p-2.5 rounded-xl transition-all flex-shrink-0',
-                                selectedIdx === idx ? 'text-white' : (
-                                  isDark
+                                selectedIdx === idx
+                                  ? 'text-white'
+                                  : isDark
                                     ? 'bg-white/5 group-hover:bg-white/10'
                                     : 'bg-black/5 group-hover:bg-black/10'
-                                )
                               )}
                               style={{
-                                backgroundColor: selectedIdx === idx ? (COLOR_MAP[theme]?.[600] || '#4f46e5') : undefined,
-                                color: selectedIdx !== idx ? (COLOR_MAP[theme]?.[400] || '#818cf8') : undefined,
+                                backgroundColor:
+                                  selectedIdx === idx
+                                    ? COLOR_MAP[theme]?.[600] || '#4f46e5'
+                                    : undefined,
+                                color:
+                                  selectedIdx !== idx
+                                    ? COLOR_MAP[theme]?.[400] || '#818cf8'
+                                    : undefined,
                               }}
                             >
                               <item.icon size={16} />
@@ -303,7 +312,7 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                               >
                                 {item.label}
                               </div>
-                              <div className="text-[10px] text-slate-500 font-mono truncate">
+                              <div className="text-[11px] text-slate-500 font-mono truncate">
                                 {item.desc}
                               </div>
                             </div>
@@ -325,7 +334,7 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
             </div>
 
             {/* Footer hints */}
-            <div className="px-6 py-3 border-t border-white/5 flex items-center gap-6 text-[9px] font-black text-slate-600 uppercase tracking-widest">
+            <div className="px-6 py-3 border-t border-white/5 flex items-center gap-6 text-[11px] font-black text-slate-600 uppercase tracking-widest">
               <span className="flex items-center gap-1.5">
                 <kbd className="px-1.5 py-0.5 bg-white/5 rounded border border-white/10">↑↓</kbd>{' '}
                 Naviguer

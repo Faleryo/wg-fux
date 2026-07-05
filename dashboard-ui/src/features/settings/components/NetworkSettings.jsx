@@ -15,7 +15,7 @@ const NetworkSettings = ({ config, setConfig, isDark, theme }) => {
     >
       <h3
         className={cn(
-          'text-xl font-black flex items-center gap-3 italic uppercase transition-colors',
+          'text-xl font-black flex items-center gap-3 italic transition-colors',
           isDark ? 'text-white' : 'text-slate-900'
         )}
       >
@@ -32,8 +32,9 @@ const NetworkSettings = ({ config, setConfig, isDark, theme }) => {
           tooltip="Domaine ou IP publique inscrit dans le fichier .conf des clients VPN. Doit pointer vers ce serveur (port UDP ci-dessus)."
           placeholder="ex: vpn.mondomaine.com ou 1.2.3.4"
         />
-        <p className="px-1 text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed opacity-60">
-          ⚠ Seuls les <strong>nouveaux</strong> clients générés après la modification utiliseront ce point d&apos;entrée.
+        <p className="px-1 text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed opacity-60">
+          ⚠ Seuls les <strong>nouveaux</strong> clients générés après la modification utiliseront ce
+          point d&apos;entrée.
         </p>
       </div>
 

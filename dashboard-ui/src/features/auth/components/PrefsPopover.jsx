@@ -78,7 +78,7 @@ const PrefsPopover = ({ isLight }) => {
           className={`absolute right-0 mt-3 w-64 origin-top-right rounded-lg border p-4 backdrop-blur-xl ${popoverSurface}`}
         >
           <div className="mb-4">
-            <div className={`mb-2 font-mono text-[10px] uppercase tracking-[0.3em] ${textDim}`}>
+            <div className={`mb-2 font-mono text-[11px] uppercase tracking-[0.3em] ${textDim}`}>
               Mode
             </div>
             <div className="grid grid-cols-3 gap-1.5">
@@ -91,7 +91,7 @@ const PrefsPopover = ({ isLight }) => {
                     onClick={() => setMode(id)}
                     aria-pressed={active}
                     title={label}
-                    className={`flex flex-col items-center gap-1 rounded-md px-2 py-2 text-[10px] font-mono uppercase tracking-[0.15em] transition ${
+                    className={`flex flex-col items-center gap-1 rounded-md px-2 py-2 text-[11px] font-mono uppercase tracking-[0.15em] transition ${
                       active ? popoverBtnActive : popoverBtn
                     }`}
                   >
@@ -104,7 +104,7 @@ const PrefsPopover = ({ isLight }) => {
           </div>
 
           <div className="mb-4">
-            <div className={`mb-2 font-mono text-[10px] uppercase tracking-[0.3em] ${textDim}`}>
+            <div className={`mb-2 font-mono text-[11px] uppercase tracking-[0.3em] ${textDim}`}>
               Accent
             </div>
             <div className="flex items-center gap-2">
@@ -136,14 +136,16 @@ const PrefsPopover = ({ isLight }) => {
                   </button>
                 );
               })}
-              <span className={`ml-auto font-mono text-[10px] uppercase tracking-[0.2em] ${textDim}`}>
+              <span
+                className={`ml-auto font-mono text-[11px] uppercase tracking-[0.2em] ${textDim}`}
+              >
                 {theme}
               </span>
             </div>
           </div>
 
           <div>
-            <div className={`mb-2 font-mono text-[10px] uppercase tracking-[0.3em] ${textDim}`}>
+            <div className={`mb-2 font-mono text-[11px] uppercase tracking-[0.3em] ${textDim}`}>
               Langue
             </div>
             <div className="grid grid-cols-2 gap-1.5">

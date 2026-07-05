@@ -253,7 +253,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
         ].map((stat, i) => (
           <div
             key={i}
-            className="bg-slate-950/40 backdrop-blur-3xl p-6 rounded-3xl border border-white/5 flex items-center gap-5 group hover:border-white/10 transition-all"
+            className="bg-slate-950/40 backdrop-blur-xl p-6 rounded-3xl border border-white/5 flex items-center gap-5 group hover:border-white/10 transition-all"
           >
             <div
               className={cn(
@@ -264,7 +264,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
               <stat.icon size={24} />
             </div>
             <div>
-              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+              <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">
                 {stat.label}
               </div>
               <div className="text-xl font-mono font-black text-white tracking-tighter">
@@ -276,7 +276,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
       </div>
 
       {/* Main Identity Card */}
-      <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 p-8 group shadow-2xl">
+      <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/10 p-8 group shadow-2xl">
         <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-1000 rotate-12 scale-150">
           <Database size={200} />
         </div>
@@ -293,7 +293,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                 <Info size={32} />
               </div>
               <div>
-                <h2 className="text-4xl font-black text-white tracking-widest uppercase mb-1">
+                <h2 className="text-4xl font-black text-white tracking-widest mb-1">
                   {client.name}
                 </h2>
                 <div className="flex items-center gap-3">
@@ -306,7 +306,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                     {client.ip}
                   </span>
                   <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                     {client.container}
                   </span>
                 </div>
@@ -319,7 +319,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                   client.enabled ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-slate-600'
                 )}
               ></div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
                 Dernière activité: {lastActivity}
               </span>
             </div>
@@ -356,9 +356,9 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Traffic Area */}
-        <div className="xl:col-span-2 bg-slate-950/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 shadow-2xl">
+        <div className="xl:col-span-2 bg-slate-950/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 shadow-2xl">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
-            <h3 className="text-xl font-black text-white flex items-center gap-4 uppercase tracking-tighter">
+            <h3 className="text-xl font-black text-white flex items-center gap-4 tracking-tighter">
               <Activity size={24} className={cn(txtColorMap[theme] || 'text-indigo-400')} /> Spectre
               Réseau
             </h3>
@@ -371,7 +371,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                   key={opt.id}
                   onClick={() => setViewMode(opt.id)}
                   className={cn(
-                    'px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500',
+                    'px-6 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-500',
                     viewMode === opt.id
                       ? toggleActiveMap[theme] || 'bg-indigo-600 text-white shadow-2xl'
                       : 'text-slate-500 hover:text-white'
@@ -386,7 +386,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
             {loadingHistory72h && viewMode === 'history' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
                 <RefreshCw className="animate-spin text-slate-500" size={28} />
-                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
+                <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">
                   Chargement 72h...
                 </span>
               </div>
@@ -461,22 +461,22 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
         </div>
 
         {/* Tactical History */}
-        <div className="bg-slate-950/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 shadow-2xl flex flex-col">
-          <h3 className="text-xl font-black text-white mb-8 flex items-center gap-4 uppercase tracking-tighter">
+        <div className="bg-slate-950/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 shadow-2xl flex flex-col">
+          <h3 className="text-xl font-black text-white mb-8 flex items-center gap-4 tracking-tighter">
             <List size={24} className={cn(txtColorMap[theme] || 'text-indigo-400')} /> Blackbox Log
           </h3>
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
             {loadingHistory ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
                 <RefreshCw className="animate-spin text-slate-500" size={32} />
-                <span className="text-[10px] font-black uppercase tracking-widest">
+                <span className="text-[11px] font-black uppercase tracking-widest">
                   Scanning logs...
                 </span>
               </div>
             ) : history.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
                 <Info className="text-slate-500" size={32} />
-                <span className="text-[10px] font-black uppercase tracking-widest">
+                <span className="text-[11px] font-black uppercase tracking-widest">
                   No logs found
                 </span>
               </div>
@@ -489,7 +489,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                   className="bg-white/5 p-4 rounded-2xl border border-white/5 hover:border-white/10 hover:bg-white/10 transition-all group"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span className="text-[10px] font-mono font-bold text-slate-400 group-hover:text-white transition-colors">
+                    <span className="text-[11px] font-mono font-bold text-slate-400 group-hover:text-white transition-colors">
                       {new Date(entry.timestamp).toLocaleString()}
                     </span>
                     <span
@@ -516,7 +516,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                       <div className="text-[8px] font-black text-slate-500 uppercase">
                         Handshake Scan
                       </div>
-                      <div className="text-[10px] font-mono font-bold text-emerald-500">
+                      <div className="text-[11px] font-mono font-bold text-emerald-500">
                         {new Date(entry.timestamp).toLocaleTimeString()}
                       </div>
                     </div>

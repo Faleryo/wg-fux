@@ -35,7 +35,9 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
       return;
     }
     if (!/^[a-zA-Z0-9_-]{2,64}$/.test(username.trim())) {
-      setError("Nom d'utilisateur invalide (2-64 caractères, lettres, chiffres, _ et - uniquement)");
+      setError(
+        "Nom d'utilisateur invalide (2-64 caractères, lettres, chiffres, _ et - uniquement)"
+      );
       return;
     }
     if (password.length < 8) {
@@ -75,7 +77,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Username */}
         <div>
-          <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+          <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
             Identifiant
           </label>
           <div className="relative group">
@@ -96,7 +98,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
 
         {/* Password */}
         <div>
-          <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+          <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
             Mot de Passe
           </label>
           <div className="relative group">
@@ -123,7 +125,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
 
         {/* Confirm Password */}
         <div>
-          <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+          <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
             Confirmer le Mot de Passe
           </label>
           <div className="relative group">
@@ -143,7 +145,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
 
         {/* Role Selector */}
         <div>
-          <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest">
+          <label className="block text-[11px] font-black text-slate-500 mb-3 uppercase tracking-widest">
             Rôle Système
           </label>
           <div className="grid grid-cols-3 gap-3">
@@ -154,19 +156,25 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
                 onClick={() => setRole(r.id)}
                 className={cn(
                   'flex flex-col items-center gap-2 py-4 rounded-2xl border transition-all duration-300 text-center',
-                  role === r.id ? '' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10 hover:text-slate-300'
+                  role === r.id
+                    ? ''
+                    : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10 hover:text-slate-300'
                 )}
-                style={role === r.id ? {
-                  backgroundColor: `${COLOR_MAP[r.color]?.[500] || '#64748b'}1a`,
-                  borderColor: `${COLOR_MAP[r.color]?.[500] || '#64748b'}66`,
-                  color: COLOR_MAP[r.color]?.[400] || '#94a3b8',
-                  boxShadow: `0 10px 15px -3px ${COLOR_MAP[r.color]?.[500] || '#64748b'}1a`,
-                } : undefined}
+                style={
+                  role === r.id
+                    ? {
+                        backgroundColor: `${COLOR_MAP[r.color]?.[500] || '#64748b'}1a`,
+                        borderColor: `${COLOR_MAP[r.color]?.[500] || '#64748b'}66`,
+                        color: COLOR_MAP[r.color]?.[400] || '#94a3b8',
+                        boxShadow: `0 10px 15px -3px ${COLOR_MAP[r.color]?.[500] || '#64748b'}1a`,
+                      }
+                    : undefined
+                }
               >
                 <Shield size={20} />
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-widest">{r.label}</div>
-                  <div className="text-[9px] opacity-60 mt-0.5">{r.desc}</div>
+                  <div className="text-[11px] opacity-60 mt-0.5">{r.desc}</div>
                 </div>
               </button>
             ))}
@@ -199,8 +207,12 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
               backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
               boxShadow: `0 10px 15px -3px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}4d`,
             }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[500] || '#6366f1'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[600] || '#4f46e5'}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[500] || '#6366f1')
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor = COLOR_MAP[theme]?.[600] || '#4f46e5')
+            }
           >
             {loading ? (
               <RefreshCw className="animate-spin" size={18} />

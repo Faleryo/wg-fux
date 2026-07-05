@@ -16,7 +16,7 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
       <div className="flex items-center justify-between">
         <h3
           className={cn(
-            'text-xl font-black flex items-center gap-3 italic uppercase transition-colors',
+            'text-xl font-black flex items-center gap-3 italic transition-colors',
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
@@ -24,7 +24,7 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
         </h3>
         <div
           className={cn(
-            'px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-[0.2em]',
+            'px-4 py-1.5 rounded-full border text-[11px] font-black uppercase tracking-[0.2em]',
             isDark
               ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
               : 'bg-emerald-50 border-emerald-200 text-emerald-600'
@@ -37,7 +37,7 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div
           className={cn(
-            'p-8 rounded-[2.5rem] border relative group hover:border-white/10 transition-all',
+            'p-8 rounded-[2rem] border relative group hover:border-white/10 transition-all',
             isDark
               ? 'bg-white/5 border-white/5'
               : 'bg-slate-50 border-black/5 shadow-sm hover:border-indigo-500/20'
@@ -54,17 +54,16 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
           >
             <ShieldCheck size={18} /> Encryption Module
           </h4>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-6">
-            Protocole ChaCha20-Poly1305 actif. Rotation automatique des clés de session
-            Curve25519.
+          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-6">
+            Protocole ChaCha20-Poly1305 actif. Rotation automatique des clés de session Curve25519.
           </p>
-          <button className="text-[9px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 transition-all">
+          <button className="text-[11px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 transition-all">
             Analyser Intégrité <ArrowRight size={14} />
           </button>
         </div>
         <div
           className={cn(
-            'p-8 rounded-[2.5rem] border relative group transition-all',
+            'p-8 rounded-[2rem] border relative group transition-all',
             isDark
               ? 'bg-white/5 border-white/5 hover:border-white/10'
               : 'bg-slate-50 border-black/5 shadow-sm hover:border-indigo-500/20'
@@ -78,11 +77,10 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
           >
             <Activity size={18} /> Packet Filtering
           </h4>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-6">
-            Pare-feu UFW activé. Rejet immédiat des paquets ICMP non autorisés et scans
-            SYN furtifs.
+          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-6">
+            Pare-feu UFW activé. Rejet immédiat des paquets ICMP non autorisés et scans SYN furtifs.
           </p>
-          <button className="text-[9px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 transition-all">
+          <button className="text-[11px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 transition-all">
             Logs Firewall <ArrowRight size={14} />
           </button>
         </div>
@@ -91,7 +89,7 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
       <div className={cn('grid grid-cols-1 gap-8 mt-4')}>
         <div
           className={cn(
-            'p-8 rounded-[2.5rem] border relative group transition-all',
+            'p-8 rounded-[2rem] border relative group transition-all',
             isDark
               ? 'bg-white/5 border-white/5 hover:border-white/10'
               : 'bg-slate-50 border-black/5 shadow-sm hover:border-indigo-500/20'
@@ -107,10 +105,9 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
               >
                 <Zap size={18} className="text-amber-400" /> Telegram Sentinel
               </h4>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed max-w-xl">
-                Vérifiez la connectivité avec votre bot Telegram. Le système envoie des
-                alertes critiques lors des tentatives de brèche ou de déconnexion
-                d'interface.
+              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed max-w-xl">
+                Vérifiez la connectivité avec votre bot Telegram. Le système envoie des alertes
+                critiques lors des tentatives de brèche ou de déconnexion d'interface.
               </p>
             </div>
             <button
@@ -123,7 +120,7 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
                 }
               }}
               className={cn(
-                'whitespace-nowrap px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95',
+                'whitespace-nowrap px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-95',
                 isDark
                   ? 'bg-white/5 hover:bg-white/10 text-white'
                   : 'bg-indigo-600 text-white shadow-lg hover:bg-indigo-500 shadow-indigo-600/20'

@@ -27,7 +27,7 @@ const LogViewer = ({ logs, filteredLogs, loading, isDark }) => (
       >
         <tr
           className={cn(
-            'text-[10px] font-black uppercase tracking-widest border-b transition-colors',
+            'text-[11px] font-black uppercase tracking-widest border-b transition-colors',
             isDark ? 'text-slate-500 border-white/5' : 'text-slate-400 border-black/5'
           )}
         >
@@ -69,7 +69,7 @@ const LogViewer = ({ logs, filteredLogs, loading, isDark }) => (
                   <Clock size={12} className="text-slate-600 shrink-0" />
                   <span
                     className={cn(
-                      'text-[10px] transition-colors',
+                      'text-[11px] transition-colors',
                       isDark
                         ? 'text-slate-400 group-hover:text-white'
                         : 'text-slate-500 group-hover:text-slate-900'
@@ -96,12 +96,12 @@ const LogViewer = ({ logs, filteredLogs, loading, isDark }) => (
                 </div>
               </td>
               <td className="px-6 py-4 hidden sm:table-cell">
-                <span className="text-[10px] text-slate-500 font-mono">{log.ip}</span>
+                <span className="text-[11px] text-slate-500 font-mono">{log.ip}</span>
               </td>
               <td className="px-6 py-4">
                 <div
                   className={cn(
-                    'inline-flex items-center px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest',
+                    'inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px] font-black uppercase tracking-widest',
                     getStatusStyle(log.status, isDark)
                   )}
                 >

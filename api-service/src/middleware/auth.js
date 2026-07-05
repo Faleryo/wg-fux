@@ -158,11 +158,11 @@ const requireReseller = (req, res, next) => {
 // (conteneurs, logs, réseau, portefeuille…) — pas seulement masqué côté UI,
 // sinon un appel direct à l'API contournerait la restriction.
 // N'affecte ni l'admin ni le manager (fondateurs de la plateforme).
-// GET /system/license reste accessible : le shell du dashboard l'appelle au
-// montage pour TOUT rôle (bandeau de licence de l'instance mère elle-même,
-// rien à voir avec le VPS du revendeur) — le bloquer casserait l'UI avant même
-// d'afficher l'onglet Serveurs.
-const ONBOARDING_EXEMPT_PATHS = ['/license'];
+// Endpoints toujours accessibles, même à un revendeur pas encore onboardé : le
+// shell du dashboard les appelle au montage pour TOUT rôle (licence de l'instance
+// mère, sondes de vie). Les bloquer casserait l'UI avant même d'afficher l'onglet
+// Serveurs. (Chemins relatifs au point de montage, ex. /api/system → '/health'.)
+const ONBOARDING_EXEMPT_PATHS = ['/license', '/health', '/ready'];
 
 const requireOnboardedReseller = async (req, res, next) => {
   if (!req.user || req.user.role !== 'reseller') return next();

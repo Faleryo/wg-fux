@@ -36,7 +36,7 @@ const PerformanceMonitor = () => {
           Performance SRE
         </span>
         <span
-          className={`text-[10px] px-1.5 py-0.5 rounded-full border ${p95 < 500 ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}
+          className={`text-[11px] px-1.5 py-0.5 rounded-full border ${p95 < 500 ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}
         >
           {statusLabel}
         </span>
@@ -67,7 +67,7 @@ const PerformanceMonitor = () => {
         </div>
       </div>
 
-      {error && <span className="text-[10px] text-red-400 animate-pulse">Connection error</span>}
+      {error && <span className="text-[11px] text-red-400 animate-pulse">Connection error</span>}
     </GlassCard>
   );
 };

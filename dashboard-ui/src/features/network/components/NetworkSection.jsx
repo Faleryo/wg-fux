@@ -13,6 +13,11 @@ import {
   Power,
   PencilLine,
   Tag,
+  Download,
+  KeyRound,
+  Search,
+  AlertTriangle,
+  Mail,
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
@@ -20,6 +25,8 @@ import { cn, COLOR_MAP } from '../../../lib/utils';
 import { axiosInstance } from '../../../lib/api';
 import GlassCard from '../../../components/ui/Card';
 import VibeButton from '../../../components/ui/Button';
+import NetworkStats from './NetworkStats';
+import InvitesPanel from './InvitesPanel';
 
 const euros = (cents) => (cents == null ? '—' : (cents / 100).toFixed(2) + ' €');
 
@@ -50,9 +57,22 @@ const NetworkSection = ({ userRole }) => {
   const [transferForm, setTransferForm] = useState({ toUserId: '', credits: '' });
   const [topupForm, setTopupForm] = useState({ userId: '', credits: '', priceCents: '' });
   const [buyCredits, setBuyCredits] = useState('');
-  const [inviteUrl, setInviteUrl] = useState(null);
   const [myPrice, setMyPrice] = useState('');
   const [priceEdit, setPriceEdit] = useState(null); // { id, username, value }
+  // Recherche / tri / pagination du tableau réseau.
+  const [netQuery, setNetQuery] = useState('');
+  const [sortKey, setSortKey] = useState('username');
+  const [sortDir, setSortDir] = useState('asc');
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 15;
+  // Relevé : filtres + recherche.
+  const [ledgerType, setLedgerType] = useState('');
+  const [ledgerQuery, setLedgerQuery] = useState('');
+  // Contact de paiement (admin) + résultat d'un reset de mot de passe.
+  const [contact, setContact] = useState(null);
+  const [contactBusy, setContactBusy] = useState(false);
+  const [resetResult, setResetResult] = useState(null); // { username, password }
+  const LOW_BALANCE = 3; // seuil d'alerte de solde bas (crédits)
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -153,22 +173,6 @@ const NetworkSection = ({ userRole }) => {
       }
     });
 
-  // Lien d'invitation (usage unique, 7 jours) pour agrandir son réseau.
-  const createInvite = () =>
-    guard(async () => {
-      try {
-        const res = await axiosInstance.post('/resellers/invites');
-        const url = res.data?.url || res.data?.token;
-        setInviteUrl(url);
-        if (navigator.clipboard && url) {
-          await navigator.clipboard.writeText(url).catch(() => {});
-          addToast('Lien d’invitation copié (valide 7 jours)', 'success');
-        }
-      } catch (e) {
-        addToast(e?.response?.data?.error || 'Erreur invitation', 'error');
-      }
-    });
-
   // Mon prix de revente d'1 crédit (marge sur les transferts vers mon réseau).
   const saveMyPrice = () =>
     guard(async () => {
@@ -205,9 +209,117 @@ const NetworkSection = ({ userRole }) => {
       }
     });
 
+  // Contact de paiement (réglages plateforme, admin uniquement).
+  useEffect(() => {
+    if (!isAdmin) return;
+    axiosInstance
+      .get('/settings')
+      .then((r) =>
+        setContact({
+          payment_contact_whatsapp: r.data?.payment_contact_whatsapp || '',
+          payment_contact_telegram: r.data?.payment_contact_telegram || '',
+          payment_instructions: r.data?.payment_instructions || '',
+        })
+      )
+      .catch(() => {});
+  }, [isAdmin]);
+
+  const saveContact = () =>
+    guard(async () => {
+      setContactBusy(true);
+      try {
+        await axiosInstance.put('/settings', contact);
+        addToast('Contact de paiement enregistré', 'success');
+      } catch (e) {
+        addToast(e?.response?.data?.error || 'Erreur contact', 'error');
+      } finally {
+        setContactBusy(false);
+      }
+    });
+
+  // Réinitialise le mot de passe d'un compte (affiche le nouveau une fois).
+  const resetPassword = (u) =>
+    guard(async () => {
+      try {
+        const { data } = await axiosInstance.post(`/resellers/${u.id}/reset-password`);
+        setResetResult({ username: data.username, password: data.password });
+      } catch (e) {
+        addToast(e?.response?.data?.error || 'Erreur reset', 'error');
+      }
+    });
+
+  // Édite l'email d'un compte (prompt simple).
+  const editEmail = (u) => {
+    const email = window.prompt(`Email de ${u.username} :`, u.email || '');
+    if (email === null) return;
+    patchAccount(u.id, { email: email.trim() || null }, 'Email mis à jour');
+  };
+
+  // Export CSV du relevé de crédits (vue filtrée).
+  const exportLedgerCsv = () => {
+    const cols = ['reason', 'delta', 'priceCents', 'ref'];
+    const esc = (v) => {
+      const s = v == null ? '' : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = ['mouvement,credits,prix_centimes,ref'];
+    for (const e of filteredLedger) lines.push(cols.map((c) => esc(e[c])).join(','));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `wg-fux-releve-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  };
+
   const marginCents = wallet?.margin
     ? wallet.margin.resoldCents - wallet.margin.acquiredCostCents
     : 0;
+
+  // Tri + recherche + pagination du réseau. Un compte est indenté sous son parent
+  // (hiérarchie visuelle : parentId != null = sous-revendeur).
+  const filteredNetwork = React.useMemo(() => {
+    const q = netQuery.trim().toLowerCase();
+    let rows = network.filter(
+      (u) =>
+        !q ||
+        (u.username || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        String(u.id).includes(q)
+    );
+    const dir = sortDir === 'asc' ? 1 : -1;
+    rows = [...rows].sort((a, b) => {
+      const va = a[sortKey],
+        vb = b[sortKey];
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return String(va ?? '').localeCompare(String(vb ?? '')) * dir;
+    });
+    return rows;
+  }, [network, netQuery, sortKey, sortDir]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredNetwork.length / PAGE_SIZE));
+  const pagedNetwork = filteredNetwork.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+
+  const filteredLedger = React.useMemo(() => {
+    const q = ledgerQuery.trim().toLowerCase();
+    return (wallet?.entries || []).filter(
+      (e) =>
+        (!ledgerType || e.reason === ledgerType) &&
+        (!q ||
+          (e.reason || '').toLowerCase().includes(q) ||
+          (e.ref || '').toLowerCase().includes(q))
+    );
+  }, [wallet, ledgerType, ledgerQuery]);
+
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+    setPage(0);
+  };
 
   const inputCls =
     'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/20 font-mono';
@@ -228,10 +340,8 @@ const NetworkSection = ({ userRole }) => {
             <Users size={32} />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-white tracking-tighter italic uppercase">
-              Réseau
-            </h2>
-            <p className="text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase opacity-60">
+            <h2 className="text-3xl font-black text-white tracking-tighter italic">Réseau</h2>
+            <p className="text-slate-500 text-[11px] font-black tracking-[0.3em] uppercase opacity-60">
               Crédits · Revendeurs · Marge
             </p>
           </div>
@@ -247,9 +357,21 @@ const NetworkSection = ({ userRole }) => {
           <div className="flex items-center gap-3 text-slate-400 mb-3">
             <Wallet size={18} />{' '}
             <span className="text-[11px] font-black uppercase tracking-widest">Solde</span>
+            {wallet && wallet.balance <= LOW_BALANCE && (
+              <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-black tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
+                <AlertTriangle size={11} /> Bas
+              </span>
+            )}
           </div>
-          <div className="text-4xl font-black text-white">{wallet?.balance ?? '—'}</div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">crédits</div>
+          <div
+            className={cn(
+              'text-4xl font-black',
+              wallet && wallet.balance <= LOW_BALANCE ? 'text-amber-400' : 'text-white'
+            )}
+          >
+            {wallet?.balance ?? '—'}
+          </div>
+          <div className="text-[11px] text-slate-500 uppercase tracking-widest mt-1">crédits</div>
         </GlassCard>
         <GlassCard hover={false}>
           <div className="flex items-center gap-3 text-slate-400 mb-3">
@@ -264,7 +386,7 @@ const NetworkSection = ({ userRole }) => {
           >
             {euros(marginCents)}
           </div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
+          <div className="text-[11px] text-slate-500 uppercase tracking-widest mt-1">
             revente − acquisition
           </div>
         </GlassCard>
@@ -276,16 +398,19 @@ const NetworkSection = ({ userRole }) => {
             </span>
           </div>
           <div className="text-4xl font-black text-white">{network.length}</div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
+          <div className="text-[11px] text-slate-500 uppercase tracking-widest mt-1">
             comptes rattachés
           </div>
         </GlassCard>
       </div>
 
-      {/* Acheter des crédits (Stripe) + inviter + mon prix */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Statistiques business (12 mois) */}
+      <NetworkStats />
+
+      {/* Acheter des crédits (Stripe) + mon prix */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GlassCard hover={false}>
-          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2 flex items-center gap-2">
+          <h3 className="text-lg font-black text-white tracking-tight mb-2 flex items-center gap-2">
             <Wallet size={18} /> Acheter des crédits
           </h3>
           <p className="text-[11px] text-slate-500 mb-4">
@@ -310,23 +435,7 @@ const NetworkSection = ({ userRole }) => {
           </div>
         </GlassCard>
         <GlassCard hover={false}>
-          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2 flex items-center gap-2">
-            <Send size={18} /> Inviter un revendeur
-          </h3>
-          <p className="text-[11px] text-slate-500 mb-4">
-            Génère un lien d’inscription usage-unique (7 jours). L’invité rejoint votre réseau.
-          </p>
-          <VibeButton variant="secondary" icon={Plus} onClick={createInvite} disabled={busy}>
-            Générer un lien
-          </VibeButton>
-          {inviteUrl && (
-            <div className="mt-3 text-[11px] font-mono text-indigo-300 break-all select-all">
-              {inviteUrl}
-            </div>
-          )}
-        </GlassCard>
-        <GlassCard hover={false}>
-          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2 flex items-center gap-2">
+          <h3 className="text-lg font-black text-white tracking-tight mb-2 flex items-center gap-2">
             <Tag size={18} /> Mon prix de revente
           </h3>
           <p className="text-[11px] text-slate-500 mb-4">
@@ -355,7 +464,7 @@ const NetworkSection = ({ userRole }) => {
       {/* Admin : top-up */}
       {isAdmin && (
         <GlassCard hover={false}>
-          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-black text-white tracking-tight mb-4 flex items-center gap-2">
             <Plus size={18} /> Créditer un compte (top-up)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -386,44 +495,78 @@ const NetworkSection = ({ userRole }) => {
 
       {/* Sous-revendeurs + création + transfert */}
       <GlassCard hover={false} className="p-0 overflow-hidden">
-        <div className="p-6 border-b border-white/5">
-          <h3 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
+        <div className="p-6 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h3 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
             <Users size={18} /> Mon réseau
           </h3>
+          <div className="relative w-full md:w-64">
+            <Search
+              size={14}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
+            />
+            <input
+              value={netQuery}
+              onChange={(e) => {
+                setNetQuery(e.target.value);
+                setPage(0);
+              }}
+              placeholder="Rechercher (nom, email, #id)…"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-white/20"
+            />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
-                <th className="px-6 py-4">Compte</th>
-                <th className="px-6 py-4">Statut</th>
-                <th className="px-6 py-4">Solde</th>
-                <th className="px-6 py-4">Serveurs</th>
-                <th className="px-6 py-4">Clients</th>
+              <tr className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
+                {[
+                  ['username', 'Compte'],
+                  ['enabled', 'Statut'],
+                  ['balance', 'Solde'],
+                  ['serversCount', 'Serveurs'],
+                  ['clientsTotal', 'Clients'],
+                ].map(([key, label]) => (
+                  <th
+                    key={key}
+                    className="px-6 py-4 cursor-pointer select-none hover:text-slate-300 transition-colors"
+                    onClick={() => toggleSort(key)}
+                  >
+                    {label}
+                    {sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                  </th>
+                ))}
                 <th className="px-6 py-4">Licence proche</th>
                 <th className="px-6 py-4">Prix revente</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {network.map((u) => {
+              {pagedNetwork.map((u) => {
                 const licDays = u.nextLicenseExpiry
                   ? Math.ceil((new Date(u.nextLicenseExpiry).getTime() - Date.now()) / 86400000)
                   : null;
                 return (
                   <tr key={u.id} className={cn('hover:bg-white/5', !u.enabled && 'opacity-50')}>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-bold text-white">{u.username}</div>
-                      <div className="text-[10px] font-mono text-slate-500">
-                        #{u.id}
-                        {u.parentId != null ? ' · sous-revendeur' : ''}
-                        {u.email ? ` · ${u.email}` : ''}
+                      <div
+                        className="flex items-center gap-2"
+                        style={{ paddingLeft: u.parentId != null ? 18 : 0 }}
+                      >
+                        {u.parentId != null && <span className="text-slate-600">↳</span>}
+                        <div>
+                          <div className="text-sm font-bold text-white">{u.username}</div>
+                          <div className="text-[11px] font-mono text-slate-500">
+                            #{u.id}
+                            {u.parentId != null ? ' · sous-revendeur' : ' · revendeur'}
+                            {u.email ? ` · ${u.email}` : ''}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span
                         className={cn(
-                          'text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border',
+                          'text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border',
                           u.enabled
                             ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
                             : 'text-red-400 bg-red-500/10 border-red-500/20'
@@ -480,7 +623,7 @@ const NetworkSection = ({ userRole }) => {
                                 'Prix mis à jour'
                               )
                             }
-                            className="text-emerald-400 hover:text-emerald-300 text-[10px] font-black uppercase"
+                            className="text-emerald-400 hover:text-emerald-300 text-[11px] font-black uppercase"
                           >
                             OK
                           </button>
@@ -502,60 +645,99 @@ const NetworkSection = ({ userRole }) => {
                       )}
                     </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => setTransferForm({ toUserId: String(u.id), credits: '' })}
-                        className="text-indigo-400 hover:text-indigo-300 text-[11px] font-black uppercase tracking-widest mr-4"
-                        title="Pré-remplir le transfert de crédits"
-                      >
-                        Transférer
-                      </button>
-                      {isAdmin && (
+                      <div className="inline-flex items-center gap-3">
+                        <button
+                          onClick={() => setTransferForm({ toUserId: String(u.id), credits: '' })}
+                          className="text-indigo-400 hover:text-indigo-300 text-[11px] font-black tracking-widest"
+                          title="Pré-remplir le transfert de crédits"
+                        >
+                          Transférer
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() =>
+                              setTopupForm({ userId: String(u.id), credits: '', priceCents: '' })
+                            }
+                            className="text-emerald-400 hover:text-emerald-300 text-[11px] font-black tracking-widest"
+                            title="Pré-remplir le top-up"
+                          >
+                            Créditer
+                          </button>
+                        )}
+                        <button
+                          onClick={() => editEmail(u)}
+                          className="text-slate-400 hover:text-white transition-colors"
+                          title="Modifier l'email"
+                        >
+                          <Mail size={13} />
+                        </button>
+                        <button
+                          onClick={() => resetPassword(u)}
+                          className="text-amber-400/80 hover:text-amber-400 transition-colors"
+                          title="Réinitialiser le mot de passe"
+                        >
+                          <KeyRound size={13} />
+                        </button>
                         <button
                           onClick={() =>
-                            setTopupForm({ userId: String(u.id), credits: '', priceCents: '' })
+                            patchAccount(
+                              u.id,
+                              { enabled: !u.enabled },
+                              u.enabled ? 'Compte désactivé' : 'Compte réactivé'
+                            )
                           }
-                          className="text-emerald-400 hover:text-emerald-300 text-[11px] font-black uppercase tracking-widest mr-4"
-                          title="Pré-remplir le top-up"
+                          className={cn(
+                            'inline-flex items-center gap-1 text-[11px] font-black tracking-widest',
+                            u.enabled
+                              ? 'text-red-400/80 hover:text-red-400'
+                              : 'text-emerald-400 hover:text-emerald-300'
+                          )}
+                          title={u.enabled ? 'Couper l’accès de ce compte' : 'Rétablir l’accès'}
                         >
-                          Créditer
+                          <Power size={13} /> {u.enabled ? 'Désactiver' : 'Activer'}
                         </button>
-                      )}
-                      <button
-                        onClick={() =>
-                          patchAccount(
-                            u.id,
-                            { enabled: !u.enabled },
-                            u.enabled ? 'Compte désactivé' : 'Compte réactivé'
-                          )
-                        }
-                        className={cn(
-                          'text-[11px] font-black uppercase tracking-widest',
-                          u.enabled
-                            ? 'text-red-400/80 hover:text-red-400'
-                            : 'text-emerald-400 hover:text-emerald-300'
-                        )}
-                        title={u.enabled ? 'Couper l’accès de ce compte' : 'Rétablir l’accès'}
-                      >
-                        <Power size={13} className="inline -mt-0.5" />{' '}
-                        {u.enabled ? 'Désactiver' : 'Activer'}
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
-              {network.length === 0 && (
+              {filteredNetwork.length === 0 && (
                 <tr>
                   <td
                     colSpan={8}
                     className="px-6 py-8 text-center text-slate-500 text-xs uppercase tracking-widest"
                   >
-                    Aucun sous-revendeur
+                    {netQuery ? 'Aucun compte ne correspond' : 'Aucun sous-revendeur'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {pageCount > 1 && (
+          <div className="flex items-center justify-between px-6 py-3 border-t border-white/5">
+            <span className="text-[11px] font-mono text-slate-500">
+              Page {page + 1} / {pageCount} · {filteredNetwork.length} comptes
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-black tracking-widest text-slate-300 disabled:opacity-40 transition-colors"
+              >
+                Préc.
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                disabled={page >= pageCount - 1}
+                className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-black tracking-widest text-slate-300 disabled:opacity-40 transition-colors"
+              >
+                Suiv.
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 border-t border-white/5">
           {/* Créer un sous-revendeur */}
@@ -623,9 +805,49 @@ const NetworkSection = ({ userRole }) => {
         </div>
       </GlassCard>
 
+      {/* Invitations */}
+      <InvitesPanel />
+
+      {/* Contact de paiement (réglages plateforme, admin) */}
+      {isAdmin && contact && (
+        <GlassCard hover={false}>
+          <h3 className="text-lg font-black text-white tracking-tight mb-2 flex items-center gap-2">
+            <Mail size={18} /> Contact de paiement
+          </h3>
+          <p className="text-[11px] text-slate-500 mb-4">
+            Affiché aux clients d’une instance quand la licence expire (vente manuelle sans Stripe).
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input
+              className={inputCls}
+              placeholder="WhatsApp (+33…)"
+              value={contact.payment_contact_whatsapp}
+              onChange={(e) => setContact({ ...contact, payment_contact_whatsapp: e.target.value })}
+            />
+            <input
+              className={inputCls}
+              placeholder="Telegram (@handle)"
+              value={contact.payment_contact_telegram}
+              onChange={(e) => setContact({ ...contact, payment_contact_telegram: e.target.value })}
+            />
+          </div>
+          <textarea
+            className={cn(inputCls, 'mt-3 resize-none h-20')}
+            placeholder="Instructions de paiement…"
+            value={contact.payment_instructions}
+            onChange={(e) => setContact({ ...contact, payment_instructions: e.target.value })}
+          />
+          <div className="flex justify-end mt-4">
+            <VibeButton variant="primary" icon={Save} onClick={saveContact} disabled={contactBusy}>
+              Enregistrer
+            </VibeButton>
+          </div>
+        </GlassCard>
+      )}
+
       {/* White-label */}
       <GlassCard hover={false}>
-        <h3 className="text-lg font-black text-white uppercase tracking-tight mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-black text-white tracking-tight mb-4 flex items-center gap-2">
           <Palette size={18} /> Marque (white-label)
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -663,15 +885,48 @@ const NetworkSection = ({ userRole }) => {
 
       {/* Relevé */}
       <GlassCard hover={false} className="p-0 overflow-hidden">
-        <div className="p-6 border-b border-white/5">
-          <h3 className="text-lg font-black text-white uppercase tracking-tight">
-            Relevé de crédits
-          </h3>
+        <div className="p-6 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h3 className="text-lg font-black text-white tracking-tight">Relevé de crédits</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={ledgerType}
+              onChange={(e) => setLedgerType(e.target.value)}
+              className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white/20"
+            >
+              <option value="">Tous les mouvements</option>
+              {Object.entries(REASON_LABEL).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+            <div className="relative">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+              />
+              <input
+                value={ledgerQuery}
+                onChange={(e) => setLedgerQuery(e.target.value)}
+                placeholder="Réf…"
+                className="w-36 bg-white/5 border border-white/10 rounded-xl pl-8 pr-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-white/20"
+              />
+            </div>
+            <VibeButton
+              variant="secondary"
+              icon={Download}
+              size="sm"
+              onClick={exportLedgerCsv}
+              disabled={filteredLedger.length === 0}
+            >
+              CSV
+            </VibeButton>
+          </div>
         </div>
         <div className="overflow-x-auto max-h-96">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
+              <tr className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
                 <th className="px-6 py-3">Mouvement</th>
                 <th className="px-6 py-3">Crédits</th>
                 <th className="px-6 py-3">Prix</th>
@@ -679,7 +934,7 @@ const NetworkSection = ({ userRole }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {(wallet?.entries || []).map((e) => (
+              {filteredLedger.map((e) => (
                 <tr key={e.id} className="hover:bg-white/5">
                   <td className="px-6 py-3 text-xs text-slate-300">
                     {REASON_LABEL[e.reason] || e.reason}
@@ -696,12 +951,12 @@ const NetworkSection = ({ userRole }) => {
                   <td className="px-6 py-3 text-xs font-mono text-slate-500">
                     {euros(e.priceCents)}
                   </td>
-                  <td className="px-6 py-3 text-[10px] font-mono text-slate-600 truncate max-w-[160px]">
+                  <td className="px-6 py-3 text-[11px] font-mono text-slate-600 truncate max-w-[160px]">
                     {e.ref || '—'}
                   </td>
                 </tr>
               ))}
-              {(!wallet?.entries || wallet.entries.length === 0) && (
+              {filteredLedger.length === 0 && (
                 <tr>
                   <td
                     colSpan={4}
@@ -715,6 +970,45 @@ const NetworkSection = ({ userRole }) => {
           </table>
         </div>
       </GlassCard>
+
+      {/* Résultat d'un reset de mot de passe (affiché une seule fois) */}
+      {resetResult && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="glass-panel border rounded-2xl shadow-2xl w-full max-w-sm p-8 space-y-5 text-center">
+            <div className="w-12 h-12 mx-auto rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <KeyRound size={22} />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-white tracking-tight">
+                Mot de passe réinitialisé
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Transmettez-le à {resetResult.username}. Il ne sera plus affiché.
+              </p>
+            </div>
+            <div className="font-mono text-lg text-white bg-white/5 border border-white/10 rounded-xl py-3 select-all break-all">
+              {resetResult.password}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(resetResult.password).catch(() => {});
+                  addToast('Copié', 'success');
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-[11px] font-black tracking-widest text-white transition-colors"
+              >
+                Copier
+              </button>
+              <button
+                onClick={() => setResetResult(null)}
+                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[11px] font-black tracking-widest text-white transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

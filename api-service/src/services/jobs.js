@@ -52,6 +52,9 @@ const getSharedPeers = async () => {
 // Pruned periodically to avoid unbounded memory growth.
 const _notifiedQuota = new Set();
 const _notifiedExpiry = new Set();
+// Anti-spam des alertes par serveur (clé `${id}:offline` / `${id}:license`).
+// Une clé est retirée dès que la condition se résout → ré-alerte à la rechute.
+const _notifiedServerAlert = new Set();
 const MAX_NOTIFY_SET_SIZE = 10000;
 // Cache quota bytes per publicKey so the DB lookup inside updateUsage runs only
 // once per peer per session instead of on every 60s tick.
@@ -607,10 +610,62 @@ const serverHeartbeat = async () => {
         if (failures >= 3) alertServerOffline(server, errMsg || 'sonde SSH en échec');
       }
     }
+    await evaluateServerAlerts();
   } catch (e) {
     log.error('jobs', 'Server heartbeat error', { err: e.message });
   } finally {
     isHeartbeating = false;
+  }
+};
+
+// Évalue les seuils d'alerte configurés PAR serveur (offline prolongé, licence
+// proche). Émet une notification à la transition, et arme la ré-alerte une fois
+// la condition résolue. Best-effort : ne casse jamais le job de flotte.
+const evaluateServerAlerts = async () => {
+  try {
+    const rows = await db.select().from(schema.servers);
+    const now = Date.now();
+    for (const s of rows) {
+      // Offline depuis plus de alertOfflineMin minutes.
+      if (Number.isInteger(s.alertOfflineMin) && s.alertOfflineMin > 0) {
+        const key = `${s.id}:offline`;
+        const last = s.lastHeartbeat ? new Date(s.lastHeartbeat).getTime() : 0;
+        const offlineMs = last ? now - last : Infinity;
+        const breached = s.status === 'offline' || offlineMs > s.alertOfflineMin * 60 * 1000;
+        if (breached && !_notifiedServerAlert.has(key)) {
+          _notifiedServerAlert.add(key);
+          await notify
+            .send('sre', `🔌 Serveur « ${s.label} » injoignable depuis plus de ${s.alertOfflineMin} min.`, {
+              serverId: s.id,
+              host: s.host,
+            })
+            .catch(() => {});
+        } else if (!breached) {
+          _notifiedServerAlert.delete(key);
+        }
+      }
+      // Licence expirant dans moins de alertLicenseDays jours.
+      if (Number.isInteger(s.alertLicenseDays) && s.alertLicenseDays > 0 && s.licenseExpiry) {
+        const key = `${s.id}:license`;
+        const daysLeft = Math.ceil((new Date(s.licenseExpiry).getTime() - now) / 86400000);
+        const breached = daysLeft <= s.alertLicenseDays;
+        if (breached && !_notifiedServerAlert.has(key)) {
+          _notifiedServerAlert.add(key);
+          await notify
+            .send(
+              'sre',
+              `⏳ Licence de « ${s.label} » : ${daysLeft <= 0 ? 'expirée' : `${daysLeft} j restants`}.`,
+              { serverId: s.id }
+            )
+            .catch(() => {});
+        } else if (!breached) {
+          _notifiedServerAlert.delete(key);
+        }
+      }
+    }
+    if (_notifiedServerAlert.size > MAX_NOTIFY_SET_SIZE) _notifiedServerAlert.clear();
+  } catch (e) {
+    log.error('jobs', 'Server alert evaluation error', { err: e.message });
   }
 };
 

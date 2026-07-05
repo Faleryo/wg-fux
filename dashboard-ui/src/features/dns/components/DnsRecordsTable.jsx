@@ -2,7 +2,15 @@ import React from 'react';
 import { Shield, RefreshCw } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
-const DnsRecordsTable = ({ filtering, handleRemoveFilter, handleAddFilter, newFilterName, newFilterUrl, setNewFilterName, setNewFilterUrl }) => {
+const DnsRecordsTable = ({
+  filtering,
+  handleRemoveFilter,
+  handleAddFilter,
+  newFilterName,
+  newFilterUrl,
+  setNewFilterName,
+  setNewFilterUrl,
+}) => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4">
@@ -17,19 +25,19 @@ const DnsRecordsTable = ({ filtering, handleRemoveFilter, handleAddFilter, newFi
               </div>
               <div>
                 <div className="text-xs font-bold text-white">{filter.name}</div>
-                <div className="text-[10px] text-slate-500 font-mono truncate max-w-[300px]">
+                <div className="text-[11px] text-slate-500 font-mono truncate max-w-[300px]">
                   {filter.url}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right mr-4">
-                <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">
+                <div className="text-[11px] font-black text-indigo-500 uppercase tracking-widest">
                   {filter.rules_count} RÈGLES
                 </div>
                 <div
                   className={cn(
-                    'text-[10px] font-bold uppercase',
+                    'text-[11px] font-bold uppercase',
                     filter.enabled ? 'text-emerald-500' : 'text-amber-500'
                   )}
                 >
@@ -48,7 +56,7 @@ const DnsRecordsTable = ({ filtering, handleRemoveFilter, handleAddFilter, newFi
       </div>
 
       <div className="pt-6 border-t border-white/5">
-        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
+        <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
           Ajouter une Blocklist
         </h4>
         <div className="flex flex-col sm:flex-row gap-4">
@@ -74,7 +82,7 @@ const DnsRecordsTable = ({ filtering, handleRemoveFilter, handleAddFilter, newFi
                 setNewFilterUrl('');
               }
             }}
-            className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all whitespace-nowrap"
+            className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all whitespace-nowrap"
           >
             Ajouter
           </button>

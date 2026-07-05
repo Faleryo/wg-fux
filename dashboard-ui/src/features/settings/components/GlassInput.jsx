@@ -8,7 +8,7 @@ const GlassInput = ({ label, value, onChange, badge, tooltip }) => {
   return (
     <div className="group space-y-3">
       <div className="flex items-center justify-between px-1">
-        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">
+        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest leading-none">
           {label}
         </label>
         {tooltip && (
@@ -22,9 +22,9 @@ const GlassInput = ({ label, value, onChange, badge, tooltip }) => {
             />
             <div
               className={cn(
-                'absolute bottom-full right-0 mb-4 w-64 p-4 border rounded-2xl text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover/tip:opacity-100 transition-all pointer-events-none z-50 shadow-2xl',
+                'absolute bottom-full right-0 mb-4 w-64 p-4 border rounded-2xl text-[11px] font-bold uppercase tracking-widest opacity-0 group-hover/tip:opacity-100 transition-all pointer-events-none z-50 shadow-2xl',
                 isDark
-                  ? 'bg-slate-950/95 backdrop-blur-3xl border-white/10 text-slate-400'
+                  ? 'bg-slate-950/95 backdrop-blur-xl border-white/10 text-slate-400'
                   : 'bg-white border-black/10 text-slate-500'
               )}
             >
@@ -35,8 +35,10 @@ const GlassInput = ({ label, value, onChange, badge, tooltip }) => {
       </div>
       <div className="relative group/field">
         <div
-          className='absolute -inset-0.5 rounded-2xl blur opacity-0 group-focus-within/field:opacity-40 transition-opacity'
-          style={{ backgroundColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '33' : '#6366f133' }}
+          className="absolute -inset-0.5 rounded-2xl blur opacity-0 group-focus-within/field:opacity-40 transition-opacity"
+          style={{
+            backgroundColor: COLOR_MAP[theme]?.[500] ? COLOR_MAP[theme][500] + '33' : '#6366f133',
+          }}
         />
         <input
           type="text"
@@ -52,7 +54,7 @@ const GlassInput = ({ label, value, onChange, badge, tooltip }) => {
         {badge && (
           <div
             className={cn(
-              'absolute right-4 top-1/2 -translate-y-1/2 px-3 py-1 border rounded-xl text-[9px] font-black font-mono uppercase tracking-widest transition-colors',
+              'absolute right-4 top-1/2 -translate-y-1/2 px-3 py-1 border rounded-xl text-[11px] font-black font-mono uppercase tracking-widest transition-colors',
               isDark
                 ? 'bg-slate-900 border-white/5 text-slate-500'
                 : 'bg-white border-black/5 text-slate-400'

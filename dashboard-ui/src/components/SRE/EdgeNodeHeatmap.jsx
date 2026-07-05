@@ -27,10 +27,10 @@ const EdgeNodeHeatmap = ({ interfaces }) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center gap-2">
+        <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center gap-2">
           <Globe size={12} className="text-indigo-400" /> Distributed Node Fabric
         </h3>
-        <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+        <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
           MESH STATUS: ACTIVE
         </span>
       </div>
@@ -56,7 +56,7 @@ const EdgeNodeHeatmap = ({ interfaces }) => {
 
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-3">
-                <span className="text-[10px] font-black text-slate-400 group-hover:text-white transition-colors">
+                <span className="text-[11px] font-black text-slate-400 group-hover:text-white transition-colors">
                   {node.name.toUpperCase()}
                 </span>
                 <div
@@ -70,7 +70,7 @@ const EdgeNodeHeatmap = ({ interfaces }) => {
               </div>
 
               <div className="space-y-1">
-                <div className="flex justify-between text-[9px] font-mono">
+                <div className="flex justify-between text-[11px] font-mono">
                   <span className="text-slate-500">LATENCY</span>
                   <span className="text-indigo-400 font-bold">{node.latency}ms</span>
                 </div>
@@ -101,7 +101,7 @@ const EdgeNodeHeatmap = ({ interfaces }) => {
           <div className="w-6 h-6 rounded-full border border-slate-600 flex items-center justify-center text-slate-600 group-hover:border-indigo-500 group-hover:text-indigo-500 mb-2">
             +
           </div>
-          <span className="text-[9px] font-black uppercase text-slate-600 tracking-widest">
+          <span className="text-[11px] font-black uppercase text-slate-600 tracking-widest">
             Connect Edge
           </span>
         </div>

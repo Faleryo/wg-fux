@@ -30,7 +30,7 @@ const DnsConfigForm = ({
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'flex items-center gap-2 px-5 sm:px-8 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all relative shrink-0',
+              'flex items-center gap-2 px-5 sm:px-8 py-4 sm:py-5 text-[11px] sm:text-[11px] font-black uppercase tracking-widest transition-all relative shrink-0',
               activeTab === tab.id
                 ? 'text-white bg-indigo-600/10'
                 : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'
@@ -94,7 +94,7 @@ const DnsConfigForm = ({
                       setConfig({ ...config, upstream_dns: [...(config.upstream_dns || []), url] });
                     }
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400 hover:bg-indigo-500/20 transition-all"
+                  className="px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[11px] font-bold text-indigo-400 hover:bg-indigo-500/20 transition-all"
                 >
                   + {preset}
                 </button>
@@ -173,7 +173,7 @@ const DnsConfigForm = ({
                   <div className="font-extrabold text-xs uppercase tracking-wider mb-1">
                     {item.label}
                   </div>
-                  <div className="text-[10px] opacity-60 leading-relaxed">{item.desc}</div>
+                  <div className="text-[11px] opacity-60 leading-relaxed">{item.desc}</div>
                 </div>
                 <div
                   className={cn(

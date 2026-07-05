@@ -29,7 +29,7 @@ const CustomTooltip = ({ active, payload, label, isDark, unit }) => {
     >
       <p
         className={cn(
-          'text-[10px] font-black uppercase tracking-widest mb-2 border-b pb-2',
+          'text-[11px] font-black uppercase tracking-widest mb-2 border-b pb-2',
           isDark ? 'text-slate-500 border-white/5' : 'text-slate-400 border-black/5'
         )}
       >
@@ -165,7 +165,7 @@ export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
                   key={v}
                   onClick={() => setView(v)}
                   className={cn(
-                    'px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors',
+                    'px-3 py-1.5 text-[11px] font-black uppercase tracking-widest transition-colors',
                     view === v
                       ? 'bg-indigo-500/30 text-white'
                       : 'text-slate-500 hover:text-slate-300'
@@ -180,7 +180,7 @@ export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
             <Download size={12} className="text-indigo-400" />
             <span
               className={cn(
-                'text-[10px] font-black',
+                'text-[11px] font-black',
                 isDark ? 'text-indigo-100' : 'text-indigo-900'
               )}
             >
@@ -190,7 +190,7 @@ export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
           <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-full">
             <Upload size={12} className="text-rose-400" />
             <span
-              className={cn('text-[10px] font-black', isDark ? 'text-rose-100' : 'text-rose-900')}
+              className={cn('text-[11px] font-black', isDark ? 'text-rose-100' : 'text-rose-900')}
             >
               UPLOAD
             </span>
@@ -212,7 +212,7 @@ export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
             />
             <p
               className={cn(
-                'text-[10px] font-black uppercase tracking-[0.3em]',
+                'text-[11px] font-black uppercase tracking-[0.3em]',
                 isDark ? 'text-slate-600' : 'text-slate-400'
               )}
             >
@@ -297,7 +297,7 @@ export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
       >
         <div className="flex items-center gap-3">
           <Activity size={18} className="text-indigo-500 animate-pulse" />
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
             {usingRealtime ? 'Débits temps réel (5 s) · Mbit/s' : 'Historique 24 h · volumes MB'}
           </span>
         </div>
@@ -307,10 +307,10 @@ export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
             isDark ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'
           )}
         >
-          <span className="text-[10px] font-black text-slate-400">SOURCE:</span>
+          <span className="text-[11px] font-black text-slate-400">SOURCE:</span>
           <span
             className={cn(
-              'text-[10px] font-black tracking-widest',
+              'text-[11px] font-black tracking-widest',
               usingRealtime ? 'text-amber-400' : 'text-emerald-500'
             )}
           >

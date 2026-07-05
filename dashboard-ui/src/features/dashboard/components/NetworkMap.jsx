@@ -134,7 +134,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
     <div
       ref={containerRef}
       className={cn(
-        'col-span-12 w-full relative h-[calc(100vh-100px)] backdrop-blur-3xl rounded-3xl border overflow-hidden group select-none shadow-2xl cursor-grab active:cursor-grabbing transition-all',
+        'col-span-12 w-full relative h-[calc(100vh-100px)] backdrop-blur-xl rounded-3xl border overflow-hidden group select-none shadow-2xl cursor-grab active:cursor-grabbing transition-all',
         isDark ? 'bg-slate-900/40 border-white/5' : 'bg-white/80 border-black/5'
       )}
       onMouseDown={handleMouseDown}
@@ -175,14 +175,14 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
           <div>
             <h3
               className={cn(
-                'text-xl font-black tracking-tight uppercase transition-colors',
+                'text-xl font-black tracking-tight transition-colors',
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >
               Tactical Radar
             </h3>
             <p
-              className="text-[10px] font-black tracking-widest uppercase opacity-60"
+              className="text-[11px] font-black tracking-widest uppercase opacity-60"
               style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
             >
               Deep Space Network Monitoring
@@ -237,7 +237,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
       >
         <span
           className={cn(
-            'text-[10px] font-black uppercase tracking-widest mb-2 opacity-60 transition-colors',
+            'text-[11px] font-black uppercase tracking-widest mb-2 opacity-60 transition-colors',
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
@@ -255,7 +255,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
                     boxShadow: `0 0 8px ${COLOR_MAP[color.name]?.[500] || '#6366f1'}`,
                   }}
                 ></span>
-                <span className="text-[9px] font-bold text-slate-400 font-mono uppercase truncate max-w-[80px]">
+                <span className="text-[11px] font-bold text-slate-400 font-mono uppercase truncate max-w-[80px]">
                   {c}
                 </span>
               </div>

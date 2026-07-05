@@ -8,8 +8,8 @@ const OptimizationSummary = ({ isEnabled, handleToggleSync }) => {
   return (
     <div
       className={cn(
-        'flex flex-col lg:flex-row justify-between items-center p-8 rounded-[3rem] border shadow-2xl gap-8 transition-all',
-        isDark ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl' : 'bg-white border-black/5'
+        'flex flex-col lg:flex-row justify-between items-center p-8 rounded-[2rem] border shadow-2xl gap-8 transition-all',
+        isDark ? 'bg-slate-900/40 border-white/5 backdrop-blur-xl' : 'bg-white border-black/5'
       )}
     >
       <div className="flex items-center gap-6">
@@ -26,13 +26,13 @@ const OptimizationSummary = ({ isEnabled, handleToggleSync }) => {
         <div>
           <h2
             className={cn(
-              'text-4xl font-black tracking-tighter italic uppercase transition-colors',
+              'text-4xl font-black tracking-tighter italic transition-colors',
               isDark ? 'text-white' : 'text-slate-900'
             )}
           >
             Neural Optimizer
           </h2>
-          <p className="text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60">
+          <p className="text-slate-500 text-[11px] font-black tracking-[0.4em] uppercase opacity-60">
             Advanced Flow Shaping & Latency Control
           </p>
         </div>
@@ -42,13 +42,13 @@ const OptimizationSummary = ({ isEnabled, handleToggleSync }) => {
           className={cn(
             'flex items-center gap-4 p-4 rounded-2xl border cursor-pointer group transition-all',
             isDark
-              ? 'bg-slate-950/60 border-white/5 backdrop-blur-3xl'
+              ? 'bg-slate-950/60 border-white/5 backdrop-blur-xl'
               : 'bg-slate-50 border-black/5 shadow-sm'
           )}
         >
           <span
             className={cn(
-              'text-[10px] font-black uppercase tracking-widest transition-colors',
+              'text-[11px] font-black uppercase tracking-widest transition-colors',
               isDark
                 ? 'text-slate-500 group-hover:text-white'
                 : 'text-slate-400 group-hover:text-slate-900'

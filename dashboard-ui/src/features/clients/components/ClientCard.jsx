@@ -45,7 +45,10 @@ const ClientCard = ({
       {/* Bulk select overlay on avatar */}
       {onToggleSelect && (
         <button
-          onClick={(e) => { e.stopPropagation(); onToggleSelect(client); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect(client);
+          }}
           aria-label={isSelected ? 'Désélectionner' : 'Sélectionner'}
           aria-pressed={isSelected}
           className={cn(
@@ -66,7 +69,14 @@ const ClientCard = ({
               'w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black text-white shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6',
               online ? '' : 'bg-slate-800 text-slate-500'
             )}
-            style={online ? { backgroundColor: COLOR_MAP[color]?.[500] || '#6366f1', boxShadow: `0 8px 32px -8px ${COLOR_MAP[color]?.[500] || '#6366f1'}4d` } : undefined}
+            style={
+              online
+                ? {
+                    backgroundColor: COLOR_MAP[color]?.[500] || '#6366f1',
+                    boxShadow: `0 8px 32px -8px ${COLOR_MAP[color]?.[500] || '#6366f1'}4d`,
+                  }
+                : undefined
+            }
           >
             {(client.name || '?').charAt(0).toUpperCase()}
           </div>
@@ -83,7 +93,7 @@ const ClientCard = ({
                 aria-hidden="true"
               />
               <span
-                className="text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest"
+                className="text-[11px] font-mono text-slate-500 font-bold uppercase tracking-widest"
                 aria-label={online ? 'Peer actif' : 'Peer hors ligne'}
               >
                 {online ? 'Actif' : 'Offline'}
@@ -92,7 +102,7 @@ const ClientCard = ({
           </div>
         </div>
         <div className="text-right">
-          <span className="block text-[10px] font-mono font-bold text-white/40 mb-0.5">
+          <span className="block text-[11px] font-mono font-bold text-white/40 mb-0.5">
             {client.ip}
           </span>
           {(expired || expiring) && (
@@ -133,18 +143,26 @@ const ClientCard = ({
 
         {client.quota > 0 && (
           <div className="space-y-2">
-            <div className="flex justify-between text-[9px] font-black uppercase text-slate-500">
+            <div className="flex justify-between text-[11px] font-black uppercase text-slate-500">
               <span>Quota Usage</span>
               <span className={quotaPct > 80 ? 'text-rose-400' : 'text-white'}>
                 {quotaPct.toFixed(1)}%
               </span>
             </div>
-            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round(quotaPct)} aria-valuemin={0} aria-valuemax={100}>
+            <div
+              className="h-1 w-full bg-white/5 rounded-full overflow-hidden"
+              role="progressbar"
+              aria-valuenow={Math.round(quotaPct)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
               <div
                 className={cn('h-full rounded-full', quotaPct > 80 ? 'bg-rose-500' : '')}
                 style={{
                   width: `${quotaPct}%`,
-                  ...(quotaPct <= 80 ? { backgroundColor: COLOR_MAP[color]?.[500] || '#6366f1' } : {}),
+                  ...(quotaPct <= 80
+                    ? { backgroundColor: COLOR_MAP[color]?.[500] || '#6366f1' }
+                    : {}),
                 }}
               />
             </div>
@@ -155,14 +173,20 @@ const ClientCard = ({
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
         <div className="flex gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={(e) => { e.stopPropagation(); onEdit(client); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(client);
+            }}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
             title="Modifier"
           >
             <Edit size={14} />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onToggle(client.container, client.name, !client.enabled); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(client.container, client.name, !client.enabled);
+            }}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-all"
             title={client.enabled ? 'Désactiver' : 'Activer'}
             aria-label={client.enabled ? 'Désactiver le peer' : 'Activer le peer'}
@@ -176,13 +200,13 @@ const ClientCard = ({
             title="Configuration / QR Code"
             aria-label="Afficher la configuration QR Code"
           >
-            {qrLoading
-              ? <RefreshCw size={14} className="animate-spin" />
-              : <QrCode size={14} />
-            }
+            {qrLoading ? <RefreshCw size={14} className="animate-spin" /> : <QrCode size={14} />}
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(client); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(client);
+            }}
             className="p-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all"
             title="Supprimer"
             aria-label="Supprimer le peer"
@@ -192,7 +216,10 @@ const ClientCard = ({
         </div>
         <div
           className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"
-          style={{ backgroundColor: COLOR_MAP[color]?.[500] ? COLOR_MAP[color][500] + '1a' : '#6366f11a', color: COLOR_MAP[color]?.[400] || '#818cf8' }}
+          style={{
+            backgroundColor: COLOR_MAP[color]?.[500] ? COLOR_MAP[color][500] + '1a' : '#6366f11a',
+            color: COLOR_MAP[color]?.[400] || '#818cf8',
+          }}
         >
           <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
         </div>

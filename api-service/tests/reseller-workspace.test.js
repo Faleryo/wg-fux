@@ -68,6 +68,11 @@ beforeAll(async () => {
   admin = await mkUser('ws-admin', 'admin');
   vendor = await mkUser('ws-vendor', 'reseller');
   otherVendor = await mkUser('ws-other', 'reseller');
+  // Un revendeur opérationnel a enregistré son VPS : sans ≥1 serveur, le
+  // middleware requireOnboardedReseller le considère comme un invité pas encore
+  // onboardé et lui refuse l'espace de travail (clients/system). On lui en donne
+  // un pour tester son espace de travail local.
+  await mkServer(vendor.id);
 }, 30000);
 
 describe('resolveServer — contexte local ouvert, tenance distante conservée', () => {
@@ -346,6 +351,7 @@ describe('POST /clients/:container/:name/renew — renouvellement payant', () =>
 
   it('solde insuffisant → 402, expiry inchangée', async () => {
     const broke = await mkUser('ws-broke', 'reseller');
+    await mkServer(broke.id); // onboardé (a son VPS) mais sans crédit
     await mkClient('broke-box', 'abo-3', broke.username, null);
     const res = await as(broke)(
       request(app).post('/api/clients/broke-box/abo-3/renew').send({ days: 90 })

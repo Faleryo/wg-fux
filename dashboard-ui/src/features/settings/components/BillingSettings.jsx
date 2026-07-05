@@ -8,7 +8,7 @@ import { axiosInstance } from '../../../lib/api';
 // "•••• configuré" et on n'envoie la valeur que si l'admin la retape.
 const Field = ({ label, icon: Icon, value, onChange, placeholder, secret, configured, isDark }) => (
   <div className="space-y-2">
-    <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+    <label className="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest">
       {Icon && <Icon size={12} />} {label}
       {secret && configured && (
         <span className="text-emerald-400/80 inline-flex items-center gap-1">
@@ -91,7 +91,7 @@ const BillingSettings = ({ addToast, isDark }) => {
       <section className="space-y-6">
         <h3
           className={cn(
-            'text-xl font-black flex items-center gap-3 italic uppercase',
+            'text-xl font-black flex items-center gap-3 italic',
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
@@ -188,7 +188,7 @@ const BillingSettings = ({ addToast, isDark }) => {
       <section className="space-y-6">
         <h3
           className={cn(
-            'text-xl font-black flex items-center gap-3 italic uppercase',
+            'text-xl font-black flex items-center gap-3 italic',
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
@@ -229,7 +229,7 @@ const BillingSettings = ({ addToast, isDark }) => {
       <section className="space-y-6">
         <h3
           className={cn(
-            'text-xl font-black flex items-center gap-3 italic uppercase',
+            'text-xl font-black flex items-center gap-3 italic',
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >

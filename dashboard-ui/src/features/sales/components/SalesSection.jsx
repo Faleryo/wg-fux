@@ -45,7 +45,7 @@ const ExpiryBadge = ({ expiry }) => {
   const d = daysLeft(expiry);
   if (d === null)
     return (
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+      <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">
         Illimité
       </span>
     );
@@ -58,7 +58,7 @@ const ExpiryBadge = ({ expiry }) => {
   return (
     <span
       className={cn(
-        'text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border',
+        'text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border',
         cls
       )}
     >
@@ -196,10 +196,8 @@ const SalesSection = ({ userRole = '' }) => {
             <BadgeDollarSign size={32} />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-white tracking-tighter italic uppercase">
-              Ventes
-            </h2>
-            <p className="text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase opacity-60">
+            <h2 className="text-3xl font-black text-white tracking-tighter italic">Ventes</h2>
+            <p className="text-slate-500 text-[11px] font-black tracking-[0.3em] opacity-60">
               Abonnements · Renouvellements · Crédits
             </p>
           </div>
@@ -229,7 +227,7 @@ const SalesSection = ({ userRole = '' }) => {
           <GlassCard key={c.label} hover={false} className="py-5">
             <div className="flex items-center gap-2 text-slate-500 mb-2">
               <c.icon size={14} />
-              <span className="text-[10px] font-black uppercase tracking-widest">{c.label}</span>
+              <span className="text-[11px] font-black tracking-widest">{c.label}</span>
             </div>
             <div className={cn('text-3xl font-black', c.cls)}>{c.value}</div>
           </GlassCard>
@@ -249,7 +247,7 @@ const SalesSection = ({ userRole = '' }) => {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
+              <tr className="text-[11px] font-black text-slate-500 tracking-[0.25em] border-b border-white/5">
                 <th className="px-6 py-4">Client</th>
                 <th className="px-6 py-4">Conteneur</th>
                 <th className="px-6 py-4">Abonnement</th>
@@ -270,7 +268,7 @@ const SalesSection = ({ userRole = '' }) => {
                     <td className="px-6 py-4">
                       <span
                         className={cn(
-                          'text-[10px] font-black uppercase tracking-widest',
+                          'text-[11px] font-black uppercase tracking-widest',
                           c.enabled === false ? 'text-red-400' : 'text-emerald-400'
                         )}
                       >
@@ -288,7 +286,7 @@ const SalesSection = ({ userRole = '' }) => {
                               ? 'Gratuit (admin)'
                               : `${r.credits} crédit${r.credits > 1 ? 's' : ''}`
                           }
-                          className="ml-3 px-3 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/25 text-[10px] font-black uppercase tracking-widest text-indigo-300 transition-colors disabled:opacity-40"
+                          className="ml-3 px-3 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/25 text-[11px] font-black uppercase tracking-widest text-indigo-300 transition-colors disabled:opacity-40"
                         >
                           {r.label}
                           {!isFree && <span className="text-indigo-400/60"> · {r.credits} cr</span>}
@@ -319,14 +317,12 @@ const SalesSection = ({ userRole = '' }) => {
       {!isFree && (
         <GlassCard hover={false} className="p-0 overflow-hidden">
           <div className="p-6 border-b border-white/5">
-            <h3 className="text-lg font-black text-white uppercase tracking-tight">
-              Relevé de crédits
-            </h3>
+            <h3 className="text-lg font-black text-white tracking-tight">Relevé de crédits</h3>
           </div>
           <div className="overflow-x-auto max-h-80">
             <table className="w-full text-left">
               <thead>
-                <tr className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
+                <tr className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
                   <th className="px-6 py-3">Mouvement</th>
                   <th className="px-6 py-3">Crédits</th>
                   <th className="px-6 py-3">Réf.</th>
@@ -347,7 +343,7 @@ const SalesSection = ({ userRole = '' }) => {
                       {e.delta >= 0 ? '+' : ''}
                       {e.delta}
                     </td>
-                    <td className="px-6 py-3 text-[10px] font-mono text-slate-600 truncate max-w-[200px]">
+                    <td className="px-6 py-3 text-[11px] font-mono text-slate-600 truncate max-w-[200px]">
                       {e.ref || '—'}
                     </td>
                   </tr>

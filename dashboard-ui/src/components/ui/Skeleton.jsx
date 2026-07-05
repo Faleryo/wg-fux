@@ -36,19 +36,19 @@ export const SkeletonDashboard = () => (
         </div>
       </div>
       <div className="xl:col-span-4 flex flex-col gap-6">
-        <Skeleton className="h-28 rounded-[2.5rem]" />
-        <Skeleton className="h-48 rounded-[2.5rem]" />
-        <Skeleton className="h-24 rounded-[2.5rem]" />
+        <Skeleton className="h-28 rounded-[2rem]" />
+        <Skeleton className="h-48 rounded-[2rem]" />
+        <Skeleton className="h-24 rounded-[2rem]" />
       </div>
     </div>
     {/* Row 2 */}
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2">
-        <Skeleton className="h-64 rounded-[2.5rem]" />
+        <Skeleton className="h-64 rounded-[2rem]" />
       </div>
       <div className="flex flex-col gap-6">
-        <Skeleton className="h-[7.5rem] rounded-[2.5rem]" />
-        <Skeleton className="h-[7.5rem] rounded-[2.5rem]" />
+        <Skeleton className="h-[7.5rem] rounded-[2rem]" />
+        <Skeleton className="h-[7.5rem] rounded-[2rem]" />
       </div>
     </div>
   </div>
@@ -89,7 +89,7 @@ export const SkeletonCard = ({ count = 6 }) => (
 
 // ─── Table Skeleton ───────────────────────────────────────────────────────────
 export const SkeletonTable = ({ rows = 8 }) => (
-  <div className="glass-panel rounded-[2.5rem] overflow-hidden animate-in fade-in duration-1000 shadow-2xl">
+  <div className="glass-panel rounded-[2rem] overflow-hidden animate-in fade-in duration-1000 shadow-2xl">
     <div className="p-6 border-b border-white/5 bg-white/5">
       <div className="flex gap-4">
         <Skeleton className="h-10 w-64 rounded-2xl" />

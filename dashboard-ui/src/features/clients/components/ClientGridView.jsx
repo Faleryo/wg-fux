@@ -25,7 +25,9 @@ const ClientGridView = ({
 }) => {
   const onlinePeersSet = useMemo(() => new Set(onlinePeers), [onlinePeers]);
   const [page, setPage] = useState(0);
-  useEffect(() => { setPage(0); }, [activeContainer, search]);
+  useEffect(() => {
+    setPage(0);
+  }, [activeContainer, search]);
 
   const cc = containerGroups[activeContainer] || [];
   const active = cc.filter((c) => isOnlineClient(c) || onlinePeersSet.has(c.publicKey)).length;
@@ -67,22 +69,22 @@ const ClientGridView = ({
           <Package size={24} />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-xl font-black text-white italic uppercase tracking-tighter mb-1">
+          <h2 className="text-xl font-black text-white italic tracking-tighter mb-1">
             {activeContainer}
           </h2>
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <span className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 uppercase tracking-widest">
               <Users size={12} /> {cc.length} Peers Total
             </span>
             <div className="h-1 w-1 rounded-full bg-slate-700" />
-            <span className="flex items-center gap-1.5 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+            <span className="flex items-center gap-1.5 text-[11px] font-black text-emerald-400 uppercase tracking-widest">
               <Activity size={12} /> {active} Actifs
             </span>
           </div>
         </div>
         <div className="hidden md:flex gap-8 px-8 border-l border-white/10 font-mono">
           <div className="text-right">
-            <span className="block text-[10px] font-black text-slate-500 uppercase mb-1">
+            <span className="block text-[11px] font-black text-slate-500 uppercase mb-1">
               Download
             </span>
             <span className="text-xl font-black text-white">
@@ -90,7 +92,7 @@ const ClientGridView = ({
             </span>
           </div>
           <div className="text-right">
-            <span className="block text-[10px] font-black text-slate-500 uppercase mb-1">
+            <span className="block text-[11px] font-black text-slate-500 uppercase mb-1">
               Upload
             </span>
             <span className="text-xl font-black text-white">
@@ -108,13 +110,11 @@ const ClientGridView = ({
           <div className="p-6 bg-white/5 rounded-full mb-4">
             <Users size={40} className="text-slate-600" />
           </div>
-          <h3 className="text-lg font-black text-white uppercase mb-1">
+          <h3 className="text-lg font-black text-white mb-1">
             {search ? 'Aucun résultat' : 'Conteneur Vide'}
           </h3>
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
-            {search
-              ? `Aucun peer ne correspond à "${search}"`
-              : 'Aucun peer dans ce conteneur'}
+          <p className="text-slate-500 text-[11px] font-black uppercase tracking-widest">
+            {search ? `Aucun peer ne correspond à "${search}"` : 'Aucun peer dans ce conteneur'}
           </p>
         </GlassCard>
       ) : (
@@ -154,7 +154,7 @@ const ClientGridView = ({
               >
                 <ChevronLeft size={16} />
               </button>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+              <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                 Page {safePage + 1} / {totalPages}
                 <span className="ml-2 text-slate-600">({containerClients.length} peers)</span>
               </span>

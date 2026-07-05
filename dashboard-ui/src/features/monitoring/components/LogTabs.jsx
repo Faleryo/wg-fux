@@ -15,7 +15,7 @@ const LogTabs = ({ activeTab, onTabChange, isDark, theme, liveConnected }) => (
         key={tab.id}
         onClick={() => onTabChange(tab.id)}
         className={cn(
-          'flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all',
+          'flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black uppercase text-[11px] tracking-widest transition-all',
           activeTab === tab.id
             ? 'text-white shadow-lg'
             : cn(
@@ -25,10 +25,14 @@ const LogTabs = ({ activeTab, onTabChange, isDark, theme, liveConnected }) => (
                   : 'text-slate-500 hover:text-slate-900 hover:bg-white border-black/5 shadow-sm'
               )
         )}
-        style={activeTab === tab.id ? {
-          backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
-          boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}33`,
-        } : undefined}
+        style={
+          activeTab === tab.id
+            ? {
+                backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
+                boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}33`,
+              }
+            : undefined
+        }
       >
         <tab.icon size={14} /> {tab.label}
         {activeTab === tab.id &&

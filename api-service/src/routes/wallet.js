@@ -32,4 +32,41 @@ router.get(
   })
 );
 
+// GET /api/wallet/stats — séries mensuelles (12 derniers mois) pour les courbes
+// business : crédits acquis / revendus / consommés et marge par mois.
+router.get(
+  '/stats',
+  asyncWrap(async (req, res) => {
+    const { entries } = wallet.statement(req.user.id, 5000);
+    const months = new Map(); // 'YYYY-MM' → agrégat
+    const key = (sec) => {
+      const d = new Date((sec || 0) * 1000);
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    };
+    for (const e of entries) {
+      const k = key(e.createdAt);
+      const m = months.get(k) || { month: k, acquired: 0, resold: 0, consumed: 0, marginCents: 0 };
+      const price = e.priceCents || 0;
+      if (e.reason === 'topup' || e.reason === 'transfer_in') m.acquired += e.delta;
+      if (e.reason === 'transfer_out') {
+        m.resold += Math.abs(e.delta);
+        m.marginCents += Math.abs(e.delta) * price;
+      }
+      if (['monthly', 'client_renewal', 'license_renewal'].includes(e.reason)) {
+        m.consumed += Math.abs(e.delta);
+      }
+      months.set(k, m);
+    }
+    // 12 derniers mois, ordre chronologique (mois vides inclus pour une courbe lisse).
+    const series = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      const k = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+      series.push(months.get(k) || { month: k, acquired: 0, resold: 0, consumed: 0, marginCents: 0 });
+    }
+    res.json({ series });
+  })
+);
+
 module.exports = router;

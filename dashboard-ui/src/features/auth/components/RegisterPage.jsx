@@ -76,10 +76,8 @@ const RegisterPage = ({ inviteToken, onDone }) => {
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-black text-white uppercase tracking-tight italic">
-              {brandName}
-            </h1>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
+            <h1 className="text-2xl font-black text-white tracking-tight italic">{brandName}</h1>
+            <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em]">
               Inscription revendeur
             </p>
           </div>

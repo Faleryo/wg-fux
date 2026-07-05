@@ -182,7 +182,7 @@ const LoginPage = ({ onLogin }) => {
                 </div>
               </div>
             </div>
-            <div className={`font-mono text-[10px] uppercase tracking-[0.3em] ${textFaint}`}>
+            <div className={`font-mono text-[11px] uppercase tracking-[0.3em] ${textFaint}`}>
               Édition souveraine
             </div>
           </footer>
@@ -204,7 +204,7 @@ const LoginPage = ({ onLogin }) => {
                   <div className="group">
                     <label
                       htmlFor="username"
-                      className={`mb-2 block font-mono text-[10px] uppercase tracking-[0.3em] ${textDim}`}
+                      className={`mb-2 block font-mono text-[11px] tracking-[0.3em] ${textDim}`}
                     >
                       Identifiant
                     </label>
@@ -224,7 +224,7 @@ const LoginPage = ({ onLogin }) => {
                   <div>
                     <label
                       htmlFor="password"
-                      className={`mb-2 block font-mono text-[10px] uppercase tracking-[0.3em] ${textDim}`}
+                      className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.3em] ${textDim}`}
                     >
                       Mot de passe
                     </label>
@@ -284,7 +284,7 @@ const LoginPage = ({ onLogin }) => {
                 <div>
                   <label
                     htmlFor="totp"
-                    className={`mb-2 block font-mono text-[10px] uppercase tracking-[0.3em] ${textDim}`}
+                    className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.3em] ${textDim}`}
                   >
                     Code authenticator
                   </label>
@@ -300,7 +300,7 @@ const LoginPage = ({ onLogin }) => {
                     className={`block w-full border-0 border-b ${inputBorder} ${focusBorder} bg-transparent px-0 py-3 text-center font-mono text-3xl tracking-[0.5em] ${text} ${isLight ? 'placeholder-slate-400' : 'placeholder-neutral-700'} transition focus:outline-none focus:ring-0`}
                   />
                   <p
-                    className={`mt-3 font-mono text-[10px] uppercase tracking-[0.25em] ${textDim}`}
+                    className={`mt-3 font-mono text-[11px] uppercase tracking-[0.25em] ${textDim}`}
                   >
                     6 chiffres — application authenticator
                   </p>
@@ -349,7 +349,7 @@ const LoginPage = ({ onLogin }) => {
             </form>
 
             <div
-              className={`mt-12 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.25em] ${textFaint}`}
+              className={`mt-12 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.25em] ${textFaint}`}
             >
               <span>Identifiants oubliés ?</span>
               <span className={textDim}>contact admin</span>

@@ -305,6 +305,71 @@ async function initializeDatabase() {
         sql: "ALTER TABLE servers ADD COLUMN updateMode TEXT DEFAULT 'auto'",
         label: 'servers.updateMode',
       },
+      // Phase 27 — métadonnées de flotte (organisation d'un parc de VPS).
+      { version: 27, sql: 'ALTER TABLE servers ADD COLUMN region TEXT', label: 'servers.region' },
+      {
+        version: 28,
+        sql: 'ALTER TABLE servers ADD COLUMN provider TEXT',
+        label: 'servers.provider',
+      },
+      {
+        version: 29,
+        sql: 'ALTER TABLE servers ADD COLUMN tags TEXT',
+        label: 'servers.tags (CSV)',
+      },
+      { version: 30, sql: 'ALTER TABLE servers ADD COLUMN notes TEXT', label: 'servers.notes' },
+      // Phase 31-35 — télémétrie machine remontée par le heartbeat de l'instance.
+      {
+        version: 31,
+        sql: 'ALTER TABLE servers ADD COLUMN cpuPct REAL',
+        label: 'servers.cpuPct',
+      },
+      {
+        version: 32,
+        sql: 'ALTER TABLE servers ADD COLUMN memPct REAL',
+        label: 'servers.memPct',
+      },
+      {
+        version: 33,
+        sql: 'ALTER TABLE servers ADD COLUMN diskPct REAL',
+        label: 'servers.diskPct',
+      },
+      {
+        version: 34,
+        sql: 'ALTER TABLE servers ADD COLUMN uptimeSec INTEGER',
+        label: 'servers.uptimeSec',
+      },
+      {
+        version: 35,
+        sql: 'ALTER TABLE servers ADD COLUMN healthAt INTEGER',
+        label: 'servers.healthAt',
+      },
+      // Phase 36-37 — seuils d'alerte par serveur (évalués par le job flotte).
+      {
+        version: 36,
+        sql: 'ALTER TABLE servers ADD COLUMN alertOfflineMin INTEGER',
+        label: 'servers.alertOfflineMin',
+      },
+      {
+        version: 37,
+        sql: 'ALTER TABLE servers ADD COLUMN alertLicenseDays INTEGER',
+        label: 'servers.alertLicenseDays',
+      },
+      // Phase 38 — historique de santé/disponibilité (courbe uptime + métriques).
+      {
+        version: 38,
+        sql: `CREATE TABLE IF NOT EXISTS server_health_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          serverId INTEGER NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+          ts INTEGER DEFAULT (strftime('%s','now')),
+          status TEXT,
+          cpuPct REAL,
+          memPct REAL,
+          diskPct REAL,
+          clientCount INTEGER
+        )`,
+        label: 'server_health_history table',
+      },
     ];
 
     for (const m of migrations) {
@@ -345,6 +410,7 @@ async function initializeDatabase() {
  CREATE UNIQUE INDEX IF NOT EXISTS server_host_idx ON servers(ownerId, host, port);
  CREATE INDEX IF NOT EXISTS user_parent_idx ON users(parentId);
  CREATE INDEX IF NOT EXISTS ledger_user_idx ON ledger(userId);
+ CREATE INDEX IF NOT EXISTS health_server_ts_idx ON server_health_history(serverId, ts);
  `);
 
     logger.info('db', '✅ Schema synchronization complete.');

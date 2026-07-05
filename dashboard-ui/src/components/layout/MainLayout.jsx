@@ -166,7 +166,7 @@ const LicenseBanner = ({ lic }) => {
       {/* Déploiement gouverné : maj en attente sur cette instance */}
       {pending && !expired && (
         <div className="flex flex-col md:flex-row md:items-center gap-3 px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
-          <p className="text-[10px] font-black uppercase tracking-wider flex-1">
+          <p className="text-[11px] font-black uppercase tracking-wider flex-1">
             {confirmState === 'done' || pending.confirmed
               ? `Mise à jour v${pending.version} confirmée — installation dans ≤ 1 min (coupure ~30 s).`
               : pending.mode === 'instant'
@@ -181,7 +181,7 @@ const LicenseBanner = ({ lic }) => {
             <button
               onClick={confirmUpdate}
               disabled={confirmState === 'busy'}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[10px] font-black uppercase tracking-widest text-white transition-colors disabled:opacity-50 flex-shrink-0"
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[11px] font-black uppercase tracking-widest text-white transition-colors disabled:opacity-50 flex-shrink-0"
             >
               Installer maintenant
             </button>
@@ -190,7 +190,7 @@ const LicenseBanner = ({ lic }) => {
       )}
       {lic.updateAvailable && !expired && !pending && (
         <div className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
-          <p className="text-[10px] font-black uppercase tracking-wider">
+          <p className="text-[11px] font-black uppercase tracking-wider">
             Mise à jour disponible ({lic.currentVersion} → {lic.latestVersion}) — en attente
             d’approbation par la plateforme.
           </p>
@@ -646,7 +646,7 @@ const MainLayout = ({ session, onLogout }) => {
           <span>Rechercher</span>
           <kbd
             className={cn(
-              'ml-2 px-1.5 py-0.5 rounded text-[9px] border transition-colors',
+              'ml-2 px-1.5 py-0.5 rounded text-[11px] border transition-colors',
               isDark
                 ? 'bg-white/5 border-white/10 text-white/40'
                 : 'bg-black/5 border-slate-200 text-slate-400'
@@ -742,7 +742,7 @@ const MainLayout = ({ session, onLogout }) => {
                         style={{ backgroundColor: 'currentColor' }}
                       />
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-tighter opacity-40">
+                        <p className="text-[11px] font-black uppercase tracking-tighter opacity-40">
                           Sentinel V2 Node
                         </p>
                         <p className="text-sm font-semibold tracking-tight">
@@ -754,7 +754,7 @@ const MainLayout = ({ session, onLogout }) => {
                       </div>
                     </div>
                     {sentinelStatus?.lastHeartbeat && (
-                      <span className="text-[9px] font-mono opacity-30">
+                      <span className="text-[11px] font-mono opacity-30">
                         {new Date(sentinelStatus.lastHeartbeat).toLocaleTimeString()}
                       </span>
                     )}
@@ -777,7 +777,7 @@ const MainLayout = ({ session, onLogout }) => {
                         style={{ backgroundColor: 'currentColor' }}
                       />
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-tighter opacity-40">
+                        <p className="text-[11px] font-black uppercase tracking-tighter opacity-40">
                           DNS Protection
                         </p>
                         <p className="text-sm font-semibold tracking-tight">
@@ -787,7 +787,7 @@ const MainLayout = ({ session, onLogout }) => {
                         </p>
                       </div>
                     </div>
-                    <span className="text-[9px] font-mono opacity-30 uppercase">
+                    <span className="text-[11px] font-mono opacity-30 uppercase">
                       {adguardStatus?.version || 'v0.107+'}
                     </span>
                   </div>
@@ -801,7 +801,7 @@ const MainLayout = ({ session, onLogout }) => {
           {/* SaaS Footer (Legal & Versioning) */}
           <footer className="pt-10 pb-6 border-t border-white/5 opacity-40 hover:opacity-100 transition-opacity duration-500">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-4 text-[10px] font-medium tracking-widest uppercase">
+              <div className="flex items-center gap-4 text-[11px] font-medium tracking-widest uppercase">
                 <span className="text-indigo-500">WG-FUX Enterprise</span>
                 <span className="w-1 h-1 rounded-full bg-white/20" />
                 <span>v6.5.0</span>
@@ -825,7 +825,7 @@ const MainLayout = ({ session, onLogout }) => {
                   Documentation
                 </a>
               </div>
-              <div className="text-[10px] opacity-60">
+              <div className="text-[11px] opacity-60">
                 &copy; {new Date().getFullYear()} Faleryo Labs. All rights reserved.
               </div>
             </div>

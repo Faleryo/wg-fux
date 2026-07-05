@@ -124,7 +124,7 @@ const DnsEditor = () => {
             </span>
             <p
               className={cn(
-                'text-[10px] font-extrabold tracking-[0.2em] uppercase opacity-70',
+                'text-[11px] font-extrabold tracking-[0.2em] uppercase opacity-70',
                 isDark ? 'text-white' : 'text-slate-500'
               )}
             >
@@ -148,7 +148,7 @@ const DnsEditor = () => {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-[10px] sm:text-xs uppercase tracking-widest shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-[11px] sm:text-xs uppercase tracking-widest shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
           >
             {saving ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
             <span className="hidden xs:inline">{saving ? 'Déploiement...' : 'Appliquer'}</span>

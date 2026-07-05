@@ -1,4 +1,4 @@
-const { sqliteTable, text, integer, index, uniqueIndex } = require('drizzle-orm/sqlite-core');
+const { sqliteTable, text, integer, real, index, uniqueIndex } = require('drizzle-orm/sqlite-core');
 const { sql } = require('drizzle-orm');
 
 const users = sqliteTable(
@@ -122,6 +122,20 @@ const servers = sqliteTable(
     // Mode de déploiement de la maj approuvée : 'auto' (cron ~6 h) ou
     // 'instant' (immédiat, confirmé par l'opérateur de l'instance).
     updateMode: text('updateMode').default('auto'),
+    // Métadonnées de flotte (organisation d'un parc de VPS, purement descriptif).
+    region: text('region'),
+    provider: text('provider'),
+    tags: text('tags'), // CSV léger
+    notes: text('notes'),
+    // Télémétrie machine remontée par le heartbeat de l'instance.
+    cpuPct: real('cpuPct'),
+    memPct: real('memPct'),
+    diskPct: real('diskPct'),
+    uptimeSec: integer('uptimeSec'),
+    healthAt: integer('healthAt', { mode: 'timestamp' }),
+    // Seuils d'alerte par serveur (évalués par le job flotte ; NULL = désactivé).
+    alertOfflineMin: integer('alertOfflineMin'),
+    alertLicenseDays: integer('alertLicenseDays'),
     createdAt: integer('createdAt', { mode: 'timestamp' }).default(
       sql`(cast(strftime('%s','now') as int))`
     ),
@@ -129,6 +143,27 @@ const servers = sqliteTable(
   (table) => ({
     serverOwnerIdx: index('server_owner_idx').on(table.ownerId),
     serverHostIdx: uniqueIndex('server_host_idx').on(table.ownerId, table.host, table.port),
+  })
+);
+
+// Historique de santé/disponibilité échantillonné par le job flotte : sert la
+// courbe d'uptime et les mini-graphes de charge dans le détail d'un serveur.
+const serverHealthHistory = sqliteTable(
+  'server_health_history',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    serverId: integer('serverId')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+    ts: integer('ts', { mode: 'timestamp' }).default(sql`(cast(strftime('%s','now') as int))`),
+    status: text('status'),
+    cpuPct: real('cpuPct'),
+    memPct: real('memPct'),
+    diskPct: real('diskPct'),
+    clientCount: integer('clientCount'),
+  },
+  (t) => ({
+    healthServerTsIdx: index('health_server_ts_idx').on(t.serverId, t.ts),
   })
 );
 
@@ -284,4 +319,5 @@ module.exports = {
   brands,
   trialGrants,
   invites,
+  serverHealthHistory,
 };

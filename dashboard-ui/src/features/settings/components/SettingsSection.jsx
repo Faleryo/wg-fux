@@ -41,7 +41,15 @@ const SettingsSection = () => {
     axiosInstance
       .get('/system/config')
       .then((res) => {
-        const loaded = { port: '51820', mtu: '1420', dns: '1.1.1.1, 8.8.8.8', subnet: '10.0.0.0/24', keepalive: '25', wg_endpoint: '', ...res.data };
+        const loaded = {
+          port: '51820',
+          mtu: '1420',
+          dns: '1.1.1.1, 8.8.8.8',
+          subnet: '10.0.0.0/24',
+          keepalive: '25',
+          wg_endpoint: '',
+          ...res.data,
+        };
         setConfig(loaded);
         setSavedConfig(loaded);
       })
@@ -52,7 +60,10 @@ const SettingsSection = () => {
 
   useEffect(() => {
     if (!isDirty) return;
-    const handler = (e) => { e.preventDefault(); e.returnValue = 'Modifications non sauvegardées'; };
+    const handler = (e) => {
+      e.preventDefault();
+      e.returnValue = 'Modifications non sauvegardées';
+    };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
@@ -113,24 +124,27 @@ const SettingsSection = () => {
       {/* Header */}
       <div
         className={cn(
-          'flex flex-col lg:flex-row justify-between items-center p-8 rounded-[3rem] border shadow-2xl gap-8 transition-all',
-          isDark ? 'bg-slate-900/40 border-white/5 backdrop-blur-3xl' : 'bg-white border-black/5'
+          'flex flex-col lg:flex-row justify-between items-center p-8 rounded-[2rem] border shadow-2xl gap-8 transition-all',
+          isDark ? 'bg-slate-900/40 border-white/5 backdrop-blur-xl' : 'bg-white border-black/5'
         )}
       >
         <div className="flex items-center gap-6">
-          <div className='p-5 rounded-[2rem] bg-white/5 shadow-2xl' style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}>
+          <div
+            className="p-5 rounded-[2rem] bg-white/5 shadow-2xl"
+            style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
+          >
             <Settings size={36} />
           </div>
           <div>
             <h2
               className={cn(
-                'text-4xl font-black tracking-tighter italic uppercase transition-colors',
+                'text-4xl font-black tracking-tighter italic transition-colors',
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >
               Paramètres Noyau
             </h2>
-            <p className="text-slate-500 text-[10px] font-black tracking-[0.4em] uppercase opacity-60">
+            <p className="text-slate-500 text-[11px] font-black tracking-[0.4em] uppercase opacity-60">
               Deep Core Control Panel
             </p>
           </div>
@@ -138,14 +152,17 @@ const SettingsSection = () => {
 
         <div className="flex flex-col items-end gap-3 w-full lg:w-auto">
           {isDirty && Object.keys(validationErrors).length === 0 && (
-            <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest animate-pulse">
+            <span className="text-[11px] font-black text-amber-400 uppercase tracking-widest animate-pulse">
               • Modifications en attente
             </span>
           )}
           {Object.keys(validationErrors).length > 0 && (
             <div className="flex flex-wrap gap-2">
               {Object.values(validationErrors).map((err) => (
-                <span key={err} className="text-[10px] font-black text-rose-400 uppercase tracking-widest">
+                <span
+                  key={err}
+                  className="text-[11px] font-black text-rose-400 uppercase tracking-widest"
+                >
                   ✕ {err}
                 </span>
               ))}
@@ -154,7 +171,7 @@ const SettingsSection = () => {
           <button
             onClick={handleSave}
             disabled={loading}
-            className='flex items-center justify-center gap-3 px-10 py-5 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-95 disabled:opacity-30'
+            className="flex items-center justify-center gap-3 px-10 py-5 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-95 disabled:opacity-30"
             style={{
               backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
               boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}4d`,
@@ -174,7 +191,7 @@ const SettingsSection = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'w-full flex items-center gap-4 px-6 py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest transition-all duration-300',
+                'w-full flex items-center gap-4 px-6 py-5 rounded-[1.5rem] font-black uppercase text-[11px] tracking-widest transition-all duration-300',
                 activeTab === tab.id
                   ? 'text-white shadow-2xl'
                   : cn(
@@ -184,10 +201,14 @@ const SettingsSection = () => {
                         : 'hover:text-slate-900 hover:bg-slate-100'
                     )
               )}
-              style={activeTab === tab.id ? {
-                backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
-                boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}33`,
-              } : undefined}
+              style={
+                activeTab === tab.id
+                  ? {
+                      backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5',
+                      boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[600] || '#4f46e5'}33`,
+                    }
+                  : undefined
+              }
             >
               <tab.icon size={18} /> {tab.label}
               {activeTab === tab.id && <ChevronRight className="ml-auto" size={14} />}
@@ -198,9 +219,9 @@ const SettingsSection = () => {
         {/* Content Area */}
         <div
           className={cn(
-            'xl:col-span-3 rounded-[3rem] border p-10 shadow-2xl relative overflow-hidden h-fit transition-all',
+            'xl:col-span-3 rounded-[2rem] border p-10 shadow-2xl relative overflow-hidden h-fit transition-all',
             isDark
-              ? 'bg-slate-900/40 border-white/10 backdrop-blur-3xl'
+              ? 'bg-slate-900/40 border-white/10 backdrop-blur-xl'
               : 'bg-white border-black/5 shadow-sm'
           )}
         >
@@ -234,9 +255,7 @@ const SettingsSection = () => {
             {activeTab === 'security' && (
               <SecuritySettings addToast={addToast} isDark={isDark} theme={theme} />
             )}
-            {activeTab === 'billing' && (
-              <BillingSettings addToast={addToast} isDark={isDark} />
-            )}
+            {activeTab === 'billing' && <BillingSettings addToast={addToast} isDark={isDark} />}
             {activeTab === 'maintenance' && (
               <MaintenanceSettings handleBackup={handleBackup} isDark={isDark} theme={theme} />
             )}

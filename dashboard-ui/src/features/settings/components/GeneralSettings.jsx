@@ -16,7 +16,7 @@ const GeneralSettings = ({ config, setConfig, isDark, theme }) => {
       <div className="space-y-8">
         <h3
           className={cn(
-            'text-xl font-black flex items-center gap-3 italic uppercase transition-colors',
+            'text-xl font-black flex items-center gap-3 italic transition-colors',
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
@@ -40,7 +40,7 @@ const GeneralSettings = ({ config, setConfig, isDark, theme }) => {
       <div className="space-y-8">
         <h3
           className={cn(
-            'text-xl font-black flex items-center gap-3 italic uppercase transition-colors',
+            'text-xl font-black flex items-center gap-3 italic transition-colors',
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
@@ -53,7 +53,7 @@ const GeneralSettings = ({ config, setConfig, isDark, theme }) => {
           badge="SECONDS"
           tooltip="Maintient les sessions actives à travers les pare-feu NAT rigides via stimulation UDP (0 = désactivé)."
         />
-        <p className="px-1 text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed opacity-60">
+        <p className="px-1 text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed opacity-60">
           Recommandé : 25s (Standard), 5s (Gaming Mobile Ultra-Stable).
         </p>
       </div>

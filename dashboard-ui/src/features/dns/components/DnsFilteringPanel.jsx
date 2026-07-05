@@ -39,12 +39,12 @@ const DnsFilteringPanel = ({ stats, status }) => {
           </div>
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-xl bg-white/5 border border-white/5">{stat.icon}</div>
-            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+            <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
               {stat.label}
             </span>
           </div>
           <div className="text-xl font-black font-mono tracking-tighter mb-1">{stat.value}</div>
-          <div className="text-[9px] font-bold text-slate-500 uppercase opacity-60">
+          <div className="text-[11px] font-bold text-slate-500 uppercase opacity-60">
             {stat.sub}
           </div>
         </div>

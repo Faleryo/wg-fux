@@ -62,13 +62,13 @@ const StatusWidget = ({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                 </span>
-                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">
+                <span className="text-[11px] font-black text-emerald-500 uppercase tracking-widest">
                   SENTINEL ACTIVE
                 </span>
               </div>
               <span
                 className={cn(
-                  'text-[9px] font-mono px-2 py-0.5 rounded-md border',
+                  'text-[11px] font-mono px-2 py-0.5 rounded-md border',
                   isDark
                     ? 'text-slate-500 bg-white/5 border-white/5'
                     : 'text-slate-400 bg-black/5 border-slate-200'
@@ -79,7 +79,7 @@ const StatusWidget = ({
             </div>
 
             <div className="space-y-2 mb-5">
-              <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+              <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 uppercase tracking-tight">
                 <span>Version</span>
                 <span
                   className={cn(
@@ -90,9 +90,14 @@ const StatusWidget = ({
                   v3.1.0-Plat
                 </span>
               </div>
-              <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+              <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 uppercase tracking-tight">
                 <span>{t('uptime')}</span>
-                <span className={'font-mono'} style={{ color: COLOR_MAP[theme]?.[500] || '#6366f1' }}>{uptime || '...'}</span>
+                <span
+                  className={'font-mono'}
+                  style={{ color: COLOR_MAP[theme]?.[500] || '#6366f1' }}
+                >
+                  {uptime || '...'}
+                </span>
               </div>
             </div>
 
@@ -100,13 +105,13 @@ const StatusWidget = ({
               <div className="flex gap-2 w-full">
                 <button
                   onClick={handleRestartServer}
-                  className="flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 transition-all"
+                  className="flex-1 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 transition-all"
                 >
                   {restarting ? 'Redémarrage...' : 'Confirmer'}
                 </button>
                 <button
                   onClick={() => setConfirmRestart(false)}
-                  className="flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10 transition-all"
+                  className="flex-1 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10 transition-all"
                 >
                   Annuler
                 </button>
@@ -116,7 +121,7 @@ const StatusWidget = ({
                 onClick={() => setConfirmRestart(true)}
                 disabled={restarting}
                 className={cn(
-                  'w-full py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl border transition-all flex items-center justify-center gap-2 group/btn',
+                  'w-full py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl border transition-all flex items-center justify-center gap-2 group/btn',
                   isDark
                     ? 'bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 border-white/5 hover:border-red-500/20'
                     : 'bg-black/5 hover:bg-red-50 text-slate-500 hover:text-red-600 border-slate-200 hover:border-red-200'
@@ -161,7 +166,7 @@ const StatusWidget = ({
                 </button>
                 <button
                   onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
-                  className="p-2 rounded-xl transition-all text-[10px] font-black w-10 bg-white/5 text-slate-400 hover:text-white"
+                  className="p-2 rounded-xl transition-all text-[11px] font-black w-10 bg-white/5 text-slate-400 hover:text-white"
                   title="Changer de langue"
                 >
                   {lang.toUpperCase()}
@@ -237,17 +242,17 @@ const StatusWidget = ({
           </button>
           {confirmRestart && (
             <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 border border-white/10 rounded-2xl p-4 shadow-2xl z-50 w-56 text-center space-y-3">
-              <p className="text-[10px] font-bold text-slate-300">Redémarrer WireGuard ?</p>
+              <p className="text-[11px] font-bold text-slate-300">Redémarrer WireGuard ?</p>
               <div className="flex gap-2">
                 <button
                   onClick={handleRestartServer}
-                  className="flex-1 py-2 text-[9px] font-black bg-red-500/20 text-red-400 rounded-xl border border-red-500/30"
+                  className="flex-1 py-2 text-[11px] font-black bg-red-500/20 text-red-400 rounded-xl border border-red-500/30"
                 >
                   Oui
                 </button>
                 <button
                   onClick={() => setConfirmRestart(false)}
-                  className="flex-1 py-2 text-[9px] font-black bg-white/5 text-slate-400 rounded-xl border border-white/5"
+                  className="flex-1 py-2 text-[11px] font-black bg-white/5 text-slate-400 rounded-xl border border-white/5"
                 >
                   Non
                 </button>

@@ -32,7 +32,7 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
 
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+          <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">
             {label}
           </p>
           {Icon && (
@@ -70,7 +70,7 @@ export const StatBlock = ({ label, value, sub, icon: Icon, delay = 0 }) => {
               }}
             ></span>
             <span
-              className="text-[10px] font-black uppercase tracking-widest opacity-60"
+              className="text-[11px] font-black uppercase tracking-widest opacity-60"
               style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
             >
               {sub}
@@ -130,7 +130,7 @@ export const CircularProgress = ({ value, label, color, icon: Icon }) => {
           </span>
         </div>
       </div>
-      <span className="mt-4 text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-slate-300 transition-colors duration-300">
+      <span className="mt-4 text-[8px] md:text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-slate-300 transition-colors duration-300">
         {label}
       </span>
       <div

@@ -78,7 +78,7 @@ const ReconcileBanner = () => {
                   : 'Échec de la resynchronisation'
               )
             }
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-widest text-emerald-300 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-black uppercase tracking-widest text-emerald-300 transition-colors disabled:opacity-50"
           >
             <Wifi size={13} /> Resynchroniser les peers
           </button>
@@ -89,7 +89,7 @@ const ReconcileBanner = () => {
             onClick={() =>
               repair({ purgeDbOrphans: true }, (d) => `${d.purged} entrée(s) fantôme(s) purgée(s)`)
             }
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-[10px] font-black uppercase tracking-widest text-red-300 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-[11px] font-black uppercase tracking-widest text-red-300 transition-colors disabled:opacity-50"
           >
             <Trash2 size={13} /> Purger {orphans} fantôme{orphans > 1 ? 's' : ''}
           </button>

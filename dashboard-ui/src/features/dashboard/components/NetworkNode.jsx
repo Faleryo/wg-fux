@@ -84,7 +84,7 @@ const NetworkNode = ({
       <AnimatePresence>
         <div
           className={cn(
-            'absolute top-full left-1/2 -translate-x-1/2 mt-8 w-64 backdrop-blur-3xl border rounded-2xl p-6 transition-all duration-500 pointer-events-none scale-90 z-50 shadow-2xl origin-top',
+            'absolute top-full left-1/2 -translate-x-1/2 mt-8 w-64 backdrop-blur-xl border rounded-2xl p-6 transition-all duration-500 pointer-events-none scale-90 z-50 shadow-2xl origin-top',
             isDark ? 'bg-slate-950/90 border-white/10' : 'bg-white border-black/10',
             selectedNodeId === client.id
               ? 'opacity-100 scale-100'
@@ -114,7 +114,7 @@ const NetworkNode = ({
                 {client.name}
               </span>
               <span
-                className="text-[9px] font-black uppercase tracking-widest"
+                className="text-[11px] font-black uppercase tracking-widest"
                 style={{ color: COLOR_MAP[color.name]?.[400] || '#818cf8' }}
               >
                 {client.container}
@@ -122,7 +122,7 @@ const NetworkNode = ({
             </div>
             <div
               className={cn(
-                'px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase',
+                'px-2.5 py-1 rounded-lg border text-[11px] font-black uppercase',
                 isOnline
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                   : isDark
@@ -134,7 +134,7 @@ const NetworkNode = ({
             </div>
           </div>
 
-          <div className="space-y-3 font-mono text-[10px] text-slate-500">
+          <div className="space-y-3 font-mono text-[11px] text-slate-500">
             <div className="flex justify-between">
               <span>Tact IP</span>{' '}
               <span className={isDark ? 'text-slate-100' : 'text-slate-900'}>{client.ip}</span>

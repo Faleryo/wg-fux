@@ -41,7 +41,7 @@ const CreateContainerModal = ({ isOpen, onClose, onCreate }) => {
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="space-y-6">
           <div>
-            <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">
+            <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">
               Nom du Conteneur (Groupe)
             </label>
             <div className="relative group">
@@ -60,7 +60,7 @@ const CreateContainerModal = ({ isOpen, onClose, onCreate }) => {
                 required
               />
             </div>
-            <p className="mt-2 text-[9px] text-slate-500">
+            <p className="mt-2 text-[11px] text-slate-500">
               Uniquement lettres, chiffres, tirets et underscores.
             </p>
           </div>
@@ -70,7 +70,7 @@ const CreateContainerModal = ({ isOpen, onClose, onCreate }) => {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+            className="flex-1 px-4 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-widest bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all"
             disabled={loading}
           >
             Annuler

@@ -47,14 +47,14 @@ const DashboardHero = ({
               />
               <h2
                 className={cn(
-                  'text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-black tracking-widest italic uppercase transition-colors shrink-0',
+                  'text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-black tracking-widest italic transition-colors shrink-0',
                   isDark ? 'text-white' : 'text-slate-900'
                 )}
               >
                 Protocole Actif
               </h2>
             </div>
-            <p className="text-slate-500 font-mono text-[10px] tracking-[0.3em] uppercase opacity-60">
+            <p className="text-slate-500 font-mono text-[11px] tracking-[0.3em] uppercase opacity-60">
               System Security Integrated: 100% Integrity
             </p>
           </div>
@@ -65,7 +65,7 @@ const DashboardHero = ({
             )}
             <div
               className={cn(
-                'px-4 py-2 rounded-full text-[10px] font-black tracking-[0.2em] border whitespace-nowrap transition-all duration-500',
+                'px-4 py-2 rounded-full text-[11px] font-black tracking-[0.2em] border whitespace-nowrap transition-all duration-500',
                 health.status === 'healthy' && health.ready
                   ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 animate-pulse'
                   : health.status === 'healthy'
@@ -104,14 +104,14 @@ const DashboardHero = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div
             className={cn(
-              'backdrop-blur-3xl p-5 md:p-8 rounded-[1.5rem] flex items-center justify-between group/rx transition-all duration-500',
+              'backdrop-blur-xl p-5 md:p-8 rounded-[1.5rem] flex items-center justify-between group/rx transition-all duration-500',
               isDark
                 ? 'bg-slate-950/40 border-white/5 hover:border-emerald-500/20'
                 : 'bg-white/80 border-black/5 hover:border-emerald-500/30 shadow-sm'
             )}
           >
             <div>
-              <p className="text-[10px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">
+              <p className="text-[11px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">
                 Total Download (RX)
               </p>
               <p
@@ -129,14 +129,14 @@ const DashboardHero = ({
           </div>
           <div
             className={cn(
-              'backdrop-blur-3xl p-5 md:p-8 rounded-[1.5rem] flex items-center justify-between group/tx transition-all duration-500',
+              'backdrop-blur-xl p-5 md:p-8 rounded-[1.5rem] flex items-center justify-between group/tx transition-all duration-500',
               isDark
                 ? 'bg-slate-950/40 border-white/5 hover:border-indigo-500/20'
                 : 'bg-white/80 border-black/5 hover:border-indigo-500/30 shadow-sm'
             )}
           >
             <div>
-              <p className="text-[10px] font-black text-indigo-500/70 uppercase tracking-widest mb-1">
+              <p className="text-[11px] font-black text-indigo-500/70 uppercase tracking-widest mb-1">
                 Total Upload (TX)
               </p>
               <p
