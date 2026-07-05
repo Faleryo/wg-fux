@@ -665,6 +665,7 @@ const MainLayout = ({ session, onLogout }) => {
           onClose={() => setSidebarOpen(false)}
           onLogout={onLogout}
           uptime={uptime}
+          appVersion={health?.version}
           userRole={session?.role || ''}
           instanceLicensed={instanceLicensed}
           needsOnboarding={needsOnboarding}
@@ -804,7 +805,7 @@ const MainLayout = ({ session, onLogout }) => {
               <div className="flex items-center gap-4 text-[11px] font-medium tracking-widest uppercase">
                 <span className="text-indigo-500">WG-FUX Enterprise</span>
                 <span className="w-1 h-1 rounded-full bg-white/20" />
-                <span>v6.5.0</span>
+                <span>v{health?.version || '…'}</span>
               </div>
               <div className="flex items-center gap-8 text-[11px] font-bold">
                 <a

@@ -126,7 +126,7 @@ app.get('/api/health', async (req, res) => {
   const scriptsOk = await checkScripts();
   res.json({
     status: scriptsOk ? 'healthy' : 'degraded',
-    version: '3.1.0',
+    version: require('./package.json').version,
     uptime: process.uptime(),
     sre: { watcher: 'v6.3', scripts: scriptsOk ? 'ok' : 'fail' },
   });

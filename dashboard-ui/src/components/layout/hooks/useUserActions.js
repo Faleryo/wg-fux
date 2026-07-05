@@ -5,7 +5,6 @@ import { axiosInstance } from '../../../lib/api';
  * Delete is in useDeleteActions (needs confirmModal).
  */
 const useUserActions = ({ fetchData, addToast }) => {
-
   const handleCreateUser = async (username, password, role) => {
     await axiosInstance.post('/users', { username, password, role });
     addToast(`Opérateur ${username} créé avec succès`, 'success');

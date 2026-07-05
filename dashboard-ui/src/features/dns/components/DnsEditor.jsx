@@ -13,6 +13,7 @@ const DnsEditor = () => {
   const { addToast } = useToast();
 
   const [config, setConfig] = useState(null);
+  const [initialConfig, setInitialConfig] = useState(null);
   const [stats, setStats] = useState(null);
   const [status, setStatus] = useState(null);
   const [filtering, setFiltering] = useState(null);
@@ -33,6 +34,7 @@ const DnsEditor = () => {
         axiosInstance.get('/dns/filtering'),
       ]);
       setConfig(configRes.data);
+      setInitialConfig(configRes.data);
       setStats(statsRes.data);
       setStatus(statusRes.data);
       setFiltering(filteringRes.data);
@@ -66,6 +68,7 @@ const DnsEditor = () => {
         addToast(res.data.warning || 'Configuration partiellement appliquée', 'error');
       } else {
         addToast('Configuration DNS mise à jour avec succès', 'success');
+        setInitialConfig(config);
       }
     } catch (error) {
       addToast('Erreur lors de la sauvegarde de la configuration', 'error');
@@ -94,6 +97,8 @@ const DnsEditor = () => {
     }
   };
 
+  const dirty = config && initialConfig && JSON.stringify(config) !== JSON.stringify(initialConfig);
+
   if (loading && !config) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -115,7 +120,7 @@ const DnsEditor = () => {
               isDark ? 'text-white' : 'text-slate-900'
             )}
           >
-            DNS COMMAND CENTER
+            Centre DNS
           </h2>
           <div className="flex items-center gap-2 mt-1">
             <span className="relative flex h-2 w-2">
@@ -124,11 +129,11 @@ const DnsEditor = () => {
             </span>
             <p
               className={cn(
-                'text-[11px] font-extrabold tracking-[0.2em] uppercase opacity-70',
+                'text-[11px] font-extrabold tracking-[0.2em] opacity-70',
                 isDark ? 'text-white' : 'text-slate-500'
               )}
             >
-              ADGUARD ENGINE ACTIVE
+              Moteur AdGuard actif
             </p>
           </div>
         </div>
@@ -147,11 +152,19 @@ const DnsEditor = () => {
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-[11px] sm:text-xs uppercase tracking-widest shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+            disabled={saving || !dirty}
+            className={cn(
+              'flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-[11px] sm:text-xs tracking-widest shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100',
+              dirty
+                ? 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-amber-500/20'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'
+            )}
+            title={dirty ? 'Modifications non enregistrées' : 'Aucune modification'}
           >
             {saving ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
-            <span className="hidden xs:inline">{saving ? 'Déploiement...' : 'Appliquer'}</span>
+            <span className="hidden xs:inline">
+              {saving ? 'Déploiement...' : dirty ? 'Appliquer les modifications' : 'Enregistré'}
+            </span>
           </button>
         </div>
       </div>

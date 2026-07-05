@@ -14,6 +14,7 @@ const StatusWidget = ({
   lang,
   setLang,
   uptime,
+  appVersion,
   t,
 }) => {
   const { addToast } = useToast();
@@ -87,7 +88,7 @@ const StatusWidget = ({
                     isDark ? 'text-white bg-white/5' : 'text-slate-900 bg-black/5'
                   )}
                 >
-                  v3.1.0-Plat
+                  v{appVersion || '…'}
                 </span>
               </div>
               <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 uppercase tracking-tight">

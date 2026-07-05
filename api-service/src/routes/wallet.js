@@ -20,13 +20,26 @@ function computeMargin(entries) {
   return { resoldCents: resold, acquiredCostCents: acquiredCost };
 }
 
+// Cumuls de crédits sur tout le relevé : acquis (entrées) vs consommés (sorties).
+// Sert le suivi d'abonnement de l'onglet Ventes (inclus / utilisés / restants).
+function computeCredits(entries, balance) {
+  let acquired = 0; // crédits entrés (achat, réception)
+  let used = 0; // crédits sortis (renouvellements, envois)
+  for (const e of entries) {
+    if (e.delta > 0) acquired += e.delta;
+    else used += Math.abs(e.delta);
+  }
+  return { acquired, used, balance };
+}
+
 router.get(
   '/',
   asyncWrap(async (req, res) => {
-    const { balance, entries } = wallet.statement(req.user.id, 500);
+    const { balance, entries } = wallet.statement(req.user.id, 5000);
     res.json({
       balance,
       margin: computeMargin(entries),
+      credits: computeCredits(entries, balance),
       entries: entries.slice(0, 100),
     });
   })

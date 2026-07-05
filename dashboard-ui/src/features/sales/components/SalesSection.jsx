@@ -7,6 +7,9 @@ import {
   AlertTriangle,
   RefreshCw,
   Search,
+  CalendarClock,
+  TrendingDown,
+  CheckCircle2,
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
@@ -79,18 +82,21 @@ const SalesSection = ({ userRole = '' }) => {
 
   const [wallet, setWallet] = useState(null);
   const [clients, setClients] = useState([]);
+  const [license, setLicense] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState(null);
   const [query, setQuery] = useState('');
 
   const load = useCallback(async () => {
     try {
-      const [w, c] = await Promise.all([
+      const [w, c, l] = await Promise.all([
         axiosInstance.get('/wallet').catch(() => ({ data: null })),
         axiosInstance.get('/clients').catch(() => ({ data: [] })),
+        axiosInstance.get('/system/license').catch(() => ({ data: null })),
       ]);
       setWallet(w.data);
       setClients(Array.isArray(c.data) ? c.data : []);
+      setLicense(l.data);
     } finally {
       setLoading(false);
     }
@@ -220,6 +226,126 @@ const SalesSection = ({ userRole = '' }) => {
           </VibeButton>
         </div>
       </GlassCard>
+
+      {/* Suivi d'abonnement : temps restant, plafond clients, crédits */}
+      {(license?.enabled || wallet?.credits) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Abonnement (licence de l'instance) */}
+          {license?.enabled && (
+            <GlassCard hover={false} className="relative overflow-hidden">
+              <div className="flex items-center gap-2 text-slate-500 mb-3">
+                <CalendarClock size={15} />
+                <span className="text-[11px] font-black tracking-widest">Abonnement</span>
+                <span
+                  className={cn(
+                    'ml-auto text-[10px] font-black tracking-widest px-2 py-0.5 rounded-lg border inline-flex items-center gap-1',
+                    license.valid
+                      ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                      : 'text-red-400 bg-red-500/10 border-red-500/20'
+                  )}
+                >
+                  {license.valid ? <CheckCircle2 size={10} /> : <AlertTriangle size={10} />}
+                  {license.valid ? 'Actif' : 'Expiré'}
+                </span>
+              </div>
+              {(() => {
+                const d = daysLeft(license.expiresAt);
+                return (
+                  <>
+                    <div
+                      className={cn(
+                        'text-4xl font-black',
+                        d == null
+                          ? 'text-slate-300'
+                          : d <= 0
+                            ? 'text-red-400'
+                            : d <= 7
+                              ? 'text-amber-400'
+                              : 'text-white'
+                      )}
+                    >
+                      {d == null ? '∞' : d <= 0 ? '0' : d}
+                      {d != null && <span className="text-lg text-slate-500 font-bold"> j</span>}
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-1">
+                      {license.expiresAt
+                        ? `Échéance le ${new Date(license.expiresAt).toLocaleDateString('fr-FR')}`
+                        : 'Sans expiration'}
+                    </div>
+                  </>
+                );
+              })()}
+            </GlassCard>
+          )}
+
+          {/* Plafond de clients */}
+          <GlassCard hover={false}>
+            <div className="flex items-center gap-2 text-slate-500 mb-3">
+              <Users size={15} />
+              <span className="text-[11px] font-black tracking-widest">Clients</span>
+            </div>
+            <div className="text-4xl font-black text-white">
+              {clients.length}
+              {license?.maxClients != null && (
+                <span className="text-lg text-slate-500 font-bold"> / {license.maxClients}</span>
+              )}
+            </div>
+            {license?.maxClients != null ? (
+              <div className="mt-3 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-all',
+                    clients.length >= license.maxClients
+                      ? 'bg-red-500'
+                      : clients.length / license.maxClients >= 0.8
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500'
+                  )}
+                  style={{
+                    width: `${Math.min(100, (clients.length / Math.max(1, license.maxClients)) * 100)}%`,
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="text-[11px] text-slate-500 mt-1">Plafond illimité</div>
+            )}
+          </GlassCard>
+
+          {/* Crédits : inclus / utilisés / restants */}
+          {wallet?.credits && (
+            <GlassCard hover={false}>
+              <div className="flex items-center gap-2 text-slate-500 mb-3">
+                <Wallet size={15} />
+                <span className="text-[11px] font-black tracking-widest">Crédits</span>
+                <span className="ml-auto text-[10px] font-mono text-slate-500">
+                  {wallet.credits.balance} restants
+                </span>
+              </div>
+              <div className="text-4xl font-black text-white">
+                {wallet.credits.balance}
+                <span className="text-lg text-slate-500 font-bold">
+                  {' '}
+                  / {wallet.credits.acquired}
+                </span>
+              </div>
+              <div className="mt-3 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-indigo-500 transition-all"
+                  style={{
+                    width: `${wallet.credits.acquired > 0 ? Math.min(100, (wallet.credits.used / wallet.credits.acquired) * 100) : 0}%`,
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-2 text-[11px] font-mono">
+                <span className="text-slate-500 inline-flex items-center gap-1">
+                  <TrendingDown size={11} /> {wallet.credits.used} utilisés
+                </span>
+                <span className="text-slate-500">{wallet.credits.acquired} inclus</span>
+              </div>
+            </GlassCard>
+          )}
+        </div>
+      )}
 
       {/* Synthèse */}
       <div className={cn('grid grid-cols-2 gap-4', isFree ? 'md:grid-cols-3' : 'md:grid-cols-4')}>

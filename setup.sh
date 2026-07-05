@@ -56,6 +56,36 @@ LOGS_SVC=""
 USER_ARGS=()
 export API_DATA SWAP_FILE PURGE   # consumed by sourced modules
 
+# ─── CLI presentation (couleurs + logo) ─────────────────────────────────────
+# On capture le TTY AVANT la redirection tee (qui casse `[ -t 1 ]`) pour savoir
+# si l'affichage est interactif et mérite des couleurs.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+    C_RESET=$'\033[0m'; C_BOLD=$'\033[1m'; C_DIM=$'\033[2m'
+    C_IND=$'\033[38;5;99m'    # indigo (marque)
+    C_CYAN=$'\033[38;5;44m'; C_GREEN=$'\033[38;5;42m'; C_GRAY=$'\033[38;5;245m'
+else
+    C_RESET=''; C_BOLD=''; C_DIM=''; C_IND=''; C_CYAN=''; C_GREEN=''; C_GRAY=''
+fi
+
+# Version affichée dans la bannière (source de vérité = package.json de l'API).
+_wgfux_version() {
+    grep -m1 '"version"' "$SCRIPT_DIR/api-service/package.json" 2>/dev/null \
+        | sed -E 's/.*"version"[^"]*"([^"]+)".*/\1/' || echo '—'
+}
+
+# Logo ASCII de marque + tagline + version. Affiché en tête du menu et des
+# commandes longues (install/update) pour une identité CLI soignée.
+print_logo() {
+    local v; v="$(_wgfux_version)"
+    printf '\n'
+    printf '%s      ██     ██  ██████        %s%swg-fux%s\n' "$C_IND" "$C_RESET" "$C_BOLD" "$C_RESET"
+    printf '%s      ██     ██  ██            %sWireGuard Control Plane%s\n' "$C_IND" "$C_GRAY" "$C_RESET"
+    printf '%s      ██  █  ██  ██  ███       %sv%s%s\n' "$C_IND" "$C_CYAN" "$v" "$C_RESET"
+    printf '%s      ██ ███ ██  ██   ██%s\n' "$C_IND" "$C_RESET"
+    printf '%s       ███ ███   ██████%s\n' "$C_IND" "$C_RESET"
+    printf '\n'
+}
+
 # ─── Logging wrapper ────────────────────────────────────────────────────────
 # Try to mirror output to a log file; fall back silently if we can't write.
 if mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null && \
@@ -551,16 +581,16 @@ wait_for_healthy() {
 
 print_done_banner() {
     local target="${DOMAIN:-$SERVER_IP}"
-    echo
-    echo "================================================================"
-    echo "  wg-fux is up."
-    echo "  Dashboard: https://$target/"
+    print_logo
+    printf '  %s╭──────────────────────────────────────────────────────╮%s\n' "$C_GREEN" "$C_RESET"
+    printf '  %s│%s  %s✓%s  %swg-fux est en ligne.%s\n' "$C_GREEN" "$C_RESET" "$C_GREEN" "$C_RESET" "$C_BOLD" "$C_RESET"
+    printf '  %s│%s\n' "$C_GREEN" "$C_RESET"
+    printf '  %s│%s     Dashboard : %s%shttps://%s/%s\n' "$C_GREEN" "$C_RESET" "$C_BOLD" "$C_CYAN" "$target" "$C_RESET"
     if [ -z "$DOMAIN" ]; then
-        echo "  (IP-only mode → self-signed cert, browser will warn.)"
+        printf '  %s│%s     %sMode IP seule → certificat auto-signé (avertissement navigateur).%s\n' "$C_GREEN" "$C_RESET" "$C_DIM" "$C_RESET"
     fi
-    echo "  Setup log: $LOG_FILE"
-    echo "================================================================"
-    echo
+    printf '  %s│%s     %sJournal : %s%s\n' "$C_GREEN" "$C_RESET" "$C_DIM" "$LOG_FILE" "$C_RESET"
+    printf '  %s╰──────────────────────────────────────────────────────╯%s\n\n' "$C_GREEN" "$C_RESET"
 }
 
 # ─── High-level commands ────────────────────────────────────────────────────
@@ -704,20 +734,24 @@ cmd_check() {
 # ─── Interactive menu ───────────────────────────────────────────────────────
 
 interactive_menu() {
-    echo
-    echo "  ┌─ wg-fux setup ──────────────────────────────┐"
-    echo "  │  1) Install / reconfigure                   │"
-    echo "  │  2) Update (rebuild & restart)              │"
-    echo "  │  3) Upgrade (git pull + rebuild)            │"
-    echo "  │  4) Restart nginx proxy                     │"
-    echo "  │  5) (Re)run SSL / Let's Encrypt             │"
-    echo "  │  6) Uninstall                               │"
-    echo "  │  7) Backup (encrypted)                      │"
-    echo "  │  8) Reset admin password                    │"
-    echo "  │  9) Install cron jobs                       │"
-    echo "  │  q) Quit                                    │"
-    echo "  └─────────────────────────────────────────────┘"
-    local choice; read -rp "Choose: " choice
+    print_logo
+    printf '  %s╭──────────────────────────────────────────────╮%s\n' "$C_GRAY" "$C_RESET"
+    printf '  %s│%s  %sDÉPLOIEMENT%s                                 %s│%s\n' "$C_GRAY" "$C_RESET" "$C_DIM" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s   %s1%s  Installer / reconfigurer               %s│%s\n' "$C_GRAY" "$C_RESET" "$C_CYAN" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s   %s2%s  Mettre à jour (rebuild & restart)      %s│%s\n' "$C_GRAY" "$C_RESET" "$C_CYAN" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s   %s3%s  Upgrade (git pull + rebuild)           %s│%s\n' "$C_GRAY" "$C_RESET" "$C_CYAN" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s                                              %s│%s\n' "$C_GRAY" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s  %sEXPLOITATION%s                                %s│%s\n' "$C_GRAY" "$C_RESET" "$C_DIM" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s   %s4%s  Redémarrer le proxy nginx              %s│%s\n' "$C_GRAY" "$C_RESET" "$C_CYAN" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s   %s5%s  (Re)configurer SSL / Let'\''s Encrypt     %s│%s\n' "$C_GRAY" "$C_RESET" "$C_CYAN" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s   %s7%s  Sauvegarde chiffrée                    %s│%s\n' "$C_GRAY" "$C_RESET" "$C_CYAN" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s   %s8%s  Réinitialiser le mot de passe admin    %s│%s\n' "$C_GRAY" "$C_RESET" "$C_CYAN" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s   %s9%s  Installer les tâches cron              %s│%s\n' "$C_GRAY" "$C_RESET" "$C_CYAN" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s                                              %s│%s\n' "$C_GRAY" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s   %s6%s  Désinstaller                           %s│%s\n' "$C_GRAY" "$C_RESET" "$C_CYAN" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s│%s   %sq%s  Quitter                                %s│%s\n' "$C_GRAY" "$C_RESET" "$C_CYAN" "$C_RESET" "$C_GRAY" "$C_RESET"
+    printf '  %s╰──────────────────────────────────────────────╯%s\n' "$C_GRAY" "$C_RESET"
+    local choice; read -rp "  ${C_BOLD}▸${C_RESET} Votre choix : " choice
     case "$choice" in
         1) cmd_install ;;
         2) cmd_update ;;

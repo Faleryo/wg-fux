@@ -142,9 +142,11 @@ axiosInstance.interceptors.response.use(
 // swap to <LoginPage/> without a full page reload (which would lose error
 // toasts, dev-server HMR state, and feel sluggish).
 function logOut() {
-  ['wg-api-token', 'wg-user-role', 'wg-user-username', 'wg-fux-cache', 'wg-user-2fa'].forEach((k) => {
-    localStorage.removeItem(k);
-    sessionStorage.removeItem(k);
-  });
+  ['wg-api-token', 'wg-user-role', 'wg-user-username', 'wg-fux-cache', 'wg-user-2fa'].forEach(
+    (k) => {
+      localStorage.removeItem(k);
+      sessionStorage.removeItem(k);
+    }
+  );
   window.dispatchEvent(new CustomEvent('wg-auth-expired'));
 }

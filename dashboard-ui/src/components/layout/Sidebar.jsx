@@ -14,6 +14,7 @@ const Sidebar = ({
   onClose,
   onLogout,
   uptime,
+  appVersion,
   userRole,
   instanceLicensed,
   needsOnboarding,
@@ -162,6 +163,7 @@ const Sidebar = ({
           lang={lang}
           setLang={setLang}
           uptime={uptime}
+          appVersion={appVersion}
           t={t}
         />
       </aside>

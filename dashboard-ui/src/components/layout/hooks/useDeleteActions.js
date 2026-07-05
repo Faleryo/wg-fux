@@ -5,7 +5,13 @@ import { axiosInstance } from '../../../lib/api';
  * Owns all confirm-modal state and deletion logic (client, container, user, bulk).
  * Extracted from MainLayout to keep it under 500 lines.
  */
-const useDeleteActions = ({ fetchData, addToast, suppressWsToast, topologySelectedClient, setTopologySelectedClient }) => {
+const useDeleteActions = ({
+  fetchData,
+  addToast,
+  suppressWsToast,
+  topologySelectedClient,
+  setTopologySelectedClient,
+}) => {
   const [confirmModal, setConfirmModal] = useState({ open: false, client: null });
   const isDeletingRef = useRef(false);
 
@@ -20,8 +26,7 @@ const useDeleteActions = ({ fetchData, addToast, suppressWsToast, topologySelect
     setConfirmModal({ open: true, type: 'bulk-delete', clients: selectedClients, clearSelection });
   };
 
-  const handleDeleteUser = (user) =>
-    setConfirmModal({ open: true, type: 'delete-user', user });
+  const handleDeleteUser = (user) => setConfirmModal({ open: true, type: 'delete-user', user });
 
   const executeDelete = async () => {
     if (isDeletingRef.current) return;
@@ -79,7 +84,9 @@ const useDeleteActions = ({ fetchData, addToast, suppressWsToast, topologySelect
         addToast(err.response?.data?.error || 'Erreur lors de la suppression', 'error');
       }
     } finally {
-      setTimeout(() => { isDeletingRef.current = false; }, 500);
+      setTimeout(() => {
+        isDeletingRef.current = false;
+      }, 500);
     }
   };
 

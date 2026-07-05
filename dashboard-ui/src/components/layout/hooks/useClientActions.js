@@ -1,15 +1,24 @@
 import { axiosInstance } from '../../../lib/api';
 
 const track = (event, props) => {
-  try { window.posthog?.capture?.(event, props); } catch { /* non-bloquant */ }
+  try {
+    window.posthog?.capture?.(event, props);
+  } catch {
+    /* non-bloquant */
+  }
 };
 
 /**
  * Handles client + container creation, toggle, and config download.
  * Delete actions live in useDeleteActions (they need confirmModal state).
  */
-const useClientActions = ({ fetchData, addToast, suppressWsToast, setShowQRModal, setSelectedClientForModal }) => {
-
+const useClientActions = ({
+  fetchData,
+  addToast,
+  suppressWsToast,
+  setShowQRModal,
+  setSelectedClientForModal,
+}) => {
   const handleCreateClient = async (name, container, expiry, quota, uploadLimit) => {
     suppressWsToast();
     await axiosInstance.post('/clients', { name, container, expiry, quota, uploadLimit });
@@ -30,7 +39,10 @@ const useClientActions = ({ fetchData, addToast, suppressWsToast, setShowQRModal
       addToast(`Conteneur ${name} créé.`, 'success');
       fetchData();
     } catch (e) {
-      addToast(e.response?.data?.error || `Erreur lors de la création du conteneur ${name}`, 'error');
+      addToast(
+        e.response?.data?.error || `Erreur lors de la création du conteneur ${name}`,
+        'error'
+      );
     }
   };
 
