@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
 import { Users, Plus, Shield, Search, Trash2, UserCheck, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlassCard from '../../../components/ui/Card';
 import VibeButton from '../../../components/ui/Button';
 
-const ROLE_CONFIG = {
-  admin: { label: 'Root Access', badge: 'Admin', variant: 'theme' },
-  manager: { label: 'Manager Access', badge: 'Manager', variant: 'indigo' },
-  viewer: { label: 'Operator Access', badge: 'Viewer', variant: 'slate' },
-};
+// Rôles connus (le label/badge est traduit via t() dans le composant).
+const KNOWN_ROLES = new Set(['admin', 'manager', 'viewer']);
 
 const UsersSection = ({
   users = [],
@@ -22,7 +20,12 @@ const UsersSection = ({
   onViewReport,
 }) => {
   const { theme } = useTheme();
+  const { t } = useLang();
   const [searchTerm, setSearchTerm] = useState('');
+
+  const roleKey = (role) => (KNOWN_ROLES.has(role) ? role : 'viewer');
+  const roleLabel = (role) => t(`role_${roleKey(role)}_label`);
+  const roleBadge = (role) => t(`role_${roleKey(role)}_badge`);
 
   const filteredUsers = (users || []).filter((user) => {
     const searchLower = String(searchTerm || '').toLowerCase();
@@ -55,10 +58,10 @@ const UsersSection = ({
           </div>
           <div>
             <h2 className="text-3xl font-black text-white tracking-tighter italic">
-              Gestion des Opérateurs
+              {t('user_management')}
             </h2>
             <p className="text-slate-500 text-[11px] font-black tracking-[0.3em] uppercase opacity-60">
-              System Access Control
+              {t('system_access_control')}
             </p>
           </div>
         </div>
@@ -71,7 +74,7 @@ const UsersSection = ({
             />
             <input
               type="text"
-              placeholder="Rechercher un opérateur..."
+              placeholder={t('search_operator')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-12 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/20 focus:bg-white/10 text-sm text-white w-full md:w-80 transition-all font-mono"
@@ -84,7 +87,7 @@ const UsersSection = ({
               className="w-full md:w-auto"
               onClick={onRefresh}
             >
-              Actualiser
+              {t('refresh')}
             </VibeButton>
           )}
           <VibeButton
@@ -93,7 +96,7 @@ const UsersSection = ({
             className="w-full md:w-auto"
             onClick={onCreateUser}
           >
-            Créer un Accès
+            {t('create_access')}
           </VibeButton>
         </div>
       </GlassCard>
@@ -104,10 +107,10 @@ const UsersSection = ({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
-                <th className="px-6 py-4">Identité Opérateur</th>
-                <th className="px-6 py-4">Rôle Système</th>
-                <th className="px-6 py-4">Statut</th>
-                <th className="px-6 py-4 text-right">Intervention</th>
+                <th className="px-6 py-4">{t('col_identity')}</th>
+                <th className="px-6 py-4">{t('col_role')}</th>
+                <th className="px-6 py-4">{t('col_status')}</th>
+                <th className="px-6 py-4 text-right">{t('col_action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -131,7 +134,6 @@ const UsersSection = ({
                   >
                     <td className="px-6 py-4">
                       {(() => {
-                        const rc = ROLE_CONFIG[user.role] || ROLE_CONFIG.viewer;
                         const isElevated = user.role === 'admin' || user.role === 'manager';
                         const accentColor =
                           user.role === 'admin'
@@ -157,13 +159,13 @@ const UsersSection = ({
                             </div>
                             <div>
                               <div className="text-sm font-black text-white uppercase tracking-tight flex items-center gap-2">
-                                {user.username || 'Inconnu'}
+                                {user.username || t('unknown')}
                                 {isElevated && (
                                   <Shield size={14} style={{ color: accentColor + 'cc' }} />
                                 )}
                               </div>
                               <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                                {rc.label}
+                                {roleLabel(user.role)}
                               </div>
                             </div>
                           </div>
@@ -172,7 +174,6 @@ const UsersSection = ({
                     </td>
                     <td className="px-6 py-4">
                       {(() => {
-                        const rc = ROLE_CONFIG[user.role] || ROLE_CONFIG.viewer;
                         const accentColor =
                           user.role === 'admin'
                             ? COLOR_MAP[theme]?.[500] || '#6366f1'
@@ -196,7 +197,7 @@ const UsersSection = ({
                                   }
                             }
                           >
-                            {rc.badge}
+                            {roleBadge(user.role)}
                           </span>
                         );
                       })()}
@@ -215,7 +216,11 @@ const UsersSection = ({
                           : isExpired
                             ? 'bg-red-500 shadow-[0_0_8px_#ef4444]'
                             : 'bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]';
-                        const label = isSuspended ? 'Suspendu' : isExpired ? 'Expiré' : 'Actif';
+                        const label = isSuspended
+                          ? t('status_suspended')
+                          : isExpired
+                            ? t('status_expired')
+                            : t('status_active');
                         return (
                           <div
                             className={cn(
@@ -236,7 +241,7 @@ const UsersSection = ({
                           size="sm"
                           icon={RefreshCw}
                           className="p-2.5"
-                          title="Éditer Opérateur"
+                          title={t('edit_operator')}
                           onClick={(e) => {
                             e.stopPropagation();
                             onEdit(user);
@@ -247,7 +252,7 @@ const UsersSection = ({
                           size="sm"
                           icon={Trash2}
                           className="p-2.5"
-                          title="Supprimer Opérateur"
+                          title={t('delete_operator')}
                           onClick={(e) => {
                             e.stopPropagation();
                             onDelete(user);
@@ -268,7 +273,7 @@ const UsersSection = ({
               <UserCheck size={48} className="text-slate-600" />
             </div>
             <p className="text-slate-500 font-black uppercase text-xs tracking-widest">
-              Aucun opérateur trouvé
+              {t('no_operator_found')}
             </p>
           </div>
         )}

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Key, Shield, Eye, EyeOff, RefreshCw, Save, Calendar, Power } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
+import { useLang } from '../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
 import VibeButton from '../ui/Button';
 
 const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
   const { theme } = useTheme();
+  const { t } = useLang();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('viewer');
@@ -36,11 +38,11 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
     setSuccess('');
 
     if (password && password.length < 8) {
-      setError('Mot de passe : 8 caractères minimum');
+      setError(t('password_min'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
+      setError(t('passwords_mismatch'));
       return;
     }
 
@@ -58,42 +60,42 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
       setConfirmPassword('');
       onClose();
     } catch (err) {
-      setError(err?.response?.data?.error || 'Erreur lors de la mise à jour');
+      setError(err?.response?.data?.error || t('update_error'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleReset2FA = async () => {
-    if (
-      !window.confirm(
-        `Réinitialiser le 2FA pour ${user.username} ? L'opérateur pourra se reconnecter sans son code actuel.`
-      )
-    )
-      return;
+    if (!window.confirm(t('reset_2fa_confirm'))) return;
 
     setResetting(true);
     setError('');
     try {
       await onReset2FA(user.username);
-      setSuccess('Secret 2FA réinitialisé');
+      setSuccess(t('reset_2fa_ok'));
     } catch (err) {
-      setError(err?.response?.data?.error || 'Erreur reset 2FA');
+      setError(err?.response?.data?.error || t('reset_2fa_err'));
     } finally {
       setResetting(false);
     }
   };
 
   const roles = [
-    { id: 'viewer', label: 'Viewer', desc: 'Lecture seule' },
-    { id: 'manager', label: 'Manager', desc: 'Gestion Clients' },
-    { id: 'admin', label: 'Admin', desc: 'Accès complet' },
+    { id: 'viewer', label: t('role_viewer_badge'), desc: t('role_viewer_desc') },
+    { id: 'manager', label: t('role_manager_badge'), desc: t('role_manager_desc') },
+    { id: 'admin', label: t('role_admin_badge'), desc: t('role_admin_desc') },
   ];
 
   if (!user) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Éditer: ${user.username}`} maxWidth="max-w-md">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`${t('edit')}: ${user.username}`}
+      maxWidth="max-w-md"
+    >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Identity Info (ReadOnly) */}
         <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4">
@@ -108,7 +110,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
               {user.username}
             </div>
             <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest italic">
-              Identité Verrouillée
+              {t('identity_locked')}
             </div>
           </div>
         </div>
@@ -116,7 +118,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
         {/* Role Selector */}
         <div>
           <label className="block text-[11px] font-black text-slate-500 mb-3 uppercase tracking-widest">
-            Niveau d'Accès
+            {t('access_level')}
           </label>
           <div className="grid grid-cols-3 gap-2">
             {roles.map((r) => (
@@ -141,8 +143,8 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
         {/* Expiry Date */}
         <div>
           <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
-            Date d'Expiration
-            <span className="ml-2 text-emerald-500/60">Optionnel</span>
+            {t('expiry_date')}
+            <span className="ml-2 text-emerald-500/60">{t('optional')}</span>
           </label>
           <div className="relative group">
             <Calendar
@@ -163,7 +165,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
               onClick={() => setExpiry('')}
               className="mt-1 text-[11px] text-red-400/70 hover:text-red-400 uppercase tracking-widest"
             >
-              Supprimer l'expiration
+              {t('remove_expiry')}
             </button>
           )}
         </div>
@@ -171,7 +173,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
         {/* Account Status Toggle */}
         <div>
           <label className="block text-[11px] font-black text-slate-500 mb-3 uppercase tracking-widest">
-            Statut du Compte
+            {t('account_status')}
           </label>
           <button
             type="button"
@@ -185,7 +187,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
           >
             <span className="flex items-center gap-3">
               <Power size={16} />
-              {enabled ? 'Compte Actif' : 'Compte Suspendu'}
+              {enabled ? t('account_active') : t('account_suspended')}
             </span>
             <span
               className={cn(
@@ -203,7 +205,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
           </button>
           {!enabled && (
             <p className="mt-2 text-[11px] text-orange-400/70 uppercase tracking-widest">
-              L'utilisateur ne pourra plus se connecter jusqu'à réactivation.
+              {t('suspended_hint')}
             </p>
           )}
         </div>
@@ -212,9 +214,11 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest">
-              Nouveau Mot de Passe
+              {t('new_password')}
             </label>
-            <span className="text-[8px] font-bold text-emerald-500/60 uppercase">Optionnel</span>
+            <span className="text-[8px] font-bold text-emerald-500/60 uppercase">
+              {t('optional')}
+            </span>
           </div>
           <div className="relative group">
             <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -223,7 +227,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full pl-12 pr-12 py-4 glass-input rounded-2xl font-mono text-sm"
-              placeholder="Laisser vide pour inchangé"
+              placeholder={t('password_leave_empty')}
             />
             <button
               type="button"
@@ -242,7 +246,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono text-sm"
-                placeholder="Confirmer nouveau mot de passe"
+                placeholder={t('confirm_new_password')}
               />
             </div>
           )}
@@ -257,7 +261,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
             className="w-full py-3 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-40"
           >
             <RefreshCw size={14} className={resetting ? 'animate-spin' : ''} />
-            {resetting ? 'Réinitialisation...' : 'Réinitialiser 2FA (TOTP)'}
+            {resetting ? t('resetting') : t('reset_2fa')}
           </button>
         </div>
 
@@ -280,7 +284,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
             onClick={onClose}
             className="flex-1 py-4 bg-white/5 text-slate-400 font-black uppercase text-xs tracking-widest rounded-2xl border border-white/5"
           >
-            Annuler
+            {t('cancel')}
           </button>
           <VibeButton
             type="submit"
@@ -289,7 +293,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
             icon={Save}
             className="flex-[2] py-4"
           >
-            Sauvegarder
+            {t('save')}
           </VibeButton>
         </div>
       </form>

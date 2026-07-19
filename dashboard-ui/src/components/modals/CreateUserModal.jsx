@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Users, Key, Shield, Eye, EyeOff, RefreshCw, Plus } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
+import { useLang } from '../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
 
 const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
   const { theme } = useTheme();
+  const { t } = useLang();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -31,21 +33,19 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
     setError('');
 
     if (!username.trim()) {
-      setError("Nom d'utilisateur requis");
+      setError(t('username_required'));
       return;
     }
     if (!/^[a-zA-Z0-9_-]{2,64}$/.test(username.trim())) {
-      setError(
-        "Nom d'utilisateur invalide (2-64 caractères, lettres, chiffres, _ et - uniquement)"
-      );
+      setError(t('username_invalid'));
       return;
     }
     if (password.length < 8) {
-      setError('Mot de passe : 8 caractères minimum');
+      setError(t('password_min'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
+      setError(t('passwords_mismatch'));
       return;
     }
 
@@ -59,7 +59,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
       setRole('viewer');
       onClose();
     } catch (err) {
-      setError(err?.response?.data?.error || 'Erreur lors de la création');
+      setError(err?.response?.data?.error || t('create_error'));
     } finally {
       setLoading(false);
       submittingRef.current = false;
@@ -67,18 +67,23 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
   };
 
   const roles = [
-    { id: 'viewer', label: 'Viewer', desc: 'Lecture seule', color: 'slate' },
-    { id: 'manager', label: 'Manager', desc: 'Gestion Clients', color: 'indigo' },
-    { id: 'admin', label: 'Admin', desc: 'Accès complet', color: theme },
+    { id: 'viewer', label: t('role_viewer_badge'), desc: t('role_viewer_desc'), color: 'slate' },
+    {
+      id: 'manager',
+      label: t('role_manager_badge'),
+      desc: t('role_manager_desc'),
+      color: 'indigo',
+    },
+    { id: 'admin', label: t('role_admin_badge'), desc: t('role_admin_desc'), color: theme },
   ];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Créer un Opérateur" maxWidth="max-w-md">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('create_operator_title')} maxWidth="max-w-md">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Username */}
         <div>
           <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
-            Identifiant
+            {t('field_username')}
           </label>
           <div className="relative group">
             <Users
@@ -90,7 +95,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
-              placeholder="ex: operateur01"
+              placeholder={t('placeholder_username')}
               autoFocus
             />
           </div>
@@ -99,7 +104,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
         {/* Password */}
         <div>
           <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
-            Mot de Passe
+            {t('field_password')}
           </label>
           <div className="relative group">
             <Key
@@ -126,7 +131,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
         {/* Confirm Password */}
         <div>
           <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
-            Confirmer le Mot de Passe
+            {t('field_confirm_password')}
           </label>
           <div className="relative group">
             <Key
@@ -146,7 +151,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
         {/* Role Selector */}
         <div>
           <label className="block text-[11px] font-black text-slate-500 mb-3 uppercase tracking-widest">
-            Rôle Système
+            {t('col_role')}
           </label>
           <div className="grid grid-cols-3 gap-3">
             {roles.map((r) => (
@@ -195,7 +200,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
             onClick={onClose}
             className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-widest rounded-2xl border border-white/5 transition-all"
           >
-            Annuler
+            {t('cancel')}
           </button>
           <button
             type="submit"
@@ -219,7 +224,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
             ) : (
               <Plus size={18} strokeWidth={3} />
             )}
-            Créer l'Opérateur
+            {t('create_operator_btn')}
           </button>
         </div>
       </form>
