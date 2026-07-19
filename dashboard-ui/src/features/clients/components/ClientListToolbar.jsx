@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Package, Search, Download, Plus, Trash2, X as XIcon } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 import GlassCard from '../../../components/ui/Card';
 import VibeButton from '../../../components/ui/Button';
 import { isOnlineClient } from './ClientListHelpers';
@@ -21,18 +22,28 @@ const ClientListToolbar = ({
   onBulkDelete,
   onClearSelection,
 }) => {
+  const { t } = useLang();
   const handleExportCSV = () => {
     const list = activeContainer ? containerClients : clients;
-    const hdrs = ['Nom', 'Container', 'IP', 'Statut', 'DL', 'UL', 'Quota (GB)', 'Expiration'];
+    const hdrs = [
+      t('col_name'),
+      t('col_container'),
+      'IP',
+      t('col_status'),
+      'DL',
+      'UL',
+      'Quota (GB)',
+      t('expiry'),
+    ];
     const rows = list.map((c) => [
       c.name,
       c.container,
       c.ip,
-      isOnlineClient(c) ? 'En ligne' : 'Hors ligne',
+      isOnlineClient(c) ? t('status_online') : t('status_offline'),
       formatBytes(c.downloadBytes || 0),
       formatBytes(c.uploadBytes || 0),
-      c.quota > 0 ? `${c.quota}` : 'Illimité',
-      c.expiry ? new Date(c.expiry).toLocaleDateString('fr-FR') : 'Illimité',
+      c.quota > 0 ? `${c.quota}` : t('unlimited'),
+      c.expiry ? new Date(c.expiry).toLocaleDateString('fr-FR') : t('unlimited'),
     ]);
     const csv = [hdrs, ...rows].map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -61,19 +72,18 @@ const ClientListToolbar = ({
             className="flex items-center gap-3 px-4 py-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl overflow-hidden"
           >
             <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest flex-1">
-              {selectionCount} peer{selectionCount > 1 ? 's' : ''} sélectionné
-              {selectionCount > 1 ? 's' : ''}
+              {selectionCount} {t('peers')} {t('selected')}
             </span>
             <button
               onClick={onBulkDelete}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[11px] font-black uppercase tracking-widest hover:bg-rose-500/20 transition-all"
             >
               <Trash2 size={12} />
-              Supprimer
+              {t('delete')}
             </button>
             <button
               onClick={onClearSelection}
-              aria-label="Désélectionner tout"
+              aria-label={t('deselect_all')}
               className="p-1.5 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all"
             >
               <XIcon size={14} />
@@ -109,7 +119,7 @@ const ClientListToolbar = ({
                 }}
               >
                 <ChevronLeft size={15} />
-                <span className="hidden sm:inline">Conteneurs</span>
+                <span className="hidden sm:inline">{t('containers')}</span>
               </motion.button>
             )}
           </AnimatePresence>
@@ -132,14 +142,14 @@ const ClientListToolbar = ({
                     borderColor: `${COLOR_MAP[selectedColor]?.[500] || '#6366f1'}33`,
                   }}
                 >
-                  {(containerGroups[activeContainer] || []).length} peers
+                  {(containerGroups[activeContainer] || []).length} {t('peers')}
                 </span>
               </div>
             ) : (
               <div className="flex items-center gap-2 text-slate-400">
                 <Package size={16} />
                 <span className="font-black text-sm uppercase tracking-tight">
-                  {containerEntriesLength} Conteneur{containerEntriesLength > 1 ? 's' : ''}
+                  {containerEntriesLength} {t('containers')}
                 </span>
               </div>
             )}
@@ -161,7 +171,7 @@ const ClientListToolbar = ({
                 />
                 <input
                   type="text"
-                  placeholder="Rechercher..."
+                  placeholder={t('search_placeholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 pr-4 py-2.5 bg-white/5 border border-white/5 rounded-2xl focus:outline-none focus:border-white/20 text-sm text-white w-48 font-mono"
@@ -173,7 +183,7 @@ const ClientListToolbar = ({
             <button
               onClick={handleExportCSV}
               className="hidden sm:flex items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 text-slate-400 hover:text-white transition-all group"
-              title="Exporter CSV"
+              title={t('export_csv')}
             >
               <Download size={16} className="group-hover:-translate-y-0.5 transition-transform" />
             </button>
@@ -187,9 +197,9 @@ const ClientListToolbar = ({
               className="flex-shrink-0"
             >
               <span className="hidden sm:inline">
-                {activeContainer ? 'Nouveau Peer' : 'Nouveau Conteneur'}
+                {activeContainer ? t('new_peer') : t('new_container')}
               </span>
-              <span className="sm:hidden">Créer</span>
+              <span className="sm:hidden">{t('create')}</span>
             </VibeButton>
           </div>
         </div>

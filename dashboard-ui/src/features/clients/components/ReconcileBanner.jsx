@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Trash2, RefreshCw, Wifi } from 'lucide-react';
 import { axiosInstance } from '../../../lib/api';
 import { useToast } from '../../../context/ToastContext';
+import { useLang } from '../../../context/LanguageContext';
 
 // Bandeau de réconciliation DB ↔ disque ↔ WireGuard (vue Conteneurs).
 //
@@ -11,6 +12,7 @@ import { useToast } from '../../../context/ToastContext';
 // rôles sans droit (l'API répond 403 → on ne montre rien).
 const ReconcileBanner = () => {
   const { addToast } = useToast();
+  const { t } = useLang();
   const [report, setReport] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -35,7 +37,7 @@ const ReconcileBanner = () => {
       addToast(okMsg(data), 'success');
       setReport(data.after || null);
     } catch (e) {
-      addToast(e?.response?.data?.error || 'Erreur de réconciliation', 'error');
+      addToast(e?.response?.data?.error || t('reconcile_error'), 'error');
     } finally {
       setBusy(false);
     }
@@ -50,19 +52,17 @@ const ReconcileBanner = () => {
       <AlertTriangle size={20} className="flex-shrink-0 text-amber-400" />
       <div className="flex-1 text-xs leading-relaxed">
         <span className="font-black uppercase tracking-wider text-amber-300">
-          Désynchronisation détectée
+          {t('desync_detected')}
         </span>
         <span className="block text-amber-200/80">
           {orphans > 0 && (
             <>
-              {orphans} client{orphans > 1 ? 's' : ''} en base sans aucun fichier sur le disque
-              (fantômes d’une ancienne installation).{' '}
+              {orphans} {t('orphans_desc')}{' '}
             </>
           )}
           {missing > 0 && (
             <>
-              {missing} client{missing > 1 ? 's' : ''} avec fichiers OK mais absent
-              {missing > 1 ? 's' : ''} du tunnel WireGuard.
+              {missing} {t('missing_desc')}
             </>
           )}
         </span>
@@ -73,31 +73,29 @@ const ReconcileBanner = () => {
             disabled={busy}
             onClick={() =>
               repair({ applyPeers: true }, (d) =>
-                d.peersApplied
-                  ? 'Peers ré-appliqués dans le tunnel'
-                  : 'Échec de la resynchronisation'
+                d.peersApplied ? t('peers_reapplied') : t('resync_failed')
               )
             }
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-black uppercase tracking-widest text-emerald-300 transition-colors disabled:opacity-50"
           >
-            <Wifi size={13} /> Resynchroniser les peers
+            <Wifi size={13} /> {t('resync_peers')}
           </button>
         )}
         {orphans > 0 && (
           <button
             disabled={busy}
             onClick={() =>
-              repair({ purgeDbOrphans: true }, (d) => `${d.purged} entrée(s) fantôme(s) purgée(s)`)
+              repair({ purgeDbOrphans: true }, (d) => `${d.purged} ${t('ghosts_purged')}`)
             }
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-[11px] font-black uppercase tracking-widest text-red-300 transition-colors disabled:opacity-50"
           >
-            <Trash2 size={13} /> Purger {orphans} fantôme{orphans > 1 ? 's' : ''}
+            <Trash2 size={13} /> {t('purge')} {orphans} {t('ghosts')}
           </button>
         )}
         <button
           disabled={busy}
           onClick={load}
-          title="Ré-analyser"
+          title={t('rescan')}
           className="flex items-center px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-amber-200 transition-colors disabled:opacity-50"
         >
           <RefreshCw size={13} className={busy ? 'animate-spin' : ''} />

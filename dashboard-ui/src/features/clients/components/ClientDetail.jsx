@@ -25,6 +25,7 @@ import {
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn, formatBytes } from '../../../lib/utils';
 import { axiosInstance } from '../../../lib/api';
 
@@ -97,6 +98,7 @@ spectrumCache.set = (k, v) => {
 
 const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) => {
   const { theme } = useTheme();
+  const { t } = useLang();
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [trafficHistory60, setTrafficHistory60] = useState([]);
@@ -201,7 +203,7 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
           hour: '2-digit',
           minute: '2-digit',
         })
-      : 'Jamais';
+      : t('never');
 
   return (
     <motion.div
@@ -227,25 +229,25 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
-            label: 'Daily quota',
+            label: t('daily_quota'),
             value: formatBytes(client.usageDaily || 0),
             icon: Activity,
             color: 'emerald',
           },
           {
-            label: 'Data Total',
+            label: t('data_total'),
             value: formatBytes(client.usageTotal || 0),
             icon: Database,
             color: 'indigo',
           },
           {
-            label: 'Burst DL',
+            label: t('burst_dl'),
             value: formatBytes(client.downloadBytes),
             icon: ArrowDown,
             color: 'cyan',
           },
           {
-            label: 'Burst UL',
+            label: t('burst_ul'),
             value: formatBytes(client.uploadBytes),
             icon: ArrowUp,
             color: 'rose',
@@ -320,22 +322,22 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                 )}
               ></div>
               <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                Dernière activité: {lastActivity}
+                {t('last_activity')}: {lastActivity}
               </span>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-4">
             {[
-              { icon: Edit, label: 'Modifier', color: 'indigo', onClick: () => onEdit(client) },
+              { icon: Edit, label: t('modify'), color: 'indigo', onClick: () => onEdit(client) },
               {
                 icon: client.enabled ? Pause : Play,
-                label: client.enabled ? 'Désactiver' : 'Activer',
+                label: client.enabled ? t('disable') : t('enable'),
                 color: 'amber',
                 onClick: () => onToggle(client.container, client.name, !client.enabled),
               },
               { icon: QrCode, label: 'QR Code', color: theme, onClick: () => onQRCode(client) },
-              { icon: Trash2, label: 'Supprimer', color: 'rose', onClick: () => onDelete(client) },
+              { icon: Trash2, label: t('delete'), color: 'rose', onClick: () => onDelete(client) },
             ].map((btn, i) => (
               <button
                 key={i}
@@ -359,13 +361,13 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
         <div className="xl:col-span-2 bg-slate-950/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 shadow-2xl">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
             <h3 className="text-xl font-black text-white flex items-center gap-4 tracking-tighter">
-              <Activity size={24} className={cn(txtColorMap[theme] || 'text-indigo-400')} /> Spectre
-              Réseau
+              <Activity size={24} className={cn(txtColorMap[theme] || 'text-indigo-400')} />{' '}
+              {t('network_spectrum')}
             </h3>
             <div className="flex bg-slate-900/60 p-2 rounded-2xl border border-white/5 shadow-inner">
               {[
-                { id: 'realtime', label: 'Temps réel' },
-                { id: 'history', label: '72 Heures' },
+                { id: 'realtime', label: t('realtime') },
+                { id: 'history', label: t('hours_72') },
               ].map((opt) => (
                 <button
                   key={opt.id}
@@ -463,21 +465,22 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
         {/* Tactical History */}
         <div className="bg-slate-950/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 shadow-2xl flex flex-col">
           <h3 className="text-xl font-black text-white mb-8 flex items-center gap-4 tracking-tighter">
-            <List size={24} className={cn(txtColorMap[theme] || 'text-indigo-400')} /> Blackbox Log
+            <List size={24} className={cn(txtColorMap[theme] || 'text-indigo-400')} />{' '}
+            {t('blackbox_log')}
           </h3>
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
             {loadingHistory ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
                 <RefreshCw className="animate-spin text-slate-500" size={32} />
                 <span className="text-[11px] font-black uppercase tracking-widest">
-                  Scanning logs...
+                  {t('scanning_logs')}
                 </span>
               </div>
             ) : history.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
                 <Info className="text-slate-500" size={32} />
                 <span className="text-[11px] font-black uppercase tracking-widest">
-                  No logs found
+                  {t('no_logs')}
                 </span>
               </div>
             ) : (
@@ -503,21 +506,21 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                           : 'bg-slate-800 text-slate-500 border-white/10'
                       )}
                     >
-                      {entry.realIp ? 'DETECTÉ / ACTIF' : 'INACTIF'}
+                      {entry.realIp ? t('detected_active') : t('inactive')}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div className="space-y-1">
                       <div className="text-[8px] font-black text-slate-500 uppercase">
-                        IP Réelle (Endpoint)
+                        {t('real_ip')}
                       </div>
                       <div className="text-xs font-mono font-bold text-indigo-400">
-                        {entry.realIp || 'Masquée / N/A'}
+                        {entry.realIp || t('masked_na')}
                       </div>
                     </div>
                     <div className="space-y-1 text-right">
                       <div className="text-[8px] font-black text-slate-500 uppercase">
-                        Handshake Réel
+                        {t('real_handshake')}
                       </div>
                       <div className="text-[11px] font-mono font-bold text-emerald-500">
                         {new Date(entry.handshakeAt || entry.timestamp).toLocaleTimeString()}

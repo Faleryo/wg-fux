@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Package, Trash2, ChevronRight } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 import GlassCard from '../../../components/ui/Card';
 import { isOnlineClient } from './ClientListHelpers';
 
@@ -9,6 +10,7 @@ const BASE_COLOR = '#6366f1';
 const getHex = (c, shade) => COLOR_MAP[c]?.[shade] || BASE_COLOR;
 
 const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }) => {
+  const { t } = useLang();
   const activeCount = clients.filter(isOnlineClient).length;
   const totalDl = clients.reduce((a, c) => a + (c.downloadRate || 0), 0);
   const totalUl = clients.reduce((a, c) => a + (c.uploadRate || 0), 0);
@@ -84,8 +86,8 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
                   disabled={clients.length > 0}
                   title={
                     clients.length > 0
-                      ? `Supprimez d'abord les ${clients.length} peer(s)`
-                      : 'Supprimer le conteneur'
+                      ? `${t('delete_peers_first')} (${clients.length})`
+                      : t('delete_container')
                   }
                   className={cn(
                     'w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 border-white/5',
@@ -165,7 +167,9 @@ const ContainerCard = ({ name, clients, color, onClick, onDeleteContainer, idx }
               )}
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-[11px] font-mono text-slate-500 uppercase">Volume Total</span>
+              <span className="text-[11px] font-mono text-slate-500 uppercase">
+                {t('total_volume')}
+              </span>
               <span className="text-[11px] font-mono font-black text-white">
                 {formatBytes(totalDlBytes + totalUlBytes)}
               </span>

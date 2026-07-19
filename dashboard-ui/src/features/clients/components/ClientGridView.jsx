@@ -2,6 +2,7 @@ import { memo, useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Users, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 import GlassCard from '../../../components/ui/Card';
 import ClientCard from './ClientCard';
 import { isOnlineClient } from './ClientListHelpers';
@@ -23,6 +24,7 @@ const ClientGridView = ({
   onQRCode,
   onDelete,
 }) => {
+  const { t } = useLang();
   const onlinePeersSet = useMemo(() => new Set(onlinePeers), [onlinePeers]);
   const [page, setPage] = useState(0);
   useEffect(() => {
@@ -111,10 +113,10 @@ const ClientGridView = ({
             <Users size={40} className="text-slate-600" />
           </div>
           <h3 className="text-lg font-black text-white mb-1">
-            {search ? 'Aucun résultat' : 'Conteneur Vide'}
+            {search ? t('no_results') : t('empty_container')}
           </h3>
           <p className="text-slate-500 text-[11px] font-black uppercase tracking-widest">
-            {search ? `Aucun peer ne correspond à "${search}"` : 'Aucun peer dans ce conteneur'}
+            {search ? `${t('no_match')} "${search}"` : t('no_peers_in_container')}
           </p>
         </GlassCard>
       ) : (

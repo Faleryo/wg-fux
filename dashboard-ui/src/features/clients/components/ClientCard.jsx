@@ -1,6 +1,7 @@
 import { memo, useState } from 'react';
 import { Edit, Trash2, Pause, Play, ChevronRight, QrCode, RefreshCw, Check } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 import GlassCard from '../../../components/ui/Card';
 import { isOnlineClient, isExpired, isExpiringSoon, daysUntilExpiry } from './ClientListHelpers';
 
@@ -16,6 +17,7 @@ const ClientCard = ({
   onQRCode,
   onDelete,
 }) => {
+  const { t } = useLang();
   const [qrLoading, setQrLoading] = useState(false);
   const online = isOnlineOverride || isOnlineClient(client);
   const expired = isExpired(client.expiry);
@@ -49,7 +51,7 @@ const ClientCard = ({
             e.stopPropagation();
             onToggleSelect(client);
           }}
-          aria-label={isSelected ? 'Désélectionner' : 'Sélectionner'}
+          aria-label={isSelected ? t('deselect') : t('select')}
           aria-pressed={isSelected}
           className={cn(
             'absolute top-4 left-4 z-10 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200',
@@ -94,9 +96,9 @@ const ClientCard = ({
               />
               <span
                 className="text-[11px] font-mono text-slate-500 font-bold uppercase tracking-widest"
-                aria-label={online ? 'Peer actif' : 'Peer hors ligne'}
+                aria-label={online ? t('peer_active') : t('peer_offline')}
               >
-                {online ? 'Actif' : 'Offline'}
+                {online ? t('status_active') : t('status_offline')}
               </span>
             </div>
           </div>
@@ -114,7 +116,11 @@ const ClientCard = ({
                   : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
               )}
             >
-              {expired ? 'Expiré' : daysLeft !== null ? `${daysLeft}j` : 'Bientôt'}
+              {expired
+                ? t('status_expired')
+                : daysLeft !== null
+                  ? `${daysLeft}j`
+                  : t('expiring_soon')}
             </span>
           )}
         </div>
@@ -144,7 +150,7 @@ const ClientCard = ({
         {client.quota > 0 && (
           <div className="space-y-2">
             <div className="flex justify-between text-[11px] font-black uppercase text-slate-500">
-              <span>Quota Usage</span>
+              <span>{t('quota_usage')}</span>
               <span className={quotaPct > 80 ? 'text-rose-400' : 'text-white'}>
                 {quotaPct.toFixed(1)}%
               </span>
@@ -178,7 +184,7 @@ const ClientCard = ({
               onEdit(client);
             }}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
-            title="Modifier"
+            title={t('modify')}
           >
             <Edit size={14} />
           </button>
@@ -188,8 +194,8 @@ const ClientCard = ({
               onToggle(client.container, client.name, !client.enabled);
             }}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-all"
-            title={client.enabled ? 'Désactiver' : 'Activer'}
-            aria-label={client.enabled ? 'Désactiver le peer' : 'Activer le peer'}
+            title={client.enabled ? t('disable') : t('enable')}
+            aria-label={client.enabled ? t('disable_peer') : t('enable_peer')}
           >
             {client.enabled ? <Pause size={14} /> : <Play size={14} />}
           </button>
@@ -197,8 +203,8 @@ const ClientCard = ({
             onClick={handleQRCode}
             disabled={qrLoading}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400 transition-all disabled:opacity-50"
-            title="Configuration / QR Code"
-            aria-label="Afficher la configuration QR Code"
+            title={t('qr_config')}
+            aria-label={t('show_qr')}
           >
             {qrLoading ? <RefreshCw size={14} className="animate-spin" /> : <QrCode size={14} />}
           </button>
@@ -208,8 +214,8 @@ const ClientCard = ({
               onDelete(client);
             }}
             className="p-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all"
-            title="Supprimer"
-            aria-label="Supprimer le peer"
+            title={t('delete')}
+            aria-label={t('delete_peer')}
           >
             <Trash2 size={14} />
           </button>
