@@ -20,8 +20,29 @@ INSTALL_DIR="${WG_FUX_INSTALL_DIR:-/opt/wg-fux}"
 API_ENV="${INSTALL_DIR}/api-service/.env"
 LOG_FILE='/var/log/wg-fux-update.log'
 
+# Progression exposée à l'UI de l'instance (bandeau « installation en cours »).
+# Renseignés plus bas, une fois le dossier data du conteneur résolu et la version
+# offerte connue. set_status est un no-op tant que STATUS_FILE est vide (échecs
+# précoces, avant qu'on sache où écrire).
+STATUS_FILE=''
+UPDATE_VERSION=''
+
 log()  { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "$LOG_FILE" >&2; }
-fail() { log "ERREUR: $*"; exit 1; }
+
+# set_status <phase> [message] — écrit update-status.json (lu par l'API, phase
+# affichée en direct). JSON minimal, message assaini (ni guillemet ni backslash
+# pour ne pas casser le parse). Jamais fatal : une maj ne doit pas échouer parce
+# que le marqueur de progression n'a pas pu s'écrire.
+set_status() {
+  [ -n "$STATUS_FILE" ] || return 0
+  local phase="$1" msg
+  msg=$(printf '%s' "${2:-}" | tr -d '"\\' | tr '\n' ' ' | cut -c1-200)
+  printf '{"phase":"%s","version":"%s","at":%s,"message":"%s"}\n' \
+    "$phase" "$UPDATE_VERSION" "$(date +%s)" "$msg" > "$STATUS_FILE" 2>/dev/null || return 0
+  chmod 0644 "$STATUS_FILE" 2>/dev/null || true
+}
+
+fail() { set_status failed "$*"; log "ERREUR: $*"; exit 1; }
 
 [ "$(id -u)" -eq 0 ] || fail "À exécuter en root sur l'hôte."
 [ -f "$API_ENV" ] || fail "Instance introuvable ($API_ENV absent)."
@@ -68,7 +89,11 @@ DATA_DIR="$(resolve_data_dir)"
 mkdir -p "$DATA_DIR" 2>/dev/null || true
 PENDING="${DATA_DIR}/update-pending.json"
 CONFIRMED="${DATA_DIR}/update-confirmed"
+STATUS_FILE="${DATA_DIR}/update-status.json"
 
+# Le statut de progression NE fait PAS partie des marqueurs d'attente : on le
+# préserve (phase 'done'/'failed') après un cycle pour que l'UI puisse afficher
+# le résultat. Il est expiré côté API (TTL) ou écrasé au cycle suivant.
 cleanup_markers() { rm -f "$PENDING" "$CONFIRMED" 2>/dev/null || true; }
 
 if [ "${WG_SELF_UPDATE_FORCE:-0}" != "1" ]; then
@@ -81,6 +106,7 @@ if [ "${WG_SELF_UPDATE_FORCE:-0}" != "1" ]; then
     *)
       OFFERED=$(printf '%s' "$CHECK_BODY" | grep -o '"offeredVersion":"[^"]*"' | cut -d'"' -f4)
       MODE=$(printf '%s' "$CHECK_BODY" | grep -o '"mode":"[^"]*"' | cut -d'"' -f4)
+      [ -n "$OFFERED" ] && UPDATE_VERSION="$OFFERED" # pour les marqueurs de progression
       if [ -z "$OFFERED" ] || [ "$OFFERED" = "$LOCAL_VERSION" ]; then
         cleanup_markers # offre retirée ou déjà à jour → plus rien en attente
         exit 0
@@ -142,6 +168,7 @@ TMP_HDR="$(mktemp /tmp/wg-fux-update.XXXXXX.hdr)"
 trap 'rm -f "$TMP_BUNDLE" "$TMP_HDR"' EXIT
 
 log "=== Mise à jour wg-fux depuis ${PLATFORM_URL} ==="
+set_status downloading 'Téléchargement du bundle'
 
 # Télécharge le bundle (clé de licence = auth) + capture les en-têtes (sha256).
 # -f → échec sur 401/402/5xx. Épingle la clé publique TLS si configurée.
@@ -167,11 +194,14 @@ esac
 # à la nôtre, on s'arrête là — pas de rebuild ni de coupure WireGuard pour rien
 # (le cron tourne toutes les nuits, les releases sont rares).
 REMOTE_VERSION=$(grep -i '^X-WG-Fux-Version:' "$TMP_HDR" | tr -d '\r' | awk '{print $2}')
+[ -n "$REMOTE_VERSION" ] && UPDATE_VERSION="$REMOTE_VERSION"
 if [ -n "$REMOTE_VERSION" ] && [ -n "$LOCAL_VERSION" ] && [ "$REMOTE_VERSION" = "$LOCAL_VERSION" ]; then
   log "Déjà à jour (v${LOCAL_VERSION}) — aucune action."
+  set_status done 'Déjà à jour' # résout le bandeau si l'opérateur avait confirmé
   exit 0
 fi
 log "Nouvelle version disponible : v${LOCAL_VERSION:-?} → v${REMOTE_VERSION:-?}"
+set_status verifying 'Vérification d’intégrité'
 
 # INTÉGRITÉ : le sha256 annoncé par la plateforme (en-tête) doit correspondre au
 # fichier téléchargé AVANT toute extraction/exécution root. Sans en-tête (vieux
@@ -198,11 +228,13 @@ log "Extraction par-dessus ${INSTALL_DIR} (préserve .env + data)…"
 tar -xzf "$TMP_BUNDLE" -C "$INSTALL_DIR"
 
 log "Rebuild + redémarrage des services (peers ré-appliqués au PostUp)…"
+set_status building 'Reconstruction et redémarrage des services'
 cd "$INSTALL_DIR"
 # setup.sh --update : rebuild api+ui puis up -d, sans toucher à la config.
 bash setup.sh --update || fail "Le rebuild a échoué — l'ancienne stack tourne toujours."
 
 cleanup_markers 2>/dev/null || true # plus rien en attente : bandeau UI retiré
+set_status done "Mise à jour v${UPDATE_VERSION:-$REMOTE_VERSION} installée"
 
 log "=== Mise à jour terminée avec succès ==="
 echo "✅ wg-fux à jour. Les clients WireGuard se reconnectent automatiquement."

@@ -490,7 +490,10 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-[11px] font-mono font-bold text-slate-400 group-hover:text-white transition-colors">
-                      {new Date(entry.timestamp).toLocaleString()}
+                      {/* entry.handshakeAt = vrai handshake WireGuard (wg show dump).
+                          Fallback sur entry.timestamp (heure du poll) pour les entrées
+                          écrites avant l'ajout de cette colonne. */}
+                      {new Date(entry.handshakeAt || entry.timestamp).toLocaleString()}
                     </span>
                     <span
                       className={cn(
@@ -514,10 +517,10 @@ const ClientDetail = ({ client, onBack, onToggle, onDelete, onQRCode, onEdit }) 
                     </div>
                     <div className="space-y-1 text-right">
                       <div className="text-[8px] font-black text-slate-500 uppercase">
-                        Handshake Scan
+                        Handshake Réel
                       </div>
                       <div className="text-[11px] font-mono font-bold text-emerald-500">
-                        {new Date(entry.timestamp).toLocaleTimeString()}
+                        {new Date(entry.handshakeAt || entry.timestamp).toLocaleTimeString()}
                       </div>
                     </div>
                   </div>

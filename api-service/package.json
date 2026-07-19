@@ -19,6 +19,7 @@
     "@sentry/profiling-node": "^10.49.0",
     "axios": "^1.14.0",
     "better-sqlite3": "^12.8.0",
+    "bytenode": "^1.5.7",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "drizzle-orm": "^0.45.2",

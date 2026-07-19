@@ -209,9 +209,16 @@ const logs = sqliteTable(
   'logs',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
+    // Heure du POLL (cycle logTrafficHistory, toutes les 60s) — utilisée pour le
+    // graphe de bande passante et la purge par ancienneté. PAS l'heure réelle de
+    // connexion du peer : voir handshakeAt.
     timestamp: integer('timestamp', { mode: 'timestamp' }).default(
       sql`(cast(strftime('%s','now') as int))`
     ),
+    // Heure du dernier handshake WireGuard réel du peer (issue de `wg show dump`,
+    // pas du cycle de poll). C'est la valeur à afficher comme "heure de connexion" —
+    // null pour les entrées écrites avant l'ajout de cette colonne.
+    handshakeAt: integer('handshakeAt', { mode: 'timestamp' }),
     type: text('type').default('snapshot'), // 'snapshot', 'auth', 'system', 'maintenance'
     status: text('status'),
     container: text('container'),

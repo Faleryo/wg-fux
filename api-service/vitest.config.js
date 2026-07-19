@@ -7,6 +7,10 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./tests/setup.js'],
+    // Les hooks beforeAll de plusieurs suites d'intégration font initializeDatabase
+    // + import complet du serveur. Le défaut de 10s est trop juste quand toute la
+    // suite tourne en parallèle (contention CPU) → on donne de la marge.
+    hookTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

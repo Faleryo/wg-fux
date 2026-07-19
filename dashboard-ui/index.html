@@ -13,6 +13,11 @@
  href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
  rel="stylesheet"
  />
+  <!-- CSP: le bloc script inline ci-dessous est autorise par un HASH sha256
+       dans nginx.conf (script-src). Toute modification de son contenu casse le
+       hash: le regenerer (commande dans nginx.conf), sinon le navigateur bloque
+       le bloc au chargement. Ne pas ecrire la balise script dans ce commentaire
+       (la commande de regeneration l'extrait par motif). -->
   <script>
   window.SERVER_IP = '%VITE_SERVER_IP%' === '%'+'VITE_SERVER_IP%' ? 'localhost' : '%VITE_SERVER_IP%';
   window.SERVER_PORT = '%VITE_SERVER_PORT%' === '%'+'VITE_SERVER_PORT%' ? '51820' : '%VITE_SERVER_PORT%';

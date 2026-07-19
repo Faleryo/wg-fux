@@ -133,13 +133,16 @@ class WebSocketService {
         return;
       }
 
-      // 🛡️ Sentinel Watchdog bypass (internal agent) — timing-safe comparison
+      // 🛡️ Sentinel Watchdog bypass (internal agent) — timing-safe comparison.
+      // Longueur minimale 32 (cohérent avec middleware/auth.js) : ce token
+      // accorde l'identité admin, un SENTINEL_TOKEN vide/court mal configuré ne
+      // doit jamais ouvrir un bypass devinable.
       const sentinelToken = (process.env.SENTINEL_TOKEN || '').replace(/['"]/g, '').trim();
       const receivedToken = String(token || '')
         .replace(/['"]/g, '')
         .trim();
       let isSentinel = false;
-      if (sentinelToken && receivedToken) {
+      if (sentinelToken.length >= 32 && receivedToken) {
         const sBuf = Buffer.from(sentinelToken);
         const rBuf = Buffer.from(receivedToken);
         isSentinel = sBuf.length === rBuf.length && crypto.timingSafeEqual(sBuf, rBuf);

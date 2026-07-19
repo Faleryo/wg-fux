@@ -123,6 +123,25 @@ function buildBundleTarball({ fresh = false } = {}) {
   // il est servi tel quel — le client ne reçoit jamais le code source propre.
   // Sinon on retombe sur `git archive HEAD` (dev / instance non durcie).
   const protectedPath = (process.env.PROTECTED_BUNDLE_PATH || '').trim();
+
+  // FAIL-CLOSED (opt-in) : quand REQUIRE_PROTECTED_BUNDLE est actif, on REFUSE de
+  // fabriquer le bundle depuis `git archive HEAD` (= code source PROPRE) si le
+  // bundle durci est absent/illisible — sinon une plateforme de prod mal câblée
+  // livrerait tout le code source au revendeur. Sans ce flag, comportement
+  // historique conservé (repli git archive) pour le dev/les instances mères.
+  const requireProtected = /^(1|true|yes|on)$/i.test(
+    (process.env.REQUIRE_PROTECTED_BUNDLE || '').trim()
+  );
+  const refuseSource = () =>
+    Promise.reject(
+      Object.assign(
+        new Error(
+          'Bundle durci exigé (REQUIRE_PROTECTED_BUNDLE) mais indisponible — refus de servir le code source.'
+        ),
+        { code: 'PROTECTED_BUNDLE_UNAVAILABLE' }
+      )
+    );
+
   if (protectedPath) {
     try {
       const mtimeMs = fs.statSync(protectedPath).mtimeMs;
@@ -140,11 +159,24 @@ function buildBundleTarball({ fresh = false } = {}) {
       });
       return Promise.resolve(_bundleCache);
     } catch (e) {
+      if (requireProtected) {
+        log.error('provision', 'Bundle durci EXIGÉ mais illisible — refus (pas de repli source)', {
+          path: protectedPath,
+          err: e.message,
+        });
+        return refuseSource();
+      }
       log.warn('provision', 'Bundle durci illisible — repli git archive', {
         path: protectedPath,
         err: e.message,
       });
     }
+  } else if (requireProtected) {
+    log.error(
+      'provision',
+      'REQUIRE_PROTECTED_BUNDLE actif mais PROTECTED_BUNDLE_PATH non défini — refus (pas de repli source)'
+    );
+    return refuseSource();
   }
 
   const { execFile } = require('child_process');
@@ -215,10 +247,21 @@ async function renderBootstrap(server, { req } = {}) {
   // ici doit correspondre exactement à l'archive téléchargée par le VPS.
   const { sha256: bundleSha256 } = await buildBundleTarball();
 
+  // Pin TLS propagé au bootstrap : le téléchargement du bundle ET le callback
+  // /ready bénéficient du même épinglage de clé publique que le fetch du script
+  // (défense en profondeur — le sha256 du bundle protège déjà l'intégrité, le
+  // pin ferme le canal contre un MITM à CA compromise). Vide = pas de pin.
+  const tlsPin = (process.env.TLS_PINNED_PUBKEY || '').trim();
+  // Clé PUBLIQUE de signature de licence de la mère (base64 DER SPKI). Injectée
+  // dans l'instance → elle vérifiera les grants signés. Vide si la mère ne signe
+  // pas (rétro-compat : l'instance reste en mode legacy). Voir services/licenseSign.js.
+  const licensePubkey = (process.env.LICENSE_SIGNING_PUBKEY || '').trim();
   const replacements = {
     '{{PLATFORM_BASE}}': base,
     '{{BUNDLE_SHA256}}': bundleSha256,
     '{{LICENSE_KEY}}': server.licenseKey || '',
+    '{{TLS_PIN}}': tlsPin,
+    '{{LICENSE_PUBKEY}}': licensePubkey,
   };
 
   let script = template;

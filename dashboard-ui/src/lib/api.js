@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getSelectedServerId } from '../context/SelectedServerContext';
 
 // Détection dynamique de l'URL de l'API
 const getApiUrl = () => {
@@ -60,11 +61,13 @@ axiosInstance.interceptors.request.use((config) => {
 
   // Cible serveur (multi-tenant) : on injecte `x-server-id` sur les routes
   // /clients (les seules portant le middleware resolveServer). 'local' (ou
-  // absent) → pas d'en-tête = serveur historique. Lu depuis localStorage car
-  // l'intercepteur n'est pas un composant React. Voir SelectedServerContext.
+  // absent) → pas d'en-tête = serveur historique. getSelectedServerId() lit
+  // localStorage car l'intercepteur n'est pas un composant React, mais la clé
+  // et la valeur par défaut restent définies UNE SEULE fois dans
+  // SelectedServerContext — pas de chaîne 'wg-selected-server' dupliquée ici.
   const url = config.url || '';
   if (url.startsWith('/clients')) {
-    const serverId = localStorage.getItem('wg-selected-server');
+    const serverId = getSelectedServerId();
     if (serverId && serverId !== 'local') {
       config.headers['x-server-id'] = serverId;
     } else {

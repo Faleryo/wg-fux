@@ -8,6 +8,9 @@
 //   - services/shell.js          (façade rétrocompatible)
 //   - services/executors/local.js (exécution locale sudo)
 //   - services/executors/ssh.js  (réutilise stripAnsi)
+//
+// Carte complète de la chaîne (routes → executors → ici/SSH) :
+// voir le commentaire en tête de services/executors/index.js.
 
 const childProcess = require('child_process');
 const fs = require('fs').promises;
@@ -78,7 +81,13 @@ const runCommand = async (cmd, args = [], stdinData = null) => {
   }
 
   // 🧪 TEST BYPASS (Moved after hardening/binary checks to maximize coverage)
+  // Function form lets an individual test simulate a failure (e.g. a disk
+  // write that must fail so a refund-on-failure invariant can be exercised)
+  // without touching real sudo/wg-*.sh — see tests/reseller-workspace.test.js.
   if (global.TEST_MOCK_SHELL) {
+    if (typeof global.TEST_MOCK_SHELL === 'function') {
+      return global.TEST_MOCK_SHELL(cmd, sanitizedArgs, stdinData);
+    }
     return { success: true, stdout: 'MOCKED_OUTPUT', stderr: '', code: 0 };
   }
 

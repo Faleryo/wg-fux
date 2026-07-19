@@ -309,11 +309,6 @@ describe('POST /clients/:container/:name/renew — renouvellement payant', () =>
     return c;
   };
 
-  // ⚠️ Environnement de test : writeFileAsRoot passe par sudo + wg-file-proxy,
-  // qui échoue hors root (les mocks de module ne s'appliquent pas aux require
-  // CJS dans cette suite). On teste donc la LOGIQUE MÉTIER : calcul d'échéance
-  // (helper pur), tarification/tenance, et l'invariant clé — un débit dont
-  // l'écriture disque échoue est REMBOURSÉ.
   const { computeNewExpiry } = require('../src/routes/clients');
 
   it("computeNewExpiry : +30 j depuis aujourd'hui quand pas d'échéance", () => {
@@ -337,11 +332,23 @@ describe('POST /clients/:container/:name/renew — renouvellement payant', () =>
     const before = wallet().getBalance(vendor.id);
     await mkClient('sale-box', 'abo-1', vendor.username, null);
 
-    // Dans cet environnement, l'écriture root échoue toujours → 503 attendu,
-    // ET le portefeuille doit être re-crédité (débit + refund dans le ledger).
-    const res = await as(vendor)(
-      request(app).post('/api/clients/sale-box/abo-1/renew').send({ days: 30 })
-    );
+    // Force l'échec de l'écriture root le temps de ce test (voir shell-core.js
+    // TEST_MOCK_SHELL : forme fonction = résultat contrôlé par test, sans
+    // dépendre d'un vrai sudo qui échoue "par chance" hors root).
+    const prevMock = global.TEST_MOCK_SHELL;
+    global.TEST_MOCK_SHELL = () => ({
+      success: false,
+      error: 'Permission denied (simulated)',
+      code: 1,
+    });
+    let res;
+    try {
+      res = await as(vendor)(
+        request(app).post('/api/clients/sale-box/abo-1/renew').send({ days: 30 })
+      );
+    } finally {
+      global.TEST_MOCK_SHELL = prevMock;
+    }
     expect(res.statusCode).toBe(503);
     expect(wallet().getBalance(vendor.id)).toBe(before);
     const { entries } = wallet().statement(vendor.id, 10);

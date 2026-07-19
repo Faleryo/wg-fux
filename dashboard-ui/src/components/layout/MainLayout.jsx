@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, Search, ShieldAlert, X as XIcon } from 'lucide-react';
+import {
+  Menu,
+  Search,
+  ShieldAlert,
+  X as XIcon,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useSelectedServer } from '../../context/SelectedServerContext';
@@ -80,23 +88,84 @@ const TwoFABanner = ({ onNavigate }) => {
 // Bandeau licence de l'instance revendeur : marque (white-label poussée par la
 // plateforme mère), échéance proche/expirée, mise à jour disponible. Ne rend
 // rien sur l'instance mère (licence désactivée).
+
+// Phases d'installation (écrites par wg-self-update.sh, exposées par l'API) →
+// libellé UI + avancement approximatif de la barre. Ordre reflétant le script.
+const UPDATE_PHASES = {
+  queued: { label: 'En file d’attente…', pct: 8 },
+  downloading: { label: 'Téléchargement du bundle…', pct: 30 },
+  verifying: { label: 'Vérification d’intégrité…', pct: 48 },
+  building: { label: 'Reconstruction des services…', pct: 78 },
+  restarting: { label: 'Redémarrage…', pct: 92 },
+};
+
 const LicenseBanner = ({ lic }) => {
   const [now] = useState(() => Date.now());
   const [confirmState, setConfirmState] = useState(null); // null | 'busy' | 'done'
+  // Copie vivante de la licence : rafraîchie par polling pendant une installation
+  // pour suivre la progression réelle (le prop `lic` de MainLayout ne bouge pas).
+  const [live, setLive] = useState(lic);
+  const [apiDown, setApiDown] = useState(false);
+  useEffect(() => {
+    setLive(lic);
+  }, [lic]);
+
+  const cur = live || lic;
+  const status = cur?.updateStatus || null;
+  const pending = cur?.pendingUpdate || null;
+  // Installation « en cours » : dès qu'on a confirmé, ou qu'un statut actif /
+  // un pending confirmé existe (le cron a pris la main).
+  const installing =
+    confirmState === 'busy' ||
+    confirmState === 'done' ||
+    Boolean(status && status.active) ||
+    Boolean(pending && pending.confirmed);
+  const finished = Boolean(status && !status.active); // phase done | failed
+
+  // Polling pendant l'installation : suit les phases et détecte le retour de
+  // l'API après le redémarrage des services. S'arrête sur un statut terminal.
+  useEffect(() => {
+    if (!installing || finished) return undefined;
+    let mounted = true;
+    const tick = async () => {
+      try {
+        const res = await axiosInstance.get('/system/license');
+        if (!mounted) return;
+        setLive(res.data);
+        setApiDown(false);
+      } catch {
+        // API injoignable = quasi certainement le redémarrage de la stack.
+        if (mounted) setApiDown(true);
+      }
+    };
+    const id = setInterval(tick, 3000);
+    tick();
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [installing, finished]);
+
+  // Maj installée : les assets de l'UI ont changé → rechargement de la page.
+  const doneVersion = status?.phase === 'done' ? status.version : null;
+  useEffect(() => {
+    if (!doneVersion) return undefined;
+    const id = setTimeout(() => window.location.reload(), 4000);
+    return () => clearTimeout(id);
+  }, [doneVersion]);
 
   // White-label : le nom de marque devient le titre de l'onglet.
   useEffect(() => {
-    if (lic?.brand?.name) document.title = lic.brand.name;
-  }, [lic]);
+    if (cur?.brand?.name) document.title = cur.brand.name;
+  }, [cur]);
 
-  if (!lic || !lic.enabled) return null;
-  const daysLeft = lic.expiresAt
-    ? Math.ceil((new Date(lic.expiresAt).getTime() - now) / 86400000)
+  if (!cur || !cur.enabled) return null;
+  const daysLeft = cur.expiresAt
+    ? Math.ceil((new Date(cur.expiresAt).getTime() - now) / 86400000)
     : null;
-  const expired = !lic.valid;
+  const expired = !cur.valid;
   const soon = !expired && daysLeft != null && daysLeft <= 7;
-  const pending = lic.pendingUpdate || null;
-  if (!expired && !soon && !lic.updateAvailable && !pending) return null;
+  if (!expired && !soon && !cur.updateAvailable && !pending && !status) return null;
 
   const confirmUpdate = async () => {
     if (confirmState) return;
@@ -108,6 +177,14 @@ const LicenseBanner = ({ lic }) => {
       setConfirmState(null);
     }
   };
+
+  // Libellé + fraction de la barre selon la phase courante.
+  const phaseInfo = status ? UPDATE_PHASES[status.phase] : null;
+  const progressLabel = apiDown
+    ? 'Redémarrage des services…'
+    : phaseInfo?.label || 'Installation en cours…';
+  const progressPct = apiDown ? 90 : (phaseInfo?.pct ?? 8);
+  const updVersion = status?.version || pending?.version || null;
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 pt-4 space-y-2">
@@ -129,69 +206,107 @@ const LicenseBanner = ({ lic }) => {
             </p>
           </div>
           {/* Comment payer : contact poussé par la plateforme (vente manuelle sans Stripe) */}
-          {lic.reseller?.contact &&
-            (lic.reseller.contact.whatsapp ||
-              lic.reseller.contact.telegram ||
-              lic.reseller.contact.instructions) && (
+          {cur.reseller?.contact &&
+            (cur.reseller.contact.whatsapp ||
+              cur.reseller.contact.telegram ||
+              cur.reseller.contact.instructions) && (
               <p className="text-[11px] pl-9 opacity-90">
                 Pour renouveler :{' '}
-                {lic.reseller.contact.whatsapp && (
+                {cur.reseller.contact.whatsapp && (
                   <a
-                    href={`https://wa.me/${lic.reseller.contact.whatsapp.replace(/[^0-9]/g, '')}`}
+                    href={`https://wa.me/${cur.reseller.contact.whatsapp.replace(/[^0-9]/g, '')}`}
                     target="_blank"
                     rel="noreferrer"
                     className="font-bold underline"
                   >
-                    WhatsApp {lic.reseller.contact.whatsapp}
+                    WhatsApp {cur.reseller.contact.whatsapp}
                   </a>
                 )}
-                {lic.reseller.contact.whatsapp && lic.reseller.contact.telegram && ' · '}
-                {lic.reseller.contact.telegram && (
+                {cur.reseller.contact.whatsapp && cur.reseller.contact.telegram && ' · '}
+                {cur.reseller.contact.telegram && (
                   <a
-                    href={`https://t.me/${lic.reseller.contact.telegram.replace(/^@/, '')}`}
+                    href={`https://t.me/${cur.reseller.contact.telegram.replace(/^@/, '')}`}
                     target="_blank"
                     rel="noreferrer"
                     className="font-bold underline"
                   >
-                    Telegram {lic.reseller.contact.telegram}
+                    Telegram {cur.reseller.contact.telegram}
                   </a>
                 )}
-                {lic.reseller.contact.instructions && (
-                  <span className="block opacity-80">{lic.reseller.contact.instructions}</span>
+                {cur.reseller.contact.instructions && (
+                  <span className="block opacity-80">{cur.reseller.contact.instructions}</span>
                 )}
               </p>
             )}
         </div>
       )}
-      {/* Déploiement gouverné : maj en attente sur cette instance */}
-      {pending && !expired && (
-        <div className="flex flex-col md:flex-row md:items-center gap-3 px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
-          <p className="text-[11px] font-black uppercase tracking-wider flex-1">
-            {confirmState === 'done' || pending.confirmed
-              ? `Mise à jour v${pending.version} confirmée — installation dans ≤ 1 min (coupure ~30 s).`
-              : pending.mode === 'instant'
-                ? `Mise à jour v${pending.version} prête — votre confirmation est requise pour l'installer.`
-                : `Mise à jour v${pending.version} programmée${
-                    pending.applyAt
-                      ? ` vers ${new Date(pending.applyAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
-                      : ''
-                  } — vous pouvez l'avancer.`}
-          </p>
-          {!(confirmState === 'done' || pending.confirmed) && (
-            <button
-              onClick={confirmUpdate}
-              disabled={confirmState === 'busy'}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[11px] font-black uppercase tracking-widest text-white transition-colors disabled:opacity-50 flex-shrink-0"
-            >
-              Installer maintenant
-            </button>
+      {/* Déploiement gouverné : maj en attente / installation en cours */}
+      {(pending || status) && !expired && (
+        <>
+          {status?.phase === 'failed' ? (
+            // Échec : rejoué au prochain cycle du cron (aucune coupure prolongée).
+            <div className="flex items-start gap-4 px-5 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300">
+              <AlertTriangle size={18} className="flex-shrink-0 mt-0.5" />
+              <p className="text-[11px] font-black uppercase tracking-wider flex-1">
+                Échec de la mise à jour{updVersion ? ` v${updVersion}` : ''}
+                {status.message ? ` — ${status.message}` : ''}. Nouvelle tentative automatique au
+                prochain cycle.
+              </p>
+            </div>
+          ) : status?.phase === 'done' ? (
+            <div className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+              <CheckCircle2 size={18} className="flex-shrink-0" />
+              <p className="text-[11px] font-black uppercase tracking-wider flex-1">
+                Mise à jour{updVersion ? ` v${updVersion}` : ''} installée — rechargement du
+                panneau…
+              </p>
+            </div>
+          ) : installing ? (
+            // Installation en cours : spinner + phase + barre de progression.
+            <div className="px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 space-y-2">
+              <div className="flex items-center gap-4">
+                <Loader2 size={18} className="flex-shrink-0 animate-spin" />
+                <p className="text-[11px] font-black uppercase tracking-wider flex-1">
+                  Mise à jour{updVersion ? ` v${updVersion}` : ''} — {progressLabel}
+                </p>
+              </div>
+              <div className="h-1.5 rounded-full bg-indigo-500/15 overflow-hidden ml-9">
+                <div
+                  className="h-full rounded-full bg-indigo-400 transition-all duration-700 ease-out"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              <p className="text-[10px] opacity-70 ml-9">
+                Ne fermez pas cette page — coupure réseau brève (~30 s) pendant le redémarrage.
+              </p>
+            </div>
+          ) : (
+            // En attente de confirmation (instant) ou programmée (auto).
+            <div className="flex flex-col md:flex-row md:items-center gap-3 px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+              <p className="text-[11px] font-black uppercase tracking-wider flex-1">
+                {pending?.mode === 'instant'
+                  ? `Mise à jour v${pending.version} prête — votre confirmation est requise pour l'installer.`
+                  : `Mise à jour v${pending?.version} programmée${
+                      pending?.applyAt
+                        ? ` vers ${new Date(pending.applyAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+                        : ''
+                    } — vous pouvez l'avancer.`}
+              </p>
+              <button
+                onClick={confirmUpdate}
+                disabled={confirmState === 'busy'}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[11px] font-black uppercase tracking-widest text-white transition-colors disabled:opacity-50 flex-shrink-0"
+              >
+                Installer maintenant
+              </button>
+            </div>
           )}
-        </div>
+        </>
       )}
-      {lic.updateAvailable && !expired && !pending && (
+      {cur.updateAvailable && !expired && !pending && !status && (
         <div className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
           <p className="text-[11px] font-black uppercase tracking-wider">
-            Mise à jour disponible ({lic.currentVersion} → {lic.latestVersion}) — en attente
+            Mise à jour disponible ({cur.currentVersion} → {cur.latestVersion}) — en attente
             d’approbation par la plateforme.
           </p>
         </div>

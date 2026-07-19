@@ -41,6 +41,12 @@ const getScriptPath = (scriptName) => {
     }
     return resolved;
   }
+  // Nom de script "nu" (le cas de tous les appelants actuels) : doit rester un
+  // simple basename. Sans ce garde-fou, un futur appelant passant un scriptName
+  // avec "../" pourrait échapper à SCRIPT_DIR via path.join (traversal).
+  if (scriptName !== path.basename(scriptName)) {
+    throw new Error(`Invalid script name: ${scriptName}`);
+  }
   return path.join(SCRIPT_DIR, scriptName);
 };
 

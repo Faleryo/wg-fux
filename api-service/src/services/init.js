@@ -370,6 +370,14 @@ async function initializeDatabase() {
         )`,
         label: 'server_health_history table',
       },
+      // Phase 39 — le Blackbox Log affichait l'heure du POLL (cycle logTrafficHistory,
+      // toutes les 60s) comme si c'était l'heure de connexion du peer. On stocke
+      // désormais le vrai timestamp de handshake WireGuard séparément.
+      {
+        version: 39,
+        sql: 'ALTER TABLE logs ADD COLUMN handshakeAt INTEGER',
+        label: 'logs.handshakeAt',
+      },
     ];
 
     for (const m of migrations) {

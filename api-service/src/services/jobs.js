@@ -279,6 +279,12 @@ const logTrafficHistory = async () => {
         .insert(schema.logs)
         .values({
           timestamp,
+          // BUG-FIX: `timestamp` est l'heure du POLL (ce cycle de 60s), pas
+          // l'heure de connexion réelle du peer — le dashboard l'affichait à
+          // tort comme "Handshake Scan". peer.lastHandshake vient de `wg show
+          // dump` (epoch réel du dernier handshake WireGuard) : on le stocke
+          // séparément pour que le Blackbox Log affiche la vraie heure.
+          handshakeAt: new Date(peer.lastHandshake * 1000),
           type: 'snapshot',
           status: 'captured',
           name: peer.publicKey,

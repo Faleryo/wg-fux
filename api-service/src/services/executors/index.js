@@ -1,5 +1,24 @@
 // services/executors/index.js — Fabrique + résolution + pool de connexions SSH.
 //
+// CARTE DE LA CHAÎNE D'EXÉCUTION SHELL (point d'entrée canonique — les autres
+// fichiers de la chaîne pointent ici plutôt que de répéter la carte) :
+//
+//   route/service                   1 appel par exécution système, jamais de shell direct
+//        │
+//        ├─► resolveExecutor(req)   (CE FICHIER) choisit LocalExecutor ou SshExecutor
+//        │        selon req.serverId (posé par le middleware resolveServer en amont ;
+//        │        le contrôle de propriété est fait là, pas ici)
+//        │
+//        ├─► services/shell.js      façade rétrocompatible : runSystemCommand(file, args,
+//        │        stdin, opts) = opts.executor.run(...) ou LocalExecutor par défaut
+//        │
+//        ├─► executors/local.js     LocalExecutor.run() → préfixe `sudo -E -n` si non-root,
+//        │        puis délègue à shell-core.js (SAFE_ARG, timeout, binaire check)
+//        │
+//        └─► executors/ssh.js       SshExecutor.run() → encode [file,...args] en JSON/base64,
+//                 exécute via `wg-fux <payload>` sur le VPS distant (forced command défini
+//                 côté serveur dans core-vpn/scripts/wg-fux-dispatch.sh, élévation root là-bas)
+//
 // resolveExecutor(req)        : choisit l'exécuteur selon le rôle (local pour
 //                               admin/manager, ssh-via-pool pour revendeur).
 // getExecutorForServer(id)    : cache Map serverId → { executor, lastUsed },

@@ -124,6 +124,65 @@ describe('renderBootstrap', () => {
   });
 });
 
+describe('buildBundleTarball : fail-closed REQUIRE_PROTECTED_BUNDLE', () => {
+  const provision = require('../src/routes/provision');
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+
+  // Sauvegarde/restaure l'env pour ne pas polluer les autres suites.
+  let savedRequire, savedPath;
+  beforeEach(() => {
+    savedRequire = process.env.REQUIRE_PROTECTED_BUNDLE;
+    savedPath = process.env.PROTECTED_BUNDLE_PATH;
+  });
+  const restore = () => {
+    if (savedRequire === undefined) delete process.env.REQUIRE_PROTECTED_BUNDLE;
+    else process.env.REQUIRE_PROTECTED_BUNDLE = savedRequire;
+    if (savedPath === undefined) delete process.env.PROTECTED_BUNDLE_PATH;
+    else process.env.PROTECTED_BUNDLE_PATH = savedPath;
+  };
+
+  it('flag actif SANS bundle durci → REFUS (pas de repli sur le code source)', async () => {
+    process.env.REQUIRE_PROTECTED_BUNDLE = '1';
+    delete process.env.PROTECTED_BUNDLE_PATH;
+    // fresh: true contourne le cache module pour ré-évaluer le garde-fou.
+    await expect(provision.buildBundleTarball({ fresh: true })).rejects.toMatchObject({
+      code: 'PROTECTED_BUNDLE_UNAVAILABLE',
+    });
+    restore();
+  });
+
+  it('flag actif avec PROTECTED_BUNDLE_PATH illisible → REFUS (pas de repli source)', async () => {
+    process.env.REQUIRE_PROTECTED_BUNDLE = 'true';
+    process.env.PROTECTED_BUNDLE_PATH = path.join(os.tmpdir(), 'nope-does-not-exist.tgz');
+    await expect(provision.buildBundleTarball({ fresh: true })).rejects.toMatchObject({
+      code: 'PROTECTED_BUNDLE_UNAVAILABLE',
+    });
+    restore();
+  });
+
+  it('flag actif AVEC bundle durci lisible → sert ce bundle (fail-open quand présent)', async () => {
+    const tmp = path.join(os.tmpdir(), `bundle-test-${Date.now()}.tgz`);
+    fs.writeFileSync(tmp, Buffer.from('FAKE_HARDENED_BUNDLE_CONTENT'));
+    process.env.REQUIRE_PROTECTED_BUNDLE = '1';
+    process.env.PROTECTED_BUNDLE_PATH = tmp;
+    const { buffer, sha256 } = await provision.buildBundleTarball({ fresh: true });
+    expect(buffer.toString()).toBe('FAKE_HARDENED_BUNDLE_CONTENT');
+    expect(sha256).toHaveLength(64);
+    fs.unlinkSync(tmp);
+    restore();
+  });
+
+  it('flag INACTIF (défaut) → repli git archive conservé (non-breaking)', async () => {
+    delete process.env.REQUIRE_PROTECTED_BUNDLE;
+    delete process.env.PROTECTED_BUNDLE_PATH;
+    const { buffer } = await provision.buildBundleTarball({ fresh: true });
+    expect(buffer.length).toBeGreaterThan(1000); // git archive sert le produit
+    restore();
+  });
+});
+
 describe('POST /api/servers → one-liner', () => {
   let app, request;
   beforeAll(async () => {
@@ -153,7 +212,9 @@ describe('POST /api/servers → one-liner', () => {
     expect(res.body.oneLiner).not.toContain('--pinnedpubkey'); // pas de TLS pin en test
 
     // Récupère le token brut depuis le one-liner et vérifie que son hash matche la base.
-    const m = res.body.oneLiner.match(/WG_T=([A-Za-z0-9_-]+);/);
+    // Format durci : `WG_T=<token> WG_H=<sha> bash -c '...'` (assignations d'env
+    // espacées, plus de `;`).
+    const m = res.body.oneLiner.match(/WG_T=([A-Za-z0-9_-]+)\s/);
     expect(m).toBeTruthy();
     const token = m[1];
     const { hashToken } = require('../src/services/sshKeys');
@@ -276,6 +337,34 @@ describe('POST /license/heartbeat (endpoint de facturation)', () => {
     expect(after.lastHeartbeat).toBeTruthy();
     expect(after.clientCount).toBe(12);
     expect(after.status).toBe('online');
+  });
+
+  it('mode durci : la réponse heartbeat porte un grant SIGNÉ vérifiable, lié à la clé', async () => {
+    const ls = require('../src/services/licenseSign');
+    const kp = ls.generateKeyPairB64();
+    const saved = { p: process.env.LICENSE_SIGNING_PRIVKEY, u: process.env.LICENSE_SIGNING_PUBKEY };
+    process.env.LICENSE_SIGNING_PRIVKEY = kp.privateKey; // la mère signe
+    process.env.LICENSE_SIGNING_PUBKEY = kp.publicKey;
+    ls._resetCache();
+    try {
+      const key = 'lic-signed-' + crypto.randomBytes(16).toString('hex');
+      await seedLicensed({ key, expiryMs: 30 * 86400_000 });
+      const res = await request(app).post('/license/heartbeat').send({ key, version: '3.1.0', clients: 3 });
+      expect(res.statusCode).toBe(200);
+      const lg = res.body.licenseGrant;
+      expect(lg).toBeTruthy();
+      expect(ls.verifyGrant(lg.grant, lg.sig)).toBe(true); // signature mère valide
+      expect(lg.grant.keyId).toBe(ls.keyIdFor(key)); // lié à CETTE instance
+      expect(lg.grant.valid).toBe(true);
+      expect(typeof lg.grant.issuedAt).toBe('number');
+    } finally {
+      // Restaure l'env (sinon pollue les suites suivantes en mode durci).
+      if (saved.p === undefined) delete process.env.LICENSE_SIGNING_PRIVKEY;
+      else process.env.LICENSE_SIGNING_PRIVKEY = saved.p;
+      if (saved.u === undefined) delete process.env.LICENSE_SIGNING_PUBKEY;
+      else process.env.LICENSE_SIGNING_PUBKEY = saved.u;
+      ls._resetCache();
+    }
   });
 
   it('GET /license/bundle.tgz : licence valide → gzip ; expirée → 402 ; inconnue → 401', async () => {

@@ -9,7 +9,17 @@ ADGUARD_URL="http://localhost:3002"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOG_FILE="${WATCHDOG_LOG_FILE:-$PROJECT_ROOT/logs/watchdog.log}"
-PID_FILE="/tmp/wg-fux-watchdog.pid"
+# PID dans un répertoire NON-world-writable pour empêcher une attaque par lien
+# symbolique (/tmp était prévisible ET écrivable par tout utilisateur : un local
+# non privilégié pouvait y planter un symlink vers un fichier root arbitraire
+# qu'un `echo $$ >` root aurait alors écrasé). /run/wg-fux est root-only (0700) ;
+# repli sous logs/ (dans l'arbre d'install root) si /run est indisponible.
+if mkdir -p /run/wg-fux 2>/dev/null && chmod 700 /run/wg-fux 2>/dev/null; then
+ PID_DIR="/run/wg-fux"
+else
+ PID_DIR="$PROJECT_ROOT/logs"
+fi
+PID_FILE="$PID_DIR/watchdog.pid"
 DOCKER_COMPOSE_CMD="docker compose -f $PROJECT_ROOT/docker-compose.yml"
 
 mkdir -p "$(dirname "$LOG_FILE")"

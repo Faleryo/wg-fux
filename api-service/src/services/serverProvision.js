@@ -37,14 +37,44 @@ function claimTrial(host, ownerId) {
 class ServerConflictError extends Error {}
 
 // Construit le one-liner à partir du token, du sha256 du script et de la base.
+//
+// Durcissement (le VPS exécute du code root téléchargé — chaque garde compte) :
+//   - `bash -c '...'` : force bash même si collé dans sh/dash (process
+//     substitution, [[ ]] du bootstrap) → pas de comportement indéfini.
+//   - `set -euo pipefail` + `umask 077` : abandon au moindre échec, fichiers
+//     temporaires créés en 0600 (le script téléchargé n'est jamais lisible par
+//     un autre utilisateur local).
+//   - `command -v curl sha256sum` : échec explicite si un prérequis manque
+//     (sinon la vérification d'intégrité serait silencieusement sautée).
+//   - `--proto '=https' --tlsv1.2` + pin TLS optionnel : transport chiffré,
+//     downgrade impossible, épinglage de clé publique si configuré.
+//   - `[ -n "$WG_H" ]` : refuse de continuer si le hash attendu est vide
+//     (fail-closed — jamais d'exécution non vérifiée).
+//   - téléchargement dans un fichier temp 0600, sha256 RE-vérifié sur le fichier
+//     exact qui sera exécuté (pas sur une variable), puis `bash <fichier>` : le
+//     script est inspectable et le token passe par l'ENV, pas en argv.
+//   - `HISTFILE réinitialisé` dans le sous-shell : le token de provisioning ne
+//     fuit pas dans l'historique du shell appelant.
 function buildOneLiner({ token, scriptSha256, base }) {
   const tlsPin = (process.env.TLS_PINNED_PUBKEY || '').trim();
   const pinFlag = tlsPin ? `--pinnedpubkey '${tlsPin}' ` : '';
-  return (
-    `WG_T=${token}; WG_H=${scriptSha256}; ` +
-    `S=$(curl --proto '=https' --tlsv1.3 ${pinFlag}-fsSL "${base}/provision/$WG_T/script") && ` +
-    'printf \'%s\' "$S" | sha256sum -c <(echo "$WG_H  -") && WG_T=$WG_T bash -c "$S"'
-  );
+  // Corps exécuté par `bash -c`. Guillemets DOUBLES dans le corps uniquement
+  // (le corps est lui-même entre guillemets simples côté shell appelant).
+  const body = [
+    'set -euo pipefail',
+    'umask 077',
+    'command -v curl >/dev/null 2>&1 || { echo "curl requis" >&2; exit 1; }',
+    'command -v sha256sum >/dev/null 2>&1 || { echo "sha256sum requis" >&2; exit 1; }',
+    '[ -n "$WG_H" ] || { echo "hash manquant" >&2; exit 1; }',
+    'F=$(mktemp /tmp/wg-fux.XXXXXX.sh)',
+    'trap \'rm -f "$F"\' EXIT',
+    `curl --proto '=https' --tlsv1.2 ${pinFlag}-fsSL -o "$F" "${base}/provision/$WG_T/script"`,
+    'printf \'%s  %s\\n\' "$WG_H" "$F" | sha256sum -c - >/dev/null',
+    'bash "$F"',
+  ].join('; ');
+  // Le token passe par l'ENV du sous-shell (pas répété en argv d'exec) et
+  // HISTFILE est neutralisé dans ce sous-shell.
+  return `WG_T=${token} WG_H=${scriptSha256} bash -c 'unset HISTFILE; ${body}'`;
 }
 
 function platformBase(req) {

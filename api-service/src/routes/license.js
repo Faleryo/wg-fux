@@ -18,6 +18,28 @@ const { db, schema } = require('../../db');
 const { eq } = require('drizzle-orm');
 const log = require('../services/logger');
 const { asyncWrap } = require('../utils/errors');
+const licenseSign = require('../services/licenseSign');
+
+// Construit le grant de licence SIGNÉ pour une instance (côté mère). Renvoie
+// { grant, sig } si la mère a une clé de signature, sinon null (rétro-compat :
+// les instances sans pubkey ignorent ce champ, l'ancien flux JSON reste valable).
+function buildLicenseGrant(server, valid) {
+  if (!licenseSign.signingEnabled()) return null;
+  try {
+    return licenseSign.signGrant({
+      v: 1,
+      keyId: licenseSign.keyIdFor(server.licenseKey), // lie le grant à CETTE clé
+      serverId: server.id,
+      valid: Boolean(valid),
+      expiresAt: server.licenseExpiry ? new Date(server.licenseExpiry).toISOString() : null,
+      maxClients: Number.isInteger(server.maxClients) ? server.maxClients : null,
+      issuedAt: Date.now(),
+    });
+  } catch (e) {
+    log.error('license', 'Signature du grant échouée', { err: e.message });
+    return null;
+  }
+}
 
 // Version courante de la plateforme = version publiée aux instances (elles
 // comparent avec la leur pour savoir s'il faut se mettre à jour).
@@ -149,6 +171,10 @@ router.post(
       maxClients: Number.isInteger(server.maxClients) ? server.maxClients : null,
       brand,
       reseller,
+      // Grant SIGNÉ (Ed25519) : source de vérité infalsifiable pour valid/expiresAt/
+      // maxClients. null si la mère ne signe pas → l'instance retombe sur les champs
+      // ci-dessus (rétro-compat). Voir services/licenseSign.js + license.js.
+      licenseGrant: buildLicenseGrant(server, valid),
     });
   })
 );

@@ -5,6 +5,9 @@
 // leur ajoutant un 4ᵉ argument optionnel { executor } (défaut = LocalExecutor),
 // ce qui permet de router l'exécution en LOCAL (sudo, historique) ou à DISTANCE
 // (SSH) sans changer aucun appelant existant.
+//
+// Carte complète de la chaîne (routes → executors → shell-core/SSH) :
+// voir le commentaire en tête de services/executors/index.js.
 
 const fs = require('fs').promises;
 const { getScriptPath } = require('./config');

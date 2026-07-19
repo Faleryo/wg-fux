@@ -120,6 +120,30 @@ const globalLimiter = rateLimit({
 });
 app.use('/api/', globalLimiter);
 
+// Rate limiting DÉDIÉ aux routes publiques token-gatées, montées HORS /api donc
+// non couvertes par globalLimiter. Défense en profondeur : les tokens de
+// provisioning et clés de licence sont déjà à haute entropie (≥256 bits, non
+// brute-forçables), mais un limiteur par IP borne l'énumération et le DoS.
+// Limites calibrées sur l'usage légitime : chaque VPS a sa propre IP publique.
+//   - /provision : quelques requêtes pendant l'installation (script, bundle,
+//     ready) + éventuelles reprises → 60 / 15 min largement suffisant.
+//   - /license   : wg-self-update.sh sonde /license/update-check CHAQUE minute
+//     (≈15/15 min) + heartbeat + bundle occasionnel → 120 / 15 min avec marge.
+const provisionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many provisioning requests, slow down.', code: 'RATE_LIMIT_EXCEEDED' },
+});
+const licenseLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many license requests, slow down.', code: 'RATE_LIMIT_EXCEEDED' },
+});
+
 // --- Public Routes ---
 app.get('/api/install/status', (req, res) => res.json({ installed: true }));
 app.get('/api/health', async (req, res) => {
@@ -145,11 +169,12 @@ app.get('/api/ready', async (req, res) => {
 });
 
 // --- Provisioning one-liner (PUBLIC : le token de provisioning EST l'auth) ---
-// Monté HORS /api donc sans le middleware d'auth JWT ni le rate-limit /api.
-app.use('/provision', provisionRoutes);
+// Monté HORS /api donc sans le middleware d'auth JWT ni le rate-limit /api :
+// on applique son propre limiteur par IP.
+app.use('/provision', provisionLimiter, provisionRoutes);
 
 // --- Licence des instances revendeurs (PUBLIC : la clé de licence EST l'auth) ---
-app.use('/license', require('./src/routes/license'));
+app.use('/license', licenseLimiter, require('./src/routes/license'));
 
 // --- Auth Routes (contains both public /login and protected /check) ---
 app.use('/api/auth', authRoutes);

@@ -8,6 +8,16 @@ process.env.DB_PATH = ':memory:';
 process.env.ALLOWED_ORIGINS = '*';
 process.env.VITEST = 'true';
 
+// vi.mock('../src/services/shell', ...) below does NOT reach code that goes
+// through resolveExecutor()/executors/local.js: those call shell-core.js's
+// runCommand() directly via require(), which Vitest's mock interception does
+// not cover for plain CJS require() chains (same limitation the ssh executor
+// already documents in services/executors/ssh.js). Without this flag, any
+// route exercised through supertest (not just unit-level service calls) ends
+// up invoking real `sudo`/wg-*.sh scripts on the machine running the tests.
+// shell-core.js checks this flag as the actual last line of defense.
+global.TEST_MOCK_SHELL = true;
+
 // --- GLOBAL MOCKS ---
 
 // 1. AXIOS (Static string mock)

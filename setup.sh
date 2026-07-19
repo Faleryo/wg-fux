@@ -331,7 +331,7 @@ configure_from_env() {
 write_env_files() {
     log_info "Writing configuration files…"
 
-    local salt jwt sentinel backup_pass admin_hash master_key
+    local salt jwt sentinel backup_pass admin_hash master_key lic_priv lic_pub
     salt="${ADMIN_PASSWORD_SALT:-$(openssl rand -hex 16)}"
     jwt="${JWT_SECRET:-$(random_secret 32)}"
     sentinel="${SENTINEL_TOKEN:-$(random_secret 24)}"
@@ -339,6 +339,31 @@ write_env_files() {
     # Clé maître AES-256-GCM pour chiffrer les clés privées SSH des VPS revendeurs
     # (services/crypto.js). 32 bytes = 64 hex. Jamais en base, jamais commitée.
     master_key="${WG_FUX_MASTER_KEY:-$(openssl rand -hex 32)}"
+
+    # ── Signature de licence (Ed25519) — services/licenseSign.js ────────────────
+    # MÈRE (pas de licence provisionnée par le bootstrap) : possède la paire. La
+    #   privée SIGNE les grants, la publique est distribuée aux instances. La paire
+    #   DOIT rester STABLE (sinon la pubkey de toutes les instances déployées casse)
+    #   → on préserve depuis le .env existant avant de générer.
+    # INSTANCE REVENDEUR (WGFUX_LICENSE_KEY fournie) : JAMAIS de privée — on n'écrit
+    #   que la publique reçue au provisioning (WGFUX_LICENSE_PUBKEY).
+    lic_priv=""
+    lic_pub=""
+    if [ -z "${WGFUX_LICENSE_KEY:-}" ]; then
+        lic_priv="${LICENSE_SIGNING_PRIVKEY:-}"
+        lic_pub="${LICENSE_SIGNING_PUBKEY:-}"
+        if { [ -z "$lic_priv" ] || [ -z "$lic_pub" ]; } && [ -f "$API_ENV" ]; then
+            lic_priv="$(grep -E '^LICENSE_SIGNING_PRIVKEY=' "$API_ENV" 2>/dev/null | head -1 | cut -d= -f2-)"
+            lic_pub="$(grep -E '^LICENSE_SIGNING_PUBKEY=' "$API_ENV" 2>/dev/null | head -1 | cut -d= -f2-)"
+        fi
+        if [ -z "$lic_priv" ] || [ -z "$lic_pub" ]; then
+            lic_priv="$(openssl genpkey -algorithm ed25519 -outform DER 2>/dev/null | base64 -w0)"
+            lic_pub="$(printf '%s' "$lic_priv" | base64 -d | openssl pkey -inform DER -pubout -outform DER 2>/dev/null | base64 -w0)"
+            log_info "Nouvelle paire de signature de licence Ed25519 générée (mère)."
+        fi
+    else
+        lic_pub="${WGFUX_LICENSE_PUBKEY:-}"
+    fi
 
     admin_hash=$(generate_admin_hash "$ADMIN_PASS" "$salt")
     [ -n "$admin_hash" ] || { log_error "Hash generation failed (no node/python3?)"; exit 1; }
@@ -375,6 +400,11 @@ TLS_PINNED_PUBKEY=${TLS_PINNED_PUBKEY:-}
 # --- Licence d'instance (vide = instance mère auto-hébergée, licence désactivée) ---
 WG_FUX_LICENSE_KEY=${WGFUX_LICENSE_KEY:-}
 WG_FUX_PLATFORM_URL=${WGFUX_PLATFORM_URL:-}
+# --- Signature de licence (Ed25519, base64 DER) ---
+# PRIVKEY : présente = MÈRE (signe les grants). PUBKEY : présente = vérifie les
+# grants signés (mère ET instances provisionnées). Vide des deux = mode legacy.
+LICENSE_SIGNING_PRIVKEY=$lic_priv
+LICENSE_SIGNING_PUBKEY=$lic_pub
 EOF
     chmod 600 "$API_ENV"
 

@@ -15,6 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const log = require('./logger');
+const licenseSign = require('./licenseSign');
 
 // Lues dynamiquement (pas figées au chargement) : permet de détecter une clé
 // retirée à chaud et rend le module testable sans rechargement.
@@ -136,26 +137,59 @@ async function checkLicenseNow() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
+    // Mode DURCI (une pubkey est provisionnée) : la réponse DOIT porter un grant
+    // signé par la mère, lié à CETTE clé de licence. Sinon on refuse d'y croire —
+    // on ne remplace pas un état sain par un `valid` non prouvé (fail-closed, la
+    // grâce joue le temps de résoudre le souci). Empêche fausse mère / réponse forgée.
+    let grant = null;
+    let grantSig = null;
+    if (licenseSign.verificationEnabled()) {
+      const lg = data.licenseGrant;
+      const ok =
+        lg &&
+        licenseSign.verifyGrant(lg.grant, lg.sig) &&
+        lg.grant.keyId === licenseSign.keyIdFor(licenseKey());
+      if (!ok) {
+        log.error('license', 'Grant de licence absent/invalide — réponse rejetée (anti-forge)');
+        const prev = loadState();
+        saveState({ ...prev, firstFailure: prev.firstFailure || Date.now() });
+        return { valid: isLicensed(), untrusted: true };
+      }
+      grant = lg.grant;
+      grantSig = lg.sig;
+    }
+
+    // Les champs SIGNÉS (grant) priment sur les champs bruts quand ils existent.
     saveState({
-      valid: Boolean(data.valid),
-      expiresAt: data.expiresAt || null,
+      valid: grant ? Boolean(grant.valid) : Boolean(data.valid),
+      expiresAt: grant ? grant.expiresAt || null : data.expiresAt || null,
       latestVersion: data.latestVersion || null,
       // Palier de licence : plafond de clients (null = illimité), appliqué ici.
-      maxClients: Number.isInteger(data.maxClients) ? data.maxClients : null,
+      maxClients: grant
+        ? Number.isInteger(grant.maxClients)
+          ? grant.maxClients
+          : null
+        : Number.isInteger(data.maxClients)
+          ? data.maxClients
+          : null,
       // White-label poussé par la plateforme (nom/logo/couleur du revendeur).
       brand: data.brand && typeof data.brand === 'object' ? data.brand : null,
       // Comment payer : contact WhatsApp/Telegram + instructions (affiché par
       // l'UI de l'instance quand la licence expire — vente manuelle sans Stripe).
       reseller: data.reseller && typeof data.reseller === 'object' ? data.reseller : null,
+      // Grant signé conservé : re-vérifié par isLicensed() pour la grâce hors-ligne.
+      grant,
+      grantSig,
       lastCheckOk: Date.now(),
       firstFailure: null,
     });
-    if (!data.valid) {
+    const effectiveValid = grant ? Boolean(grant.valid) : Boolean(data.valid);
+    if (!effectiveValid) {
       log.warn('license', 'Licence invalide/expirée — création de clients bloquée', {
-        expiresAt: data.expiresAt,
+        expiresAt: grant ? grant.expiresAt : data.expiresAt,
       });
     }
-    return { valid: Boolean(data.valid), expiresAt: data.expiresAt };
+    return { valid: effectiveValid, expiresAt: grant ? grant.expiresAt : data.expiresAt };
   } catch (e) {
     const prev = loadState();
     const firstFailure = prev.firstFailure || Date.now();
@@ -168,11 +202,34 @@ async function checkLicenseNow() {
 /**
  * Lecture synchrone de l'état (jamais de réseau ici — utilisé dans les routes).
  */
+// Mode DURCI : la validité s'appuie sur un grant SIGNÉ re-vérifié (pas un booléen
+// éditable). Un revendeur root qui édite license-state.json (valid:true, expiry
+// lointaine) ne passe plus : la signature ne colle plus.
+function signedGrantAllows(s) {
+  const g = s && s.grant;
+  const sig = s && s.grantSig;
+  if (!g || !sig) return false; // pas de grant prouvé → fail-closed
+  if (!licenseSign.verifyGrant(g, sig)) return false; // signature invalide/altérée
+  if (g.keyId !== licenseSign.keyIdFor(licenseKey())) return false; // grant d'une autre instance
+  if (!g.valid) return false;
+  // Fraîcheur : un grant plus vieux que la grâce n'est plus honoré, même signé
+  // (empêche de rejouer indéfiniment un ancien grant valide en coupant le réseau).
+  if (typeof g.issuedAt !== 'number' || Date.now() - g.issuedAt > GRACE_MS) return false;
+  // Expiration SIGNÉE = source de vérité de la validité de la licence.
+  if (g.expiresAt && Date.now() >= new Date(g.expiresAt).getTime()) return false;
+  return true;
+}
+
 function isLicensed() {
   // Clé absente : instance mère (jamais licenciée) = tout permis ; instance
   // DÉJÀ licenciée dont la clé a disparu = sabotage → traitée comme expirée.
   if (!licenseEnabled()) return !isLocked();
   const s = loadState();
+
+  // Mode DURCI (pubkey provisionnée) : décision fondée sur le grant signé.
+  if (licenseSign.verificationEnabled()) return signedGrantAllows(s);
+
+  // Mode LEGACY (pas de pubkey) : comportement historique inchangé.
   // La dernière réponse EXPLICITE de la plateforme fait foi.
   if (s.lastCheckOk) {
     if (!s.valid) return false;
@@ -190,6 +247,46 @@ function isLicensed() {
 // quand l'opérateur clique « Installer maintenant »).
 const PENDING_PATH = path.join(path.dirname(STATE_PATH), 'update-pending.json');
 const CONFIRMED_PATH = path.join(path.dirname(STATE_PATH), 'update-confirmed');
+// update-status.json — écrit par wg-self-update.sh (root, hôte) à chaque phase
+// de l'installation ({ phase, version, at, message? }) pour que l'UI affiche la
+// progression en direct. On l'écrit aussi ici (phase 'queued') dès la
+// confirmation, avant que le cron ne prenne la main (jusqu'à 1 min de latence).
+const STATUS_PATH = path.join(path.dirname(STATE_PATH), 'update-status.json');
+
+// Phases actives (installation en cours) vs terminales.
+const ACTIVE_PHASES = new Set(['queued', 'downloading', 'verifying', 'building', 'restarting']);
+// Un statut terminal reste affichable un court moment, un statut actif « coincé »
+// (script mort avant d'écrire done/failed) est requalifié en échec pour ne pas
+// laisser un spinner tourner indéfiniment.
+const STATUS_DONE_TTL_MS = 15 * 60 * 1000;
+const STATUS_FAILED_TTL_MS = 60 * 60 * 1000;
+const STATUS_STUCK_MS = 30 * 60 * 1000;
+
+function updateStatus() {
+  let s;
+  try {
+    s = JSON.parse(fs.readFileSync(STATUS_PATH, 'utf8'));
+  } catch {
+    return null;
+  }
+  if (!s || typeof s.phase !== 'string') return null;
+  const atMs = Number.isInteger(s.at) ? s.at * 1000 : null; // epoch s → ms
+  const ageMs = atMs ? Date.now() - atMs : 0;
+  let phase = s.phase;
+  // Requalifie un statut actif trop vieux (le script a probablement échoué sans
+  // écrire 'failed', ex. kill/OOM pendant le rebuild) → échec affichable.
+  if (ACTIVE_PHASES.has(phase) && ageMs > STATUS_STUCK_MS) phase = 'failed';
+  // Expire les statuts terminaux pour ne pas ré-afficher une vieille maj.
+  if (phase === 'done' && ageMs > STATUS_DONE_TTL_MS) return null;
+  if (phase === 'failed' && ageMs > STATUS_FAILED_TTL_MS) return null;
+  return {
+    phase,
+    version: typeof s.version === 'string' ? s.version : null,
+    at: atMs,
+    message: typeof s.message === 'string' ? s.message.slice(0, 200) : null,
+    active: ACTIVE_PHASES.has(phase),
+  };
+}
 
 function pendingUpdate() {
   try {
@@ -218,6 +315,21 @@ function confirmPendingUpdate() {
   const p = pendingUpdate();
   if (!p) return null;
   fs.writeFileSync(CONFIRMED_PATH, p.version, { mode: 0o644 });
+  // Statut initial : l'UI affiche « en file d'attente » immédiatement, sans
+  // attendre que le cron (≤ 1 min) lance le script et écrive 'downloading'.
+  try {
+    fs.writeFileSync(
+      STATUS_PATH,
+      JSON.stringify({
+        phase: 'queued',
+        version: p.version,
+        at: Math.floor(Date.now() / 1000),
+      }),
+      { mode: 0o644 }
+    );
+  } catch {
+    /* le script écrira le statut de toute façon */
+  }
   return p.version;
 }
 
@@ -248,6 +360,8 @@ function licenseStatus() {
     reseller: s.reseller || null,
     // Déploiement gouverné : maj en attente sur CETTE instance (bandeau UI).
     pendingUpdate: pendingUpdate(),
+    // Progression de l'installation en cours (spinner + phase dans l'UI).
+    updateStatus: updateStatus(),
   };
 }
 
@@ -268,4 +382,5 @@ module.exports = {
   clientLimit,
   pendingUpdate,
   confirmPendingUpdate,
+  updateStatus,
 };

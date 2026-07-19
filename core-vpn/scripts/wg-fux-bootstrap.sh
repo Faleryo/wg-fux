@@ -14,13 +14,21 @@
 #   4. Callback plateforme → marque le serveur online.
 
 set -euo pipefail
+umask 077 # tout fichier créé (bundle temp, log) est privé au propriétaire (root)
 
 PLATFORM_BASE='{{PLATFORM_BASE}}'
 BUNDLE_SHA256='{{BUNDLE_SHA256}}'
 LICENSE_KEY='{{LICENSE_KEY}}'
+TLS_PIN='{{TLS_PIN}}' # clé publique TLS épinglée (vide = pas de pin)
+LICENSE_PUBKEY='{{LICENSE_PUBKEY}}' # clé publique Ed25519 de la mère (vérif des grants signés ; vide = legacy)
 INSTALL_DIR='/opt/wg-fux'
 LOG_FILE='/var/log/wg-fux-provision.log'
 TOKEN="${WG_T:-}"
+
+# Options curl communes : HTTPS forcé, downgrade TLS impossible, pin optionnel.
+# (tableau bash pour préserver le quoting du pin.)
+CURL_SECURE=(--proto '=https' --tlsv1.2)
+[ -n "$TLS_PIN" ] && CURL_SECURE+=(--pinnedpubkey "$TLS_PIN")
 
 log()  { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "$LOG_FILE" >&2; }
 fail() { log "ERREUR: $*"; exit 1; }
@@ -48,7 +56,7 @@ TMP_BUNDLE="$(mktemp /tmp/wg-fux-bundle.XXXXXX.tgz)"
 trap 'rm -f "$TMP_BUNDLE"' EXIT
 
 log "Téléchargement du bundle wg-fux…"
-curl --proto '=https' --tlsv1.2 -fsSL --max-time 300 \
+curl "${CURL_SECURE[@]}" -fsSL --max-time 300 \
   -o "$TMP_BUNDLE" "${PLATFORM_BASE}/provision/${TOKEN}/bundle.tgz" \
   || fail "Téléchargement du bundle échoué (token expiré ? réseau ?)."
 
@@ -76,6 +84,9 @@ echo
 # La licence de l'instance : setup.sh l'écrit dans api-service/.env.
 export WGFUX_LICENSE_KEY="$LICENSE_KEY"
 export WGFUX_PLATFORM_URL="$PLATFORM_BASE"
+# Clé publique de signature de la mère : setup.sh l'écrit en LICENSE_SIGNING_PUBKEY.
+# Sa présence active la vérification des grants signés côté instance (anti-bypass).
+export WGFUX_LICENSE_PUBKEY="$LICENSE_PUBKEY"
 
 cd "$INSTALL_DIR"
 bash setup.sh --install || fail "L'installation wg-fux a échoué (voir $LOG_FILE)."
@@ -99,7 +110,7 @@ if ! [[ "$SERVER_IP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ || "$SERVER_IP" =~ ^[a-fA-
   SERVER_IP=""
 fi
 
-curl --proto '=https' --tlsv1.2 -fsSL -X POST \
+curl "${CURL_SECURE[@]}" -fsSL -X POST \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer ${TOKEN}" \
   --data "{\"host\":\"${SERVER_IP}\"}" \
