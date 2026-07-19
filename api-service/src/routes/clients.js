@@ -146,40 +146,40 @@ router.get(
   '/containers',
   auth,
   asyncWrap(async (req, res) => {
-    const isReseller = req.user.role !== 'admin' && req.user.role !== 'manager';
+    // ISOLATION D'ESPACE : la vue Conteneurs ne liste QUE les conteneurs de
+    // l'utilisateur courant (owner == username), quel que soit son rôle. Ainsi
+    // les conteneurs créés par les utilisateurs de l'espace ne se mélangent plus
+    // à ceux de l'admin. Les conteneurs d'un utilisateur restent accessibles à
+    // l'admin via son rapport (GET /users/:username/report → clientsByContainer).
+    // (Le dashboard/topologie, eux, continuent d'agréger tout via GET /clients.)
 
     // Cible distante (req.serverId posé par resolveServer) : la source de vérité
-    // est la DB filtrée par serveur — pas le filesystem local. On y ajoute le
-    // filtre de propriété pour les revendeurs.
+    // est la DB filtrée par serveur — pas le filesystem local.
     if (req.serverId) {
-      const where = isReseller
-        ? and(
-            eq(schema.containers.serverId, req.serverId),
-            eq(schema.containers.owner, req.user.username)
-          )
-        : eq(schema.containers.serverId, req.serverId);
       const rows = await db
         .select({ name: schema.containers.name })
         .from(schema.containers)
-        .where(where);
+        .where(
+          and(
+            eq(schema.containers.serverId, req.serverId),
+            eq(schema.containers.owner, req.user.username)
+          )
+        );
       return res.json(rows.map((c) => c.name));
     }
 
-    // Contexte LOCAL (serveur historique) : filesystem comme avant.
+    // Contexte LOCAL (serveur historique) : filesystem ∩ conteneurs possédés.
     const dir = process.env.WG_CLIENTS_DIR || '/etc/wireguard/clients';
     try {
       const entries = await fsPromises.readdir(dir, { withFileTypes: true });
       let containers = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 
-      if (isReseller) {
-        // Filter by ownership for viewers (resellers)
-        const userContainers = await db
-          .select({ name: schema.containers.name })
-          .from(schema.containers)
-          .where(eq(schema.containers.owner, req.user.username));
-        const ownedNames = new Set(userContainers.map((c) => c.name));
-        containers = containers.filter((name) => ownedNames.has(name));
-      }
+      const owned = await db
+        .select({ name: schema.containers.name })
+        .from(schema.containers)
+        .where(eq(schema.containers.owner, req.user.username));
+      const ownedNames = new Set(owned.map((c) => c.name));
+      containers = containers.filter((name) => ownedNames.has(name));
 
       res.json(containers);
     } catch (error) {

@@ -238,9 +238,25 @@ router.get(
       .orderBy(desc(schema.auditLogs.timestamp))
       .limit(activityLimit);
 
+    // Peers groupés par conteneur : l'admin déplie un conteneur dans le rapport
+    // pour VOIR ses peers (lecture seule), sans qu'ils polluent sa vue Conteneurs.
+    const clientsByContainer = {};
+    for (const name of containerNames) clientsByContainer[name] = [];
+    for (const c of allClients) {
+      (clientsByContainer[c.container] || (clientsByContainer[c.container] = [])).push({
+        id: c.id,
+        name: c.name,
+        ip: c.ip,
+        enabled: c.enabled !== false,
+        expiry: c.expiry || null,
+        createdAt: c.createdAt || null,
+      });
+    }
+
     res.json({
       user,
       containers: containerNames,
+      clientsByContainer,
       stats: {
         totalContainers: containerNames.length,
         totalClients: allClients.length,

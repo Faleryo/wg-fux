@@ -22,10 +22,13 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [days, setDays] = useState(7);
+  // Conteneur déplié pour consulter ses peers (lecture seule).
+  const [openContainer, setOpenContainer] = useState(null);
 
   useEffect(() => {
     if (!isOpen || !user) return;
     setReport(null);
+    setOpenContainer(null);
     setLoading(true);
     axiosInstance
       .get(`/users/${user.username}/report?days=${days}`)
@@ -184,27 +187,83 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
             </ResponsiveContainer>
           </div>
 
-          {/* Containers list */}
+          {/* Containers list — cliquer un conteneur déplie ses peers (lecture) */}
           {report.containers.length > 0 && (
             <div>
               <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3">
                 Conteneurs ({report.containers.length})
               </h4>
               <div className="flex flex-wrap gap-2">
-                {report.containers.map((c) => (
-                  <span
-                    key={c}
-                    className={cn(
-                      'text-[11px] font-mono font-black px-3 py-1.5 rounded-xl border',
-                      isDark
-                        ? 'bg-white/5 text-slate-400 border-white/5'
-                        : 'bg-black/5 text-slate-600 border-black/5'
-                    )}
-                  >
-                    {c}
-                  </span>
-                ))}
+                {report.containers.map((c) => {
+                  const count = (report.clientsByContainer?.[c] || []).length;
+                  const active = openContainer === c;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setOpenContainer(active ? null : c)}
+                      className={cn(
+                        'text-[11px] font-mono font-black px-3 py-1.5 rounded-xl border transition-colors',
+                        active
+                          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                          : isDark
+                            ? 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
+                            : 'bg-black/5 text-slate-600 border-black/5 hover:bg-black/10'
+                      )}
+                    >
+                      {c}
+                      <span className="ml-1.5 opacity-60">({count})</span>
+                    </button>
+                  );
+                })}
               </div>
+
+              {/* Peers du conteneur déplié (lecture seule) */}
+              {openContainer && (
+                <div
+                  className={cn(
+                    'mt-3 rounded-2xl border overflow-hidden',
+                    isDark ? 'border-white/10 bg-white/[0.03]' : 'border-black/10 bg-black/[0.02]'
+                  )}
+                >
+                  <div className="px-4 py-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-500 border-b border-white/5">
+                    <Package size={13} /> {openContainer} —{' '}
+                    {(report.clientsByContainer?.[openContainer] || []).length} peer(s)
+                  </div>
+                  {(report.clientsByContainer?.[openContainer] || []).length === 0 ? (
+                    <div className="px-4 py-4 text-[11px] text-slate-500">Aucun peer.</div>
+                  ) : (
+                    <div className="max-h-56 overflow-y-auto custom-scrollbar divide-y divide-white/5">
+                      {(report.clientsByContainer?.[openContainer] || []).map((p) => (
+                        <div
+                          key={p.id}
+                          className="px-4 py-2.5 flex items-center justify-between gap-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold truncate">{p.name}</div>
+                            <div className="text-[10px] font-mono text-slate-500 truncate">
+                              {p.ip || '—'}
+                              {p.expiry
+                                ? ` · exp. ${new Date(p.expiry).toLocaleDateString('fr-FR')}`
+                                : ''}
+                            </div>
+                          </div>
+                          <span
+                            className={cn(
+                              'shrink-0 text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-lg border',
+                              p.enabled
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                : 'bg-slate-800 text-slate-500 border-white/10'
+                            )}
+                          >
+                            {p.enabled ? 'Actif' : 'Inactif'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

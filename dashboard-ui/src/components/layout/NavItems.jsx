@@ -50,13 +50,13 @@ const NavItems = ({
       // business passe par Réseau/Serveurs, pas par la vente au détail.
       id: 'sales',
       icon: <BadgeDollarSign size={20} />,
-      label: 'Ventes',
+      label: t('sales'),
       hidden: !instanceLicensed || !(isReseller || isAdmin || userRole === 'manager'),
     },
     {
       id: 'network',
       icon: <Network size={20} />,
-      label: 'Réseau',
+      label: t('network'),
       hidden: !(isAdmin || isReseller) || instanceLicensed,
     },
     {
@@ -75,9 +75,9 @@ const NavItems = ({
     },
     { id: 'logs', icon: <FileText size={20} />, label: t('logs'), hidden: !isManager },
     { id: 'topology', icon: <Activity size={20} />, label: t('topology') },
-    { id: 'dns', icon: <Globe size={20} />, label: 'DNS Editor', hidden: !isManager },
+    { id: 'dns', icon: <Globe size={20} />, label: t('dns_editor'), hidden: !isManager },
     { id: 'optimization', icon: <Gauge size={20} />, label: t('optimization'), hidden: !isManager },
-    { id: 'audit', icon: <ShieldCheck size={20} />, label: 'Audit', hidden: !isManager },
+    { id: 'audit', icon: <ShieldCheck size={20} />, label: t('audit'), hidden: !isManager },
     {
       id: 'settings',
       icon: <Settings size={20} />,

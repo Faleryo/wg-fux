@@ -75,3 +75,7 @@ api-service/logs/
 .vibe/
 
 protected-bundle/
+
+# Artefacts locaux (config agent + sortie du graphe de connaissances)
+.claude/
+graphify-out/

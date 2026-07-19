@@ -27,19 +27,29 @@ export const ClientList = ({
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
 
+  // ISOLATION D'ESPACE : la vue Conteneurs ne montre QUE les conteneurs possédés
+  // (allContainers est déjà filtré par propriétaire côté API). Les clients dont le
+  // conteneur n'est PAS possédé (ex. conteneurs d'autres utilisateurs, présents
+  // dans le flux /clients global de l'admin) ne créent pas de groupe ici → plus
+  // de mélange. Ces conteneurs restent consultables via le rapport utilisateur.
+  const ownedNames = new Set(
+    (Array.isArray(allContainers) ? allContainers : []).map((c) =>
+      typeof c === 'string' ? c : c?.name || ''
+    )
+  );
+
   const containerGroups = clients.reduce((acc, client) => {
     const key = client.container || 'default';
+    if (!ownedNames.has(key)) return acc; // conteneur non possédé → exclu de la vue
     if (!acc[key]) acc[key] = [];
     acc[key].push(client);
     return acc;
   }, {});
 
-  if (Array.isArray(allContainers)) {
-    allContainers.forEach((c) => {
-      const cName = typeof c === 'string' ? c : c?.name || '';
-      if (cName && !containerGroups[cName]) containerGroups[cName] = [];
-    });
-  }
+  // Conteneurs possédés sans aucun peer → groupe vide (pour rester affichés).
+  ownedNames.forEach((cName) => {
+    if (cName && !containerGroups[cName]) containerGroups[cName] = [];
+  });
 
   const containerEntries = Object.entries(containerGroups);
 

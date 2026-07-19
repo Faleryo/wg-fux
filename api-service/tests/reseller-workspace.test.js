@@ -520,3 +520,50 @@ describe('PATCH /api/resellers/:id — gestion du réseau', () => {
     expect(row).toHaveProperty('nextLicenseExpiry');
   });
 });
+
+describe('isolation d’espace : conteneurs des utilisateurs séparés de ceux de l’admin', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  beforeAll(async () => {
+    // Conteneurs LOCAUX (serverId NULL) : un à l'admin, un au revendeur, + dossiers fs.
+    for (const [name, owner] of [
+      ['admin-box', admin.username],
+      ['vendor-box', vendor.username],
+    ]) {
+      await db
+        .insert(schema.containers)
+        .values({ name, owner, interface: 'wg0', serverId: null })
+        .onConflictDoNothing();
+      fs.mkdirSync(path.join(process.env.WG_CLIENTS_DIR, name), { recursive: true });
+    }
+    await db
+      .insert(schema.clients)
+      .values({
+        container: 'vendor-box',
+        name: 'peer-v1',
+        publicKey: 'iso-' + crypto.randomBytes(8).toString('hex'),
+        ip: '10.9.0.2',
+        enabled: true,
+      })
+      .onConflictDoNothing();
+  });
+
+  it('la vue Conteneurs de l’admin ne montre PAS les conteneurs des utilisateurs', async () => {
+    const res = await as(admin)(request(app).get('/api/clients/containers'));
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('admin-box');
+    expect(res.body).not.toContain('vendor-box'); // conteneur d'un utilisateur → exclu
+  });
+
+  it('les conteneurs d’un utilisateur restent accessibles via son rapport (peers inclus)', async () => {
+    const res = await as(admin)(request(app).get(`/api/users/${vendor.username}/report?days=7`));
+    expect(res.statusCode).toBe(200);
+    expect(res.body.containers).toContain('vendor-box');
+    expect(res.body.clientsByContainer['vendor-box']).toBeDefined();
+    const peer = res.body.clientsByContainer['vendor-box'].find((p) => p.name === 'peer-v1');
+    expect(peer).toBeTruthy();
+    expect(peer.ip).toBe('10.9.0.2');
+    expect(peer.enabled).toBe(true);
+  });
+});
