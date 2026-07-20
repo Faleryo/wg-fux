@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Copy, Check, Download, QrCode, FileText, Smartphone } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../ui/Modal';
+import { useLang } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
+  const { t } = useLang();
   const { theme } = useTheme();
   const [copied, setCopied] = useState(false);
   const timerRef = useRef(null);
@@ -147,7 +149,7 @@ const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
                 boxShadow: `0 8px 32px -8px ${COLOR_MAP[theme]?.[600] || '#6366f1'}4d`,
               }}
             >
-              <Download size={18} /> Télécharger .conf
+              <Download size={18} /> {t('download_conf')}
             </button>
           </div>
         </div>

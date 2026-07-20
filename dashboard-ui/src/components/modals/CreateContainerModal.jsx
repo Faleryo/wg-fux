@@ -4,9 +4,11 @@ import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
 import VibeButton from '../ui/Button';
+import { useLang } from '../../context/LanguageContext';
 
 const CreateContainerModal = ({ isOpen, onClose, onCreate }) => {
   const { theme } = useTheme();
+  const { t } = useLang();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const submittingRef = useRef(false);
@@ -37,12 +39,12 @@ const CreateContainerModal = ({ isOpen, onClose, onCreate }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Nouveau Conteneur" maxWidth="max-w-md">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('new_container_title')} maxWidth="max-w-md">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-6">
           <div>
             <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">
-              Nom du Conteneur (Groupe)
+              {t('f_container_name')}
             </label>
             <div className="relative group">
               <Package
@@ -54,14 +56,14 @@ const CreateContainerModal = ({ isOpen, onClose, onCreate }) => {
                 value={name}
                 onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))} // only allow safe chars
                 className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
-                placeholder="ex: famille, serveurs"
+                placeholder={t('ph_container_name')}
                 maxLength={30}
                 autoFocus
                 required
               />
             </div>
             <p className="mt-2 text-[11px] text-slate-500">
-              Uniquement lettres, chiffres, tirets et underscores.
+              {t('container_name_hint')}
             </p>
           </div>
         </div>
@@ -73,7 +75,7 @@ const CreateContainerModal = ({ isOpen, onClose, onCreate }) => {
             className="flex-1 px-4 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-widest bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all"
             disabled={loading}
           >
-            Annuler
+            {t('cancel')}
           </button>
           <VibeButton
             type="submit"
@@ -83,7 +85,7 @@ const CreateContainerModal = ({ isOpen, onClose, onCreate }) => {
             disabled={!name.trim() || loading}
             className="flex-1 py-3.5 shadow-xl"
           >
-            Créer
+            {t('create')}
           </VibeButton>
         </div>
       </form>
