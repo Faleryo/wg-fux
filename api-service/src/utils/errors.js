@@ -62,6 +62,48 @@ const createError = (error, message, code = 'INTERNAL_ERROR', path = null) => {
 };
 
 /**
+ * Construit le corps JSON servi par le gestionnaire d'erreurs global Express.
+ *
+ * HARDENING (information disclosure) : en production, une erreur SERVEUR (5xx)
+ * ne doit JAMAIS fuiter de stack trace ni de chemin de fichier interne dans la
+ * réponse HTTP. Le message brut de l'exception peut contenir un chemin absolu,
+ * un fragment de requête SQL ou un secret → on le remplace par un message
+ * générique + un code stable. Les erreurs CLIENT (4xx) restent explicites (les
+ * messages de validation sont attendus par l'appelant). En dev, on garde tout le
+ * détail pour déboguer. La stack, elle, n'apparaît JAMAIS dans la réponse : elle
+ * n'est journalisée que côté serveur (voir server.js).
+ *
+ * @param {Error & {status?, statusCode?, code?, error?, details?}} err
+ * @param {{ path?: string, isProd?: boolean }} opts
+ * @returns {{ statusCode: number, body: object }}
+ */
+const buildErrorBody = (err = {}, { path = null, isProd = false } = {}) => {
+  const statusCode = err.status || err.statusCode || 500;
+  const errorCode = err.code || 'INTERNAL_ERROR';
+  const isServerError = statusCode >= 500;
+  const exposeDetail = !isProd || !isServerError;
+
+  const body = {
+    success: false,
+    status: statusCode,
+    code: errorCode,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (exposeDetail) {
+    body.error = err.error || err.message;
+    body.message = err.message;
+    body.path = path;
+    body.details = err.details || null;
+  } else {
+    body.error = 'Internal Server Error';
+    body.message = 'An internal error occurred. Please try again later.';
+  }
+
+  return { statusCode, body };
+};
+
+/**
  * Express Middleware Wrapper for Catching Async Errors
  * Prevents UnhandledPromiseRejection and ensures 'next(e)' is called.
  */
@@ -71,5 +113,6 @@ const asyncWrap = (fn) => (req, res, next) => {
 
 module.exports = {
   createError,
+  buildErrorBody,
   asyncWrap,
 };
