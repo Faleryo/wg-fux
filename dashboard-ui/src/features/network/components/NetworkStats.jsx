@@ -2,17 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, BarChart3 } from 'lucide-react';
 import GlassCard from '../../../components/ui/Card';
 import { axiosInstance } from '../../../lib/api';
+import { useLang } from '../../../context/LanguageContext';
 
 const euros = (cents) => (cents / 100).toFixed(0) + ' €';
-const shortMonth = (ym) => {
-  const [, m] = ym.split('-');
-  return ['', 'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'][
-    Number(m)
-  ];
+const shortMonth = (ym, locale) => {
+  const [y, m] = ym.split('-');
+  return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString(locale, { month: 'short' });
 };
 
 // Courbes business (12 mois) : crédits acquis / revendus / consommés + marge.
 const NetworkStats = () => {
+  const { t, lang } = useLang();
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
   const [series, setSeries] = useState(null);
 
   useEffect(() => {
@@ -36,12 +37,12 @@ const NetworkStats = () => {
     <GlassCard hover={false}>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
-          <BarChart3 size={18} /> Activité (12 mois)
+          <BarChart3 size={18} /> {t('activity_12m')}
         </h3>
         <div className="flex items-center gap-6 text-right">
           <div>
             <div className="text-[10px] font-black text-slate-500 tracking-widest">
-              Marge cumulée
+              {t('cumulative_margin')}
             </div>
             <div className="text-lg font-black text-emerald-400 inline-flex items-center gap-1">
               <TrendingUp size={14} /> {euros(totalMargin)}
@@ -49,7 +50,7 @@ const NetworkStats = () => {
           </div>
           <div>
             <div className="text-[10px] font-black text-slate-500 tracking-widest">
-              Crédits revendus
+              {t('credits_resold')}
             </div>
             <div className="text-lg font-black text-white">{totalResold}</div>
           </div>
@@ -62,9 +63,9 @@ const NetworkStats = () => {
           <div key={m.month} className="flex-1 flex flex-col items-center gap-1.5 group">
             <div className="w-full flex items-end justify-center gap-0.5 h-32">
               {[
-                ['acquired', 'bg-sky-500/70', 'Acquis'],
-                ['resold', 'bg-emerald-500/70', 'Revendus'],
-                ['consumed', 'bg-amber-500/70', 'Consommés'],
+                ['acquired', 'bg-sky-500/70', t('acquired')],
+                ['resold', 'bg-emerald-500/70', t('resold')],
+                ['consumed', 'bg-amber-500/70', t('consumed')],
               ].map(([k, color, lab]) => (
                 <div
                   key={k}
@@ -74,20 +75,22 @@ const NetworkStats = () => {
                 />
               ))}
             </div>
-            <span className="text-[9px] font-mono text-slate-600">{shortMonth(m.month)}</span>
+            <span className="text-[9px] font-mono text-slate-600">
+              {shortMonth(m.month, locale)}
+            </span>
           </div>
         ))}
       </div>
 
       <div className="flex items-center gap-4 mt-4 text-[10px] font-bold text-slate-500">
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-sky-500/70" /> Acquis
+          <span className="w-2.5 h-2.5 rounded-sm bg-sky-500/70" /> {t('acquired')}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/70" /> Revendus
+          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/70" /> {t('resold')}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-amber-500/70" /> Consommés
+          <span className="w-2.5 h-2.5 rounded-sm bg-amber-500/70" /> {t('consumed')}
         </span>
       </div>
     </GlassCard>
