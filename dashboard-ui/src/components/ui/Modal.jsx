@@ -3,12 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
+import { useLang } from '../../context/LanguageContext';
 
 const FOCUSABLE_SELECTORS =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 const Modal = ({ isOpen, onClose, title, children, className, maxWidth = 'max-w-md' }) => {
   const { mode } = useTheme();
+  const { t } = useLang();
   const isDark = mode === 'dark';
   const contentRef = useRef(null);
   const previousFocusRef = useRef(null);
@@ -109,7 +111,7 @@ const Modal = ({ isOpen, onClose, title, children, className, maxWidth = 'max-w-
                 )}
                 <button
                   onClick={onClose}
-                  aria-label="Fermer"
+                  aria-label={t('close')}
                   className={cn(
                     'p-3 rounded-2xl transition-all',
                     isDark

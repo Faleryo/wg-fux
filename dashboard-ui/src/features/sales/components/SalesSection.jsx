@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
 import { axiosInstance } from '../../../lib/api';
 import GlassCard from '../../../components/ui/Card';
@@ -26,14 +27,14 @@ import VibeButton from '../../../components/ui/Button';
 // vend ces crédits — la marge de chacun est garantie par le ledger).
 // Admin/manager : renouvellement gratuit (c'est leur instance).
 
-const REASON_LABEL = {
-  topup: 'Rechargement',
-  topup_stripe: 'Achat Stripe',
-  transfer_in: 'Crédits reçus',
-  transfer_out: 'Crédits envoyés',
-  client_renewal: 'Renouvellement client',
-  license_renewal: 'Renouvellement licence',
-  refund: 'Remboursement',
+const REASON_KEYS = {
+  topup: 'reason_topup',
+  topup_stripe: 'reason_topup_stripe',
+  transfer_in: 'reason_transfer_in_credits',
+  transfer_out: 'reason_transfer_out_credits',
+  client_renewal: 'reason_client_renewal',
+  license_renewal: 'reason_license_renewal',
+  refund: 'reason_refund',
 };
 
 // Jours restants avant expiration (null = illimité, négatif = expiré).
@@ -45,11 +46,12 @@ const daysLeft = (expiry) => {
 };
 
 const ExpiryBadge = ({ expiry }) => {
+  const { t } = useLang();
   const d = daysLeft(expiry);
   if (d === null)
     return (
       <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-        Illimité
+        {t('unlimited')}
       </span>
     );
   const cls =
@@ -65,19 +67,23 @@ const ExpiryBadge = ({ expiry }) => {
         cls
       )}
     >
-      {d <= 0 ? `Expiré (${Math.abs(d)} j)` : `${d} j restants`}
+      {d <= 0
+        ? `${t('expired_prefix')} (${Math.abs(d)} ${t('unit_day')})`
+        : `${d} ${t('days_left')}`}
     </span>
   );
 };
 
 const RENEW_CHOICES = [
-  { days: 30, label: '+30 j', credits: 1 },
-  { days: 90, label: '+90 j', credits: 3 },
+  { days: 30, labelKey: 'renew_30d', credits: 1 },
+  { days: 90, labelKey: 'renew_90d', credits: 3 },
 ];
 
 const SalesSection = ({ userRole = '' }) => {
   const { theme } = useTheme();
   const { addToast } = useToast();
+  const { t, lang } = useLang();
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
   const isFree = userRole === 'admin' || userRole === 'manager';
 
   const [wallet, setWallet] = useState(null);
@@ -116,13 +122,14 @@ const SalesSection = ({ userRole = '' }) => {
         { days }
       );
       addToast(
-        `${client.name} prolongé jusqu'au ${new Date(data.expiry).toLocaleDateString('fr-FR')}` +
-          (data.cost > 0 ? ` (−${data.cost} crédit${data.cost > 1 ? 's' : ''})` : ''),
+        `${client.name} ${t('extended_until')} ${new Date(data.expiry).toLocaleDateString(
+          locale
+        )}` + (data.cost > 0 ? ` (−${data.cost} ${t('credits_short')})` : ''),
         'success'
       );
       load();
     } catch (e) {
-      addToast(e?.response?.data?.error || 'Erreur de renouvellement', 'error');
+      addToast(e?.response?.data?.error || t('renewal_error'), 'error');
     } finally {
       setBusyKey(null);
     }
@@ -166,21 +173,21 @@ const SalesSection = ({ userRole = '' }) => {
       : [
           {
             icon: Wallet,
-            label: 'Solde crédits',
+            label: t('credits_balance'),
             value: wallet?.balance ?? '—',
             cls: 'text-white',
           },
         ]),
-    { icon: Users, label: 'Abonnements', value: stats.total, cls: 'text-sky-400' },
+    { icon: Users, label: t('subscriptions'), value: stats.total, cls: 'text-sky-400' },
     {
       icon: Timer,
-      label: 'Expirent ≤ 7 j',
+      label: t('expire_soon_days'),
       value: stats.expiringSoon,
       cls: stats.expiringSoon > 0 ? 'text-amber-400' : 'text-slate-300',
     },
     {
       icon: AlertTriangle,
-      label: 'Expirés',
+      label: t('expired_count'),
       value: stats.expired,
       cls: stats.expired > 0 ? 'text-red-400' : 'text-slate-300',
     },
@@ -202,9 +209,9 @@ const SalesSection = ({ userRole = '' }) => {
             <BadgeDollarSign size={32} />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-white tracking-tighter italic">Ventes</h2>
+            <h2 className="text-3xl font-black text-white tracking-tighter italic">{t('sales')}</h2>
             <p className="text-slate-500 text-[11px] font-black tracking-[0.3em] opacity-60">
-              Abonnements · Renouvellements · Crédits
+              {t('sales_subtitle')}
             </p>
           </div>
         </div>
@@ -217,12 +224,12 @@ const SalesSection = ({ userRole = '' }) => {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filtrer un client…"
+              placeholder={t('ph_filter_client')}
               className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-white/20"
             />
           </div>
           <VibeButton variant="secondary" icon={RefreshCw} onClick={load}>
-            Actualiser
+            {t('refresh')}
           </VibeButton>
         </div>
       </GlassCard>
@@ -235,7 +242,9 @@ const SalesSection = ({ userRole = '' }) => {
             <GlassCard hover={false} className="relative overflow-hidden">
               <div className="flex items-center gap-2 text-slate-500 mb-3">
                 <CalendarClock size={15} />
-                <span className="text-[11px] font-black tracking-widest">Abonnement</span>
+                <span className="text-[11px] font-black tracking-widest">
+                  {t('subscription')}
+                </span>
                 <span
                   className={cn(
                     'ml-auto text-[10px] font-black tracking-widest px-2 py-0.5 rounded-lg border inline-flex items-center gap-1',
@@ -245,7 +254,7 @@ const SalesSection = ({ userRole = '' }) => {
                   )}
                 >
                   {license.valid ? <CheckCircle2 size={10} /> : <AlertTriangle size={10} />}
-                  {license.valid ? 'Actif' : 'Expiré'}
+                  {license.valid ? t('status_active') : t('status_expired')}
                 </span>
               </div>
               {(() => {
@@ -265,12 +274,14 @@ const SalesSection = ({ userRole = '' }) => {
                       )}
                     >
                       {d == null ? '∞' : d <= 0 ? '0' : d}
-                      {d != null && <span className="text-lg text-slate-500 font-bold"> j</span>}
+                      {d != null && (
+                        <span className="text-lg text-slate-500 font-bold"> {t('unit_day')}</span>
+                      )}
                     </div>
                     <div className="text-[11px] text-slate-500 mt-1">
                       {license.expiresAt
-                        ? `Échéance le ${new Date(license.expiresAt).toLocaleDateString('fr-FR')}`
-                        : 'Sans expiration'}
+                        ? `${t('due_on')} ${new Date(license.expiresAt).toLocaleDateString(locale)}`
+                        : t('no_expiration')}
                     </div>
                   </>
                 );
@@ -282,7 +293,7 @@ const SalesSection = ({ userRole = '' }) => {
           <GlassCard hover={false}>
             <div className="flex items-center gap-2 text-slate-500 mb-3">
               <Users size={15} />
-              <span className="text-[11px] font-black tracking-widest">Clients</span>
+              <span className="text-[11px] font-black tracking-widest">{t('col_clients')}</span>
             </div>
             <div className="text-4xl font-black text-white">
               {clients.length}
@@ -307,7 +318,7 @@ const SalesSection = ({ userRole = '' }) => {
                 />
               </div>
             ) : (
-              <div className="text-[11px] text-slate-500 mt-1">Plafond illimité</div>
+              <div className="text-[11px] text-slate-500 mt-1">{t('unlimited_cap')}</div>
             )}
           </GlassCard>
 
@@ -316,9 +327,11 @@ const SalesSection = ({ userRole = '' }) => {
             <GlassCard hover={false}>
               <div className="flex items-center gap-2 text-slate-500 mb-3">
                 <Wallet size={15} />
-                <span className="text-[11px] font-black tracking-widest">Crédits</span>
+                <span className="text-[11px] font-black tracking-widest">
+                  {t('credits_title')}
+                </span>
                 <span className="ml-auto text-[10px] font-mono text-slate-500">
-                  {wallet.credits.balance} restants
+                  {wallet.credits.balance} {t('remaining')}
                 </span>
               </div>
               <div className="text-4xl font-black text-white">
@@ -338,9 +351,11 @@ const SalesSection = ({ userRole = '' }) => {
               </div>
               <div className="flex items-center justify-between mt-2 text-[11px] font-mono">
                 <span className="text-slate-500 inline-flex items-center gap-1">
-                  <TrendingDown size={11} /> {wallet.credits.used} utilisés
+                  <TrendingDown size={11} /> {wallet.credits.used} {t('used_word')}
                 </span>
-                <span className="text-slate-500">{wallet.credits.acquired} inclus</span>
+                <span className="text-slate-500">
+                  {wallet.credits.acquired} {t('included')}
+                </span>
               </div>
             </GlassCard>
           )}
@@ -362,9 +377,8 @@ const SalesSection = ({ userRole = '' }) => {
 
       {!isFree && (
         <p className="text-[11px] text-slate-500 px-1">
-          Tarif : <strong className="text-slate-300">30 jours = 1 crédit</strong>. Encaissez votre
-          client comme vous voulez, puis renouvelez ici — les crédits s’achètent auprès de votre
-          fournisseur.
+          {t('pricing_note_1')} <strong className="text-slate-300">{t('pricing_note_2')}</strong>
+          {t('pricing_note_3')}
         </p>
       )}
 
@@ -374,11 +388,11 @@ const SalesSection = ({ userRole = '' }) => {
           <table className="w-full text-left">
             <thead>
               <tr className="text-[11px] font-black text-slate-500 tracking-[0.25em] border-b border-white/5">
-                <th className="px-6 py-4">Client</th>
-                <th className="px-6 py-4">Conteneur</th>
-                <th className="px-6 py-4">Abonnement</th>
-                <th className="px-6 py-4">État</th>
-                <th className="px-6 py-4 text-right">Renouveler</th>
+                <th className="px-6 py-4">{t('col_client')}</th>
+                <th className="px-6 py-4">{t('col_container')}</th>
+                <th className="px-6 py-4">{t('col_subscription')}</th>
+                <th className="px-6 py-4">{t('col_state')}</th>
+                <th className="px-6 py-4 text-right">{t('col_renew')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -398,7 +412,7 @@ const SalesSection = ({ userRole = '' }) => {
                           c.enabled === false ? 'text-red-400' : 'text-emerald-400'
                         )}
                       >
-                        {c.enabled === false ? 'Coupé' : 'Actif'}
+                        {c.enabled === false ? t('cut_off') : t('status_active')}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
@@ -408,14 +422,17 @@ const SalesSection = ({ userRole = '' }) => {
                           disabled={busyKey === key}
                           onClick={() => renew(c, r.days, r.credits)}
                           title={
-                            isFree
-                              ? 'Gratuit (admin)'
-                              : `${r.credits} crédit${r.credits > 1 ? 's' : ''}`
+                            isFree ? t('free_admin') : `${r.credits} ${t('credits_short')}`
                           }
                           className="ml-3 px-3 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/25 text-[11px] font-black uppercase tracking-widest text-indigo-300 transition-colors disabled:opacity-40"
                         >
-                          {r.label}
-                          {!isFree && <span className="text-indigo-400/60"> · {r.credits} cr</span>}
+                          {t(r.labelKey)}
+                          {!isFree && (
+                            <span className="text-indigo-400/60">
+                              {' '}
+                              · {r.credits} {t('credits_unit_short')}
+                            </span>
+                          )}
                         </button>
                       ))}
                     </td>
@@ -428,9 +445,7 @@ const SalesSection = ({ userRole = '' }) => {
                     colSpan={5}
                     className="px-6 py-10 text-center text-slate-500 text-xs uppercase tracking-widest"
                   >
-                    {loading
-                      ? 'Chargement…'
-                      : 'Aucun abonnement — créez des clients dans Conteneurs'}
+                    {loading ? t('loading') : t('no_subscription_hint')}
                   </td>
                 </tr>
               )}
@@ -443,22 +458,22 @@ const SalesSection = ({ userRole = '' }) => {
       {!isFree && (
         <GlassCard hover={false} className="p-0 overflow-hidden">
           <div className="p-6 border-b border-white/5">
-            <h3 className="text-lg font-black text-white tracking-tight">Relevé de crédits</h3>
+            <h3 className="text-lg font-black text-white tracking-tight">{t('credits_ledger')}</h3>
           </div>
           <div className="overflow-x-auto max-h-80">
             <table className="w-full text-left">
               <thead>
                 <tr className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] border-b border-white/5">
-                  <th className="px-6 py-3">Mouvement</th>
-                  <th className="px-6 py-3">Crédits</th>
-                  <th className="px-6 py-3">Réf.</th>
+                  <th className="px-6 py-3">{t('col_movement')}</th>
+                  <th className="px-6 py-3">{t('col_credits')}</th>
+                  <th className="px-6 py-3">{t('col_ref')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {(wallet?.entries || []).map((e) => (
                   <tr key={e.id} className="hover:bg-white/5">
                     <td className="px-6 py-3 text-xs text-slate-300">
-                      {REASON_LABEL[e.reason] || e.reason}
+                      {REASON_KEYS[e.reason] ? t(REASON_KEYS[e.reason]) : e.reason}
                     </td>
                     <td
                       className={cn(
@@ -480,7 +495,7 @@ const SalesSection = ({ userRole = '' }) => {
                       colSpan={3}
                       className="px-6 py-8 text-center text-slate-500 text-xs uppercase tracking-widest"
                     >
-                      Aucun mouvement
+                      {t('no_movement')}
                     </td>
                   </tr>
                 )}

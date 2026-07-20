@@ -25,9 +25,9 @@ const StatusWidget = ({
     setRestarting(true);
     try {
       await axiosInstance.post('/system/restart/wireguard');
-      addToast('Service WireGuard redémarré.', 'success');
+      addToast(t('wg_restarted_ok'), 'success');
     } catch {
-      addToast('Erreur lors du redémarrage.', 'error');
+      addToast(t('wg_restart_error'), 'error');
     } finally {
       setRestarting(false);
       setConfirmRestart(false);
@@ -108,13 +108,13 @@ const StatusWidget = ({
                   onClick={handleRestartServer}
                   className="flex-1 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 transition-all"
                 >
-                  {restarting ? 'Redémarrage...' : 'Confirmer'}
+                  {restarting ? t('restarting_label') : t('confirm')}
                 </button>
                 <button
                   onClick={() => setConfirmRestart(false)}
                   className="flex-1 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10 transition-all"
                 >
-                  Annuler
+                  {t('cancel')}
                 </button>
               </div>
             ) : (
@@ -168,7 +168,7 @@ const StatusWidget = ({
                 <button
                   onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
                   className="p-2 rounded-xl transition-all text-[11px] font-black w-10 bg-white/5 text-slate-400 hover:text-white"
-                  title="Changer de langue"
+                  title={t('change_language')}
                 >
                   {lang.toUpperCase()}
                 </button>
@@ -237,25 +237,25 @@ const StatusWidget = ({
                 ? 'bg-white/5 text-slate-400 hover:text-red-400'
                 : 'bg-black/5 text-slate-500 hover:text-red-600'
             )}
-            title="Redémarrer WireGuard"
+            title={t('restart_wireguard')}
           >
             <RefreshCw size={16} />
           </button>
           {confirmRestart && (
             <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 border border-white/10 rounded-2xl p-4 shadow-2xl z-50 w-56 text-center space-y-3">
-              <p className="text-[11px] font-bold text-slate-300">Redémarrer WireGuard ?</p>
+              <p className="text-[11px] font-bold text-slate-300">{t('restart_wireguard_q')}</p>
               <div className="flex gap-2">
                 <button
                   onClick={handleRestartServer}
                   className="flex-1 py-2 text-[11px] font-black bg-red-500/20 text-red-400 rounded-xl border border-red-500/30"
                 >
-                  Oui
+                  {t('yes')}
                 </button>
                 <button
                   onClick={() => setConfirmRestart(false)}
                   className="flex-1 py-2 text-[11px] font-black bg-white/5 text-slate-400 rounded-xl border border-white/5"
                 >
-                  Non
+                  {t('no')}
                 </button>
               </div>
             </div>

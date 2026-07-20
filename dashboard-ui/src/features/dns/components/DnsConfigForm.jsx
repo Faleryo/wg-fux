@@ -3,6 +3,7 @@ import { Globe, Shield, Zap, Settings2, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../../../lib/utils';
 import DnsRecordsTable from './DnsRecordsTable';
+import { useLang } from '../../../context/LanguageContext';
 
 const DnsConfigForm = ({
   activeTab,
@@ -17,6 +18,7 @@ const DnsConfigForm = ({
   setNewFilterName,
   setNewFilterUrl,
 }) => {
+  const { t } = useLang();
   return (
     <div className="glass-card border border-white/5 overflow-hidden p-0">
       <div className="flex border-b border-white/5 bg-black/10 overflow-x-auto custom-scrollbar no-scrollbar">
@@ -57,12 +59,10 @@ const DnsConfigForm = ({
               </div>
               <div>
                 <h4 className="text-sm font-black uppercase tracking-tight mb-1">
-                  Serveurs DNS Amont
+                  {t('dns_upstream_title')}
                 </h4>
                 <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
-                  Entrez un serveur par ligne. Ces serveurs seront utilisés par AdGuard pour
-                  résoudre les requêtes de vos clients. Privilégiez les serveurs DoH ou DoT pour une
-                  sécurité maximale.
+                  {t('dns_upstream_desc')}
                 </p>
               </div>
             </div>
@@ -119,8 +119,7 @@ const DnsConfigForm = ({
           <div className="space-y-4">
             <h4 className="text-sm font-black uppercase tracking-tight">Bootstrap DNS</h4>
             <p className="text-xs text-slate-500 max-w-xl">
-              Ces serveurs sont utilisés pour résoudre les noms d'hôtes des DNS amont (ex:
-              dns.cloudflare.com).
+              {t('dns_bootstrap_desc')}
             </p>
             <textarea
               value={config?.bootstrap_dns?.join('\n') ?? ''}
@@ -140,23 +139,23 @@ const DnsConfigForm = ({
             {[
               {
                 key: 'filtering_enabled',
-                label: 'Filtrage AdGuard',
-                desc: 'Active le blocage des publicités et du tracking.',
+                label: t('dns_filtering_label'),
+                desc: t('dns_filtering_desc'),
               },
               {
                 key: 'safebrowsing_enabled',
-                label: 'Navigation Sécurisée',
-                desc: 'Bloque les sites malveillants et de phishing.',
+                label: t('dns_safebrowsing_label'),
+                desc: t('dns_safebrowsing_desc'),
               },
               {
                 key: 'parental_enabled',
-                label: 'Contrôle Parental',
-                desc: 'Bloque le contenu réservé aux adultes.',
+                label: t('dns_parental_label'),
+                desc: t('dns_parental_desc'),
               },
               {
                 key: 'safesearch_enabled',
                 label: 'SafeSearch',
-                desc: 'Force le mode sécurisé sur Google, YouTube, etc.',
+                desc: t('dns_safesearch_desc'),
               },
             ].map((item) => (
               <button

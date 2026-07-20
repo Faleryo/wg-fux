@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { PencilLine, Save, Bell } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 
 // Édition d'un serveur : réseau (label/host/port), métadonnées de flotte et
 // seuils d'alerte. N'envoie que les champs réellement modifiés (PATCH partiel).
 const EditServerModal = ({ server, onClose, onApply, busy }) => {
+  const { t } = useLang();
   const [form, setForm] = useState(null);
 
   useEffect(() => {
@@ -67,26 +69,26 @@ const EditServerModal = ({ server, onClose, onApply, busy }) => {
             <PencilLine size={20} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-white tracking-tight">Éditer le serveur</h3>
+            <h3 className="text-lg font-black text-white tracking-tight">{t('edit_server')}</h3>
             <p className="text-[11px] font-mono text-slate-500">{server.label}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 space-y-1">
-            <label className={lbl}>Label</label>
+            <label className={lbl}>{t('f_label')}</label>
             <input className={input} value={form.label} onChange={set('label')} />
           </div>
           <div className="space-y-1">
-            <label className={lbl}>Host</label>
+            <label className={lbl}>{t('f_host')}</label>
             <input className={input} value={form.host} onChange={set('host')} />
           </div>
           <div className="space-y-1">
-            <label className={lbl}>Port SSH</label>
+            <label className={lbl}>{t('f_ssh_port')}</label>
             <input className={input} value={form.port} onChange={set('port')} inputMode="numeric" />
           </div>
           <div className="space-y-1">
-            <label className={lbl}>Région</label>
+            <label className={lbl}>{t('f_region')}</label>
             <input
               className={input}
               value={form.region}
@@ -95,7 +97,7 @@ const EditServerModal = ({ server, onClose, onApply, busy }) => {
             />
           </div>
           <div className="space-y-1">
-            <label className={lbl}>Fournisseur</label>
+            <label className={lbl}>{t('f_provider')}</label>
             <input
               className={input}
               value={form.provider}
@@ -104,7 +106,7 @@ const EditServerModal = ({ server, onClose, onApply, busy }) => {
             />
           </div>
           <div className="col-span-2 space-y-1">
-            <label className={lbl}>Tags (séparés par des virgules)</label>
+            <label className={lbl}>{t('f_tags_csv')}</label>
             <input
               className={input}
               value={form.tags}
@@ -113,7 +115,7 @@ const EditServerModal = ({ server, onClose, onApply, busy }) => {
             />
           </div>
           <div className="col-span-2 space-y-1">
-            <label className={lbl}>Notes</label>
+            <label className={lbl}>{t('f_notes')}</label>
             <textarea
               className={cn(input, 'resize-none h-20')}
               value={form.notes}
@@ -126,12 +128,12 @@ const EditServerModal = ({ server, onClose, onApply, busy }) => {
           <div className="flex items-center gap-2 text-slate-400">
             <Bell size={14} />
             <span className="text-[11px] font-black tracking-widest">
-              Alertes (vide = désactivé)
+              {t('alerts_empty_disabled')}
             </span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className={lbl}>Offline &gt; N minutes</label>
+              <label className={lbl}>{t('f_offline_minutes')}</label>
               <input
                 className={input}
                 value={form.alertOfflineMin}
@@ -141,7 +143,7 @@ const EditServerModal = ({ server, onClose, onApply, busy }) => {
               />
             </div>
             <div className="space-y-1">
-              <label className={lbl}>Licence &lt; N jours</label>
+              <label className={lbl}>{t('f_license_days')}</label>
               <input
                 className={input}
                 value={form.alertLicenseDays}
@@ -159,14 +161,14 @@ const EditServerModal = ({ server, onClose, onApply, busy }) => {
             onClick={onClose}
             className="text-[11px] font-black tracking-widest text-slate-400 hover:text-white transition-colors disabled:opacity-50"
           >
-            Annuler
+            {t('cancel')}
           </button>
           <button
             disabled={busy}
             onClick={submit}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black tracking-widest transition-colors disabled:opacity-50"
           >
-            <Save size={14} /> Enregistrer
+            <Save size={14} /> {t('save')}
           </button>
         </div>
       </div>

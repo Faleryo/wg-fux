@@ -5,11 +5,13 @@ import { useTheme } from '../../context/ThemeContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
 import { axiosInstance } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
+import { useLang } from '../../context/LanguageContext';
 import { getContainerColor } from '../../features/clients/components/ClientListHelpers';
 
 const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
   const { theme } = useTheme();
   const { addToast } = useToast();
+  const { t } = useLang();
   const [quota, setQuota] = useState(0);
   const [uploadLimit, setUploadLimit] = useState(0);
   const [isUnlimited, setIsUnlimited] = useState(true);
@@ -35,11 +37,11 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
         uploadLimit: parseInt(uploadLimit) || 0,
         expiry: isUnlimited ? null : expiryDate,
       });
-      addToast(`Peer ${client.name} mis à jour avec succès`, 'success');
+      addToast(`Peer ${client.name} ${t('peer_updated_ok')}`, 'success');
       onSave?.();
       onClose();
     } catch (err) {
-      addToast(err?.response?.data?.error || 'Erreur de mise à jour', 'error');
+      addToast(err?.response?.data?.error || t('update_error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -50,7 +52,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
   const color = getContainerColor(client.container);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Éditer Peer`} maxWidth="max-w-lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('edit_peer_title')} maxWidth="max-w-lg">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Peer Identity Card */}
         <div className="flex items-center gap-4 p-5 rounded-2xl border bg-white/5 border-white/10">
@@ -89,7 +91,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <Database size={14} /> Quota de Données
+              <Database size={14} /> {t('f_data_quota')}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -99,11 +101,11 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
                 value={quota}
                 onChange={(e) => setQuota(Math.max(0, parseInt(e.target.value) || 0))}
                 className="w-20 px-2 py-1 bg-white/5 border border-white/10 rounded-xl text-sm font-mono text-white text-center focus:outline-none focus:border-white/30"
-                aria-label="Quota en GB"
+                aria-label={t('aria_quota_gb')}
               />
               <span className="text-xs font-black font-mono text-slate-500">GB</span>
               {quota === 0 && (
-                <span className="text-[11px] text-slate-600 font-black">Illimité</span>
+                <span className="text-[11px] text-slate-600 font-black">{t('unlimited')}</span>
               )}
             </div>
           </div>
@@ -115,10 +117,10 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             value={Math.min(quota, 200)}
             onChange={(e) => setQuota(Number(e.target.value))}
             className="w-full accent-indigo-500"
-            aria-label="Quota de données (curseur)"
+            aria-label={t('aria_quota_slider')}
           />
           <div className="flex justify-between text-[11px] font-mono text-slate-600">
-            <span>0 (illimité)</span>
+            <span>{t('unlimited_paren')}</span>
             <span>50 GB</span>
             <span>100 GB</span>
             <span>200 GB+</span>
@@ -129,7 +131,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <Gauge size={14} /> Bande Passante Max
+              <Gauge size={14} /> {t('f_max_bandwidth')}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -139,11 +141,11 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
                 value={uploadLimit}
                 onChange={(e) => setUploadLimit(Math.max(0, parseInt(e.target.value) || 0))}
                 className="w-20 px-2 py-1 bg-white/5 border border-white/10 rounded-xl text-sm font-mono text-white text-center focus:outline-none focus:border-white/30"
-                aria-label="Limite upload en Mbps"
+                aria-label={t('aria_upload_limit')}
               />
               <span className="text-xs font-black font-mono text-slate-500">Mbps</span>
               {uploadLimit === 0 && (
-                <span className="text-[11px] text-slate-600 font-black">Illimité</span>
+                <span className="text-[11px] text-slate-600 font-black">{t('unlimited')}</span>
               )}
             </div>
           </div>
@@ -155,10 +157,10 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             value={Math.min(uploadLimit, 1000)}
             onChange={(e) => setUploadLimit(Number(e.target.value))}
             className="w-full accent-indigo-500"
-            aria-label="Bande passante max (curseur)"
+            aria-label={t('aria_bandwidth_slider')}
           />
           <div className="flex justify-between text-[11px] font-mono text-slate-600">
-            <span>0 (illimité)</span>
+            <span>{t('unlimited_paren')}</span>
             <span>250 Mbps</span>
             <span>500 Mbps</span>
             <span>1 Gbps+</span>
@@ -169,14 +171,14 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <Clock size={14} /> Expiration
+              <Clock size={14} /> {t('expiry')}
             </label>
             <label className="flex items-center gap-2 cursor-pointer group">
               <div
                 role="button"
                 tabIndex={0}
                 aria-pressed={isUnlimited}
-                aria-label={isUnlimited ? 'Durée illimitée activée' : 'Durée illimitée désactivée'}
+                aria-label={isUnlimited ? t('aria_unlimited_on') : t('aria_unlimited_off')}
                 onClick={() => setIsUnlimited(!isUnlimited)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -197,7 +199,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
                 />
               </div>
               <span className="text-[11px] font-black uppercase text-slate-400 group-hover:text-white transition-colors">
-                Illimité
+                {t('unlimited')}
               </span>
             </label>
           </div>
@@ -225,7 +227,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             onClick={onClose}
             className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-widest rounded-2xl border border-white/5 transition-all"
           >
-            Annuler
+            {t('cancel')}
           </button>
           <button
             type="submit"
@@ -243,7 +245,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSave }) => {
             }}
           >
             {loading ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
-            Sauvegarder
+            {t('save_btn')}
           </button>
         </div>
       </form>

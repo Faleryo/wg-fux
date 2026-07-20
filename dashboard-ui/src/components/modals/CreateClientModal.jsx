@@ -13,6 +13,7 @@ import {
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
+import { useLang } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 import { axiosInstance } from '../../lib/api';
 
@@ -21,6 +22,7 @@ import { COLOR_MAP } from '../../lib/utils';
 const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allContainers = [] }) => {
   const { theme } = useTheme();
   const { addToast } = useToast();
+  const { t } = useLang();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [quota, setQuota] = useState(0);
@@ -72,7 +74,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
     if (submittingRef.current) return;
     if (name.trim() && activeContainer) {
       if (!/^[a-zA-Z0-9_-]{1,64}$/.test(name.trim())) {
-        addToast('Nom invalide (1-64 caractères, lettres, chiffres, _ et - uniquement)', 'error');
+        addToast(t('client_name_invalid'), 'error');
         return;
       }
       submittingRef.current = true;
@@ -82,7 +84,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
         if (!isUnlimited) {
           const duration = parseInt(expiryDuration.value) || 0;
           if (duration <= 0) {
-            addToast('Veuillez entrer une durée de validité valide', 'error');
+            addToast(t('invalid_duration'), 'error');
             setLoading(false);
             submittingRef.current = false;
             return;
@@ -94,7 +96,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
         }
 
         await onCreate(name, activeContainer, expiry, quota, uploadLimit);
-        addToast(`Peer ${name} créé avec succès`, 'success');
+        addToast(`Peer ${name} ${t('peer_created_ok')}`, 'success');
         onClose();
       } catch (error) {
         const status = error?.response?.status;
@@ -103,10 +105,13 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
         // réussi côté serveur, ou le nom est pris). On affiche le message réel
         // et on régénère un nom libre pour débloquer la création immédiatement.
         if (status === 409) {
-          addToast(serverMsg || `Le nom '${name}' est déjà utilisé`, 'error');
+          addToast(
+            serverMsg || `${t('name_already_used_1')}${name}${t('name_already_used_2')}`,
+            'error'
+          );
           generateSuggestion(activeContainer);
         } else {
-          addToast(serverMsg || 'Erreur lors de la création du client', 'error');
+          addToast(serverMsg || t('client_create_err'), 'error');
         }
       } finally {
         setLoading(false);
@@ -116,14 +121,14 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Initialisation de Peer" maxWidth="max-w-xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('peer_init_title')} maxWidth="max-w-xl">
       <form onSubmit={handleSubmit} className="space-y-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Basic Info */}
           <div className="space-y-6">
             <div>
               <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">
-                Nom du Client
+                {t('f_client_name')}
               </label>
               <div className="relative group">
                 <Smartphone
@@ -135,7 +140,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
-                  placeholder="ex: galaxy-s24"
+                  placeholder={t('ph_client_name')}
                   autoFocus
                 />
               </div>
@@ -143,7 +148,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
 
             <div>
               <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest leading-loose">
-                Groupe Tactique (Conteneur)
+                {t('f_tactical_group')}
               </label>
               <div className="relative group">
                 <Database
@@ -167,7 +172,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
                     className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono appearance-none"
                     style={{ accentColor: COLOR_MAP[theme]?.[500] || '#6366f1' }}
                   >
-                    <option value="">— Sélectionner un conteneur —</option>
+                    <option value="">{t('select_container_opt')}</option>
                     {allContainers.map((c) => (
                       <option key={c.name || c} value={c.name || c}>
                         {c.name || c}
@@ -178,8 +183,8 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
               </div>
               <p className="mt-2 text-[11px] text-slate-500 italic">
                 {targetContainer
-                  ? 'Le client sera ajouté dans ce conteneur en cours.'
-                  : 'Choisissez le conteneur de destination.'}
+                  ? t('container_target_hint_current')
+                  : t('container_target_hint_choose')}
               </p>
             </div>
           </div>
@@ -189,7 +194,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
-                  Validité temporelle
+                  {t('f_time_validity')}
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <input
@@ -200,7 +205,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
                     style={{ accentColor: COLOR_MAP[theme]?.[500] || '#6366f1' }}
                   />
                   <span className="text-[11px] font-black uppercase text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                    Illimité
+                    {t('unlimited')}
                   </span>
                 </label>
               </div>
@@ -225,8 +230,8 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
                     onChange={(e) => setExpiryDuration({ ...expiryDuration, unit: e.target.value })}
                     className="px-4 py-4 glass-input rounded-2xl font-bold uppercase tracking-widest text-[11px]"
                   >
-                    <option value="days">Jours</option>
-                    <option value="hours">Heures</option>
+                    <option value="days">{t('unit_days')}</option>
+                    <option value="hours">{t('unit_hours')}</option>
                   </select>
                 </div>
               )}
@@ -235,7 +240,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
-                  Quota de Données
+                  {t('f_data_quota')}
                 </label>
                 <span
                   className="text-[11px] font-black font-mono"
@@ -261,7 +266,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
-                  Bande passante
+                  {t('f_bandwidth')}
                 </label>
                 <span
                   className="text-[11px] font-black font-mono"
@@ -293,7 +298,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
             onClick={onClose}
             className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-[0.2em] rounded-2xl border border-white/5 hover:border-white/10 transition-all"
           >
-            Annuler Mission
+            {t('cancel_mission')}
           </button>
           <button
             type="submit"
@@ -315,7 +320,7 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
             ) : (
               <Plus size={18} strokeWidth={3} />
             )}
-            Initialiser l'accès Peer
+            {t('init_peer_access')}
           </button>
         </div>
       </form>

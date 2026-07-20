@@ -15,6 +15,7 @@ import {
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
+import { useLang } from '../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
 import { axiosInstance } from '../../lib/api';
 
@@ -30,6 +31,7 @@ import { axiosInstance } from '../../lib/api';
 const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
   const { theme } = useTheme();
   const { addToast } = useToast();
+  const { t } = useLang();
 
   const [label, setLabel] = useState('');
   const [host, setHost] = useState('');
@@ -78,7 +80,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
   // Auto-succès quand le serveur passe online
   useEffect(() => {
     if (step === 2 && isOnline) {
-      addToast('Serveur en ligne', 'success');
+      addToast(t('server_online'), 'success');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnline, step]);
@@ -92,15 +94,15 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
     const portNum = Number(port);
 
     if (!cleanLabel) {
-      setError('Label requis');
+      setError(t('err_label_required'));
       return;
     }
     if (!cleanHost) {
-      setError('Host / IP requis');
+      setError(t('err_host_required'));
       return;
     }
     if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
-      setError('Port invalide (1-65535)');
+      setError(t('err_port_range'));
       return;
     }
 
@@ -119,7 +121,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
       setError(
         err?.response?.data?.error ||
           err?.response?.data?.message ||
-          "Erreur lors de l'enregistrement"
+          t('register_error')
       );
     } finally {
       setLoading(false);
@@ -139,10 +141,10 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
     try {
       await navigator.clipboard.writeText(provision.oneLiner);
       setCopied(true);
-      addToast('Copié', 'success');
+      addToast(t('copied'), 'success');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      addToast('Copie impossible', 'error');
+      addToast(t('copy_failed'), 'error');
     }
   };
 
@@ -157,7 +159,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
       {/* Label */}
       <div>
         <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
-          Label
+          {t('f_label')}
         </label>
         <div className="relative group">
           <Tag
@@ -169,7 +171,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
-            placeholder="ex: vps-paris-01"
+            placeholder={t('ph_vps_label')}
             autoFocus
           />
         </div>
@@ -178,7 +180,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
       {/* Host */}
       <div>
         <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
-          Host / IP
+          {t('f_host_ip')}
         </label>
         <div className="relative group">
           <Globe
@@ -190,7 +192,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
             value={host}
             onChange={(e) => setHost(e.target.value)}
             className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
-            placeholder="ex: 203.0.113.10"
+            placeholder={t('ph_host_ip')}
           />
         </div>
       </div>
@@ -198,7 +200,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
       {/* Port */}
       <div>
         <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
-          Port SSH
+          {t('f_ssh_port')}
         </label>
         <div className="relative group">
           <Plug
@@ -231,7 +233,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
           onClick={onClose}
           className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-widest rounded-2xl border border-white/5 transition-all"
         >
-          Annuler
+          {t('cancel')}
         </button>
         <button
           type="submit"
@@ -244,7 +246,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
           ) : (
             <Plus size={18} strokeWidth={3} />
           )}
-          Enregistrer le VPS
+          {t('register_vps')}
         </button>
       </div>
     </form>
@@ -256,7 +258,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
       {/* One-liner */}
       <div>
         <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
-          Commande de provisioning
+          {t('provisioning_command')}
         </label>
         <div className="relative">
           <pre className="w-full max-h-40 overflow-auto p-4 pr-14 rounded-2xl bg-slate-950/80 border border-white/10 text-emerald-300 text-[11px] leading-relaxed font-mono whitespace-pre-wrap break-all">
@@ -265,7 +267,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
           <button
             type="button"
             onClick={handleCopy}
-            title="Copier"
+            title={t('copy')}
             className="absolute top-3 right-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-all"
           >
             {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
@@ -273,7 +275,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
         </div>
         <p className="mt-3 flex items-start gap-2 text-[11px] text-slate-400 leading-relaxed">
           <Terminal size={14} className="mt-0.5 flex-shrink-0 text-slate-500" />
-          Collez cette commande en root sur votre VPS, puis attendez ~30s.
+          {t('paste_command_hint')}
         </p>
       </div>
 
@@ -299,10 +301,12 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
         )}
         <div className="flex-1 min-w-0">
           {isOnline ? (
-            <p className="text-xs font-black uppercase tracking-widest">Serveur en ligne</p>
+            <p className="text-xs font-black uppercase tracking-widest">{t('server_online')}</p>
           ) : isError ? (
             <>
-              <p className="text-xs font-black uppercase tracking-widest">Échec du provisioning</p>
+              <p className="text-xs font-black uppercase tracking-widest">
+                {t('provisioning_failed')}
+              </p>
               {created?.lastError && (
                 <p className="mt-1 text-[11px] font-mono opacity-80 break-words">
                   {created.lastError}
@@ -311,10 +315,12 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
             </>
           ) : expired ? (
             <p className="text-xs font-black uppercase tracking-widest">
-              Commande expirée — régénérez-la
+              {t('command_expired')}
             </p>
           ) : (
-            <p className="text-xs font-black uppercase tracking-widest">En attente du serveur…</p>
+            <p className="text-xs font-black uppercase tracking-widest">
+              {t('waiting_for_server')}
+            </p>
           )}
         </div>
       </div>
@@ -326,7 +332,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
           onClick={onClose}
           className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-widest rounded-2xl border border-white/5 transition-all"
         >
-          {isOnline ? 'Fermer' : 'Plus tard'}
+          {isOnline ? t('close') : t('later')}
         </button>
         {expired ? (
           <button
@@ -337,7 +343,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
             style={{ backgroundColor: accent, boxShadow: `0 10px 15px -3px ${accent}4d` }}
           >
             {loading ? <RefreshCw className="animate-spin" size={18} /> : <RefreshCw size={18} />}
-            Régénérer la commande
+            {t('regenerate_command')}
           </button>
         ) : isOnline ? (
           <button
@@ -350,7 +356,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
             }}
           >
             <CheckCircle2 size={18} />
-            Terminé
+            {t('done')}
           </button>
         ) : (
           <button
@@ -360,7 +366,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
             style={{ backgroundColor: accent, boxShadow: `0 10px 15px -3px ${accent}4d` }}
           >
             {copied ? <Check size={18} /> : <Copy size={18} />}
-            {copied ? 'Copié' : 'Copier la commande'}
+            {copied ? t('copied') : t('copy_command')}
           </button>
         )}
       </div>
@@ -371,7 +377,7 @@ const AddServerModal = ({ isOpen, onClose, onCreated, servers = [] }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={step === 1 ? 'Ajouter un VPS' : 'Provisioning du VPS'}
+      title={step === 1 ? t('add_vps') : t('vps_provisioning')}
       maxWidth="max-w-lg"
     >
       {step === 1 ? renderForm() : renderProvision()}

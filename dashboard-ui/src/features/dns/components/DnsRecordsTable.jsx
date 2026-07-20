@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Shield, Trash2, Search, Plus, Check } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 
 // Blocklists populaires proposées en 1 clic (ajout via handleAddFilter).
 const PRESETS = [
@@ -27,6 +28,8 @@ const DnsRecordsTable = ({
   setNewFilterName,
   setNewFilterUrl,
 }) => {
+  const { t, lang } = useLang();
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
   const [query, setQuery] = useState('');
   const filters = useMemo(() => filtering?.filters || [], [filtering]);
 
@@ -51,19 +54,18 @@ const DnsRecordsTable = ({
       {/* En-tête : compteur + recherche */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3 text-[11px] font-black tracking-widest text-slate-500">
-          <span className="text-white text-lg font-black">{filters.length}</span> blocklists
+          <span className="text-white text-lg font-black">{filters.length}</span>{' '}
+          {t('blocklists')}
           <span className="w-1 h-1 rounded-full bg-white/20" />
-          <span className="text-white text-lg font-black">
-            {totalRules.toLocaleString('fr-FR')}
-          </span>{' '}
-          règles
+          <span className="text-white text-lg font-black">{totalRules.toLocaleString(locale)}</span>{' '}
+          {t('rules')}
         </div>
         <div className="relative w-full sm:w-64">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filtrer les blocklists…"
+            placeholder={t('ph_filter_blocklists')}
             className="w-full glass-input text-xs pl-9 pr-3 py-2.5"
           />
         </div>
@@ -89,7 +91,7 @@ const DnsRecordsTable = ({
             <div className="flex items-center gap-4 flex-shrink-0">
               <div className="text-right">
                 <div className="text-[11px] font-black text-indigo-400 tracking-widest">
-                  {(filter.rules_count || 0).toLocaleString('fr-FR')} règles
+                  {(filter.rules_count || 0).toLocaleString(locale)} {t('rules')}
                 </div>
                 <div
                   className={cn(
@@ -97,12 +99,12 @@ const DnsRecordsTable = ({
                     filter.enabled ? 'text-emerald-500' : 'text-amber-500'
                   )}
                 >
-                  {filter.enabled ? 'Actif' : 'Inactif'}
+                  {filter.enabled ? t('status_active') : t('inactive')}
                 </div>
               </div>
               <button
                 onClick={() => handleRemoveFilter(filter.url)}
-                title="Supprimer cette blocklist"
+                title={t('delete_blocklist')}
                 className="p-2 rounded-lg bg-rose-500/10 text-rose-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500/20"
               >
                 <Trash2 size={14} />
@@ -112,7 +114,7 @@ const DnsRecordsTable = ({
         ))}
         {visible.length === 0 && (
           <div className="text-center py-8 text-slate-500 text-xs tracking-widest">
-            {query ? 'Aucune blocklist ne correspond' : 'Aucune blocklist configurée'}
+            {query ? t('no_blocklist_matches') : t('no_blocklist_configured')}
           </div>
         )}
       </div>
@@ -120,7 +122,7 @@ const DnsRecordsTable = ({
       {/* Presets populaires */}
       <div className="pt-6 border-t border-white/5">
         <h4 className="text-[11px] font-black text-slate-500 tracking-[0.2em] mb-3">
-          Ajout rapide
+          {t('quick_add')}
         </h4>
         <div className="flex flex-wrap gap-2">
           {PRESETS.map((p) => {
@@ -148,19 +150,19 @@ const DnsRecordsTable = ({
       {/* Ajout manuel */}
       <div className="pt-6 border-t border-white/5">
         <h4 className="text-[11px] font-black text-slate-500 tracking-[0.2em] mb-4">
-          Ajouter une blocklist personnalisée
+          {t('add_custom_blocklist')}
         </h4>
         <div className="flex flex-col sm:flex-row gap-4">
           <input
             type="text"
-            placeholder="Nom (ex: Steven Black)"
+            placeholder={t('ph_blocklist_name')}
             value={newFilterName}
             onChange={(e) => setNewFilterName(e.target.value)}
             className="flex-1 glass-input text-xs p-3"
           />
           <input
             type="text"
-            placeholder="URL (https://…)"
+            placeholder={t('ph_blocklist_url')}
             value={newFilterUrl}
             onChange={(e) => setNewFilterUrl(e.target.value)}
             className={cn(
@@ -177,14 +179,14 @@ const DnsRecordsTable = ({
             }}
             className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-[11px] tracking-widest transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Ajouter
+            {t('add')}
           </button>
         </div>
         {newFilterUrl && !isValidUrl(newFilterUrl) && (
-          <p className="text-[11px] text-rose-400 mt-2">URL invalide (attendu : https://…)</p>
+          <p className="text-[11px] text-rose-400 mt-2">{t('invalid_url')}</p>
         )}
         {isValidUrl(newFilterUrl) && existingUrls.has(newFilterUrl.trim()) && (
-          <p className="text-[11px] text-amber-400 mt-2">Cette blocklist est déjà ajoutée.</p>
+          <p className="text-[11px] text-amber-400 mt-2">{t('blocklist_already_added')}</p>
         )}
       </div>
     </div>

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Eye, EyeOff, AlertCircle, CheckCircle2, UserPlus } from 'lucide-react';
 import { axiosInstance } from '../../../lib/api';
+import { useLang } from '../../../context/LanguageContext';
 
 // Page d'inscription par invitation (?invite=<token> dans l'URL).
 // Affiche la marque de l'inviteur (white-label) et exige les CGU si la
 // plateforme en a configuré. À la réussite, renvoie vers l'écran de connexion.
 const RegisterPage = ({ inviteToken, onDone }) => {
+  const { t } = useLang();
   const [info, setInfo] = useState(null); // { inviter, termsUrl, brand } | 'invalid'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -44,7 +46,7 @@ const RegisterPage = ({ inviteToken, onDone }) => {
       });
       setSuccess(true);
     } catch (err) {
-      setError(err.response?.data?.error || "Échec de l'inscription");
+      setError(err.response?.data?.error || t('register_failed'));
     } finally {
       setLoading(false);
     }
@@ -78,34 +80,34 @@ const RegisterPage = ({ inviteToken, onDone }) => {
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight italic">{brandName}</h1>
             <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em]">
-              Inscription revendeur
+              {t('register_subtitle')}
             </p>
           </div>
         </div>
 
         {info === null && (
           <div className="text-center text-slate-500 text-xs uppercase tracking-widest py-8">
-            Vérification…
+            {t('verifying')}
           </div>
         )}
 
         {info === 'invalid' && (
           <div className="flex items-center gap-3 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-            <AlertCircle size={18} /> Invitation invalide ou expirée.
+            <AlertCircle size={18} /> {t('invite_invalid')}
           </div>
         )}
 
         {success && (
           <div className="space-y-5">
             <div className="flex items-center gap-3 text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
-              <CheckCircle2 size={18} /> Compte créé ! Vous pouvez vous connecter.
+              <CheckCircle2 size={18} /> {t('account_created')}
             </div>
             <button
               onClick={onDone}
               className="w-full py-3.5 rounded-xl font-black uppercase tracking-widest text-xs text-white transition-all hover:scale-[1.02]"
               style={{ backgroundColor: accent }}
             >
-              Se connecter
+              {t('sign_in')}
             </button>
           </div>
         )}
@@ -113,11 +115,11 @@ const RegisterPage = ({ inviteToken, onDone }) => {
         {info && info !== 'invalid' && !success && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <p className="text-[11px] text-slate-500">
-              Invité par <span className="text-slate-300 font-bold">{info.inviter}</span>
+              {t('invited_by')} <span className="text-slate-300 font-bold">{info.inviter}</span>
             </p>
             <input
               className={inputCls}
-              placeholder="Nom d'utilisateur"
+              placeholder={t('ph_username_simple')}
               value={username}
               autoComplete="username"
               onChange={(e) => setUsername(e.target.value)}
@@ -126,7 +128,7 @@ const RegisterPage = ({ inviteToken, onDone }) => {
               <input
                 className={inputCls}
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Mot de passe (min 8 caractères)"
+                placeholder={t('ph_password_min8')}
                 value={password}
                 autoComplete="new-password"
                 onChange={(e) => setPassword(e.target.value)}
@@ -142,7 +144,7 @@ const RegisterPage = ({ inviteToken, onDone }) => {
             <input
               className={inputCls}
               type="email"
-              placeholder="Email (recommandé — reçus & alertes)"
+              placeholder={t('ph_email_reco')}
               value={email}
               autoComplete="email"
               onChange={(e) => setEmail(e.target.value)}
@@ -157,7 +159,7 @@ const RegisterPage = ({ inviteToken, onDone }) => {
                   className="mt-0.5"
                 />
                 <span>
-                  J'accepte les{' '}
+                  {t('accept_terms_prefix')}{' '}
                   <a
                     href={info.termsUrl}
                     target="_blank"
@@ -165,7 +167,7 @@ const RegisterPage = ({ inviteToken, onDone }) => {
                     className="underline"
                     style={{ color: accent }}
                   >
-                    conditions générales d'utilisation
+                    {t('terms_link_label')}
                   </a>
                 </span>
               </label>
@@ -185,7 +187,7 @@ const RegisterPage = ({ inviteToken, onDone }) => {
               className="w-full py-3.5 rounded-xl font-black uppercase tracking-widest text-xs text-white transition-all hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100"
               style={{ backgroundColor: accent }}
             >
-              {loading ? 'Création…' : 'Créer mon compte'}
+              {loading ? t('creating') : t('create_my_account')}
             </button>
           </form>
         )}

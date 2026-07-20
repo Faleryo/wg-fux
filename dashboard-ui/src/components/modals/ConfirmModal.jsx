@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, X, Trash2, ShieldAlert } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useLang } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
 /**
@@ -21,12 +22,13 @@ const ConfirmModal = ({
   isOpen,
   onConfirm,
   onCancel,
-  title = 'Confirmer la suppression',
-  message = 'Cette action est irréversible.',
-  confirmLabel = 'Supprimer',
+  title,
+  message,
+  confirmLabel,
   intent = 'danger',
 }) => {
   const { mode } = useTheme();
+  const { t } = useLang();
   const isDark = mode === 'dark';
   const confirmRef = useRef(null);
   // Guard contre le double-clic : désactive le bouton dès le 1er appel
@@ -131,7 +133,7 @@ const ConfirmModal = ({
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >
-              {title}
+              {title || t('confirm_delete_title')}
             </h2>
 
             {/* Message */}
@@ -141,7 +143,13 @@ const ConfirmModal = ({
                 isDark ? 'text-slate-400' : 'text-slate-500'
               )}
             >
-              {typeof message === 'string' ? <p>{message}</p> : message}
+              {message === undefined || message === null ? (
+                <p>{t('action_irreversible')}</p>
+              ) : typeof message === 'string' ? (
+                <p>{message}</p>
+              ) : (
+                message
+              )}
             </div>
 
             {/* Warning box */}
@@ -149,7 +157,7 @@ const ConfirmModal = ({
               <div className="flex items-start gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/15 mb-6">
                 <AlertTriangle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
                 <p className="text-[11px] text-red-400 font-bold uppercase tracking-wide leading-relaxed">
-                  Cette action est permanente et ne peut pas être annulée.
+                  {t('permanent_action_warning')}
                 </p>
               </div>
             )}
@@ -165,7 +173,7 @@ const ConfirmModal = ({
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
                 )}
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 ref={confirmRef}
@@ -183,7 +191,7 @@ const ConfirmModal = ({
                 )}
               >
                 {isDanger ? <Trash2 size={14} /> : <ShieldAlert size={14} />}
-                {confirmLabel}
+                {confirmLabel || t('delete')}
               </button>
             </div>
           </motion.div>

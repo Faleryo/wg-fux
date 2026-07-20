@@ -1,31 +1,33 @@
 import React from 'react';
 import { Activity, Shield, Zap, CheckCircle2 } from 'lucide-react';
+import { useLang } from '../../../context/LanguageContext';
 
 const DnsFilteringPanel = ({ stats, status }) => {
+  const { t } = useLang();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {[
         {
-          label: 'Requêtes',
+          label: t('dns_queries'),
           value: stats?.num_dns_queries || 0,
           icon: <Activity className="text-indigo-500" />,
-          sub: 'Dernières 24h',
+          sub: t('last_24h'),
         },
         {
-          label: 'Bloqués',
+          label: t('dns_blocked'),
           value: stats?.num_blocked_filtering || 0,
           icon: <Shield className="text-rose-500" />,
           sub: `${stats?.num_dns_queries ? (((stats.num_blocked_filtering || 0) / stats.num_dns_queries) * 100).toFixed(1) : 0}%`,
         },
         {
-          label: 'Latence',
+          label: t('dns_latency'),
           value: `${stats?.avg_processing_time || 0}ms`,
           icon: <Zap className="text-amber-500" />,
-          sub: 'Moyenne',
+          sub: t('average'),
         },
         {
-          label: 'Statut',
-          value: status?.version?.split(' ')[0] || 'Actif',
+          label: t('col_status'),
+          value: status?.version?.split(' ')[0] || t('status_active'),
           icon: <CheckCircle2 className="text-emerald-500" />,
           sub: 'DNS Engine',
         },

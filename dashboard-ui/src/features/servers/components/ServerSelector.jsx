@@ -3,6 +3,7 @@ import { Server, ChevronDown, Check, Globe } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { axiosInstance } from '../../../lib/api';
 import { useSelectedServer } from '../../../context/SelectedServerContext';
+import { useLang } from '../../../context/LanguageContext';
 
 // Sélecteur de serveur cible (Local / VPS revendeur). Injecte le choix dans le
 // contexte → l'intercepteur axios pose `x-server-id` sur les appels /clients.
@@ -13,6 +14,7 @@ import { useSelectedServer } from '../../../context/SelectedServerContext';
 // par l'ancien socle SSH s'il en reste.
 
 const ServerSelector = () => {
+  const { t } = useLang();
   const { selectedServerId, setSelectedServerId } = useSelectedServer();
   const [servers, setServers] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -56,7 +58,7 @@ const ServerSelector = () => {
   }, [loaded, onlineServers.length, selectedServerId]);
 
   const options = [
-    { id: 'local', label: 'Local', host: 'Ce serveur', online: true },
+    { id: 'local', label: 'Local', host: t('this_server'), online: true },
     ...onlineServers.map((s) => ({ id: String(s.id), label: s.label, host: s.host, online: true })),
   ];
 
@@ -70,7 +72,7 @@ const ServerSelector = () => {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 px-3 py-2.5 glass-panel border rounded-xl transition-all text-[11px] font-black uppercase tracking-widest shadow-lg hover:scale-105 max-w-[200px]"
-        title="Serveur cible"
+        title={t('target_server')}
       >
         {isLocal ? <Globe size={14} /> : <Server size={14} />}
         <span className="truncate">{current.label}</span>
@@ -80,11 +82,11 @@ const ServerSelector = () => {
       {open && (
         <div className="absolute right-0 mt-2 w-64 glass-panel border rounded-xl shadow-2xl z-50 overflow-hidden">
           <div className="px-3 py-2 text-[11px] font-black uppercase tracking-widest opacity-50">
-            Serveur cible
+            {t('target_server')}
           </div>
           {options.length === 0 && (
             <div className="px-3 py-3 text-xs opacity-60">
-              Aucun serveur en ligne. Enregistrez un VPS dans l’onglet Serveurs.
+              {t('no_server_online')}
             </div>
           )}
           {options.map((opt) => {

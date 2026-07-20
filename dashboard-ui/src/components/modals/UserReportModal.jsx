@@ -3,22 +3,25 @@ import { axiosInstance } from '../../lib/api';
 import { useTheme } from '../../context/ThemeContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
 import Modal from '../ui/Modal';
+import { useLang } from '../../context/LanguageContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Package, Users, UserPlus, Activity, Clock, Shield } from 'lucide-react';
 
 const ROLE_LABELS = { admin: 'Root Access', manager: 'Manager', viewer: 'Operator' };
 
 const PERIODS = [
-  { days: 1, label: 'Jour', chartTitle: 'Créations — 24 dernières heures' },
-  { days: 7, label: 'Semaine', chartTitle: 'Créations — 7 derniers jours' },
-  { days: 30, label: 'Mois', chartTitle: 'Créations — 30 derniers jours' },
+  { days: 1, labelKey: 'period_day', chartTitleKey: 'chart_creations_24h' },
+  { days: 7, labelKey: 'period_week', chartTitleKey: 'chart_creations_7d' },
+  { days: 30, labelKey: 'period_month', chartTitleKey: 'chart_creations_30d' },
 ];
 
-const ACTIVITY_LABELS = { 1: '24h', 7: '7 jours', 30: '30 jours' };
-const PERIOD_STAT_LABELS = { 1: 'Ajoutés 24h', 7: 'Ajoutés 7j', 30: 'Ajoutés 30j' };
+const ACTIVITY_KEYS = { 1: 'activity_24h', 7: 'activity_7d', 30: 'activity_30d' };
+const PERIOD_STAT_KEYS = { 1: 'added_24h', 7: 'added_7d', 30: 'added_30d' };
 
 const UserReportModal = ({ isOpen, onClose, user }) => {
   const { theme, isDark } = useTheme();
+  const { t, lang } = useLang();
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [days, setDays] = useState(7);
@@ -52,7 +55,7 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Rapport — ${user.username}`}
+      title={`${t('report_title')} — ${user.username}`}
       maxWidth="max-w-3xl"
     >
       {/* Period filter */}
@@ -73,7 +76,7 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
               )}
               style={active ? { backgroundColor: accentBg, borderColor: accent + '55' } : undefined}
             >
-              {p.label}
+              {t(p.labelKey)}
             </button>
           );
         })}
@@ -105,7 +108,8 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
                 {ROLE_LABELS[report.user.role] || report.user.role}
                 {report.user.expiry && (
                   <span className="ml-2">
-                    · expire {new Date(report.user.expiry).toLocaleDateString('fr-FR')}
+                    · {t('expires_word')}{' '}
+                    {new Date(report.user.expiry).toLocaleDateString(locale)}
                   </span>
                 )}
               </div>
@@ -115,12 +119,12 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
           {/* Stats grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { icon: Package, label: 'Conteneurs', value: report.stats.totalContainers },
-              { icon: Users, label: 'Clients total', value: report.stats.totalClients },
-              { icon: Activity, label: 'Actifs', value: report.stats.activeClients },
+              { icon: Package, label: t('containers'), value: report.stats.totalContainers },
+              { icon: Users, label: t('clients_total'), value: report.stats.totalClients },
+              { icon: Activity, label: t('actives'), value: report.stats.activeClients },
               {
                 icon: UserPlus,
-                label: PERIOD_STAT_LABELS[days] || 'Ajoutés',
+                label: PERIOD_STAT_KEYS[days] ? t(PERIOD_STAT_KEYS[days]) : t('added_generic'),
                 value: report.stats.newClientsInPeriod,
               },
             ].map(({ icon: Icon, label, value }) => (
@@ -147,7 +151,7 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
           {/* Chart */}
           <div>
             <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">
-              {currentPeriod?.chartTitle}
+              {currentPeriod ? t(currentPeriod.chartTitleKey) : ''}
             </h4>
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={report.breakdown} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
@@ -191,7 +195,7 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
           {report.containers.length > 0 && (
             <div>
               <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3">
-                Conteneurs ({report.containers.length})
+                {t('containers')} ({report.containers.length})
               </h4>
               <div className="flex flex-wrap gap-2">
                 {report.containers.map((c) => {
@@ -231,7 +235,7 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
                     {(report.clientsByContainer?.[openContainer] || []).length} peer(s)
                   </div>
                   {(report.clientsByContainer?.[openContainer] || []).length === 0 ? (
-                    <div className="px-4 py-4 text-[11px] text-slate-500">Aucun peer.</div>
+                    <div className="px-4 py-4 text-[11px] text-slate-500">{t('no_peer_dot')}</div>
                   ) : (
                     <div className="max-h-56 overflow-y-auto custom-scrollbar divide-y divide-white/5">
                       {(report.clientsByContainer?.[openContainer] || []).map((p) => (
@@ -244,7 +248,7 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
                             <div className="text-[10px] font-mono text-slate-500 truncate">
                               {p.ip || '—'}
                               {p.expiry
-                                ? ` · exp. ${new Date(p.expiry).toLocaleDateString('fr-FR')}`
+                                ? ` · exp. ${new Date(p.expiry).toLocaleDateString(locale)}`
                                 : ''}
                             </div>
                           </div>
@@ -256,7 +260,7 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
                                 : 'bg-slate-800 text-slate-500 border-white/10'
                             )}
                           >
-                            {p.enabled ? 'Actif' : 'Inactif'}
+                            {p.enabled ? t('status_active') : t('inactive')}
                           </span>
                         </div>
                       ))}
@@ -271,7 +275,7 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
           {report.recentActivity.length > 0 && (
             <div>
               <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3">
-                Activité récente ({ACTIVITY_LABELS[days]})
+                {t('recent_activity')} ({t(ACTIVITY_KEYS[days])})
               </h4>
               <div className="space-y-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-1">
                 {report.recentActivity.map((a, idx) => (
@@ -284,7 +288,7 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
                   >
                     <Clock size={11} className="text-slate-600 flex-shrink-0" />
                     <span className="text-[11px] text-slate-500 font-mono w-20 flex-shrink-0">
-                      {new Date(a.timestamp).toLocaleString('fr-FR', {
+                      {new Date(a.timestamp).toLocaleString(locale, {
                         day: '2-digit',
                         month: '2-digit',
                         hour: '2-digit',
@@ -315,14 +319,14 @@ const UserReportModal = ({ isOpen, onClose, user }) => {
 
           {report.recentActivity.length === 0 && report.stats.totalClients === 0 && (
             <p className="text-center text-[11px] text-slate-600 font-black uppercase tracking-widest py-4">
-              Aucune activité enregistrée
+              {t('no_activity_recorded')}
             </p>
           )}
         </div>
       ) : (
         <div className="h-48 flex items-center justify-center">
           <p className="text-slate-500 text-[11px] font-black uppercase tracking-widest">
-            Impossible de charger le rapport
+            {t('report_load_err')}
           </p>
         </div>
       )}
