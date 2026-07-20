@@ -3,6 +3,7 @@ import { Save, RefreshCw } from 'lucide-react';
 import { axiosInstance } from '../../../lib/api';
 import { useToast } from '../../../context/ToastContext';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn } from '../../../lib/utils';
 import DnsFilteringPanel from './DnsFilteringPanel';
 import DnsConfigForm from './DnsConfigForm';
@@ -11,6 +12,7 @@ const DnsEditor = () => {
   const { mode } = useTheme();
   const isDark = mode === 'dark';
   const { addToast } = useToast();
+  const { t } = useLang();
 
   const [config, setConfig] = useState(null);
   const [initialConfig, setInitialConfig] = useState(null);
@@ -39,7 +41,7 @@ const DnsEditor = () => {
       setStatus(statusRes.data);
       setFiltering(filteringRes.data);
     } catch (error) {
-      addToast('Impossible de charger les données AdGuard Home', 'error');
+      addToast(t('adguard_load_err'), 'error');
     } finally {
       setLoading(false);
     }
@@ -58,6 +60,7 @@ const DnsEditor = () => {
       }
     }, 10000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSave = async () => {
@@ -65,13 +68,13 @@ const DnsEditor = () => {
     try {
       const res = await axiosInstance.post('/dns/config', config);
       if (res.data?.success === false) {
-        addToast(res.data.warning || 'Configuration partiellement appliquée', 'error');
+        addToast(res.data.warning || t('config_partially_applied'), 'error');
       } else {
-        addToast('Configuration DNS mise à jour avec succès', 'success');
+        addToast(t('dns_config_updated'), 'success');
         setInitialConfig(config);
       }
     } catch (error) {
-      addToast('Erreur lors de la sauvegarde de la configuration', 'error');
+      addToast(t('dns_save_err'), 'error');
     } finally {
       setSaving(false);
     }
@@ -80,20 +83,20 @@ const DnsEditor = () => {
   const handleAddFilter = async (name, url) => {
     try {
       await axiosInstance.post('/dns/filtering/add', { name, url });
-      addToast('Blocklist ajoutée', 'success');
+      addToast(t('blocklist_added'), 'success');
       fetchData();
     } catch (error) {
-      addToast("Erreur lors de l'ajout", 'error');
+      addToast(t('add_error'), 'error');
     }
   };
 
   const handleRemoveFilter = async (url) => {
     try {
       await axiosInstance.post('/dns/filtering/remove', { url });
-      addToast('Blocklist supprimée', 'success');
+      addToast(t('blocklist_removed'), 'success');
       fetchData();
     } catch (error) {
-      addToast('Erreur lors de la suppression', 'error');
+      addToast(t('delete_error'), 'error');
     }
   };
 
@@ -104,7 +107,7 @@ const DnsEditor = () => {
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <RefreshCw className="animate-spin text-indigo-500" size={32} />
         <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
-          Initialisation DNS...
+          {t('dns_init')}
         </p>
       </div>
     );
@@ -120,7 +123,7 @@ const DnsEditor = () => {
               isDark ? 'text-white' : 'text-slate-900'
             )}
           >
-            Centre DNS
+            {t('dns_center')}
           </h2>
           <div className="flex items-center gap-2 mt-1">
             <span className="relative flex h-2 w-2">
@@ -133,7 +136,7 @@ const DnsEditor = () => {
                 isDark ? 'text-white' : 'text-slate-500'
               )}
             >
-              Moteur AdGuard actif
+              {t('adguard_engine_active')}
             </p>
           </div>
         </div>
@@ -159,11 +162,11 @@ const DnsEditor = () => {
                 ? 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-amber-500/20'
                 : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'
             )}
-            title={dirty ? 'Modifications non enregistrées' : 'Aucune modification'}
+            title={dirty ? t('unsaved_changes') : t('no_change')}
           >
             {saving ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
             <span className="hidden xs:inline">
-              {saving ? 'Déploiement...' : dirty ? 'Appliquer les modifications' : 'Enregistré'}
+              {saving ? t('deploying') : dirty ? t('apply_changes') : t('saved')}
             </span>
           </button>
         </div>
