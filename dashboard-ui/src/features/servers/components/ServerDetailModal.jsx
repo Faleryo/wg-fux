@@ -10,6 +10,7 @@ import {
   Server,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 import { axiosInstance } from '../../../lib/api';
 
 const pct = (v) => (v == null ? '—' : `${Math.round(v)} %`);
@@ -41,22 +42,25 @@ const Gauge = ({ icon: Icon, label, value }) => (
 );
 
 // Barre de disponibilité : un segment par point d'historique (vert=online).
-const UptimeStrip = ({ history }) => {
+const UptimeStrip = ({ history, locale }) => {
+  const { t } = useLang();
   if (!history || history.length === 0)
-    return <p className="text-[11px] text-slate-600 italic">Aucun historique encore collecté.</p>;
+    return <p className="text-[11px] text-slate-600 italic">{t('no_history_yet')}</p>;
   const onlineCount = history.filter((h) => h.status === 'online').length;
   const ratio = Math.round((onlineCount / history.length) * 100);
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-[11px] text-slate-400">
-        <span>Disponibilité ({history.length} points)</span>
+        <span>
+          {t('availability')} ({history.length} {t('points')})
+        </span>
         <span className="font-mono font-bold text-emerald-400">{ratio} %</span>
       </div>
       <div className="flex gap-0.5 h-8 items-end">
         {history.slice(-80).map((h, i) => (
           <div
             key={i}
-            title={new Date((h.ts || 0) * 1000).toLocaleString('fr-FR')}
+            title={new Date((h.ts || 0) * 1000).toLocaleString(locale)}
             className={cn(
               'flex-1 rounded-sm min-w-[2px]',
               h.status === 'online' ? 'bg-emerald-500/70' : 'bg-red-500/60'
@@ -70,6 +74,8 @@ const UptimeStrip = ({ history }) => {
 };
 
 const ServerDetailModal = ({ serverId, onClose, onHealthcheck, checking }) => {
+  const { t, lang } = useLang();
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -94,12 +100,12 @@ const ServerDetailModal = ({ serverId, onClose, onHealthcheck, checking }) => {
 
   const s = data || {};
   const meta = [
-    ['Région', s.region],
-    ['Fournisseur', s.provider],
-    ['Version', s.version ? `v${s.version}` : null],
-    ['Clients', s.clientCount],
-    ['Uptime', fmtUptime(s.uptimeSec)],
-    ['Licence', s.licenseExpiry ? new Date(s.licenseExpiry).toLocaleDateString('fr-FR') : null],
+    [t('f_region'), s.region],
+    [t('f_provider'), s.provider],
+    [t('col_version'), s.version ? `v${s.version}` : null],
+    [t('clients_label'), s.clientCount],
+    [t('uptime'), fmtUptime(s.uptimeSec)],
+    [t('license'), s.licenseExpiry ? new Date(s.licenseExpiry).toLocaleDateString(locale) : null],
   ];
 
   return (
@@ -123,9 +129,9 @@ const ServerDetailModal = ({ serverId, onClose, onHealthcheck, checking }) => {
               onClick={onHealthcheck}
               disabled={checking}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-black tracking-widest text-white transition-colors disabled:opacity-50"
-              title="Sonder maintenant (SSH)"
+              title={t('probe_now')}
             >
-              <Activity size={13} className={checking ? 'animate-pulse' : ''} /> Sonder
+              <Activity size={13} className={checking ? 'animate-pulse' : ''} /> {t('probe')}
             </button>
             <button
               onClick={onClose}
@@ -137,7 +143,7 @@ const ServerDetailModal = ({ serverId, onClose, onHealthcheck, checking }) => {
         </div>
 
         {loading ? (
-          <p className="text-center py-10 text-slate-500 italic">Chargement…</p>
+          <p className="text-center py-10 text-slate-500 italic">{t('loading')}</p>
         ) : (
           <>
             {s.lastError && (
@@ -145,7 +151,7 @@ const ServerDetailModal = ({ serverId, onClose, onHealthcheck, checking }) => {
                 <AlertTriangle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-[11px] font-black text-red-400 tracking-widest mb-1">
-                    Dernière erreur
+                    {t('last_error')}
                   </p>
                   <p className="text-xs font-mono text-red-300/90 break-all">{s.lastError}</p>
                 </div>
@@ -156,17 +162,18 @@ const ServerDetailModal = ({ serverId, onClose, onHealthcheck, checking }) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Gauge icon={Cpu} label="CPU" value={s.cpuPct} />
               <Gauge icon={MemoryStick} label="RAM" value={s.memPct} />
-              <Gauge icon={HardDrive} label="Disque" value={s.diskPct} />
+              <Gauge icon={HardDrive} label={t('disk')} value={s.diskPct} />
             </div>
             {s.healthAt && (
               <p className="text-[10px] text-slate-600 font-mono inline-flex items-center gap-1.5">
-                <Clock size={10} /> télémétrie du {new Date(s.healthAt).toLocaleString('fr-FR')}
+                <Clock size={10} /> {t('telemetry_from')}{' '}
+                {new Date(s.healthAt).toLocaleString(locale)}
               </p>
             )}
 
             {/* Historique de disponibilité */}
             <div className="pt-2 border-t border-white/5">
-              <UptimeStrip history={s.history} />
+              <UptimeStrip history={s.history} locale={locale} />
             </div>
 
             {/* Métadonnées */}
@@ -195,7 +202,7 @@ const ServerDetailModal = ({ serverId, onClose, onHealthcheck, checking }) => {
             {s.notes && (
               <div className="pt-2 border-t border-white/5">
                 <div className="text-[10px] font-black text-slate-600 tracking-widest mb-1">
-                  Notes
+                  {t('f_notes')}
                 </div>
                 <p className="text-xs text-slate-300 whitespace-pre-wrap">{s.notes}</p>
               </div>
