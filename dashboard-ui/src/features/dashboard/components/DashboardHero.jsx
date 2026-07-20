@@ -10,6 +10,7 @@ import {
   ArrowUp,
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
 import { StatBlock } from './StatCards';
 import GlassCard from '../../../components/ui/Card';
@@ -24,6 +25,7 @@ const DashboardHero = ({
   isManager = true,
 }) => {
   const { theme, isDark } = useTheme();
+  const { t } = useLang();
 
   return (
     <GlassCard className="p-6 md:p-10 flex flex-col justify-between group min-h-[320px]">
@@ -51,7 +53,7 @@ const DashboardHero = ({
                   isDark ? 'text-white' : 'text-slate-900'
                 )}
               >
-                Protocole Actif
+                {t('dash_active_protocol')}
               </h2>
             </div>
             <p className="text-slate-500 font-mono text-[11px] tracking-[0.3em] uppercase opacity-60">
@@ -84,14 +86,19 @@ const DashboardHero = ({
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
           <StatBlock
-            label="Peers Actifs"
+            label={t('dash_active_peers')}
             value={stats.connectedClients ?? 0}
-            sub="CONNECTÉS"
+            sub={t('dash_connected')}
             icon={Users}
             delay={0}
           />
           <StatBlock label="MTU Tunnel" value={config?.mtu || '1420'} icon={Activity} delay={0.1} />
-          <StatBlock label="Port Liaison" value={config?.port || '51820'} icon={Wifi} delay={0.2} />
+          <StatBlock
+            label={t('dash_port_link')}
+            value={config?.port || '51820'}
+            icon={Wifi}
+            delay={0.2}
+          />
           <StatBlock
             label="Health Shield"
             value={health.status === 'healthy' ? 'Optimal' : 'Checking'}

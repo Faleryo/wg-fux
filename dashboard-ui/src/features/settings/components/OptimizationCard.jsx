@@ -1,8 +1,10 @@
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
 
 const OptimizationCard = ({ profile, currentProfile, loading, onOptimize }) => {
   const { isDark } = useTheme();
+  const { t } = useLang();
 
   return (
     <div
@@ -42,7 +44,7 @@ const OptimizationCard = ({ profile, currentProfile, loading, onOptimize }) => {
               : '#6366f14d',
           }}
         >
-          Vecteur Actif
+          {t('optim_active_vector')}
         </div>
       )}
       <div
@@ -93,7 +95,7 @@ const OptimizationCard = ({ profile, currentProfile, loading, onOptimize }) => {
             : undefined
         }
       >
-        {currentProfile === profile.id ? 'Optimisation Active' : 'Activer Profil'}
+        {currentProfile === profile.id ? t('optim_active') : t('optim_activate_profile')}
       </button>
     </div>
   );

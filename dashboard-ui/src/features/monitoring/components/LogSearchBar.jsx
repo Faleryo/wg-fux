@@ -1,8 +1,11 @@
 import React from 'react';
 import { Search, X, RefreshCw } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 
-const LogSearchBar = ({ searchTerm, onSearchChange, isDark, loading, onRefresh }) => (
+const LogSearchBar = ({ searchTerm, onSearchChange, isDark, loading, onRefresh }) => {
+  const { t } = useLang();
+  return (
   <div className="flex items-center gap-3 w-full sm:w-auto">
     <div className="relative group flex-1 sm:flex-none">
       <Search
@@ -14,8 +17,8 @@ const LogSearchBar = ({ searchTerm, onSearchChange, isDark, loading, onRefresh }
       />
       <input
         type="text"
-        placeholder="Filtrer..."
-        aria-label="Filtrer les logs"
+        placeholder={t('filter_placeholder')}
+        aria-label={t('filter_logs_aria')}
         value={searchTerm}
         onChange={(e) => onSearchChange(e.target.value)}
         className={cn(
@@ -42,11 +45,12 @@ const LogSearchBar = ({ searchTerm, onSearchChange, isDark, loading, onRefresh }
           ? 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10'
           : 'bg-white border-black/5 text-slate-500 hover:text-slate-900 hover:bg-black/5'
       )}
-      title="Rafraîchir"
+      title={t('refresh')}
     >
       <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
     </button>
   </div>
-);
+  );
+};
 
 export default LogSearchBar;

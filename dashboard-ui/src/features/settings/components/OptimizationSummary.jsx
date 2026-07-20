@@ -1,9 +1,11 @@
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn } from '../../../lib/utils';
 import { Zap } from 'lucide-react';
 
 const OptimizationSummary = ({ isEnabled, handleToggleSync }) => {
   const { isDark } = useTheme();
+  const { t } = useLang();
 
   return (
     <div
@@ -54,7 +56,7 @@ const OptimizationSummary = ({ isEnabled, handleToggleSync }) => {
                 : 'text-slate-400 group-hover:text-slate-900'
             )}
           >
-            Système Optimisé
+            {t('optim_system_optimized')}
           </span>
           <div
             onClick={handleToggleSync}

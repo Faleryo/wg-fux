@@ -2,9 +2,11 @@ import React from 'react';
 import { Server, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn, COLOR_MAP } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 import GlassInput from './GlassInput';
 
 const GeneralSettings = ({ config, setConfig, isDark, theme }) => {
+  const { t } = useLang();
   return (
     <motion.div
       key="gen"
@@ -27,7 +29,7 @@ const GeneralSettings = ({ config, setConfig, isDark, theme }) => {
           value={config.port}
           onChange={(e) => setConfig({ ...config, port: e.target.value })}
           badge="UDP"
-          tooltip="Port d'écoute standard WireGuard"
+          tooltip={t('tt_udp_port')}
         />
         <GlassInput
           label="Protocol MTU"
@@ -51,10 +53,10 @@ const GeneralSettings = ({ config, setConfig, isDark, theme }) => {
           value={config.keepalive}
           onChange={(e) => setConfig({ ...config, keepalive: e.target.value })}
           badge="SECONDS"
-          tooltip="Maintient les sessions actives à travers les pare-feu NAT rigides via stimulation UDP (0 = désactivé)."
+          tooltip={t('tt_keepalive')}
         />
         <p className="px-1 text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed opacity-60">
-          Recommandé : 25s (Standard), 5s (Gaming Mobile Ultra-Stable).
+          {t('keepalive_reco')}
         </p>
       </div>
     </motion.div>

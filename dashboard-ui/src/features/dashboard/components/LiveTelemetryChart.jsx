@@ -10,6 +10,7 @@ import {
   ReferenceArea,
 } from 'recharts';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import { axiosInstance as axios } from '../../../lib/api';
 import { motion } from 'framer-motion';
 import { Activity, Download, Upload, Zap } from 'lucide-react';
@@ -63,6 +64,7 @@ const CustomTooltip = ({ active, payload, label, isDark, unit }) => {
 
 export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
   const { isDark } = useTheme();
+  const { t } = useLang();
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -144,7 +146,7 @@ export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.3em] mb-1">
-            Système SENTINEL
+            {t('telemetry_system')}
           </h3>
           <h2
             className={cn(
@@ -152,7 +154,7 @@ export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
               isDark ? 'text-white' : 'text-slate-900'
             )}
           >
-            Télémétrie Live{' '}
+            {t('telemetry_live')}{' '}
             <span className="h-2 w-2 rounded-full bg-indigo-500 animate-ping"></span>
           </h2>
         </div>
@@ -216,9 +218,7 @@ export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
                 isDark ? 'text-slate-600' : 'text-slate-400'
               )}
             >
-              {fetchError
-                ? 'Historique indisponible — données temps réel actives'
-                : 'Initialisation des flux Sentinel...'}
+              {fetchError ? t('history_unavailable') : t('init_sentinel_flux')}
             </p>
             <p
               className={cn(
@@ -226,9 +226,7 @@ export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
                 isDark ? 'text-slate-700' : 'text-slate-300'
               )}
             >
-              {fetchError
-                ? 'Vérifier la connexion au service traffic-history'
-                : "(Données disponibles après le premier cycle d'audit)"}
+              {fetchError ? t('check_traffic_history_conn') : t('data_after_audit')}
             </p>
           </div>
         ) : (
@@ -298,7 +296,7 @@ export const LiveTelemetryChart = ({ realtimeData = [], isManager = true }) => {
         <div className="flex items-center gap-3">
           <Activity size={18} className="text-indigo-500 animate-pulse" />
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-            {usingRealtime ? 'Débits temps réel (5 s) · Mbit/s' : 'Historique 24 h · volumes MB'}
+            {usingRealtime ? t('rt_rates_label') : t('history_24h_label')}
           </span>
         </div>
         <div

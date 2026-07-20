@@ -3,8 +3,10 @@ import { Shield, ShieldCheck, Activity, ArrowRight, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../../../lib/utils';
 import { axiosInstance } from '../../../lib/api';
+import { useLang } from '../../../context/LanguageContext';
 
 const SecuritySettings = ({ addToast, isDark, theme }) => {
+  const { t } = useLang();
   return (
     <motion.div
       key="sec"
@@ -55,10 +57,10 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
             <ShieldCheck size={18} /> Encryption Module
           </h4>
           <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-6">
-            Protocole ChaCha20-Poly1305 actif. Rotation automatique des clés de session Curve25519.
+            {t('sec_encryption_desc')}
           </p>
           <button className="text-[11px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 transition-all">
-            Analyser Intégrité <ArrowRight size={14} />
+            {t('sec_analyze_integrity')} <ArrowRight size={14} />
           </button>
         </div>
         <div
@@ -78,10 +80,10 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
             <Activity size={18} /> Packet Filtering
           </h4>
           <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-6">
-            Pare-feu UFW activé. Rejet immédiat des paquets ICMP non autorisés et scans SYN furtifs.
+            {t('sec_packet_desc')}
           </p>
           <button className="text-[11px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 transition-all">
-            Logs Firewall <ArrowRight size={14} />
+            {t('sec_firewall_logs')} <ArrowRight size={14} />
           </button>
         </div>
       </div>
@@ -106,17 +108,16 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
                 <Zap size={18} className="text-amber-400" /> Telegram Sentinel
               </h4>
               <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed max-w-xl">
-                Vérifiez la connectivité avec votre bot Telegram. Le système envoie des alertes
-                critiques lors des tentatives de brèche ou de déconnexion d'interface.
+                {t('sec_telegram_desc')}
               </p>
             </div>
             <button
               onClick={async () => {
                 try {
                   await axiosInstance.post('/system/test-telegram', {});
-                  addToast('Notification de test envoyée avec succès', 'success');
+                  addToast(t('telegram_test_ok'), 'success');
                 } catch (e) {
-                  addToast('Échec de la connexion Telegram', 'error');
+                  addToast(t('telegram_test_err'), 'error');
                 }
               }}
               className={cn(
@@ -126,7 +127,7 @@ const SecuritySettings = ({ addToast, isDark, theme }) => {
                   : 'bg-indigo-600 text-white shadow-lg hover:bg-indigo-500 shadow-indigo-600/20'
               )}
             >
-              Tester la Connexion
+              {t('test_connection')}
             </button>
           </div>
         </div>

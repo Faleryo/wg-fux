@@ -3,16 +3,19 @@ import { motion } from 'framer-motion';
 import { CreditCard, Send, MessageCircle, Save, CheckCircle2, KeyRound } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { axiosInstance } from '../../../lib/api';
+import { useLang } from '../../../context/LanguageContext';
 
 // Champ générique. Pour un secret déjà configuré, on affiche un placeholder
 // "•••• configuré" et on n'envoie la valeur que si l'admin la retape.
-const Field = ({ label, icon: Icon, value, onChange, placeholder, secret, configured, isDark }) => (
+const Field = ({ label, icon: Icon, value, onChange, placeholder, secret, configured, isDark }) => {
+  const { t } = useLang();
+  return (
   <div className="space-y-2">
     <label className="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest">
       {Icon && <Icon size={12} />} {label}
       {secret && configured && (
         <span className="text-emerald-400/80 inline-flex items-center gap-1">
-          <CheckCircle2 size={11} /> configuré
+          <CheckCircle2 size={11} /> {t('configured_badge')}
         </span>
       )}
     </label>
@@ -20,7 +23,7 @@ const Field = ({ label, icon: Icon, value, onChange, placeholder, secret, config
       type={secret ? 'password' : 'text'}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      placeholder={secret && configured ? '•••••••• (laisser vide pour conserver)' : placeholder}
+      placeholder={secret && configured ? t('secret_keep_placeholder') : placeholder}
       autoComplete="off"
       className={cn(
         'w-full border rounded-2xl px-5 py-3.5 font-mono text-sm focus:outline-none transition-all',
@@ -30,9 +33,11 @@ const Field = ({ label, icon: Icon, value, onChange, placeholder, secret, config
       )}
     />
   </div>
-);
+  );
+};
 
 const BillingSettings = ({ addToast, isDark }) => {
+  const { t } = useLang();
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
@@ -42,7 +47,7 @@ const BillingSettings = ({ addToast, isDark }) => {
       const res = await axiosInstance.get('/settings');
       setSettings(res.data || {});
     } catch (e) {
-      addToast(e?.response?.data?.error || 'Erreur de chargement des réglages', 'error');
+      addToast(e?.response?.data?.error || t('settings_load_err'), 'error');
     }
   }, [addToast]);
 
@@ -58,11 +63,11 @@ const BillingSettings = ({ addToast, isDark }) => {
       // On n'envoie que les champs saisis (les secrets vides sont ignorés côté API).
       const payload = Object.fromEntries(Object.entries(form).filter(([, v]) => v !== undefined));
       const res = await axiosInstance.put('/settings', payload);
-      addToast(`Réglages enregistrés (${res.data.updated?.length || 0})`, 'success');
+      addToast(`${t('settings_saved')} (${res.data.updated?.length || 0})`, 'success');
       setForm({});
       load();
     } catch (e) {
-      addToast(e?.response?.data?.error || "Erreur d'enregistrement", 'error');
+      addToast(e?.response?.data?.error || t('settings_save_err'), 'error');
     } finally {
       setSaving(false);
     }
@@ -71,7 +76,7 @@ const BillingSettings = ({ addToast, isDark }) => {
   if (!settings) {
     return (
       <div className="py-16 text-center text-slate-500 text-xs uppercase tracking-widest">
-        Chargement…
+        {t('loading')}
       </div>
     );
   }
@@ -95,18 +100,16 @@ const BillingSettings = ({ addToast, isDark }) => {
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
-          <CreditCard size={20} className="text-indigo-400" /> Stripe — Renouvellement auto
+          <CreditCard size={20} className="text-indigo-400" /> {t('billing_stripe_title')}
         </h3>
         <p className="text-[11px] text-slate-500 leading-relaxed max-w-2xl">
-          Les revendeurs top-level achètent leurs crédits par Stripe Checkout (1 crédit = 30 jours
-          de licence pour 1 serveur — le renouvellement débite le portefeuille automatiquement).
-          Configurez l&apos;URL du webhook Stripe sur{' '}
-          <code className="text-indigo-400">https://VOTRE-DOMAINE/stripe/webhook</code>. Sans
-          Stripe, le contact ci-dessous est affiché aux revendeurs.
+          {t('billing_stripe_desc_1')}{' '}
+          <code className="text-indigo-400">https://VOTRE-DOMAINE/stripe/webhook</code>.{' '}
+          {t('billing_stripe_desc_2')}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Field
-            label="Clé secrète Stripe"
+            label={t('f_stripe_secret')}
             icon={KeyRound}
             secret
             configured={conf('stripe_secret_key')}
@@ -116,7 +119,7 @@ const BillingSettings = ({ addToast, isDark }) => {
             isDark={isDark}
           />
           <Field
-            label="Secret du webhook"
+            label={t('f_stripe_webhook')}
             icon={KeyRound}
             secret
             configured={conf('stripe_webhook_secret')}
@@ -126,28 +129,28 @@ const BillingSettings = ({ addToast, isDark }) => {
             isDark={isDark}
           />
           <Field
-            label="Clé publiable"
+            label={t('f_stripe_publishable')}
             value={form.stripe_publishable_key ?? pub('stripe_publishable_key')}
             onChange={(v) => set('stripe_publishable_key', v)}
             placeholder="pk_live_…"
             isDark={isDark}
           />
           <Field
-            label="ID de prix (Price ID)"
+            label={t('f_stripe_price_id')}
             value={form.stripe_price_id ?? pub('stripe_price_id')}
             onChange={(v) => set('stripe_price_id', v)}
             placeholder="price_…"
             isDark={isDark}
           />
           <Field
-            label="Prix d'1 crédit (centimes)"
+            label={t('f_credit_price')}
             value={form.credit_price_cents ?? pub('credit_price_cents')}
             onChange={(v) => set('credit_price_cents', v)}
-            placeholder="ex: 1500 = 15,00 €"
+            placeholder={t('ph_credit_price')}
             isDark={isDark}
           />
           <Field
-            label="Devise (ISO)"
+            label={t('f_currency')}
             value={form.billing_currency ?? pub('billing_currency')}
             onChange={(v) => set('billing_currency', v)}
             placeholder="eur"
@@ -164,18 +167,18 @@ const BillingSettings = ({ addToast, isDark }) => {
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
-          <KeyRound size={20} className="text-amber-400" /> Plateforme
+          <KeyRound size={20} className="text-amber-400" /> {t('billing_platform')}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Field
-            label="URL des CGU (exigées à l'inscription si définie)"
+            label={t('f_terms_url')}
             value={form.terms_url ?? pub('terms_url')}
             onChange={(v) => set('terms_url', v)}
             placeholder="https://votre-domaine/cgu"
             isDark={isDark}
           />
           <Field
-            label="Pause des mises à jour flotte (1 = gelées)"
+            label={t('f_update_paused')}
             value={form.update_paused ?? pub('update_paused')}
             onChange={(v) => set('update_paused', v)}
             placeholder="0 ou 1"
@@ -192,11 +195,10 @@ const BillingSettings = ({ addToast, isDark }) => {
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
-          <MessageCircle size={20} className="text-emerald-400" /> Contact de paiement
+          <MessageCircle size={20} className="text-emerald-400" /> {t('billing_payment_contact')}
         </h3>
         <p className="text-[11px] text-slate-500 max-w-2xl">
-          Affiché aux revendeurs pour renouveler quand Stripe n&apos;est pas actif (paiement manuel
-          via WhatsApp/Telegram).
+          {t('billing_payment_contact_desc')}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Field
@@ -208,7 +210,7 @@ const BillingSettings = ({ addToast, isDark }) => {
             isDark={isDark}
           />
           <Field
-            label="Telegram (contact)"
+            label={t('f_telegram_contact')}
             icon={Send}
             value={form.payment_contact_telegram ?? pub('payment_contact_telegram')}
             onChange={(v) => set('payment_contact_telegram', v)}
@@ -217,10 +219,10 @@ const BillingSettings = ({ addToast, isDark }) => {
           />
         </div>
         <Field
-          label="Instructions de paiement"
+          label={t('f_payment_instructions')}
           value={form.payment_instructions ?? pub('payment_instructions')}
           onChange={(v) => set('payment_instructions', v)}
-          placeholder="ex: Virement / PayPal — 15€/mois par VPS"
+          placeholder={t('ph_payment_instructions')}
           isDark={isDark}
         />
       </section>
@@ -233,11 +235,11 @@ const BillingSettings = ({ addToast, isDark }) => {
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
-          <Send size={20} className="text-sky-400" /> Bot Telegram (alertes)
+          <Send size={20} className="text-sky-400" /> {t('billing_telegram_bot')}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Field
-            label="Token du bot"
+            label={t('f_bot_token')}
             icon={KeyRound}
             secret
             configured={conf('telegram_bot_token')}
@@ -267,7 +269,7 @@ const BillingSettings = ({ addToast, isDark }) => {
               : 'bg-indigo-500 hover:bg-indigo-400 text-white shadow-lg hover:scale-105'
           )}
         >
-          <Save size={16} /> Enregistrer
+          <Save size={16} /> {t('save')}
         </button>
       </div>
     </motion.div>

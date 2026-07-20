@@ -1,14 +1,16 @@
 import React from 'react';
 import { Globe, Shield, Server } from 'lucide-react';
 import { cn, COLOR_MAP } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 
-const tabs = [
-  { id: 'access', label: 'Accès Peers', icon: Globe },
-  { id: 'security', label: 'Sécurité', icon: Shield },
-  { id: 'system', label: 'Journal Système', icon: Server },
-];
-
-const LogTabs = ({ activeTab, onTabChange, isDark, theme, liveConnected }) => (
+const LogTabs = ({ activeTab, onTabChange, isDark, theme, liveConnected }) => {
+  const { t } = useLang();
+  const tabs = [
+    { id: 'access', label: t('tab_access_peers'), icon: Globe },
+    { id: 'security', label: t('log_tab_security'), icon: Shield },
+    { id: 'system', label: t('tab_system_log'), icon: Server },
+  ];
+  return (
   <div className="flex gap-2 flex-wrap">
     {tabs.map((tab) => (
       <button
@@ -43,6 +45,7 @@ const LogTabs = ({ activeTab, onTabChange, isDark, theme, liveConnected }) => (
       </button>
     ))}
   </div>
-);
+  );
+};
 
 export default LogTabs;

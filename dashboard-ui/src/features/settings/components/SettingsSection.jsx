@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
 import { axiosInstance } from '../../../lib/api';
 import { AnimatePresence } from 'framer-motion';
@@ -24,6 +25,7 @@ import BillingSettings from './BillingSettings';
 const SettingsSection = () => {
   const { theme, isDark } = useTheme();
   const { addToast } = useToast();
+  const { t } = useLang();
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState({
@@ -62,7 +64,7 @@ const SettingsSection = () => {
     if (!isDirty) return;
     const handler = (e) => {
       e.preventDefault();
-      e.returnValue = 'Modifications non sauvegardées';
+      e.returnValue = t('unsaved_changes');
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
@@ -72,13 +74,13 @@ const SettingsSection = () => {
     const errors = {};
     const port = parseInt(config.port, 10);
     if (!config.port || isNaN(port) || port < 1 || port > 65535)
-      errors.port = 'Port invalide (1–65535)';
+      errors.port = t('err_port_invalid');
     const mtu = parseInt(config.mtu, 10);
     if (!config.mtu || isNaN(mtu) || mtu < 576 || mtu > 9000)
-      errors.mtu = 'MTU invalide (576–9000)';
+      errors.mtu = t('err_mtu_invalid');
     const ka = parseInt(config.keepalive, 10);
     if (config.keepalive !== '' && (isNaN(ka) || ka < 0 || ka > 3600))
-      errors.keepalive = 'Keepalive invalide (0–3600s)';
+      errors.keepalive = t('err_keepalive_invalid');
     return errors;
   };
 
@@ -86,7 +88,7 @@ const SettingsSection = () => {
     const errors = validateConfig();
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
-      addToast('Corriger les erreurs avant de sauvegarder', 'error');
+      addToast(t('fix_errors_before_save'), 'error');
       return;
     }
     setValidationErrors({});
@@ -94,9 +96,9 @@ const SettingsSection = () => {
     try {
       await axiosInstance.post('/system/config', config);
       setSavedConfig({ ...config });
-      addToast('Configuration appliquée avec succès', 'success');
+      addToast(t('config_applied_ok'), 'success');
     } catch (error) {
-      addToast("Erreur lors de l'application", 'error');
+      addToast(t('config_apply_err'), 'error');
     } finally {
       setLoading(false);
     }
@@ -105,18 +107,18 @@ const SettingsSection = () => {
   const handleBackup = async () => {
     try {
       await axiosInstance.post('/system/backup', {});
-      addToast('Sauvegarde créée avec succès', 'success');
+      addToast(t('backup_created_ok'), 'success');
     } catch (error) {
-      addToast('Erreur lors du backup', 'error');
+      addToast(t('backup_err'), 'error');
     }
   };
 
   const tabs = [
-    { id: 'general', label: 'Noyau', icon: Server },
-    { id: 'network', label: 'Réseau', icon: Globe },
-    { id: 'security', label: 'Sûreté', icon: Shield },
-    { id: 'billing', label: 'Facturation', icon: CreditCard },
-    { id: 'maintenance', label: 'Terminal', icon: Wrench },
+    { id: 'general', label: t('tab_core'), icon: Server },
+    { id: 'network', label: t('network'), icon: Globe },
+    { id: 'security', label: t('tab_security'), icon: Shield },
+    { id: 'billing', label: t('tab_billing'), icon: CreditCard },
+    { id: 'maintenance', label: t('tab_terminal'), icon: Wrench },
   ];
 
   return (
@@ -142,7 +144,7 @@ const SettingsSection = () => {
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >
-              Paramètres Noyau
+              {t('settings_core_title')}
             </h2>
             <p className="text-slate-500 text-[11px] font-black tracking-[0.4em] uppercase opacity-60">
               Deep Core Control Panel
@@ -153,7 +155,7 @@ const SettingsSection = () => {
         <div className="flex flex-col items-end gap-3 w-full lg:w-auto">
           {isDirty && Object.keys(validationErrors).length === 0 && (
             <span className="text-[11px] font-black text-amber-400 uppercase tracking-widest animate-pulse">
-              • Modifications en attente
+              • {t('pending_changes')}
             </span>
           )}
           {Object.keys(validationErrors).length > 0 && (
@@ -178,7 +180,7 @@ const SettingsSection = () => {
             }}
           >
             {loading ? <RefreshCw className="animate-spin" size={20} /> : <Save size={20} />}{' '}
-            Appliquer Mission
+            {t('apply_mission')}
           </button>
         </div>
       </div>

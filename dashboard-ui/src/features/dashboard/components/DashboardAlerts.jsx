@@ -1,8 +1,10 @@
 import React from 'react';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 
 const DashboardAlerts = ({ clients, onNavigate }) => {
+  const { t } = useLang();
   const quotaAlerts = React.useMemo(() => {
     if (!clients) return [];
     return clients
@@ -25,7 +27,7 @@ const DashboardAlerts = ({ clients, onNavigate }) => {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[11px] font-black text-rose-400 uppercase tracking-widest mb-2">
-          ⚠ {quotaAlerts.length} Peer{quotaAlerts.length > 1 ? 's' : ''} en Quota Critique
+          ⚠ {quotaAlerts.length} Peer{quotaAlerts.length > 1 ? 's' : ''} {t('quota_critical_suffix')}
         </p>
         <div className="flex flex-wrap gap-2">
           {quotaAlerts.map((a) => (
@@ -49,7 +51,7 @@ const DashboardAlerts = ({ clients, onNavigate }) => {
           onClick={() => onNavigate('containers')}
           className="flex items-center gap-1 text-[11px] font-black text-rose-400 hover:text-rose-300 uppercase tracking-widest flex-shrink-0 transition-colors"
         >
-          Gérer <ChevronRight size={12} />
+          {t('manage')} <ChevronRight size={12} />
         </button>
       )}
     </div>

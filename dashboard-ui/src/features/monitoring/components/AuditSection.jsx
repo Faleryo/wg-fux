@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
 import { axiosInstance as axios } from '../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const AuditSection = () => {
   const { theme, isDark } = useTheme();
   const { addToast } = useToast();
+  const { t } = useLang();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -67,7 +69,7 @@ const AuditSection = () => {
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >
-              Audit de Sécurité
+              {t('audit_title')}
             </h2>
             <p className="text-slate-500 text-[11px] font-black tracking-[0.4em] uppercase opacity-60">
               System Security Analysis Protocol
@@ -157,10 +159,10 @@ const AuditSection = () => {
               isDark ? 'text-white' : 'text-slate-900'
             )}
           >
-            Indice d'Intégrité
+            {t('integrity_index')}
           </h3>
           <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-4 leading-loose">
-            Calcul basé sur l'état du noyau, du firewall et des protections logicielles.
+            {t('integrity_desc')}
           </p>
         </div>
 
@@ -188,16 +190,16 @@ const AuditSection = () => {
                   <RefreshCw className="animate-spin text-slate-700" size={16} />
                 ) : data?.firewall ? (
                   <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-black uppercase rounded-lg">
-                    Actif
+                    {t('status_active')}
                   </div>
                 ) : (
                   <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-black uppercase rounded-lg">
-                    Critique
+                    {t('critical')}
                   </div>
                 )}
               </div>
               <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
-                Vérification de l'interface UFW et des règles de filtrage pré-configurées.
+                {t('audit_firewall_desc')}
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -210,7 +212,7 @@ const AuditSection = () => {
                 {data?.firewall ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
               </div>
               <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                {data?.firewall ? 'Protection Périphérique OK' : 'Vulnérabilité Réseau Possible'}
+                {data?.firewall ? t('audit_fw_ok') : t('audit_fw_bad')}
               </span>
             </div>
           </div>
@@ -246,7 +248,7 @@ const AuditSection = () => {
                 )}
               </div>
               <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
-                État de l'option sysctl net.ipv4.ip_forward nécessaire au transit vpn.
+                {t('audit_ipfwd_desc')}
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -259,7 +261,7 @@ const AuditSection = () => {
                 {data?.ipForwarding ? <CheckCircle2 size={18} /> : <X size={18} />}
               </div>
               <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                {data?.ipForwarding ? 'Transit de Données Actif' : 'Interruption Flux Tunnel'}
+                {data?.ipForwarding ? t('audit_ipfwd_ok') : t('audit_ipfwd_bad')}
               </span>
             </div>
           </div>
@@ -295,7 +297,7 @@ const AuditSection = () => {
                 )}
               </div>
               <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
-                Surveillance des tentatives de brute-force SSH et des bannissements IP.
+                {t('audit_f2b_desc')}
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -308,7 +310,7 @@ const AuditSection = () => {
                 {data?.fail2ban ? <ShieldCheck size={18} /> : <AlertTriangle size={18} />}
               </div>
               <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                {data?.fail2ban ? 'Defense Brute-Force OK' : 'Vulnérabilité SSH Détectée'}
+                {data?.fail2ban ? t('audit_f2b_ok') : t('audit_f2b_bad')}
               </span>
             </div>
           </div>
@@ -341,7 +343,7 @@ const AuditSection = () => {
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-8">
-                Utilisation de la partition racine (SSD/NVMe) pour le cache système.
+                {t('audit_disk_desc')}
               </p>
             </div>
             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
