@@ -27,6 +27,7 @@ const { auth, requireAdmin, requireOnboardedReseller } = require('./src/middlewa
 const { startJobs } = require('./src/services/jobs');
 const { checkScripts } = require('./src/services/system');
 const log = require('./src/services/logger');
+const { buildErrorBody } = require('./src/utils/errors');
 const { db } = require('./db');
 const schema = require('./db/schema');
 
@@ -327,15 +328,18 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, _next) => {
-  const statusCode = err.status || err.statusCode || 500;
-  const errorCode = err.code || 'INTERNAL_ERROR';
+  const { statusCode, body } = buildErrorBody(err, { path: req.path, isProd });
 
+  // TOUJOURS journaliser le détail COMPLET côté serveur (stack incluse) — c'est
+  // le seul endroit où la stack a le droit d'apparaître. Les réponses HTTP, elles,
+  // ne fuitent jamais de stack trace ni de chemin de fichier interne (voir
+  // buildErrorBody, qui masque le détail des 5xx en production).
   if (statusCode >= 500) {
     log.error('server', `Unhandled Exception: ${err.message}`, {
-      stack: isProd ? undefined : err.stack,
+      stack: err.stack,
       path: req.path,
       method: req.method,
-      code: errorCode,
+      code: body.code,
     });
   } else {
     log.warn('server', `Client Error: ${err.message}`, {
@@ -345,18 +349,7 @@ app.use((err, req, res, _next) => {
     });
   }
 
-  // SRE FIX: Build a plain JSON response instead of re-calling createError
-  // (createError now returns Error instances which don't serialize cleanly to JSON)
-  res.status(statusCode).json({
-    success: false,
-    status: statusCode,
-    error: err.error || err.message,
-    message: err.message,
-    code: errorCode,
-    path: req.path,
-    details: err.details || null,
-    timestamp: new Date().toISOString(),
-  });
+  res.status(statusCode).json(body);
 });
 
 // --- Startup ---
