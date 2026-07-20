@@ -82,6 +82,28 @@ async function resolveLicense(key) {
   return { server, valid: Boolean(expiry && Date.now() < expiry) };
 }
 
+// Compare deux versions "x.y.z". Renvoie true si `a` est STRICTEMENT plus récent
+// que `b`. Sobre et tolérant : toute partie non numérique compte comme 0, une
+// entrée illisible renvoie false (on ne veut pas de faux positif de tampering).
+function isVersionNewer(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const parse = (s) =>
+    s
+      .trim()
+      .split('.')
+      .slice(0, 3)
+      .map((p) => parseInt(p, 10) || 0);
+  const pa = parse(a);
+  const pb = parse(b);
+  for (let i = 0; i < 3; i++) {
+    const x = pa[i] || 0;
+    const y = pb[i] || 0;
+    if (x > y) return true;
+    if (x < y) return false;
+  }
+  return false;
+}
+
 // Clé de licence depuis le header Authorization: Bearer <key> OU le body.
 function extractKey(req) {
   const authHeader = req.headers.authorization || '';
@@ -134,6 +156,39 @@ router.post(
     db.insert(schema.serverHealthHistory)
       .values({ serverId: server.id, ts: now, status: 'online', cpuPct, memPct, diskPct, clientCount })
       .catch(() => {});
+
+    // ── Détection basique de falsification (NON-BLOQUANTE) ──────────────────
+    // Un heartbeat honnête est borné par la licence : l'instance applique
+    // elle-même le plafond de clients et ne peut pas tourner une version que la
+    // mère n'a jamais publiée. Un écart grossier est un signal (faible) de
+    // tampering ou d'agent bricolé. On se contente d'un log.warn — jamais de
+    // rejet — pour laisser une trace auditables sans casser le flux légitime.
+    const maxClients = Number.isInteger(server.maxClients) ? server.maxClients : null;
+    const reportedClients = Number.isInteger(clients) && clients >= 0 ? clients : null;
+    // Marge de tolérance : une petite surcharge transitoire (client en cours de
+    // création, décompte non encore réconcilié) ne doit pas générer de bruit.
+    if (
+      maxClients !== null &&
+      maxClients >= 0 &&
+      reportedClients !== null &&
+      reportedClients > maxClients + Math.max(2, Math.ceil(maxClients * 0.1))
+    ) {
+      log.warn('license', 'Heartbeat suspect : clients rapportés au-delà du plafond de licence', {
+        serverId: server.id,
+        reportedClients,
+        maxClients,
+      });
+    }
+    // Version rapportée strictement supérieure à celle de la plateforme : la mère
+    // est la SEULE source des bundles, une instance ne peut donc pas légitimement
+    // devancer sa version.
+    if (typeof version === 'string' && version && isVersionNewer(version, APP_VERSION)) {
+      log.warn('license', 'Heartbeat suspect : version rapportée en avance sur la plateforme', {
+        serverId: server.id,
+        reportedVersion: version.slice(0, 32),
+        platformVersion: APP_VERSION,
+      });
+    }
 
     log.info('license', 'Heartbeat instance', {
       serverId: server.id,
