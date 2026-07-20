@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const log = require('../services/logger');
+
+// Seules routes REST accessibles avec le SENTINEL_TOKEN (voir bloc sentinel plus
+// bas). L'agent sentinel ne fait qu'un POST /api/sentinel/heartbeat ; /api/health
+// est public et n'a pas besoin de token.
+const SENTINEL_ALLOWED_PATH = /^\/api\/sentinel(\/|$)/;
 const { db, schema } = require('../../db');
 const { eq } = require('drizzle-orm');
 
@@ -19,15 +24,18 @@ const tokenBlacklist = new Set();
 const TOKEN_MAX_TTL_MS = 24 * 60 * 60 * 1000;
 // Pairs stored as "username:iat:expireAt" — we embed expiry to allow cleanup
 const blacklistExpiry = new Map();
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, expireAt] of blacklistExpiry) {
-    if (now > expireAt) {
-      tokenBlacklist.delete(key);
-      blacklistExpiry.delete(key);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, expireAt] of blacklistExpiry) {
+      if (now > expireAt) {
+        tokenBlacklist.delete(key);
+        blacklistExpiry.delete(key);
+      }
     }
-  }
-}, 60 * 60 * 1000); // sweep every hour
+  },
+  60 * 60 * 1000
+); // sweep every hour
 
 const blacklistToken = (decoded) => {
   if (!decoded?.username || decoded.iat == null) return;
@@ -58,12 +66,25 @@ const auth = async (req, res, next) => {
   if (sentinelToken && sentinelToken.length >= 32 && tokenStr) {
     const sentinelBuf = Buffer.from(sentinelToken);
     const tokenBuf = Buffer.from(tokenStr);
-    if (
-      sentinelBuf.length === tokenBuf.length &&
-      crypto.timingSafeEqual(sentinelBuf, tokenBuf)
-    ) {
+    if (sentinelBuf.length === tokenBuf.length && crypto.timingSafeEqual(sentinelBuf, tokenBuf)) {
+      // PÉRIMÈTRE : ce token statique n'est PAS un passe-partout admin. L'agent
+      // sentinel (core-vpn/scripts/sentinel.sh) n'appelle qu'UN endpoint REST —
+      // POST /api/sentinel/heartbeat — plus les flux WebSocket (gérés à part dans
+      // services/ws.js). On refuse donc toute autre route : une fuite du token ne
+      // donne plus la main sur /api/users, /api/clients, /api/settings, etc.
+      const path = String(req.originalUrl || '').split('?')[0];
+      if (!SENTINEL_ALLOWED_PATH.test(path)) {
+        log.warn('auth', 'Token sentinel refusé hors de son périmètre', { path, ip: req.ip });
+        return res.status(403).json({ error: 'Forbidden: sentinel scope', code: 'SENTINEL_SCOPE' });
+      }
       log.info('auth', 'Sentinel auth', { username: 'sentinel-watchdog', ip: req.ip });
-      req.user = { id: 0, role: 'admin', username: 'sentinel-watchdog', internal: true };
+      req.user = {
+        id: 0,
+        role: 'admin',
+        username: 'sentinel-watchdog',
+        internal: true,
+        scope: 'sentinel',
+      };
       return next();
     }
   }
@@ -93,7 +114,12 @@ const auth = async (req, res, next) => {
       if (tokenBlacklist.has(`${decoded.username}:${decoded.iat}`)) {
         return res.status(401).json({ error: 'Token revoked' });
       }
-      req.user = { ...decoded, role: cached.role, id: cached.id, parentId: cached.parentId ?? null };
+      req.user = {
+        ...decoded,
+        role: cached.role,
+        id: cached.id,
+        parentId: cached.parentId ?? null,
+      };
       return next();
     }
 
@@ -115,7 +141,14 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ error: 'Token revoked' });
     }
 
-    userCache.set(decoded.username, { id: user.id, role: user.role, parentId: user.parentId ?? null, expiry: user.expiry || null, enabled: user.enabled !== false, ts: Date.now() });
+    userCache.set(decoded.username, {
+      id: user.id,
+      role: user.role,
+      parentId: user.parentId ?? null,
+      expiry: user.expiry || null,
+      enabled: user.enabled !== false,
+      ts: Date.now(),
+    });
     req.user = { ...decoded, role: user.role, id: user.id, parentId: user.parentId ?? null };
     next();
   } catch (error) {
@@ -178,9 +211,10 @@ const requireOnboardedReseller = async (req, res, next) => {
     log.error('auth', 'requireOnboardedReseller check failed', { err: e.message });
     return res.status(500).json({ error: 'Internal server error' });
   }
-  return res
-    .status(403)
-    .json({ error: 'Enregistrez votre VPS avant d’accéder à cette section', code: 'ONBOARDING_REQUIRED' });
+  return res.status(403).json({
+    error: 'Enregistrez votre VPS avant d’accéder à cette section',
+    code: 'ONBOARDING_REQUIRED',
+  });
 };
 
 const invalidateUserCache = (username) => {

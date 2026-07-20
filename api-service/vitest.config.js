@@ -22,17 +22,17 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./tests/setup.js'],
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        maxForks: MAX_FORKS,
-        minForks: 1,
-      },
-    },
-    // Le parallélisme borné ci-dessus garantit du CPU à chaque hook, donc la marge
-    // massive de 30s (pansement) n'est plus nécessaire. 15s reste confortable pour
-    // l'init DB + l'import du serveur, tout en faisant échouer VITE un hook
-    // réellement bloqué au lieu de laisser traîner la suite.
-    hookTimeout: 15000,
+    // Vitest 4 : `poolOptions` a été SUPPRIMÉ, les options sont désormais au
+    // niveau racine (maxWorkers/minWorkers). Les écrire sous poolOptions rendait
+    // le bridage silencieusement inopérant.
+    maxWorkers: MAX_FORKS,
+    minWorkers: 1,
+    // Le bridage du parallélisme ci-dessus réduit la contention, mais certains
+    // beforeAll d'intégration (init DB + import COMPLET du graphe serveur, ex.
+    // integration-auth) dépassent réellement 15s sur une machine chargée : mesuré,
+    // pas supposé. On garde donc une marge généreuse — une suite lente qui passe
+    // vaut mieux qu'une suite rapide qui flanche par intermittence.
+    hookTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
