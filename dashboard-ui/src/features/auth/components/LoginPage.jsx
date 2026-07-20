@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, AlertCircle, ArrowUpRight } from 'lucide-react';
 import { axiosInstance } from '../../../lib/api';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import PrefsPopover from './PrefsPopover';
 import NeuralNetworkAnimation from './NeuralNetworkAnimation';
 
@@ -13,6 +14,7 @@ const ACCENT_MAP = {
 
 const LoginPage = ({ onLogin }) => {
   const { theme, mode } = useTheme();
+  const { t, lang } = useLang();
   const isLight = mode === 'light';
   const accent = ACCENT_MAP[theme] || ACCENT_MAP.indigo;
 
@@ -27,8 +29,8 @@ const LoginPage = ({ onLogin }) => {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
   }, []);
 
   const handleSubmit = async (e) => {
@@ -45,13 +47,13 @@ const LoginPage = ({ onLogin }) => {
       if (data.valid && data.token) {
         onLogin(data.token, rememberMe, data.role, username);
       } else {
-        setError(data.error || 'Identifiants invalides');
+        setError(data.error || t('login_invalid_credentials'));
       }
     } catch (err) {
       const data = err.response?.data;
       const status = err.response?.status;
       if (status === 429) {
-        setError('Trop de tentatives. Réessayez plus tard.');
+        setError(t('login_too_many'));
       } else if (
         status === 403 &&
         (data?.error === '2FA_REQUIRED' || data?.code === '2FA_REQUIRED')
@@ -59,7 +61,7 @@ const LoginPage = ({ onLogin }) => {
         setShowTotp(true);
         setError('');
       } else {
-        setError(data?.message || data?.error || 'Erreur de connexion');
+        setError(data?.message || data?.error || t('login_error'));
       }
     } finally {
       setLoading(false);
@@ -133,7 +135,7 @@ const LoginPage = ({ onLogin }) => {
           <div className="relative z-10 my-10 lg:my-0">
             <div className="mb-6 flex items-center gap-3">
               <span className={`font-mono text-[11px] uppercase tracking-[0.3em] ${textDim}`}>
-                01 — Accès
+                01 — {t('login_step_access')}
               </span>
               <span className={`h-px flex-1 ${isLight ? 'bg-slate-200' : 'bg-white/10'}`} />
             </div>
@@ -141,15 +143,15 @@ const LoginPage = ({ onLogin }) => {
               className={`font-serif text-[12vw] font-light leading-[0.85] tracking-tight sm:text-[7rem] lg:text-[8.5rem] ${text}`}
             >
               <span className={`block italic ${isLight ? 'text-slate-800' : 'text-neutral-200'}`}>
-                Tunnel.
+                {t('login_headline_1')}
               </span>
               <span className="block">
-                À <span style={{ color: accent.hex }}>toi.</span>
+                {t('login_headline_2a')}{' '}
+                <span style={{ color: accent.hex }}>{t('login_headline_2b')}</span>
               </span>
             </h1>
             <p className={`mt-8 max-w-md text-sm leading-relaxed ${textMuted}`}>
-              Une interface de contrôle pour ton réseau WireGuard. Provisionne, supervise, ferme la
-              porte d'un geste — sans quitter ton terminal mental.
+              {t('login_tagline')}
             </p>
           </div>
 
@@ -159,7 +161,7 @@ const LoginPage = ({ onLogin }) => {
               className={`grid grid-cols-3 gap-8 font-mono text-[11px] uppercase tracking-[0.2em] ${textDim}`}
             >
               <div>
-                <div className={textFaint}>Statut</div>
+                <div className={textFaint}>{t('meta_status')}</div>
                 <div className={`mt-1 flex items-center gap-1.5 ${text}`}>
                   <span
                     className="h-1.5 w-1.5 rounded-full"
@@ -168,22 +170,22 @@ const LoginPage = ({ onLogin }) => {
                       boxShadow: `0 0 10px ${accent.hex}`,
                     }}
                   />
-                  Opérationnel
+                  {t('meta_operational')}
                 </div>
               </div>
               <div>
-                <div className={textFaint}>Latence</div>
+                <div className={textFaint}>{t('meta_latency')}</div>
                 <div className={`mt-1 ${text}`}>{'< 12 ms'}</div>
               </div>
               <div>
-                <div className={textFaint}>Heure</div>
+                <div className={textFaint}>{t('meta_time')}</div>
                 <div className={`mt-1 ${text}`}>
-                  {now.toLocaleTimeString('fr-FR', { hour12: false })}
+                  {now.toLocaleTimeString(lang === 'fr' ? 'fr-FR' : 'en-GB', { hour12: false })}
                 </div>
               </div>
             </div>
             <div className={`font-mono text-[11px] uppercase tracking-[0.3em] ${textFaint}`}>
-              Édition souveraine
+              {t('sovereign_edition')}
             </div>
           </footer>
         </section>
@@ -193,7 +195,7 @@ const LoginPage = ({ onLogin }) => {
           <div className="w-full max-w-sm">
             <div className="mb-10 flex items-center gap-3">
               <span className={`font-mono text-[11px] uppercase tracking-[0.3em] ${textDim}`}>
-                02 — {showTotp ? 'Vérification' : 'Identification'}
+                02 — {showTotp ? t('login_step_verification') : t('login_step_identification')}
               </span>
               <span className={`h-px flex-1 ${isLight ? 'bg-slate-200' : 'bg-white/10'}`} />
             </div>
@@ -206,7 +208,7 @@ const LoginPage = ({ onLogin }) => {
                       htmlFor="username"
                       className={`mb-2 block font-mono text-[11px] tracking-[0.3em] ${textDim}`}
                     >
-                      Identifiant
+                      {t('field_username')}
                     </label>
                     <input
                       id="username"
@@ -226,7 +228,7 @@ const LoginPage = ({ onLogin }) => {
                       htmlFor="password"
                       className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.3em] ${textDim}`}
                     >
-                      Mot de passe
+                      {t('field_password')}
                     </label>
                     <div className="relative">
                       <input
@@ -242,7 +244,7 @@ const LoginPage = ({ onLogin }) => {
                       <button
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
-                        aria-label={showPassword ? 'Masquer' : 'Afficher'}
+                        aria-label={showPassword ? t('hide_label') : t('show_label')}
                         tabIndex={-1}
                         className={`absolute bottom-3 right-0 ${textDim} transition ${isLight ? 'hover:text-slate-900' : 'hover:text-white'}`}
                       >
@@ -276,7 +278,7 @@ const LoginPage = ({ onLogin }) => {
                     <span
                       className={`font-mono text-[11px] uppercase tracking-[0.25em] ${textMuted}`}
                     >
-                      Mémoriser la session
+                      {t('remember_session')}
                     </span>
                   </label>
                 </>
@@ -286,7 +288,7 @@ const LoginPage = ({ onLogin }) => {
                     htmlFor="totp"
                     className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.3em] ${textDim}`}
                   >
-                    Code authenticator
+                    {t('totp_label')}
                   </label>
                   <input
                     id="totp"
@@ -302,7 +304,7 @@ const LoginPage = ({ onLogin }) => {
                   <p
                     className={`mt-3 font-mono text-[11px] uppercase tracking-[0.25em] ${textDim}`}
                   >
-                    6 chiffres — application authenticator
+                    {t('totp_hint')}
                   </p>
                 </div>
               )}
@@ -336,10 +338,10 @@ const LoginPage = ({ onLogin }) => {
                   className={`relative font-mono text-xs uppercase tracking-[0.3em] ${text} transition group-hover:text-white`}
                 >
                   {loading
-                    ? 'Connexion en cours…'
+                    ? t('login_connecting')
                     : showTotp
-                      ? 'Valider le code'
-                      : 'Entrer dans le tunnel'}
+                      ? t('login_validate_code')
+                      : t('login_enter_tunnel')}
                 </span>
                 <ArrowUpRight
                   size={18}
@@ -351,8 +353,8 @@ const LoginPage = ({ onLogin }) => {
             <div
               className={`mt-12 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.25em] ${textFaint}`}
             >
-              <span>Identifiants oubliés ?</span>
-              <span className={textDim}>contact admin</span>
+              <span>{t('forgot_credentials')}</span>
+              <span className={textDim}>{t('contact_admin_short')}</span>
             </div>
           </div>
         </section>
