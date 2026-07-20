@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Shield, ShieldCheck, Activity, Cpu, Zap, HardDrive, Users, Timer } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
 import { CircularProgress } from './StatCards';
 import GlassCard from '../../../components/ui/Card';
@@ -31,6 +32,7 @@ const StatusPanel = ({
   businessMode = false,
 }) => {
   const { theme, isDark } = useTheme();
+  const { t } = useLang();
   const cpu = systemStats?.cpu || 0;
   const ram = systemStats?.memory || 0;
   const disk = systemStats?.disk || 0;
@@ -43,7 +45,7 @@ const StatusPanel = ({
 
   const { topClient, topClientRate } = useMemo(() => {
     if (!clients || !Array.isArray(clients) || clients.length === 0) {
-      return { topClient: { name: 'Aucun', downloadRate: 0, uploadRate: 0 }, topClientRate: 0 };
+      return { topClient: { name: t('none'), downloadRate: 0, uploadRate: 0 }, topClientRate: 0 };
     }
     const top = clients.reduce(
       (prev, current) => {
@@ -51,7 +53,7 @@ const StatusPanel = ({
         const currRate = (current.downloadRate || 0) + (current.uploadRate || 0);
         return currRate > prevRate ? current : prev;
       },
-      { name: 'Aucun', downloadRate: 0, uploadRate: 0 }
+      { name: t('none'), downloadRate: 0, uploadRate: 0 }
     );
     const rate = (top.downloadRate || 0) + (top.uploadRate || 0);
     return { topClient: top, topClientRate: rate };
@@ -60,22 +62,22 @@ const StatusPanel = ({
   // Panneau métier du revendeur/vendeur : ses abonnés, pas la machine.
   if (!isManager || businessMode) {
     const bizCards = [
-      { icon: Users, label: 'Abonnés', value: clientStats.total, color: 'text-sky-400' },
+      { icon: Users, label: t('subscribers'), value: clientStats.total, color: 'text-sky-400' },
       {
         icon: Activity,
-        label: 'En ligne',
+        label: t('status_online'),
         value: clientStats.online,
         color: 'text-emerald-400',
       },
       {
         icon: Timer,
-        label: 'Expirent ≤ 7 j',
+        label: t('expire_soon_days'),
         value: clientStats.expSoon,
         color: clientStats.expSoon > 0 ? 'text-amber-400' : 'text-slate-400',
       },
       {
         icon: Shield,
-        label: 'Expirés',
+        label: t('expired_count'),
         value: clientStats.expired,
         color: clientStats.expired > 0 ? 'text-red-400' : 'text-slate-400',
       },
@@ -133,7 +135,7 @@ const StatusPanel = ({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">
-              Client le plus actif
+              {t('most_active_client')}
             </p>
             <h4
               className={cn(
@@ -141,7 +143,7 @@ const StatusPanel = ({
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >
-              {topClient.name || 'Aucun'}
+              {topClient.name || t('none')}
             </h4>
             <p
               className="text-xs font-mono font-bold mt-0.5"
@@ -298,7 +300,7 @@ const StatusPanel = ({
               isDark ? 'text-white' : 'text-slate-900'
             )}
           >
-            {topClient.name || 'Station Inactive'}
+            {topClient.name || t('inactive_station')}
           </h4>
           <p
             className="text-xs font-mono font-bold mt-0.5"

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 
 const getStatusStyle = (status, isDark) => {
   const s = (status || '').toUpperCase();
@@ -16,7 +17,9 @@ const getStatusStyle = (status, isDark) => {
     : 'bg-slate-100/50 text-slate-500 border-black/5';
 };
 
-const LogViewer = ({ logs, filteredLogs, loading, isDark }) => (
+const LogViewer = ({ logs, filteredLogs, loading, isDark }) => {
+  const { t } = useLang();
+  return (
   <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-420px)] custom-scrollbar">
     <table className="w-full text-left min-w-[600px]">
       <thead
@@ -32,9 +35,9 @@ const LogViewer = ({ logs, filteredLogs, loading, isDark }) => (
           )}
         >
           <th className="px-6 py-5">Timestamp</th>
-          <th className="px-6 py-5">Événement</th>
+          <th className="px-6 py-5">{t('col_event')}</th>
           <th className="px-6 py-5 hidden sm:table-cell">Source</th>
-          <th className="px-6 py-5">Statut</th>
+          <th className="px-6 py-5">{t('col_status')}</th>
         </tr>
       </thead>
       <tbody
@@ -46,13 +49,13 @@ const LogViewer = ({ logs, filteredLogs, loading, isDark }) => (
         {loading && logs.length === 0 ? (
           <tr>
             <td colSpan="4" className="text-center py-20 text-slate-500 italic opacity-40">
-              Scanning archives...
+              {t('scanning_archives')}
             </td>
           </tr>
         ) : filteredLogs.length === 0 ? (
           <tr>
             <td colSpan="4" className="text-center py-20 text-slate-500 italic opacity-40">
-              Aucun enregistrement détecté
+              {t('no_record_found')}
             </td>
           </tr>
         ) : (
@@ -114,6 +117,7 @@ const LogViewer = ({ logs, filteredLogs, loading, isDark }) => (
       </tbody>
     </table>
   </div>
-);
+  );
+};
 
 export default LogViewer;

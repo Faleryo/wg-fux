@@ -2,8 +2,10 @@ import React from 'react';
 import { Download, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 
 const MaintenanceSettings = ({ handleBackup, isDark, theme }) => {
+  const { t } = useLang();
   return (
     <motion.div
       key="maint"
@@ -22,8 +24,7 @@ const MaintenanceSettings = ({ handleBackup, isDark, theme }) => {
           <Download size={20} className="text-emerald-400" /> Archives
         </h3>
         <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-loose">
-          Exportation complète du cluster : certificats, configurations d'interfaces et database SQL
-          cryptée.
+          {t('maint_archives_desc')}
         </p>
         <button
           onClick={handleBackup}
@@ -31,7 +32,7 @@ const MaintenanceSettings = ({ handleBackup, isDark, theme }) => {
         >
           <Download size={18} className="group-hover:-translate-y-1 transition-transform" />
           <span className="text-[11px] font-black uppercase tracking-widest">
-            Générer Backup .tar.gz
+            {t('maint_generate_backup')}
           </span>
         </button>
       </div>
@@ -50,15 +51,14 @@ const MaintenanceSettings = ({ handleBackup, isDark, theme }) => {
               Nuclear Reset
             </h4>
             <p className="text-[11px] text-rose-500/60 font-bold uppercase tracking-widest leading-relaxed">
-              Réinitialisation complète de l'architecture. Perte irrémédiable de toutes les routes
-              vpn.
+              {t('maint_reset_desc')}
             </p>
           </div>
           <button
             className="w-full py-4 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-600/20 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             disabled
           >
-            Restaurer Valeurs Usine
+            {t('maint_factory_reset')}
           </button>
         </div>
       </div>

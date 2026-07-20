@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Gauge, Gamepad2, Film, BarChart3 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn } from '../../../lib/utils';
 import { axiosInstance } from '../../../lib/api';
 import {
@@ -20,6 +21,7 @@ import OptimizationActions from './OptimizationActions';
 const OptimizationSection = ({ systemStats }) => {
   const { theme, isDark } = useTheme();
   const { addToast } = useToast();
+  const { t } = useLang();
   const [loading, setLoading] = useState(false);
   const [currentProfile, setCurrentProfile] = useState('');
   const [cpuHistory, setCpuHistory] = useState([]);
@@ -84,14 +86,12 @@ const OptimizationSection = ({ systemStats }) => {
       await axiosInstance.post('/system/optimize', { profile: targetProfile });
       if (!nextState) setCurrentProfile('restore');
       addToast(
-        nextState
-          ? `Optimisation réactivée (${targetProfile})`
-          : 'Optimisations système désactivées (Tunnel préservé)',
+        nextState ? `${t('optim_reactivated')} (${targetProfile})` : t('optim_disabled'),
         'success'
       );
     } catch {
       setIsEnabled(!nextState);
-      addToast('Échec du basculement SRE', 'error');
+      addToast(t('optim_toggle_err'), 'error');
     } finally {
       setLoading(false);
     }
@@ -103,9 +103,9 @@ const OptimizationSection = ({ systemStats }) => {
     try {
       await axiosInstance.post('/system/optimize', { profile });
       setCurrentProfile(profile);
-      addToast(`Profil ${profile.toUpperCase()} activé avec succès`, 'success');
+      addToast(`${t('optim_profile_prefix')} ${profile.toUpperCase()} ${t('optim_profile_activated')}`, 'success');
     } catch (e) {
-      addToast('Échec de la synchronisation neurale', 'error');
+      addToast(t('optim_sync_err'), 'error');
     } finally {
       setLoading(false);
     }
@@ -122,14 +122,14 @@ const OptimizationSection = ({ systemStats }) => {
     {
       id: 'streaming',
       label: 'Ultra-HD Stream',
-      desc: 'Throughput maximal. Optimisation BBR & MTU 1280.',
+      desc: t('optim_streaming_desc'),
       icon: Film,
       color: 'rose',
     },
     {
       id: 'auto',
       label: 'Smart Engine',
-      desc: 'Analyse heuristique & ajustement dynamique du MTU.',
+      desc: t('optim_auto_desc'),
       icon: Gauge,
       color: 'emerald',
     },

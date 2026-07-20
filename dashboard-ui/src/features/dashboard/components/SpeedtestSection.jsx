@@ -1,6 +1,7 @@
 import React from 'react';
 import { Gauge, RefreshCw, ArrowDown, ArrowUp } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
 import GlassCard from '../../../components/ui/Card';
 import VibeButton from '../../../components/ui/Button';
@@ -13,6 +14,7 @@ const speedUnit = (val) => (val >= 1000 ? 'Gbps' : 'Mbps');
 
 const SpeedtestSection = ({ speedtest, onRunSpeedtest }) => {
   const { theme, isDark } = useTheme();
+  const { t } = useLang();
 
   return (
     <GlassCard className="p-6 group flex-1" hover={true}>
@@ -41,7 +43,7 @@ const SpeedtestSection = ({ speedtest, onRunSpeedtest }) => {
               isDark ? 'text-white' : 'text-slate-900'
             )}
           >
-            Test en cours...
+            {t('test_running')}
           </p>
         </div>
       ) : speedtest?.data ? (
@@ -88,7 +90,7 @@ const SpeedtestSection = ({ speedtest, onRunSpeedtest }) => {
               onClick={onRunSpeedtest}
               className="text-indigo-400 text-[11px]"
             >
-              Relancer
+              {t('rerun')}
             </VibeButton>
           </div>
         </div>
@@ -103,7 +105,7 @@ const SpeedtestSection = ({ speedtest, onRunSpeedtest }) => {
             --Mbps
           </div>
           <VibeButton variant="primary" onClick={onRunSpeedtest} className="w-full">
-            Lancer Test de Flux
+            {t('run_speedtest')}
           </VibeButton>
         </div>
       )}

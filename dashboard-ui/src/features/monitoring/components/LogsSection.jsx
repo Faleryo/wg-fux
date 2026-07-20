@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Terminal, Cpu, WifiOff } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
 import { axiosInstance as axios, getWsUri, getWsToken } from '../../../lib/api';
 import LogSearchBar from './LogSearchBar';
@@ -9,20 +10,21 @@ import LogTabs from './LogTabs';
 import LogViewer from './LogViewer';
 import LogToolbar from './LogToolbar';
 
-const normalizeLogItem = (item, i) => ({
+const normalizeLogItem = (item, i, t) => ({
   id: i,
   time: item.time || item.date || item.timestamp || new Date().toISOString(),
   message:
     item.message ||
     item.MESSAGE ||
-    (item.username ? `${item.username} – ${item.virtualIp || ''}` : 'Événement système'),
-  ip: item.ip || item.realIp || item.unit || item._SYSTEMD_UNIT || 'Système',
+    (item.username ? `${item.username} – ${item.virtualIp || ''}` : t('system_event')),
+  ip: item.ip || item.realIp || item.unit || item._SYSTEMD_UNIT || t('system_source'),
   status: item.status || item.type || 'LOGGED',
 });
 
 const LogsSection = () => {
   const { theme, isDark } = useTheme();
   const { addToast } = useToast();
+  const { t } = useLang();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -46,7 +48,7 @@ const LogsSection = () => {
 
       const res = await axios.get(endpoint);
       const rawData = res.data || [];
-      setLogs(rawData.map(normalizeLogItem));
+      setLogs(rawData.map((it, i) => normalizeLogItem(it, i, t)));
     } catch (e) {
       console.error('[LOGS]', e);
       setLogs([]);
@@ -62,10 +64,10 @@ const LogsSection = () => {
     setConfirmClear(false);
     try {
       await axios.post('/system/logs/clear');
-      addToast('Journaux effacés avec succès', 'success');
+      addToast(t('logs_cleared_ok'), 'success');
       fetchLogs();
     } catch {
-      addToast("Erreur lors de l'effacement", 'error');
+      addToast(t('logs_clear_err'), 'error');
     } finally {
       setClearing(false);
     }
@@ -94,7 +96,7 @@ const LogsSection = () => {
         if (cancelled) return;
 
         const rawData = res.data || [];
-        if (!cancelled) setLogs(rawData.map(normalizeLogItem));
+        if (!cancelled) setLogs(rawData.map((it, i) => normalizeLogItem(it, i, t)));
       } catch (e) {
         if (!cancelled) setLogs([]);
       } finally {
@@ -268,7 +270,7 @@ const LogsSection = () => {
         <div className="flex items-center gap-3 p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl">
           <WifiOff size={16} className="text-rose-400 flex-shrink-0" />
           <p className="text-[11px] font-bold text-rose-400/80 uppercase tracking-widest">
-            Connexion temps réel perdue — Reconnexion automatique en cours...
+            {t('ws_lost')}
           </p>
         </div>
       )}
@@ -278,7 +280,7 @@ const LogsSection = () => {
         <div className="flex items-center gap-3 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
           <Cpu size={16} className="text-amber-400 flex-shrink-0" />
           <p className="text-[11px] font-bold text-amber-400/80 uppercase tracking-widest">
-            Logs des conteneurs Docker — wg-fux-api · wg-fux-dashboard · wg-sentinel-proxy
+            {t('docker_logs_prefix')} — wg-fux-api · wg-fux-dashboard · wg-sentinel-proxy
           </p>
         </div>
       )}
@@ -295,21 +297,21 @@ const LogsSection = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="glass-panel p-8 rounded-[2rem] max-w-sm w-full mx-4 border border-white/10 shadow-2xl text-center space-y-6">
               <p className="text-sm font-black text-slate-300 uppercase tracking-wider">
-                Effacer tous les journaux ?
+                {t('clear_all_logs_q')}
               </p>
-              <p className="text-[11px] text-slate-500">Cette action est irréversible.</p>
+              <p className="text-[11px] text-slate-500">{t('action_irreversible')}</p>
               <div className="flex gap-3">
                 <button
                   onClick={handleClearLogs}
                   className="flex-1 py-3 bg-red-500/20 text-red-400 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-red-500/30"
                 >
-                  Confirmer l'effacement
+                  {t('confirm_clear')}
                 </button>
                 <button
                   onClick={() => setConfirmClear(false)}
                   className="flex-1 py-3 bg-white/5 text-slate-400 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-white/5"
                 >
-                  Annuler
+                  {t('cancel')}
                 </button>
               </div>
             </div>

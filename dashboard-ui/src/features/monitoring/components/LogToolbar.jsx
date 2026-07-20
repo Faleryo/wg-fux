@@ -1,8 +1,11 @@
 import React from 'react';
 import { Trash2, Download } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 
-const LogToolbar = ({ totalCount, isDark, onClear, clearing, onDownload }) => (
+const LogToolbar = ({ totalCount, isDark, onClear, clearing, onDownload }) => {
+  const { t } = useLang();
+  return (
   <div
     className={cn(
       'px-6 py-4 border-t transition-colors flex flex-wrap justify-between items-center gap-3',
@@ -10,7 +13,7 @@ const LogToolbar = ({ totalCount, isDark, onClear, clearing, onDownload }) => (
     )}
   >
     <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
-      {totalCount} entrées · Blackbox v2.1
+      {totalCount} {t('entries')} · Blackbox v2.1
     </div>
     <div className="flex items-center gap-6">
       <button
@@ -21,7 +24,7 @@ const LogToolbar = ({ totalCount, isDark, onClear, clearing, onDownload }) => (
           isDark ? 'text-rose-500/50 hover:text-rose-400' : 'text-rose-400 hover:text-rose-600'
         )}
       >
-        <Trash2 size={13} className={clearing ? 'animate-pulse' : ''} /> EFFACER
+        <Trash2 size={13} className={clearing ? 'animate-pulse' : ''} /> {t('clear')}
       </button>
       <button
         onClick={onDownload}
@@ -31,6 +34,7 @@ const LogToolbar = ({ totalCount, isDark, onClear, clearing, onDownload }) => (
       </button>
     </div>
   </div>
-);
+  );
+};
 
 export default LogToolbar;

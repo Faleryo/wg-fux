@@ -1,9 +1,11 @@
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn } from '../../../lib/utils';
 import { Activity, ShieldCheck, Zap, Cpu, TrendingUp, RefreshCw } from 'lucide-react';
 
 const OptimizationActions = ({ telemetry, isEnabled }) => {
   const { isDark } = useTheme();
+  const { t } = useLang();
 
   return (
     <div className="xl:col-span-1 space-y-6">
@@ -103,8 +105,7 @@ const OptimizationActions = ({ telemetry, isEnabled }) => {
           Sync Neural
         </h3>
         <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-loose mb-8">
-          Maintenance heuristique du noyau système active. Surveillance en temps réel des fuites
-          mémoires.
+          {t('optim_sync_desc')}
         </p>
         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
           <div

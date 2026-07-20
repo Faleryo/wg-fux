@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Activity, Plus, Minus, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLang } from '../../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
 import MapSvg from './MapSvg';
 
 const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
+  const { t } = useLang();
   const containerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
@@ -241,7 +243,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
             isDark ? 'text-white' : 'text-slate-900'
           )}
         >
-          Goupes Tactiques
+          {t('tactical_groups')}
         </span>
         <div className="grid grid-cols-2 gap-x-6 gap-y-3">
           {uniqueContainers.map((c) => {

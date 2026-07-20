@@ -2,9 +2,11 @@ import React from 'react';
 import { Globe, Radio } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 import GlassInput from './GlassInput';
 
 const NetworkSettings = ({ config, setConfig, isDark, theme }) => {
+  const { t } = useLang();
   return (
     <motion.div
       key="net"
@@ -29,12 +31,11 @@ const NetworkSettings = ({ config, setConfig, isDark, theme }) => {
           value={config.wg_endpoint ?? ''}
           onChange={(e) => setConfig({ ...config, wg_endpoint: e.target.value })}
           badge="DOMAIN / IP"
-          tooltip="Domaine ou IP publique inscrit dans le fichier .conf des clients VPN. Doit pointer vers ce serveur (port UDP ci-dessus)."
-          placeholder="ex: vpn.mondomaine.com ou 1.2.3.4"
+          tooltip={t('tt_wg_endpoint')}
+          placeholder={t('ph_wg_endpoint')}
         />
         <p className="px-1 text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed opacity-60">
-          ⚠ Seuls les <strong>nouveaux</strong> clients générés après la modification utiliseront ce
-          point d&apos;entrée.
+          ⚠ {t('endpoint_warn_1')} <strong>{t('endpoint_warn_new')}</strong> {t('endpoint_warn_2')}
         </p>
       </div>
 
@@ -44,14 +45,14 @@ const NetworkSettings = ({ config, setConfig, isDark, theme }) => {
           value={config.dns}
           onChange={(e) => setConfig({ ...config, dns: e.target.value })}
           badge="IP-LIST"
-          tooltip="Serveurs DNS transmis aux clients"
+          tooltip={t('tt_dns')}
         />
         <GlassInput
           label="VPN Base-Subnet"
           value={config.subnet}
           onChange={(e) => setConfig({ ...config, subnet: e.target.value })}
           badge="CIDR"
-          tooltip="Plage d'IP interne du tunnel vpn"
+          tooltip={t('tt_subnet')}
         />
       </div>
     </motion.div>
