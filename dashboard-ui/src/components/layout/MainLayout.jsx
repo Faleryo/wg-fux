@@ -10,6 +10,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useLang } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useSelectedServer } from '../../context/SelectedServerContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
@@ -61,6 +62,7 @@ const DnsSection = lazy(() => import('../../features/dns/components/DnsEditor'))
 const TWOFА_BANNER_KEY = '2fa-banner-v1-dismissed';
 
 const TwoFABanner = ({ onNavigate }) => {
+  const { t } = useLang();
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(TWOFА_BANNER_KEY) === '1');
   if (dismissed) return null;
   const dismiss = () => {
@@ -72,9 +74,9 @@ const TwoFABanner = ({ onNavigate }) => {
       <div className="flex items-center gap-4 px-5 py-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300">
         <ShieldAlert size={18} className="flex-shrink-0 text-amber-400" />
         <p className="text-[11px] font-black uppercase tracking-wider flex-1">
-          Votre compte admin n'a pas de 2FA activé —{' '}
+          {t('twofa_banner_text')}{' '}
           <button onClick={onNavigate} className="underline hover:text-amber-200 transition-colors">
-            configurer maintenant
+            {t('twofa_banner_cta')}
           </button>
         </p>
         <button onClick={dismiss} className="p-1 hover:text-white transition-colors">
@@ -92,14 +94,15 @@ const TwoFABanner = ({ onNavigate }) => {
 // Phases d'installation (écrites par wg-self-update.sh, exposées par l'API) →
 // libellé UI + avancement approximatif de la barre. Ordre reflétant le script.
 const UPDATE_PHASES = {
-  queued: { label: 'En file d’attente…', pct: 8 },
-  downloading: { label: 'Téléchargement du bundle…', pct: 30 },
-  verifying: { label: 'Vérification d’intégrité…', pct: 48 },
-  building: { label: 'Reconstruction des services…', pct: 78 },
-  restarting: { label: 'Redémarrage…', pct: 92 },
+  queued: { labelKey: 'upd_phase_queued', pct: 8 },
+  downloading: { labelKey: 'upd_phase_downloading', pct: 30 },
+  verifying: { labelKey: 'upd_phase_verifying', pct: 48 },
+  building: { labelKey: 'upd_phase_building', pct: 78 },
+  restarting: { labelKey: 'upd_phase_restarting', pct: 92 },
 };
 
 const LicenseBanner = ({ lic }) => {
+  const { t } = useLang();
   const [now] = useState(() => Date.now());
   const [confirmState, setConfirmState] = useState(null); // null | 'busy' | 'done'
   // Copie vivante de la licence : rafraîchie par polling pendant une installation
@@ -181,8 +184,10 @@ const LicenseBanner = ({ lic }) => {
   // Libellé + fraction de la barre selon la phase courante.
   const phaseInfo = status ? UPDATE_PHASES[status.phase] : null;
   const progressLabel = apiDown
-    ? 'Redémarrage des services…'
-    : phaseInfo?.label || 'Installation en cours…';
+    ? t('upd_restarting_services')
+    : phaseInfo
+      ? t(phaseInfo.labelKey)
+      : t('upd_installing');
   const progressPct = apiDown ? 90 : (phaseInfo?.pct ?? 8);
   const updVersion = status?.version || pending?.version || null;
 
@@ -201,8 +206,8 @@ const LicenseBanner = ({ lic }) => {
             <ShieldAlert size={18} className="flex-shrink-0" />
             <p className="text-[11px] font-black uppercase tracking-wider flex-1">
               {expired
-                ? 'Licence expirée — la création de clients est bloquée. Renouvelez pour continuer.'
-                : `Licence : ${daysLeft} jour${daysLeft > 1 ? 's' : ''} restant${daysLeft > 1 ? 's' : ''} — pensez à renouveler.`}
+                ? t('license_expired_msg')
+                : `${t('license_label')} ${daysLeft} ${t('days_remaining')} — ${t('license_renew_hint')}`}
             </p>
           </div>
           {/* Comment payer : contact poussé par la plateforme (vente manuelle sans Stripe) */}
@@ -211,7 +216,7 @@ const LicenseBanner = ({ lic }) => {
               cur.reseller.contact.telegram ||
               cur.reseller.contact.instructions) && (
               <p className="text-[11px] pl-9 opacity-90">
-                Pour renouveler :{' '}
+                {t('renew_via')}{' '}
                 {cur.reseller.contact.whatsapp && (
                   <a
                     href={`https://wa.me/${cur.reseller.contact.whatsapp.replace(/[^0-9]/g, '')}`}
@@ -248,17 +253,17 @@ const LicenseBanner = ({ lic }) => {
             <div className="flex items-start gap-4 px-5 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300">
               <AlertTriangle size={18} className="flex-shrink-0 mt-0.5" />
               <p className="text-[11px] font-black uppercase tracking-wider flex-1">
-                Échec de la mise à jour{updVersion ? ` v${updVersion}` : ''}
-                {status.message ? ` — ${status.message}` : ''}. Nouvelle tentative automatique au
-                prochain cycle.
+                {t('upd_failed_prefix')}
+                {updVersion ? ` v${updVersion}` : ''}
+                {status.message ? ` — ${status.message}` : ''}. {t('upd_retry_next_cycle')}
               </p>
             </div>
           ) : status?.phase === 'done' ? (
             <div className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
               <CheckCircle2 size={18} className="flex-shrink-0" />
               <p className="text-[11px] font-black uppercase tracking-wider flex-1">
-                Mise à jour{updVersion ? ` v${updVersion}` : ''} installée — rechargement du
-                panneau…
+                {t('upd_label')}
+                {updVersion ? ` v${updVersion}` : ''} {t('upd_installed_reload')}
               </p>
             </div>
           ) : installing ? (
@@ -267,7 +272,8 @@ const LicenseBanner = ({ lic }) => {
               <div className="flex items-center gap-4">
                 <Loader2 size={18} className="flex-shrink-0 animate-spin" />
                 <p className="text-[11px] font-black uppercase tracking-wider flex-1">
-                  Mise à jour{updVersion ? ` v${updVersion}` : ''} — {progressLabel}
+                  {t('upd_label')}
+                  {updVersion ? ` v${updVersion}` : ''} — {progressLabel}
                 </p>
               </div>
               <div className="h-1.5 rounded-full bg-indigo-500/15 overflow-hidden ml-9">
@@ -277,7 +283,7 @@ const LicenseBanner = ({ lic }) => {
                 />
               </div>
               <p className="text-[10px] opacity-70 ml-9">
-                Ne fermez pas cette page — coupure réseau brève (~30 s) pendant le redémarrage.
+                {t('upd_dont_close')}
               </p>
             </div>
           ) : (
@@ -285,19 +291,19 @@ const LicenseBanner = ({ lic }) => {
             <div className="flex flex-col md:flex-row md:items-center gap-3 px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
               <p className="text-[11px] font-black uppercase tracking-wider flex-1">
                 {pending?.mode === 'instant'
-                  ? `Mise à jour v${pending.version} prête — votre confirmation est requise pour l'installer.`
-                  : `Mise à jour v${pending?.version} programmée${
+                  ? `${t('upd_label')} v${pending.version} ${t('upd_ready_confirm')}`
+                  : `${t('upd_label')} v${pending?.version} ${t('upd_scheduled')}${
                       pending?.applyAt
-                        ? ` vers ${new Date(pending.applyAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+                        ? ` ${t('upd_around')} ${new Date(pending.applyAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                         : ''
-                    } — vous pouvez l'avancer.`}
+                    } — ${t('upd_can_advance')}`}
               </p>
               <button
                 onClick={confirmUpdate}
                 disabled={confirmState === 'busy'}
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[11px] font-black uppercase tracking-widest text-white transition-colors disabled:opacity-50 flex-shrink-0"
               >
-                Installer maintenant
+                {t('upd_install_now')}
               </button>
             </div>
           )}
@@ -306,8 +312,8 @@ const LicenseBanner = ({ lic }) => {
       {cur.updateAvailable && !expired && !pending && !status && (
         <div className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
           <p className="text-[11px] font-black uppercase tracking-wider">
-            Mise à jour disponible ({cur.currentVersion} → {cur.latestVersion}) — en attente
-            d’approbation par la plateforme.
+            {t('upd_available')} ({cur.currentVersion} → {cur.latestVersion}) —{' '}
+            {t('upd_pending_approval')}
           </p>
         </div>
       )}
@@ -323,6 +329,7 @@ const LicenseBanner = ({ lic }) => {
 const MainLayout = ({ session, onLogout }) => {
   const { theme, mode } = useTheme();
   const { addToast } = useToast();
+  const { t } = useLang();
   // Un viewer (revendeur) n'a pas les droits manager : on masque les sections
   // et widgets qui appellent /system/* (sinon 403 + fuite de métriques globales).
   const isManager = session?.role === 'admin' || session?.role === 'manager';
@@ -522,7 +529,7 @@ const MainLayout = ({ session, onLogout }) => {
   useEffect(() => {
     if (needsOnboarding && activeSection !== 'servers') {
       setActiveSection('servers');
-      addToast('Ajoutez votre VPS pour accéder au reste de la plateforme', 'error');
+      addToast(t('onboarding_add_vps'), 'error');
       return;
     }
     const forbidden =
@@ -532,8 +539,9 @@ const MainLayout = ({ session, onLogout }) => {
       (activeSection === 'sales' && (!instanceLicensed || !(isManager || isReseller)));
     if (forbidden) {
       setActiveSection('dashboard');
-      addToast('Accès refusé — section réservée aux administrateurs', 'error');
+      addToast(t('access_denied_admin'), 'error');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection, isManager, isAdmin, isReseller, instanceLicensed, needsOnboarding, addToast]);
 
   const handleNavigate = (sectionId, opts = {}) => {
@@ -771,7 +779,7 @@ const MainLayout = ({ session, onLogout }) => {
           className="hidden md:flex items-center gap-2 px-4 py-2.5 glass-panel border rounded-xl transition-all text-[11px] font-black uppercase tracking-widest shadow-lg hover:scale-105"
         >
           <Search size={14} />
-          <span>Rechercher</span>
+          <span>{t('search')}</span>
           <kbd
             className={cn(
               'ml-2 px-1.5 py-0.5 rounded text-[11px] border transition-colors',
@@ -877,8 +885,8 @@ const MainLayout = ({ session, onLogout }) => {
                         <p className="text-sm font-semibold tracking-tight">
                           {sentinelStatus?.status === 'active' ||
                           sentinelStatus?.status === 'online'
-                            ? 'Surveillance Active'
-                            : 'Sentinel Hors-ligne'}
+                            ? t('surveillance_active')
+                            : t('sentinel_offline')}
                         </p>
                       </div>
                     </div>
@@ -911,8 +919,8 @@ const MainLayout = ({ session, onLogout }) => {
                         </p>
                         <p className="text-sm font-semibold tracking-tight">
                           {adguardStatus?.status === 'active'
-                            ? 'Filtrage DNS Actif'
-                            : 'DNS Interrompu'}
+                            ? t('dns_filtering_active')
+                            : t('dns_interrupted')}
                         </p>
                       </div>
                     </div>
@@ -955,7 +963,7 @@ const MainLayout = ({ session, onLogout }) => {
                 </a>
               </div>
               <div className="text-[11px] opacity-60">
-                &copy; {new Date().getFullYear()} Faleryo Labs. All rights reserved.
+                &copy; {new Date().getFullYear()} Faleryo Labs. {t('all_rights_reserved')}
               </div>
             </div>
           </footer>
@@ -1048,25 +1056,25 @@ const MainLayout = ({ session, onLogout }) => {
           isOpen={confirmModal.open}
           title={
             confirmModal.type === 'bulk-delete'
-              ? `Supprimer ${confirmModal.clients?.length ?? 0} peer${(confirmModal.clients?.length ?? 0) > 1 ? 's' : ''}`
+              ? `${t('delete')} ${confirmModal.clients?.length ?? 0} ${t('peers')}`
               : confirmModal.type === 'delete-container'
-                ? 'Supprimer le conteneur'
+                ? t('delete_container')
                 : confirmModal.type === 'delete-user'
-                  ? "Supprimer l'opérateur"
-                  : 'Supprimer le client'
+                  ? t('delete_operator')
+                  : t('delete_client')
           }
           message={
             confirmModal.type === 'bulk-delete' && confirmModal.clients ? (
               <span>
-                Supprimer définitivement{' '}
+                {t('delete_permanently')}{' '}
                 <strong className={cn('font-mono', isDark ? 'text-white' : 'text-slate-900')}>
-                  {confirmModal.clients.length} peer{confirmModal.clients.length > 1 ? 's' : ''}
+                  {confirmModal.clients.length} {t('peers')}
                 </strong>{' '}
-                ? Cette action est irréversible.
+                ? {t('action_irreversible')}
               </span>
             ) : confirmModal.type === 'delete-container' ? (
               <span>
-                Supprimer le conteneur vide{' '}
+                {t('delete_empty_container')}{' '}
                 <strong className={cn('font-mono', isDark ? 'text-white' : 'text-slate-900')}>
                   {confirmModal.container}
                 </strong>{' '}
@@ -1074,29 +1082,29 @@ const MainLayout = ({ session, onLogout }) => {
               </span>
             ) : confirmModal.type === 'delete-user' && confirmModal.user ? (
               <span>
-                Supprimer l'opérateur{' '}
+                {t('delete_operator')}{' '}
                 <strong className={cn('font-mono', isDark ? 'text-white' : 'text-slate-900')}>
                   {confirmModal.user.username}
                 </strong>{' '}
-                ? Cette action révoquera immédiatement ses accès système.
+                ? {t('revoke_access_warning')}
               </span>
             ) : confirmModal.client ? (
               <span>
-                Supprimer{' '}
+                {t('delete')}{' '}
                 <strong className={cn('font-mono', isDark ? 'text-white' : 'text-slate-900')}>
                   {confirmModal.client.name}
                 </strong>{' '}
-                du conteneur{' '}
+                {t('from_container')}{' '}
                 <strong className={cn('font-mono', isDark ? 'text-white' : 'text-slate-900')}>
                   {confirmModal.client.container}
                 </strong>{' '}
                 ?
               </span>
             ) : (
-              'Cette action est irréversible.'
+              t('action_irreversible')
             )
           }
-          confirmLabel="Supprimer définitivement"
+          confirmLabel={t('delete_permanently')}
           intent="danger"
           onConfirm={executeDelete}
           onCancel={() =>

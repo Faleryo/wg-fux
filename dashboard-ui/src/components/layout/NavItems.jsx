@@ -183,7 +183,7 @@ const NavItems = ({
             : 'text-slate-400 hover:bg-red-50 hover:text-red-600',
           collapsed && 'md:justify-center md:px-0'
         )}
-        title={collapsed ? 'Déconnexion' : undefined}
+        title={collapsed ? t('logout') : undefined}
       >
         <LogOut
           size={18}
