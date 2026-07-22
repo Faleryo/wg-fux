@@ -73,6 +73,46 @@ describe('wallet — invariants comptables', () => {
   });
 });
 
+describe('wallet — agrégats du relevé (marge / crédits)', () => {
+  // Régression : stripe.js crédite avec la raison 'topup_stripe' (et le VRAI
+  // prix payé dans priceCents), mais les agrégats ne testaient que 'topup'.
+  // Conséquence : les achats Stripe sortaient du coût d'acquisition (marge
+  // surévaluée du montant total des achats) et de la courbe « crédits acquis ».
+  const walletRoute = () => require('../src/routes/wallet');
+
+  const ENTRIES = [
+    { reason: 'topup', delta: 100, priceCents: 100 }, // top-up manuel : 100 €
+    { reason: 'topup_stripe', delta: 50, priceCents: 200 }, // achat Stripe : 100 €
+    { reason: 'transfer_in', delta: 10, priceCents: 150 }, // reçu : 15 €
+    { reason: 'transfer_out', delta: -20, priceCents: 300 }, // revendu : 60 €
+    { reason: 'client_renewal', delta: -5, priceCents: null }, // consommé
+  ];
+
+  it('compte les achats Stripe dans le coût d’acquisition', () => {
+    const { acquiredCostCents, resoldCents } = walletRoute().computeMargin(ENTRIES);
+    // 100*100 + 50*200 + 10*150 = 10000 + 10000 + 1500
+    expect(acquiredCostCents).toBe(21500);
+    expect(resoldCents).toBe(6000); // 20 * 300
+    // Sans le correctif, les 10000 centimes Stripe manquaient : la marge
+    // (resold - acquiredCost) était surévaluée d'exactement ce montant.
+    expect(resoldCents - acquiredCostCents).toBe(-15500);
+  });
+
+  it('toute entrée positive du ledger est une acquisition reconnue', () => {
+    // Garde-fou structurel : si un nouveau motif d'entrée est ajouté côté
+    // écriture sans être déclaré, ce test tombe au lieu de fausser la marge.
+    const positives = [...new Set(ENTRIES.filter((e) => e.delta > 0).map((e) => e.reason))];
+    for (const r of positives) expect(wallet.ACQUISITION_REASONS).toContain(r);
+  });
+
+  it('computeCredits : acquis / utilisés cohérents avec les deltas', () => {
+    const { acquired, used, balance } = walletRoute().computeCredits(ENTRIES, 135);
+    expect(acquired).toBe(160); // 100 + 50 + 10
+    expect(used).toBe(25); // 20 + 5
+    expect(balance).toBe(135);
+  });
+});
+
 describe('scope — sous-arbre', () => {
   it('descendantIds inclut root + enfants, exclut les autres', () => {
     const ids = scope.descendantIds(n1);

@@ -5,17 +5,19 @@ const express = require('express');
 const router = express.Router();
 
 const wallet = require('../services/wallet');
+const { ACQUISITION_REASONS } = wallet;
 const { asyncWrap } = require('../utils/errors');
 
 // Marge (en centimes) sur le relevé : Σ(transfer_out × prix de revente) − coût
-// d'acquisition (topup + transfer_in). Le tout depuis le ledger, recalculé.
+// d'acquisition (toutes les entrées : top-up manuel, achat Stripe, réception).
+// La liste vit dans services/wallet.js, au plus près des écritures.
 function computeMargin(entries) {
   let resold = 0; // valeur revendue (crédits sortis × prix appliqué)
   let acquiredCost = 0; // ce que ce compte a payé pour ses crédits entrants
   for (const e of entries) {
     const price = e.priceCents || 0;
     if (e.reason === 'transfer_out') resold += Math.abs(e.delta) * price;
-    if (e.reason === 'transfer_in' || e.reason === 'topup') acquiredCost += e.delta * price;
+    if (ACQUISITION_REASONS.includes(e.reason)) acquiredCost += e.delta * price;
   }
   return { resoldCents: resold, acquiredCostCents: acquiredCost };
 }
@@ -60,7 +62,7 @@ router.get(
       const k = key(e.createdAt);
       const m = months.get(k) || { month: k, acquired: 0, resold: 0, consumed: 0, marginCents: 0 };
       const price = e.priceCents || 0;
-      if (e.reason === 'topup' || e.reason === 'transfer_in') m.acquired += e.delta;
+      if (ACQUISITION_REASONS.includes(e.reason)) m.acquired += e.delta;
       if (e.reason === 'transfer_out') {
         m.resold += Math.abs(e.delta);
         m.marginCents += Math.abs(e.delta) * price;
@@ -83,3 +85,8 @@ router.get(
 );
 
 module.exports = router;
+// Exposées pour les tests : ce sont des fonctions pures d'agrégation, et c'est
+// exactement là que le motif 'topup_stripe' avait été oublié sans qu'aucun test
+// ne le voie (0 % de couverture de branches sur ce fichier).
+module.exports.computeMargin = computeMargin;
+module.exports.computeCredits = computeCredits;

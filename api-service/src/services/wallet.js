@@ -123,4 +123,21 @@ function reconcile(userId) {
   return { userId, cache, truth, ok: cache === truth };
 }
 
-module.exports = { ensureWallet, getBalance, credit, debit, transfer, statement, reconcile };
+// Raisons ledger valant ACQUISITION de crédits (entrées payées ou reçues).
+// Centralisé ici, à côté des écritures, parce que la liste avait déjà divergé :
+// stripe.js écrit 'topup_stripe' (avec le vrai prix payé dans priceCents) mais
+// les agrégats de routes/wallet.js ne testaient que 'topup' — les achats Stripe
+// étaient donc exclus du coût d'acquisition (marge surévaluée) et de la courbe
+// « crédits acquis ». Tout nouveau motif d'entrée doit être ajouté ICI.
+const ACQUISITION_REASONS = Object.freeze(['topup', 'topup_stripe', 'transfer_in']);
+
+module.exports = {
+  ensureWallet,
+  getBalance,
+  credit,
+  debit,
+  transfer,
+  statement,
+  reconcile,
+  ACQUISITION_REASONS,
+};
