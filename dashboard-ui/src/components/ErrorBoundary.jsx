@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { translate as t } from '../context/LanguageContext';
 
 /**
  * React Error Boundary
@@ -39,15 +40,15 @@ class ErrorBoundary extends Component {
             <AlertTriangle size={32} />
           </div>
           <h3 className="text-lg font-black text-white tracking-tight mb-2">
-            {sectionName || 'Composant'} — Erreur Critique
+            {sectionName || t('eb_component')} — {t('eb_critical_error')}
           </h3>
           <p className="text-xs text-slate-500 font-mono mb-1 max-w-sm">
-            {this.state.error?.message || 'Une erreur inattendue est survenue.'}
+            {this.state.error?.message || t('eb_unexpected')}
           </p>
           {this.state.errorInfo?.componentStack && (
             <details className="mt-4 text-left w-full max-w-md">
               <summary className="text-[11px] text-slate-600 uppercase tracking-widest cursor-pointer mb-2">
-                Stack Trace
+                {t('stack_trace')}
               </summary>
               <pre className="text-[11px] text-slate-700 overflow-auto bg-slate-950 rounded-xl p-4 max-h-48">
                 {this.state.errorInfo.componentStack}
@@ -59,7 +60,7 @@ class ErrorBoundary extends Component {
             className="mt-6 flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all border border-white/10"
           >
             <RefreshCw size={14} />
-            Réinitialiser
+            {t('reset')}
           </button>
         </div>
       );

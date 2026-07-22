@@ -15,19 +15,25 @@ import {
 } from 'lucide-react';
 import { cn, COLOR_MAP } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
+import { useLang } from '../../context/LanguageContext';
 
+// Libellés résolus via t() DANS le composant (voir navItems) : ils servent à la
+// fois à l'affichage ET au filtrage, donc la recherche matche la langue affichée.
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Tableau de Bord', icon: Activity, desc: 'Statistiques temps réel' },
-  { id: 'containers', label: 'Conteneurs', icon: Package, desc: 'Gestion des peers WireGuard' },
-  { id: 'users', label: 'Utilisateurs', icon: Users, desc: 'Accès opérateurs' },
-  { id: 'logs', label: 'Logs Système', icon: FileText, desc: "Journaux d'accès et sécurité" },
-  { id: 'audit', label: 'Audit', icon: ShieldCheck, desc: 'Contrôle de sécurité' },
-  { id: 'optimization', label: 'Optimisation', icon: Gauge, desc: 'Profils réseau' },
-  { id: 'settings', label: 'Paramètres', icon: Settings, desc: 'Configuration système' },
+  { id: 'dashboard', labelKey: 'dashboard', icon: Activity, descKey: 'gs_dashboard_desc' },
+  { id: 'containers', labelKey: 'containers', icon: Package, descKey: 'gs_containers_desc' },
+  { id: 'users', labelKey: 'users_manage', icon: Users, descKey: 'gs_users_desc' },
+  { id: 'logs', labelKey: 'gs_logs_label', icon: FileText, descKey: 'gs_logs_desc' },
+  { id: 'audit', labelKey: 'audit', icon: ShieldCheck, descKey: 'gs_audit_desc' },
+  { id: 'optimization', labelKey: 'optimization', icon: Gauge, descKey: 'gs_optimization_desc' },
+  { id: 'settings', labelKey: 'settings', icon: Settings, descKey: 'gs_settings_desc' },
 ];
 
 const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
   const { theme, isDark } = useTheme();
+  const { t } = useLang();
+  // Libellés traduits, résolus ici (t n'existe qu'à l'intérieur du composant).
+  const navItems = NAV_ITEMS.map((n) => ({ ...n, label: t(n.labelKey), desc: t(n.descKey) }));
   const [query, setQuery] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
   const inputRef = useRef(null);
@@ -44,11 +50,13 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
   const results = [];
   if (query.length >= 1) {
     const q = String(query || '').toLowerCase();
-    NAV_ITEMS.filter((n) => {
-      const label = String(n?.label || '').toLowerCase();
-      const desc = String(n?.desc || '').toLowerCase();
-      return label.includes(q) || desc.includes(q);
-    }).forEach((n) => results.push({ ...n, category: 'Navigation', type: 'section' }));
+    navItems
+      .filter((n) => {
+        const label = String(n?.label || '').toLowerCase();
+        const desc = String(n?.desc || '').toLowerCase();
+        return label.includes(q) || desc.includes(q);
+      })
+      .forEach((n) => results.push({ ...n, category: t('gs_navigation'), type: 'section' }));
 
     (clients || [])
       .filter((c) => {
@@ -66,7 +74,7 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
           desc: `${c.container} · ${c.ip}`,
           icon: Package,
           type: 'client',
-          category: 'Peers',
+          category: t('gs_peers_section'),
           container: c.container,
           clientObj: c,
         })
@@ -155,7 +163,7 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Rechercher peers, sections, IP..."
+                placeholder={t('gs_search_placeholder')}
                 className={cn(
                   'flex-1 bg-transparent font-mono text-sm outline-none transition-colors',
                   isDark
@@ -209,9 +217,9 @@ const GlobalSearch = ({ isOpen, onClose, clients = [], onNavigate }) => {
                   >
                     Recherche Globale
                   </p>
-                  <p className="text-[11px] text-slate-600 mt-1">Peers · Sections · Adresses IP</p>
+                  <p className="text-[11px] text-slate-600 mt-1">{t('gs_hint')}</p>
                   <div className="flex justify-center gap-4 mt-5">
-                    {NAV_ITEMS.slice(0, 4).map((n) => (
+                    {navItems.slice(0, 4).map((n) => (
                       <button
                         key={n.id}
                         onClick={() => handleSelect(n)}

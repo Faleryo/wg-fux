@@ -81,7 +81,7 @@ const StatusWidget = ({
 
             <div className="space-y-2 mb-5">
               <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 uppercase tracking-tight">
-                <span>Version</span>
+                <span>{t('version')}</span>
                 <span
                   className={cn(
                     'font-mono px-2 py-0.5 rounded-md',

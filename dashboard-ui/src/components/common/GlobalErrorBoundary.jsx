@@ -1,4 +1,5 @@
 import React from 'react';
+import { translate as t } from '../../context/LanguageContext';
 
 class GlobalErrorBoundary extends React.Component {
   constructor(props) {
@@ -34,19 +35,16 @@ class GlobalErrorBoundary extends React.Component {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-center mb-2">Interface Corrompue</h1>
-            <p className="text-gray-400 text-center mb-6">
-              Une erreur inattendue a provoqué le crash de l'interface. Les services VPN ne sont PAS
-              affectés.
-            </p>
+            <h1 className="text-2xl font-bold text-center mb-2">{t('geb_title')}</h1>
+            <p className="text-gray-400 text-center mb-6">{t('geb_desc')}</p>
             <div className="bg-black/40 rounded-lg p-4 mb-6 font-mono text-xs text-red-400 overflow-auto max-h-32 border border-white/5">
-              {this.state.error?.toString() || 'Unknown Error'}
+              {this.state.error?.toString() || t('geb_unknown')}
             </div>
             <button
               onClick={() => window.location.reload()}
               className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-semibold rounded-xl transition-all shadow-lg shadow-red-900/20 active:scale-95"
             >
-              Réinitialiser l'Interface
+              {t('geb_reset')}
             </button>
           </div>
         </div>

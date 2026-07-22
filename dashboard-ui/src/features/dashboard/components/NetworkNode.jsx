@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users } from 'lucide-react';
 import { cn, formatBytes, COLOR_MAP } from '../../../lib/utils';
+import { useLang } from '../../../context/LanguageContext';
 
 const NetworkNode = ({
   client,
@@ -18,6 +19,7 @@ const NetworkNode = ({
   getContainerColor,
 }) => {
   const angle = (index * (2 * Math.PI)) / total - Math.PI / 2;
+  const { t } = useLang();
   const x = centerX + radius * Math.cos(angle);
   const y = centerY + radius * Math.sin(angle);
   const isOnline = client.isOnline;
@@ -130,29 +132,29 @@ const NetworkNode = ({
                     : 'bg-slate-100 text-slate-400 border-black/5'
               )}
             >
-              {isOnline ? 'Active' : 'Offline'}
+              {isOnline ? t('status_active') : t('status_offline')}
             </div>
           </div>
 
           <div className="space-y-3 font-mono text-[11px] text-slate-500">
             <div className="flex justify-between">
-              <span>Tact IP</span>{' '}
+              <span>{t('nn_tact_ip')}</span>{' '}
               <span className={isDark ? 'text-slate-100' : 'text-slate-900'}>{client.ip}</span>
             </div>
             <div className="flex justify-between">
-              <span>Endpoint</span>{' '}
+              <span>{t('nn_endpoint')}</span>{' '}
               <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>
                 {client.endpoint || '—'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span>Burst DL</span>{' '}
+              <span>{t('burst_dl')}</span>{' '}
               <span className="text-emerald-400">
                 {formatBytes(client.downloadRate || client.rx || 0)}/s
               </span>
             </div>
             <div className="flex justify-between">
-              <span>Burst UL</span>{' '}
+              <span>{t('burst_ul')}</span>{' '}
               <span className="text-indigo-400">
                 {formatBytes(client.uploadRate || client.tx || 0)}/s
               </span>
@@ -164,13 +166,13 @@ const NetworkNode = ({
                   isDark ? 'border-white/5' : 'border-black/5'
                 )}
               >
-                <span>Total usage</span>
+                <span>{t('nn_total_usage')}</span>
                 <span className="text-amber-400 font-bold">{formatBytes(client.usageTotal)}</span>
               </div>
             )}
             {client.lastHandshake > 0 && (
               <div className="flex justify-between">
-                <span>Last seen</span>
+                <span>{t('nn_last_seen')}</span>
                 <span className="text-slate-400">
                   {Math.floor((nowSec - client.lastHandshake) / 60)}m ago
                 </span>

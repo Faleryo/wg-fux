@@ -271,8 +271,7 @@ const translations = {
     // Audit
     audit_title: 'Audit de Sécurité',
     integrity_index: "Indice d'Intégrité",
-    integrity_desc:
-      "Calcul basé sur l'état du noyau, du firewall et des protections logicielles.",
+    integrity_desc: "Calcul basé sur l'état du noyau, du firewall et des protections logicielles.",
     critical: 'Critique',
     audit_firewall_desc:
       "Vérification de l'interface UFW et des règles de filtrage pré-configurées.",
@@ -325,7 +324,8 @@ const translations = {
     upd_retry_next_cycle: 'Nouvelle tentative automatique au prochain cycle.',
     upd_label: 'Mise à jour',
     upd_installed_reload: 'installée — rechargement du panneau…',
-    upd_dont_close: 'Ne fermez pas cette page — coupure réseau brève (~30 s) pendant le redémarrage.',
+    upd_dont_close:
+      'Ne fermez pas cette page — coupure réseau brève (~30 s) pendant le redémarrage.',
     upd_ready_confirm: "prête — votre confirmation est requise pour l'installer.",
     upd_scheduled: 'programmée',
     upd_around: 'vers',
@@ -410,7 +410,8 @@ const translations = {
     update_available_cron: 'Mise à jour disponible (appliquée par le cron quotidien)',
     up_to_date: 'À jour',
     deploy_version_title: 'Déployer la version',
-    deploy_approved_hint: 'Seules les instances approuvées ici recevront la mise à jour (≤ 30 min).',
+    deploy_approved_hint:
+      'Seules les instances approuvées ici recevront la mise à jour (≤ 30 min).',
     select_all: 'Tout sélectionner',
     instances_word: 'instance(s)',
     no_instance_enrolled: 'Aucune instance enrôlée',
@@ -418,7 +419,8 @@ const translations = {
     deploy_scheduled_title: 'Programmé (défaut)',
     deploy_scheduled_desc: 'Appliquée automatiquement sous ~6 h, sans intervention.',
     deploy_instant_title: 'Instantané',
-    deploy_instant_desc: 'L’instance la reçoit tout de suite — son opérateur confirme l’installation.',
+    deploy_instant_desc:
+      'L’instance la reçoit tout de suite — son opérateur confirme l’installation.',
     cancel_deployment: 'Annuler le déploiement',
     cancel_deployment_title:
       "Retire l'approbation : ces instances ne recevront plus la mise à jour",
@@ -810,6 +812,44 @@ const translations = {
     ph_container_name: 'ex: famille, serveurs',
     container_name_hint: 'Uniquement lettres, chiffres, tirets et underscores.',
     download_conf: 'Télécharger .conf',
+    // Divers : recherche globale, monitoring SRE, noeud reseau, error boundaries
+    gs_navigation: 'Navigation',
+    gs_peers_section: 'Peers',
+    gs_search_placeholder: 'Rechercher peers, sections, IP...',
+    gs_hint: 'Peers · Sections · Adresses IP',
+    gs_dashboard_desc: 'Statistiques temps réel',
+    gs_containers_desc: 'Gestion des peers WireGuard',
+    gs_users_desc: 'Accès opérateurs',
+    gs_logs_label: 'Logs Système',
+    gs_audit_desc: 'Contrôle de sécurité',
+    gs_optimization_desc: 'Profils réseau',
+    gs_settings_desc: 'Configuration système',
+    perf_fetch_error: 'Échec de récupération de la télémétrie',
+    perf_conn_error: 'Erreur de connexion',
+    perf_optimal: 'Optimal',
+    perf_nominal: 'Nominal',
+    perf_congested: 'Congestionné',
+    perf_jitter: 'Gigue',
+    perf_load: 'Charge',
+    perf_bloat: 'Bloat',
+    nn_tact_ip: 'IP Tactique',
+    nn_endpoint: 'Endpoint',
+    nn_total_usage: 'Usage total',
+    nn_last_seen: 'Vu pour la dernière fois',
+    if_fetch_error: 'Échec de récupération des interfaces',
+    version: 'Version',
+    eb_component: 'Composant',
+    eb_unexpected: 'Une erreur inattendue est survenue.',
+    geb_title: 'Interface Corrompue',
+    geb_unknown: 'Erreur inconnue',
+    geb_desc:
+      "Une erreur inattendue a provoqué le crash de l'interface. Les services VPN ne sont PAS affectés.",
+    geb_reset: "Réinitialiser l'Interface",
+    eb_critical_error: 'Erreur Critique',
+    stack_trace: 'Stack Trace',
+    reset: 'Réinitialiser',
+    gs_logs_desc: "Journaux d'accès et sécurité",
+    tactical_groups: 'Groupes Tactiques',
   },
   en: {
     dashboard: 'Dashboard',
@@ -1084,8 +1124,7 @@ const translations = {
     audit_firewall_desc: 'Check of the UFW interface and pre-configured filtering rules.',
     audit_fw_ok: 'Device Protection OK',
     audit_fw_bad: 'Possible Network Vulnerability',
-    audit_ipfwd_desc:
-      'Status of the sysctl net.ipv4.ip_forward option required for vpn transit.',
+    audit_ipfwd_desc: 'Status of the sysctl net.ipv4.ip_forward option required for vpn transit.',
     audit_ipfwd_ok: 'Data Transit Active',
     audit_ipfwd_bad: 'Tunnel Flow Interruption',
     audit_f2b_desc: 'Monitoring of SSH brute-force attempts and IP bans.',
@@ -1615,6 +1654,43 @@ const translations = {
     ph_container_name: 'e.g. family, servers',
     container_name_hint: 'Letters, digits, dashes and underscores only.',
     download_conf: 'Download .conf',
+    // Misc: global search, SRE monitoring, network node, error boundaries
+    gs_navigation: 'Navigation',
+    gs_peers_section: 'Peers',
+    gs_search_placeholder: 'Search peers, sections, IP...',
+    gs_hint: 'Peers · Sections · IP addresses',
+    gs_dashboard_desc: 'Real-time statistics',
+    gs_containers_desc: 'WireGuard peer management',
+    gs_users_desc: 'Operator access',
+    gs_logs_label: 'System Logs',
+    gs_audit_desc: 'Security control',
+    gs_optimization_desc: 'Network profiles',
+    gs_settings_desc: 'System configuration',
+    perf_fetch_error: 'Failed to fetch telemetry',
+    perf_conn_error: 'Connection error',
+    perf_optimal: 'Optimal',
+    perf_nominal: 'Nominal',
+    perf_congested: 'Congested',
+    perf_jitter: 'Jitter',
+    perf_load: 'Load',
+    perf_bloat: 'Bloat',
+    nn_tact_ip: 'Tactical IP',
+    nn_endpoint: 'Endpoint',
+    nn_total_usage: 'Total usage',
+    nn_last_seen: 'Last seen',
+    if_fetch_error: 'Failed to fetch interfaces',
+    version: 'Version',
+    eb_component: 'Component',
+    eb_unexpected: 'An unexpected error occurred.',
+    geb_title: 'Corrupted Interface',
+    geb_unknown: 'Unknown Error',
+    geb_desc: 'An unexpected error crashed the interface. VPN services are NOT affected.',
+    geb_reset: 'Reset Interface',
+    eb_critical_error: 'Critical Error',
+    stack_trace: 'Stack Trace',
+    reset: 'Reset',
+    gs_logs_desc: 'Access and security logs',
+    tactical_groups: 'Tactical Groups',
   },
 };
 
@@ -1637,3 +1713,16 @@ export const LanguageProvider = ({ children }) => {
 };
 
 export const useLang = () => useContext(LanguageContext);
+
+// Traduction HORS React (composants classe, error boundaries). N'utilise ni hook
+// ni contexte : une error boundary s'affiche justement quand l'arbre React est
+// cassé — dépendre du contexte y serait fragile. Lit la langue dans localStorage.
+export const translate = (key) => {
+  let lang = 'fr';
+  try {
+    lang = localStorage.getItem('app-lang') || 'fr';
+  } catch {
+    /* localStorage indisponible : on retombe sur le français */
+  }
+  return translations[lang]?.[key] ?? translations.fr?.[key] ?? key;
+};

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { axiosInstance } from '../../lib/api';
+import { useLang } from '../../context/LanguageContext';
 
 const InterfaceSelector = ({ onSelect, current }) => {
+  const { t } = useLang();
   const [interfaces, setInterfaces] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -11,7 +13,7 @@ const InterfaceSelector = ({ onSelect, current }) => {
         const response = await axiosInstance.get('/system/interfaces');
         setInterfaces(response.data);
       } catch (error) {
-        console.error('Failed to fetch interfaces', error);
+        console.error(t('if_fetch_error'), error);
       } finally {
         setLoading(false);
       }
