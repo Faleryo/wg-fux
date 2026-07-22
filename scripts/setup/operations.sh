@@ -30,8 +30,11 @@ cmd_diagnose() {
     require_root
     local script="$WG_SCRIPTS/wg-diagnose.sh"
     [ -x "$script" ] || { log_error "wg-diagnose.sh not found."; exit 1; }
-    shift
-    exec bash "$script" "$@"
+    # Pas de `shift` ici : le dispatch appelle `cmd_diagnose` SANS argument, et
+    # `shift` sur une liste vide renvoie 1 → sous `set -euo pipefail` le trap ERR
+    # avortait setup.sh avant même de lancer le diagnostic. `--diagnose` ne
+    # démarrait donc jamais.
+    exec bash "$script"
 }
 
 # ─── cmd_speedtest ──────────────────────────────────────────────

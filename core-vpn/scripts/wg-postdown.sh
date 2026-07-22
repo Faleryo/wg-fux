@@ -9,7 +9,13 @@ source "$SCRIPT_DIR/wg-common.sh"
 INTERFACE="${1:-wg0}"
 IPTABLES_BIN=$(command -v iptables || echo "/usr/sbin/iptables")
 IP6TABLES_BIN=$(command -v ip6tables 2>/dev/null || true)
-SERVER_INTERFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
+# Même correctif que wg-postup.sh (qui l'avait déjà reçu, pas celui-ci) : awk
+# avec `exit` au 1er match évite l'abort `set -euo pipefail` que provoquaient
+# `grep default` (retour 1 si absent) et `head -n1` (SIGPIPE). Sans ça, un hôte
+# sans route par défaut avortait ICI — donc AVANT les gardes `[ -n "$SERVER_
+# INTERFACE" ]` ci-dessous, écrites précisément pour ce cas — et le nettoyage
+# NAT/DNAT/FORWARD n'avait jamais lieu : les règles restaient en place.
+SERVER_INTERFACE=$(ip route show default 2>/dev/null | awk '/default/ {print $5; exit}')
 
 _del_rule() {
  local cmd="$1"

@@ -306,7 +306,7 @@ if [ "$PROFILE" = "gaming" ]; then
 	# sur petite VPS). adaptive-rx=on laisse le driver ajuster dynamiquement.
 	# Compromis : +1µs de jitter, mais soutenable sur VPS 1 vCPU / 512MB.
 	if command -v ethtool &>/dev/null; then
-	ETH_IFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
+	ETH_IFACE=$(ip route show default 2>/dev/null | awk '/default/ {print $5; exit}')
 	if [ -n "$ETH_IFACE" ]; then
 	if ethtool -C "$ETH_IFACE" rx-usecs 8 adaptive-rx on 2>/dev/null; then
 	log "✓ IRQ coalescing rx-usecs=8 adaptive-rx=on sur $ETH_IFACE"
@@ -325,7 +325,7 @@ if [ "$PROFILE" = "gaming" ]; then
  # gros paquet pour économiser des CPU cycles. Sur un VPN gaming, ça ajoute
  # 0.5-2ms de latence en attendant que le batch soit plein. On désactive.
  if command -v ethtool &>/dev/null; then
-  ETH_IFACE_GRO=$(ip route | grep default | awk '{print $5}' | head -n1)
+  ETH_IFACE_GRO=$(ip route show default 2>/dev/null | awk '/default/ {print $5; exit}')
   if [ -n "$ETH_IFACE_GRO" ]; then
    if ethtool -K "$ETH_IFACE_GRO" gro off gso off 2>/dev/null; then
     log "✓ GRO/GSO désactivés sur $ETH_IFACE_GRO (anti-batching)"
@@ -388,7 +388,7 @@ elif [ "$PROFILE" = "streaming" ]; then
 elif [ "$PROFILE" = "auto" ]; then
 	# Note: State file will be written by the sub-call to gaming or streaming
 	log "🤖 Auto Mode : Analyse heuristique..."
-	GW=$(ip route | grep default | awk '{print $3}' | head -n1)
+	GW=$(ip route show default 2>/dev/null | awk '/default/ {print $3; exit}')
 	if [ -z "$GW" ]; then
 	log "⚠ Gateway introuvable → fallback Gaming par défaut"
 	exec "$0" gaming
@@ -451,7 +451,7 @@ elif [ "$PROFILE" = "restore" ] || [ "$PROFILE" = "default" ] || [ "$PROFILE" = 
  fi
 
  # Re-activer IRQ coalescing + GRO/GSO
- ETH_IFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
+ ETH_IFACE=$(ip route show default 2>/dev/null | awk '/default/ {print $5; exit}')
  if [ -n "$ETH_IFACE" ] && command -v ethtool &>/dev/null; then
  ethtool -C "$ETH_IFACE" rx-usecs 50 adaptive-rx on 2>/dev/null || true
  ethtool -K "$ETH_IFACE" gro on gso on 2>/dev/null || true

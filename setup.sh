@@ -3,7 +3,8 @@
 #
 # Usage:
 #   sudo ./setup.sh                # interactive menu
-#   sudo ./setup.sh --install      # non-interactive install (requires WGFUX_* env)
+#   sudo ./setup.sh --install      # install (questions interactives)
+#   sudo ./setup.sh --install --auto  # install non-interactif (requiert les WGFUX_*)
 #   sudo ./setup.sh --update       # rebuild & restart docker services
 #   sudo ./setup.sh --upgrade      # git pull + update (instance mère)
 #   sudo ./setup.sh --self-update  # pull le dernier bundle licencié + update (revendeur)
@@ -114,7 +115,11 @@ trap cleanup_tmp EXIT
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
 usage() {
-    sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+    # Le bloc de commentaires d'entête EST la documentation : on l'extrait
+    # jusqu'à la première ligne de code au lieu d'une plage figée. L'ancien
+    # `2,14p` s'était désynchronisé — tout ce qui va de --backup à --status
+    # n'apparaissait plus dans --help.
+    sed -n '2,/^[^#]/p' "$0" | sed -e '$d' -e 's/^# \{0,1\}//'
     exit "${1:-0}"
 }
 
@@ -191,11 +196,17 @@ done
 
 # ─── Phase: preflight ───────────────────────────────────────────────────────
 
+# preflight [strict]
+# En mode "strict" (--check : diagnostic pur, aucune réparation ne suivra) les
+# manques réparables sont des erreurs. Sinon (install/update) ce sont de simples
+# avertissements : check_and_install_deps s'exécute juste après et sait les
+# corriger — échouer ici bloquerait l'install au lieu de la réparer.
 preflight() {
+    local strict="${1:-}"
     log_info "Preflight check…"
     preflight_scan
     check_kernel_wireguard
-    check_docker_compose_v2
+    check_docker_compose_v2 "$strict"
     log_success "Preflight OK."
 }
 
@@ -216,13 +227,18 @@ check_kernel_wireguard() {
 }
 
 check_docker_compose_v2() {
+    local strict="${1:-}"
     if ! command -v docker &>/dev/null; then
         log_warn "Docker not installed yet."
         return 0
     fi
     if ! docker compose version &>/dev/null; then
-        log_error "Docker Compose v2 plugin missing. Install 'docker-compose-plugin' or 'docker-compose-v2'."
-        return 1
+        if [ "$strict" = "strict" ]; then
+            log_error "Docker Compose v2 plugin missing. Install 'docker-compose-plugin' or 'docker-compose-v2'."
+            return 1
+        fi
+        log_warn "Docker Compose v2 plugin missing — la phase dépendances va l'installer."
+        return 0
     fi
 }
 
@@ -757,7 +773,7 @@ cmd_uninstall() {
 
 cmd_check() {
     log_info "Running preflight only (no changes will be made)…"
-    preflight
+    preflight strict
     log_success "Preflight passed."
 }
 
