@@ -47,26 +47,34 @@ const useAuth = () => {
   const [session, setSession] = useState(readSession);
   const refreshTimerRef = useRef(null);
 
+  // Le ré-armement récursif passe par la fonction locale `arm`, PAS par
+  // l'identité mémoïsée `scheduleRefresh` : se référencer soi-même depuis le
+  // corps de son propre useCallback fait lire une valeur déclarée plus bas
+  // (react-hooks/immutability), ce qui casse dès que la mémoïsation change
+  // l'identité entre deux rendus.
   const scheduleRefresh = useCallback((token) => {
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-    const exp = getTokenExp(token);
-    if (!exp) return;
-    const delay = Math.max(0, exp - Date.now() - 5 * 60 * 1000); // 5 min before expiry
-    refreshTimerRef.current = setTimeout(async () => {
-      try {
-        const res = await axiosInstance.post('/auth/refresh');
-        const newToken = res.data.token;
-        const store = localStorage.getItem(STORAGE_KEYS.token) ? localStorage : sessionStorage;
-        store.setItem(STORAGE_KEYS.token, newToken);
-        scheduleRefresh(newToken);
-      } catch {
-        /* silently fail — next request will 401 and trigger logout */
-      }
-    }, delay);
+    const arm = (tok) => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      const exp = getTokenExp(tok);
+      if (!exp) return;
+      const delay = Math.max(0, exp - Date.now() - 5 * 60 * 1000); // 5 min before expiry
+      refreshTimerRef.current = setTimeout(async () => {
+        try {
+          const res = await axiosInstance.post('/auth/refresh');
+          const newToken = res.data.token;
+          const store = localStorage.getItem(STORAGE_KEYS.token) ? localStorage : sessionStorage;
+          store.setItem(STORAGE_KEYS.token, newToken);
+          arm(newToken);
+        } catch {
+          /* silently fail — next request will 401 and trigger logout */
+        }
+      }, delay);
+    };
+    arm(token);
   }, []);
 
   const login = useCallback(
-    (token, rememberMe, role, username) => {
+    (token, rememberMe, role, username, twoFactorEnabled) => {
       if (!rememberMe) {
         // Clear any stale token a previous rememberMe session may have left
         // so scheduleRefresh can't accidentally route the refreshed token to localStorage.
@@ -96,7 +104,19 @@ const useAuth = () => {
           sessionStorage.setItem(STORAGE_KEYS.username, username);
         }
       }
-      setSession({ token, role: role || null, username: username || null });
+      // `twoFactorEnabled` doit être posé dès le login : MainLayout teste
+      // `=== false` (pour ne pas afficher la bannière tant que l'état est
+      // inconnu), donc l'omettre ici la laissait `undefined` et masquait
+      // l'incitation 2FA jusqu'au prochain /auth/check, c.-à-d. au rechargement.
+      const tf = !!twoFactorEnabled;
+      const store = rememberMe ? localStorage : sessionStorage;
+      store.setItem(STORAGE_KEYS.twoFactorEnabled, String(tf));
+      setSession({
+        token,
+        role: role || null,
+        username: username || null,
+        twoFactorEnabled: tf,
+      });
       scheduleRefresh(token);
     },
     [scheduleRefresh]

@@ -45,7 +45,7 @@ const LoginPage = ({ onLogin }) => {
         token: totp,
       });
       if (data.valid && data.token) {
-        onLogin(data.token, rememberMe, data.role, username);
+        onLogin(data.token, rememberMe, data.role, username, data.twoFactorEnabled);
       } else {
         setError(data.error || t('login_invalid_credentials'));
       }

@@ -145,7 +145,11 @@ router.post(
       const token = jwt.sign({ username: user.username, role: user.role }, process.env.JWT_SECRET, {
         expiresIn: TOKEN_TTL[user.role] || '24h',
       });
-      res.json({ valid: true, token, role: user.role });
+      // `twoFactorEnabled` est renvoyé ici comme dans /auth/check : sans lui, le
+      // client ne peut pas distinguer « 2FA absente » de « pas encore connue »
+      // et la bannière d'incitation 2FA (MainLayout, test `=== false`) restait
+      // invisible jusqu'au prochain rechargement de page.
+      res.json({ valid: true, token, role: user.role, twoFactorEnabled: !!user.twoFactorSecret });
     } else {
       await logLoginAttempt(username, clientIp, userAgent, false);
 
