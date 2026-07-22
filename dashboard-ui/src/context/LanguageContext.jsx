@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 
 const translations = {
   fr: {
@@ -1703,13 +1703,16 @@ export const LanguageProvider = ({ children }) => {
     localStorage.setItem('app-lang', lang);
   }, [lang]);
 
-  const t = (key) => {
-    return translations[lang]?.[key] || key;
-  };
+  // PERF — CRITIQUE : `t` et l'objet `value` DOIVENT être mémoïsés.
+  // Sans ça, chaque rendu du Provider crée une nouvelle référence de `value`, ce
+  // qui force un re-rendu de TOUS les consommateurs du contexte (62 composants,
+  // dont les graphiques, la carte réseau et les tableaux) même quand la langue
+  // n'a pas changé → interface très lente. Le défaut était invisible tant que
+  // personne ne consommait le contexte ; il ne l'est plus.
+  const t = useCallback((key) => translations[lang]?.[key] ?? key, [lang]);
+  const value = useMemo(() => ({ lang, setLang, t }), [lang, t]);
 
-  return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>{children}</LanguageContext.Provider>
-  );
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 };
 
 export const useLang = () => useContext(LanguageContext);
