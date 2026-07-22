@@ -33,6 +33,16 @@ export default defineConfig({
     // pas supposé. On garde donc une marge généreuse — une suite lente qui passe
     // vaut mieux qu'une suite rapide qui flanche par intermittence.
     hookTimeout: 30000,
+    // Même raisonnement pour les `it()` eux-mêmes, qui étaient restés au défaut
+    // de 5000 ms : tout test qui traverse /auth/login paie un VRAI PBKDF2-SHA512
+    // à 600 000 itérations (src/services/auth.js). Mesuré sur cette machine :
+    // 4110 ms pour un hash isolé, 4859 ms de temps mur quand maxWorkers forks
+    // hashent en parallèle. Le budget de 5000 ms était donc dépassé par un seul
+    // login — d'où 7 échecs intermittents dans integration-auth.test.js selon la
+    // charge. On ne baisse SURTOUT pas le facteur de travail (600k = reco OWASP,
+    // et le tester à un coût différent de la prod n'aurait aucune valeur) : on
+    // aligne le budget des tests sur celui des hooks.
+    testTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
