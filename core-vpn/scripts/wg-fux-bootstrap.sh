@@ -71,15 +71,34 @@ tar -xzf "$TMP_BUNDLE" -C "$INSTALL_DIR"
 log "Bundle extrait dans ${INSTALL_DIR}."
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3. Installation complète (interactif)
+# 3. Installation complète
 # ─────────────────────────────────────────────────────────────────────────────
-echo
-echo "════════════════════════════════════════════════════════════════"
-echo "  wg-fux — Installation de votre serveur VPN"
-echo "  Répondez aux questions ci-dessous pour configurer votre instance."
-echo "  Vous pourrez modifier ces paramètres plus tard via setup.sh."
-echo "════════════════════════════════════════════════════════════════"
-echo
+# `setup.sh --install` pose des questions (port, domaine, admin, AdGuard…). Sans
+# terminal — cas d'un `ssh serveur '<one-liner>'` sans -t, ou d'un enrôlement
+# automatisé — ces `read` reçoivent EOF et produisent une configuration vide ou
+# un blocage. On choisit donc explicitement le mode selon la présence d'un TTY :
+#   - terminal présent          → installation interactive (parcours revendeur) ;
+#   - pas de terminal + secrets → `--auto` (setup.sh lit tout dans l'environnement) ;
+#   - pas de terminal sans secrets → on refuse, en indiquant la marche à suivre.
+if [ -t 0 ]; then
+  INSTALL_ARGS=(--install)
+  echo
+  echo "════════════════════════════════════════════════════════════════"
+  echo "  wg-fux — Installation de votre serveur VPN"
+  echo "  Répondez aux questions ci-dessous pour configurer votre instance."
+  echo "  Vous pourrez modifier ces paramètres plus tard via setup.sh."
+  echo "════════════════════════════════════════════════════════════════"
+  echo
+elif [ -n "${WGFUX_ADMIN_PASS:-}" ] && [ -n "${WGFUX_AGH_PASS:-}" ]; then
+  INSTALL_ARGS=(--install --auto)
+  log "Aucun terminal détecté — installation non interactive (secrets fournis par l'environnement)."
+else
+  fail "Aucun terminal disponible pour l'installation interactive.
+      Relancez depuis une session interactive :
+          ssh -t root@<vps>   puis collez le one-liner
+      ou fournissez les secrets pour une installation automatique :
+          WGFUX_ADMIN_PASS=... WGFUX_AGH_PASS=... <one-liner>"
+fi
 
 # La licence de l'instance : setup.sh l'écrit dans api-service/.env.
 export WGFUX_LICENSE_KEY="$LICENSE_KEY"
@@ -89,7 +108,7 @@ export WGFUX_PLATFORM_URL="$PLATFORM_BASE"
 export WGFUX_LICENSE_PUBKEY="$LICENSE_PUBKEY"
 
 cd "$INSTALL_DIR"
-bash setup.sh --install || fail "L'installation wg-fux a échoué (voir $LOG_FILE)."
+bash setup.sh "${INSTALL_ARGS[@]}" || fail "L'installation wg-fux a échoué (voir $LOG_FILE)."
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. Callback — notifie la plateforme que ce serveur est online
