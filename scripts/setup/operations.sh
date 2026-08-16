@@ -150,20 +150,50 @@ cmd_reset_password() {
 
     echo
     echo "  Current admin user: $user"
-    local pass_confirm
-    while true; do
-        read -rsp "$(printf '%b? New password for %s: %b' "${YELLOW}" "$user" "${NC}")" pass
-        echo
-        [ -n "$pass" ] && break
-        log_warn "Password cannot be empty."
-    done
-    while true; do
-        read -rsp "$(printf '%b? Confirm new password: %b' "${YELLOW}" "${NC}")" pass_confirm
-        echo
-        [ "$pass" = "$pass_confirm" ] && break
-        log_warn "Passwords do not match. Try again."
-    done
-    unset pass_confirm
+
+    # La saisie masquée exige un terminal. Sans TTY (typiquement
+    # `ssh serveur './setup.sh --reset-password'` sans -t), `read -rsp` ne
+    # masque RIEN et lit un flux vide : l'ancien code bouclait sur « Password
+    # cannot be empty » puis affichait le mot de passe EN CLAIR à l'écran.
+    # On refuse explicitement ce cas, en proposant les deux issues valides.
+    if [ ! -t 0 ]; then
+        if [ -n "${ADMIN_PASSWORD:-}" ]; then
+            pass="$ADMIN_PASSWORD"
+            log_info "Non-interactive mode: password read from ADMIN_PASSWORD."
+        else
+            log_error "No terminal available: the password prompt cannot hide your input."
+            echo
+            echo "  Use an interactive session (note the -t):"
+            echo "      ssh -t root@<serveur> 'cd /root/wg-fux && sudo ./setup.sh --reset-password'"
+            echo
+            echo "  Or run it non-interactively, without echoing the password:"
+            echo "      ssh root@<serveur> 'cd /root/wg-fux && sudo ADMIN_PASSWORD=\"...\" ./setup.sh --reset-password'"
+            echo
+            exit 1
+        fi
+    else
+        local pass_confirm
+        while true; do
+            read -rsp "$(printf '%b? New password for %s: %b' "${YELLOW}" "$user" "${NC}")" pass
+            echo
+            [ -n "$pass" ] && break
+            log_warn "Password cannot be empty."
+        done
+        while true; do
+            read -rsp "$(printf '%b? Confirm new password: %b' "${YELLOW}" "${NC}")" pass_confirm
+            echo
+            [ "$pass" = "$pass_confirm" ] && break
+            log_warn "Passwords do not match. Try again."
+        done
+        unset pass_confirm
+    fi
+
+    # reset-admin.js refuse en dessous de 8 caractères : on échoue ici plutôt
+    # que d'écrire un .env que la base refusera ensuite (états désynchronisés).
+    if [ "${#pass}" -lt 8 ]; then
+        log_error "Password must be at least 8 characters."
+        exit 1
+    fi
 
     salt=$(openssl rand -hex 16)
     hash=$(generate_admin_hash "$pass" "$salt")
@@ -179,14 +209,32 @@ cmd_reset_password() {
 
     # Update the database directly inside the running container.
     # This guarantees the password works even if sed failed or init sync is skipped.
-    if docker compose ps -q api &>/dev/null; then
-        docker compose exec -T -e ADMIN_PASSWORD="$pass" api node /app/reset-admin.js && \
-            log_success "Password updated directly in database." || \
-            log_warn "Could not update database directly (container not running?)."
+    # `ps -q` renvoie 0 même sans conteneur : on teste que la sortie est NON VIDE.
+    local db_updated=0
+    if [ -n "$(docker compose ps -q api 2>/dev/null)" ]; then
+        local exec_out
+        # On capture la sortie pour afficher la VRAIE cause : l'ancien code
+        # annonçait « container not running? » quel que soit l'échec, ce qui a
+        # masqué un MODULE_NOT_FOUND (reset-admin.js absent de l'image).
+        if exec_out=$(docker compose exec -T -e ADMIN_PASSWORD="$pass" api \
+                        node /app/reset-admin.js 2>&1); then
+            db_updated=1
+            log_success "Password updated directly in database."
+        else
+            log_warn "Database update failed — the API reported:"
+            printf '%s\n' "$exec_out" | sed 's/^/      /' | head -5
+            log_warn "The .env value will still be applied when the API restarts."
+        fi
+    else
+        log_warn "API container is not running — database not updated yet."
     fi
 
     echo
-    log_warn "The API container must be restarted for the env change to take effect."
+    if [ "$db_updated" -eq 1 ]; then
+        log_info "Restart the API container to keep .env and database aligned."
+    else
+        log_warn "The API container must be restarted for the env change to take effect."
+    fi
     if ask_yes_no "Restart the API container now?" "y"; then
         sudo docker compose restart api
         log_success "API container restarted."

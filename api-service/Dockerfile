@@ -76,6 +76,11 @@ RUN npm ci --omit=dev
 COPY api-service/db ./db
 COPY api-service/src ./src
 COPY api-service/server.js ./
+# Utilitaire de réinitialisation du mot de passe admin, invoqué par
+# `setup.sh --reset-password` via `docker compose exec api node /app/reset-admin.js`.
+# Son absence de l'image faisait échouer la remise à zéro avec MODULE_NOT_FOUND
+# (le .env était mis à jour, mais pas la base).
+COPY api-service/reset-admin.js ./
 
 # Copy scripts to /usr/local/bin/
 COPY core-vpn/scripts/wg-*.sh /usr/local/bin/
