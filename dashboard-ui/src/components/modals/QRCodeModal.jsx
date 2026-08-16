@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Copy, Check, Download, QrCode, FileText, Smartphone } from 'lucide-react';
+import { X, Copy, Check, Download, QrCode, FileText, Smartphone, Link2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../ui/Modal';
 import { useLang } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
+import { axiosInstance } from '../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
@@ -12,10 +13,50 @@ const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
   const { theme } = useTheme();
   const [copied, setCopied] = useState(false);
   const timerRef = useRef(null);
+  // Lien d'import sécurisé — s'AJOUTE au QR / copie / téléchargement ci-dessus.
+  // Généré à la demande (usage unique) : on ne consomme pas un jeton à chaque
+  // simple ouverture de la modale.
+  const [importLink, setImportLink] = useState(null);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const linkTimerRef = useRef(null);
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
+  useEffect(() => () => clearTimeout(linkTimerRef.current), []);
+  // Un changement de peer invalide le lien affiché.
+  useEffect(() => {
+    setImportLink(null);
+    setLinkCopied(false);
+  }, [client?.container, client?.name]);
 
   if (!client) return null;
+
+  const generateImportLink = async () => {
+    if (!client.container) return;
+    setLinkBusy(true);
+    try {
+      const res = await axiosInstance.post(
+        `/clients/${client.container}/${client.name}/import-link`
+      );
+      setImportLink(res.data);
+    } catch {
+      setImportLink(null);
+    } finally {
+      setLinkBusy(false);
+    }
+  };
+
+  const copyImportLink = async () => {
+    if (!importLink?.url) return;
+    try {
+      await navigator.clipboard.writeText(importLink.url);
+      setLinkCopied(true);
+      clearTimeout(linkTimerRef.current);
+      linkTimerRef.current = setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      /* presse-papiers indisponible : l'URL reste sélectionnable dans le champ */
+    }
+  };
 
   const handleCopy = () => {
     const copyText = async () => {
@@ -152,6 +193,45 @@ const QRCodeModal = ({ isOpen, onClose, client, onDownload }) => {
               <Download size={18} /> {t('download_conf')}
             </button>
           </div>
+
+          {/* Option supplémentaire : lien d'import à envoyer au client. */}
+          {client.container && (
+            <div className="mt-4 pt-4 border-t border-white/5">
+              {!importLink ? (
+                <button
+                  onClick={generateImportLink}
+                  disabled={linkBusy}
+                  className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white font-black uppercase text-[11px] tracking-[0.2em] transition-all flex items-center justify-center gap-3 disabled:opacity-40"
+                >
+                  <Link2 size={16} />
+                  {linkBusy ? t('import_link_generating') : t('import_link_retry')}
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                    <Link2 size={14} /> {t('import_link_label')}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={importLink.url}
+                      onFocus={(e) => e.target.select()}
+                      className="flex-1 px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-slate-300 font-mono text-[11px] min-w-0"
+                    />
+                    <button
+                      onClick={copyImportLink}
+                      title={t('copy_link')}
+                      className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex-shrink-0"
+                    >
+                      {linkCopied ? <Check size={16} /> : <Copy size={16} />}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-500 italic">{t('import_link_hint')}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Modal>

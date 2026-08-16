@@ -26,7 +26,8 @@ const useClientActions = ({
     track('client_created', { container, name });
     try {
       const res = await axiosInstance.get(`/clients/${container}/${name}/config`);
-      setSelectedClientForModal({ name, config: res.data.config || '' });
+      // `container` est nécessaire à la modale pour générer le lien d'import.
+      setSelectedClientForModal({ name, container, config: res.data.config || '' });
       setShowQRModal(true);
     } catch {
       // Non bloquant — config lisible plus tard via bouton QR
@@ -58,7 +59,11 @@ const useClientActions = ({
   const handleShowQRCode = async (client) => {
     try {
       const res = await axiosInstance.get(`/clients/${client.container}/${client.name}/config`);
-      setSelectedClientForModal({ name: client.name, config: res.data.config || '' });
+      setSelectedClientForModal({
+        name: client.name,
+        container: client.container,
+        config: res.data.config || '',
+      });
       setShowQRModal(true);
     } catch {
       addToast('Erreur chargement configuration', 'error');

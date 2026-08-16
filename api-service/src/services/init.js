@@ -1,4 +1,5 @@
 const axios = require('axios');
+const crypto = require('crypto');
 const { db, sqlite, schema } = require('../../db');
 const logger = require('./logger');
 
@@ -449,6 +450,33 @@ async function initializeDatabase() {
         .prepare('SELECT id, hash, salt FROM users WHERE username = ?')
         .get(adminUser);
 
+      // BUG-FIX (verrouillage admin après redémarrage) : cette synchro écrasait
+      // SYSTÉMATIQUEMENT le mot de passe admin de la DB par celui du .env dès
+      // qu'ils différaient. Or un changement de mot de passe via l'INTERFACE ne
+      // met à jour que la DB — chaque `docker compose up` restaurait donc
+      // l'ancien mot de passe d'installation, sans que rien ne le signale.
+      // On distingue désormais les deux cas via l'empreinte du couple du .env :
+      //   - empreinte différente de la dernière appliquée → l'opérateur a changé
+      //     le .env (setup.sh --reset-password) : le .env fait foi, on synchronise.
+      //   - empreinte identique → le .env n'a pas bougé, l'écart vient de l'UI :
+      //     la DB fait foi, on ne touche à rien.
+      const envFingerprint = crypto
+        .createHash('sha256')
+        .update(`${adminUser}:${adminHash}:${adminSalt}`)
+        .digest('hex');
+      const FP_KEY = 'admin_env_credential_fingerprint';
+      const storedFingerprint = sqlite
+        .prepare('SELECT value FROM app_settings WHERE key = ?')
+        .get(FP_KEY)?.value;
+      const rememberFingerprint = () => {
+        sqlite
+          .prepare(
+            'INSERT INTO app_settings (key, value, secret) VALUES (?, ?, 0) ' +
+              'ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+          )
+          .run(FP_KEY, envFingerprint);
+      };
+
       if (!existing) {
         logger.info('db', `👤 Seeding initial admin user: ${adminUser}`);
         await db.insert(schema.users).values({
@@ -457,15 +485,29 @@ async function initializeDatabase() {
           salt: adminSalt,
           role: 'admin',
         });
+        rememberFingerprint();
         logger.info('db', '✅ Admin user seeded successfully.');
       } else if (existing.hash !== adminHash || existing.salt !== adminSalt) {
-        logger.info('db', `👤 Syncing credentials for existing admin user: ${adminUser}`);
-        await db
-          .update(schema.users)
-          .set({ hash: adminHash, salt: adminSalt })
-          .where(eq(schema.users.username, adminUser));
-        logger.info('db', '✅ Admin credentials synchronized from .env');
+        if (storedFingerprint === envFingerprint) {
+          logger.info(
+            'db',
+            'ℹ️ Admin password differs from .env but .env is unchanged — ' +
+              'keeping the database value (password changed from the UI).'
+          );
+        } else {
+          logger.info('db', `👤 Syncing credentials for existing admin user: ${adminUser}`);
+          await db
+            .update(schema.users)
+            .set({ hash: adminHash, salt: adminSalt })
+            .where(eq(schema.users.username, adminUser));
+          rememberFingerprint();
+          logger.info('db', '✅ Admin credentials synchronized from .env');
+        }
       } else {
+        // Déjà alignés : on mémorise l'empreinte pour que le PREMIER démarrage
+        // après ce correctif serve de référence (sinon le prochain changement
+        // via l'UI serait encore écrasé une fois).
+        if (storedFingerprint !== envFingerprint) rememberFingerprint();
         logger.info('db', 'ℹ️ Admin credentials already in sync.');
       }
     } else {

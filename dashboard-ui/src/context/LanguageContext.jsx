@@ -431,7 +431,7 @@ const translations = {
     import_link_generating: 'Génération du lien…',
     import_link_hint:
       'Usage unique, valable 24 h. Le client télécharge sa config .conf en ouvrant ce lien — aucun compte requis.',
-    import_link_retry: 'Générer le lien d’import',
+    import_link_retry: 'Générer un lien d’import',
     import_link_err: 'Impossible de générer le lien d’import',
     copy_link: 'Copier le lien',
     link_copied: 'Lien copié dans le presse-papiers',
@@ -1283,7 +1283,7 @@ const translations = {
     import_link_generating: 'Generating link…',
     import_link_hint:
       'Single-use, valid for 24 h. The client downloads their .conf by opening this link — no account needed.',
-    import_link_retry: 'Generate import link',
+    import_link_retry: 'Generate an import link',
     import_link_err: 'Failed to generate the import link',
     copy_link: 'Copy link',
     link_copied: 'Link copied to clipboard',
