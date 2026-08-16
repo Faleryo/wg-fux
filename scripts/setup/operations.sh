@@ -235,9 +235,13 @@ cmd_reset_password() {
     else
         log_warn "The API container must be restarted for the env change to take effect."
     fi
-    if ask_yes_no "Restart the API container now?" "y"; then
-        sudo docker compose restart api
-        log_success "API container restarted."
+    if ask_yes_no "Apply now (recreate the API container)?" "y"; then
+        # `docker compose restart` relance le MÊME conteneur : les variables
+        # d'env_file étant injectées à la CRÉATION, il ne relit jamais le .env
+        # et le nouveau mot de passe restait sans effet. `up -d` recrée le
+        # conteneur quand le .env a changé — c'est ce qui applique la modif.
+        sudo docker compose up -d api
+        log_success "API container recreated with the new credentials."
     fi
 }
 
