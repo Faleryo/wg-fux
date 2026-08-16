@@ -37,9 +37,14 @@ setInterval(
   60 * 60 * 1000
 ); // sweep every hour
 
+// Clé de révocation : jti (unique par token) quand présent, sinon username:iat
+// (tokens émis avant l'introduction du jti — rétro-compat jusqu'à leur expiration).
+const revocationKey = (decoded) =>
+  decoded.jti ? `${decoded.username}:${decoded.jti}` : `${decoded.username}:${decoded.iat}`;
+
 const blacklistToken = (decoded) => {
-  if (!decoded?.username || decoded.iat == null) return;
-  const key = `${decoded.username}:${decoded.iat}`;
+  if (!decoded?.username || (decoded.jti == null && decoded.iat == null)) return;
+  const key = revocationKey(decoded);
   tokenBlacklist.add(key);
   const expireAt = Date.now() + TOKEN_MAX_TTL_MS;
   blacklistExpiry.set(key, expireAt);
@@ -111,7 +116,7 @@ const auth = async (req, res, next) => {
         userCache.delete(decoded.username);
         return res.status(401).json({ error: 'Account expired' });
       }
-      if (tokenBlacklist.has(`${decoded.username}:${decoded.iat}`)) {
+      if (tokenBlacklist.has(revocationKey(decoded))) {
         return res.status(401).json({ error: 'Token revoked' });
       }
       req.user = {
@@ -137,7 +142,7 @@ const auth = async (req, res, next) => {
     if (user.expiry && new Date(user.expiry) < new Date()) {
       return res.status(401).json({ error: 'Account expired' });
     }
-    if (tokenBlacklist.has(`${decoded.username}:${decoded.iat}`)) {
+    if (tokenBlacklist.has(revocationKey(decoded))) {
       return res.status(401).json({ error: 'Token revoked' });
     }
 

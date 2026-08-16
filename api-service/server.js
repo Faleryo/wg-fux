@@ -180,6 +180,9 @@ app.use('/license', licenseLimiter, require('./src/routes/license'));
 // --- Auth Routes (contains both public /login and protected /check) ---
 app.use('/api/auth', authRoutes);
 
+// --- Import sécurisé par lien (PUBLIC : le jeton à usage unique EST l'auth) ---
+app.use('/api/import', require('./src/routes/import'));
+
 // --- Protected Routes (Global Auth applied at mount point) ---
 // requireOnboardedReseller : un revendeur invité par lien n'a de sens que pour
 // enregistrer son VPS (onglet Serveurs) tant qu'il n'en a aucun — voir

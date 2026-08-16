@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
@@ -118,7 +119,11 @@ router.post(
         return res
           .status(403)
           .json(
-            createError('Compte expiré. Contactez un administrateur.', null, 'ACCOUNT_EXPIRED')
+            createError(
+              'Abonnement expiré — compte suspendu. Contactez l’administrateur pour un réabonnement.',
+              null,
+              'ACCOUNT_EXPIRED'
+            )
           );
       }
 
@@ -142,9 +147,15 @@ router.post(
         runSystemCommand(getScriptPath('wg-send-msg.sh'), [message]).catch(() => {});
       }
 
-      const token = jwt.sign({ username: user.username, role: user.role }, process.env.JWT_SECRET, {
-        expiresIn: TOKEN_TTL[user.role] || '24h',
-      });
+      // `jti` rend chaque token révocable individuellement (blacklist par jti,
+      // pas seulement par username:iat qui collisionne à la même seconde).
+      const token = jwt.sign(
+        { username: user.username, role: user.role, jti: crypto.randomUUID() },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: TOKEN_TTL[user.role] || '24h',
+        }
+      );
       // `twoFactorEnabled` est renvoyé ici comme dans /auth/check : sans lui, le
       // client ne peut pas distinguer « 2FA absente » de « pas encore connue »
       // et la bannière d'incitation 2FA (MainLayout, test `=== false`) restait
@@ -239,9 +250,13 @@ router.post(
       return res.status(401).json(createError('Compte suspendu', null, 'ACCOUNT_DISABLED'));
     if (user.expiry && new Date(user.expiry) < new Date())
       return res.status(403).json(createError('Compte expiré', null, 'ACCOUNT_EXPIRED'));
-    const token = jwt.sign({ username: user.username, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: TOKEN_TTL[user.role] || '24h',
-    });
+    const token = jwt.sign(
+      { username: user.username, role: user.role, jti: crypto.randomUUID() },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: TOKEN_TTL[user.role] || '24h',
+      }
+    );
     res.json({ token, role: user.role });
   })
 );

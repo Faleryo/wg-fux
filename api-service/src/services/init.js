@@ -378,6 +378,22 @@ async function initializeDatabase() {
         sql: 'ALTER TABLE logs ADD COLUMN handshakeAt INTEGER',
         label: 'logs.handshakeAt',
       },
+      // Phase 40-42 — lien d'import sécurisé du .conf (jeton haché + expiration).
+      {
+        version: 40,
+        sql: 'ALTER TABLE clients ADD COLUMN importTokenHash TEXT',
+        label: 'clients.importTokenHash',
+      },
+      {
+        version: 41,
+        sql: 'ALTER TABLE clients ADD COLUMN importTokenExpiry INTEGER',
+        label: 'clients.importTokenExpiry',
+      },
+      {
+        version: 42,
+        sql: 'CREATE INDEX IF NOT EXISTS import_token_idx ON clients(importTokenHash)',
+        label: 'import_token_idx index',
+      },
     ];
 
     for (const m of migrations) {

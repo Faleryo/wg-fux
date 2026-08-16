@@ -48,42 +48,26 @@ if [ "$USE_JSON" -eq 1 ]; then
  exit 0
  fi
 
- echo "["
- FIRST=1
- while IFS=$'\t' read -r pub _psk endpoint allowed_ips handshake rx tx keepalive; do
- [ -z "$pub" ] && continue
-
- if [ "$FIRST" -eq 0 ]; then echo ","; fi
-
- is_online="false"
- # handshake=0 means never connected
- actual_handshake=${handshake:-0}
- if [ "$actual_handshake" -gt 0 ] && [ $((NOW - actual_handshake)) -lt 180 ]; then
- is_online="true"
- fi
-
- # DIAMOND STABILIZATION: Force default 0 for numeric fields to avoid printf errors
-  # Escape JSON-string fields (control chars, \, ")
-  json_escape() { printf '%s' "$1" | sed 's/[[:cntrl:]]//g; s/\\/\\\\/g; s/"/\\"/g'; }
-  pub_s=$(json_escape "$pub")
-  endpoint_s=$(json_escape "${endpoint:-}")
-  allowed_s=$(json_escape "$allowed_ips")
-  keepalive_s=$(json_escape "${keepalive:-0}")
-
- printf ' {
-  "publicKey": "%s",
-  "endpoint": "%s",
-  "allowedIps": "%s",
-  "lastHandshake": %d,
-  "rx": %d,
-  "tx": %d,
-  "isOnline": %s,
-  "keepalive": "%s"
- }' "$pub_s" "$endpoint_s" "$allowed_s" "${actual_handshake:-0}" "${rx:-0}" "${tx:-0}" "$is_online" "$keepalive_s"
-
- FIRST=0
- done <<< "$DUMP"
- echo -e "\n]"
+ # PERF: la boucle bash historique spawnait 4 `sed` PAR PEER (json_escape ×4)
+ # → 100 peers = 400 processus par appel, appelé toutes les ~5 s par dashboard.
+ # awk fait tout le JSON en UN seul processus.
+ printf '%s\n' "$DUMP" | awk -F'\t' -v now="$NOW" '
+ function esc(s) {
+  gsub(/[[:cntrl:]]/, "", s)
+  gsub(/\\/, "\\\\", s)
+  gsub(/"/, "\\\"", s)
+  return s
+ }
+ BEGIN { print "["; first = 1 }
+ $1 != "" {
+  hs = $5 + 0; rx = $6 + 0; tx = $7 + 0
+  ka = ($8 == "") ? "0" : $8
+  online = (hs > 0 && now - hs < 180) ? "true" : "false"
+  printf "%s {\"publicKey\": \"%s\", \"endpoint\": \"%s\", \"allowedIps\": \"%s\", \"lastHandshake\": %d, \"rx\": %d, \"tx\": %d, \"isOnline\": %s, \"keepalive\": \"%s\"}", \
+    (first ? "" : ",\n"), esc($1), esc($3), esc($4), hs, rx, tx, online, esc(ka)
+  first = 0
+ }
+ END { print "\n]" }'
 else
  # Standard output
  /usr/bin/wg show "$IFACE"

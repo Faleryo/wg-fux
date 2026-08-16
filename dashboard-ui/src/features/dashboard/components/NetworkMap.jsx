@@ -47,19 +47,39 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
     [enrichedClients]
   );
 
+  // Hauteur adaptée à l'espace RÉELLEMENT disponible : l'ancien
+  // h-[calc(100vh-100px)] ignorait le header et les paddings du layout → la
+  // carte débordait de l'écran (scroll vertical permanent sur la topologie).
+  const [mapHeight, setMapHeight] = useState(560);
+
   useEffect(() => {
     const updateDimensions = () => {
-      if (containerRef.current) {
-        setDimensions({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight,
-        });
-      }
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      // Position absolue du panneau dans la page (indépendante du scroll).
+      const absoluteTop = rect.top + window.scrollY;
+      const BOTTOM_GAP = 24;
+      setMapHeight(Math.max(420, window.innerHeight - absoluteTop - BOTTOM_GAP));
+      setDimensions({
+        width: containerRef.current.offsetWidth,
+        height: containerRef.current.offsetHeight,
+      });
     };
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
+
+  // Re-mesurer une fois la hauteur appliquée (la 1ère passe lit offsetHeight
+  // avant que style.height ne soit posé).
+  useEffect(() => {
+    if (containerRef.current) {
+      setDimensions({
+        width: containerRef.current.offsetWidth,
+        height: containerRef.current.offsetHeight,
+      });
+    }
+  }, [mapHeight]);
 
   const handleMouseDown = (e) => {
     if (e.target.closest('button')) return;
@@ -130,13 +150,14 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
   };
 
   if (dimensions.width === 0)
-    return <div ref={containerRef} className="col-span-12 w-full h-[calc(100vh-100px)]" />;
+    return <div ref={containerRef} className="col-span-12 w-full" style={{ height: mapHeight }} />;
 
   return (
     <div
       ref={containerRef}
+      style={{ height: mapHeight }}
       className={cn(
-        'col-span-12 w-full relative h-[calc(100vh-100px)] backdrop-blur-xl rounded-3xl border overflow-hidden group select-none shadow-2xl cursor-grab active:cursor-grabbing transition-all',
+        'col-span-12 w-full relative backdrop-blur-xl rounded-3xl border overflow-hidden group select-none shadow-2xl cursor-grab active:cursor-grabbing transition-all',
         isDark ? 'bg-slate-900/40 border-white/5' : 'bg-white/80 border-black/5'
       )}
       onMouseDown={handleMouseDown}

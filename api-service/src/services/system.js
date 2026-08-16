@@ -70,21 +70,38 @@ const parseWireGuardDump = (peers) => {
   return Array.isArray(peers) ? peers : [];
 };
 
+// Cache TTL court + dédoublonnage des appels en vol : wg-stats.sh est invoqué
+// par CHAQUE dashboard connecté (GET /clients + /system/stats toutes les 5-15 s),
+// le broadcast WS (5 s) et les jobs (60 s). Sans cache, N onglets ouverts = N
+// spawns de script par tick sur un VPS mono-cœur. Un instantané vieux de ≤3 s
+// est indistinguable à l'écran (le polling UI est ≥5 s).
+const WG_STATS_TTL_MS = 3000;
+const _wgStatsCache = new Map(); // iface → { ts, promise }
+
 const getWireGuardStats = async (iface) => {
-  try {
-    const targetIface = iface || process.env.WG_INTERFACE || 'wg0';
-    if (!isValidName(targetIface)) {
-      log.error('system', `Invalid interface name: ${targetIface}`);
-      return [];
-    }
-    const result = await executeScript('wg-stats.sh', [targetIface], {
-      json: true,
-    });
-    return result.success ? result.data || [] : [];
-  } catch (e) {
-    log.error('system', 'getWireGuardStats failed', { error: e.message });
+  const targetIface = iface || process.env.WG_INTERFACE || 'wg0';
+  if (!isValidName(targetIface)) {
+    log.error('system', `Invalid interface name: ${targetIface}`);
     return [];
   }
+  const cached = _wgStatsCache.get(targetIface);
+  if (cached && Date.now() - cached.ts < WG_STATS_TTL_MS) return cached.promise;
+
+  const promise = (async () => {
+    try {
+      const result = await executeScript('wg-stats.sh', [targetIface], {
+        json: true,
+      });
+      return result.success ? result.data || [] : [];
+    } catch (e) {
+      log.error('system', 'getWireGuardStats failed', { error: e.message });
+      return [];
+    }
+  })();
+  // Les échecs sont aussi cachés pendant le TTL : sur une machine sans wg0
+  // (ex. la mère), ça évite une tempête de spawns qui échouent en boucle.
+  _wgStatsCache.set(targetIface, { ts: Date.now(), promise });
+  return promise;
 };
 
 const getClientDir = (container, name) => {

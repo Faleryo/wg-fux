@@ -219,7 +219,7 @@ const UsersSection = ({
                         const label = isSuspended
                           ? t('status_suspended')
                           : isExpired
-                            ? t('status_expired')
+                            ? t('user_status_expired')
                             : t('status_active');
                         return (
                           <div

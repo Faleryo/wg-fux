@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const nodeCrypto = require('crypto');
 const path = require('path');
 const fsPromises = require('fs').promises;
 const { db, schema } = require('../../db');
@@ -14,7 +15,9 @@ const {
   containerSchema,
   paginationSchema,
 } = require('../../db/validation');
-const { auth, requireManager, requireAdmin } = require('../middleware/auth');
+// `auth` est appliqué au point de montage (server.js: app.use('/api/clients', auth, …)) —
+// il ne doit PAS être répété par route (il s'exécutait deux fois par requête).
+const { requireManager, requireAdmin } = require('../middleware/auth');
 const {
   runSystemCommand,
   writeFileAsRoot,
@@ -144,7 +147,6 @@ async function resolveAllowedIps(client, container, name, executor) {
 
 router.get(
   '/containers',
-  auth,
   asyncWrap(async (req, res) => {
     // ISOLATION D'ESPACE : la vue Conteneurs ne liste QUE les conteneurs de
     // l'utilisateur courant (owner == username), quel que soit son rôle. Ainsi
@@ -191,7 +193,6 @@ router.get(
 
 router.post(
   '/containers',
-  auth,
   requireLicense,
   creationLimiter,
   asyncWrap(async (req, res) => {
@@ -234,7 +235,6 @@ router.post(
 
 router.delete(
   '/containers/:name',
-  auth,
   asyncWrap(async (req, res) => {
     const { name } = req.params;
 
@@ -274,7 +274,6 @@ router.delete(
 
 router.get(
   '/',
-  auth,
   asyncWrap(async (req, res) => {
     // Stats live `wg show` : LOCAL uniquement. Pour un VPS distant on ne lit pas
     // l'état temps réel ici (déféré) — la liste vient de la DB scopée par serveur.
@@ -370,7 +369,6 @@ router.get(
 
 router.get(
   '/export',
-  auth,
   asyncWrap(async (req, res) => {
     const format = req.query.format === 'json' ? 'json' : 'csv';
     let allClients = await db.select().from(schema.clients);
@@ -414,7 +412,6 @@ router.get(
 
 router.post(
   '/',
-  auth,
   requireLicense,
   requireClientCapacity,
   creationLimiter,
@@ -645,7 +642,6 @@ router.post(
 
 router.post(
   '/:container/:name/toggle',
-  auth,
   asyncWrap(async (req, res) => {
     const parsed = toggleSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -721,7 +717,6 @@ router.post(
 
 router.delete(
   '/:container/:name',
-  auth,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
 
@@ -761,7 +756,6 @@ router.delete(
 
 router.patch(
   '/:container/:name',
-  auth,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
     const parsed = clientPatchSchema.safeParse(req.body);
@@ -872,7 +866,6 @@ function computeNewExpiry(currentExpiry, days) {
 // ─────────────────────────────────────────────────────────────────────────────
 router.post(
   '/:container/:name/renew',
-  auth,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
     const days = parseInt(req.body?.days, 10);
@@ -961,7 +954,6 @@ router.post(
 
 router.post(
   '/bulk-update',
-  auth,
   asyncWrap(async (req, res) => {
     const parsed = bulkUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -1091,7 +1083,6 @@ router.post(
 
 router.post(
   '/bulk-delete',
-  auth,
   asyncWrap(async (req, res) => {
     const parsed = bulkDeleteSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -1160,7 +1151,6 @@ router.post(
 
 router.post(
   '/move',
-  auth,
   asyncWrap(async (req, res) => {
     const parsed = moveClientSchema.safeParse(req.body);
     if (!parsed.success)
@@ -1204,7 +1194,6 @@ router.post(
 
 router.get(
   '/:container/:name/history',
-  auth,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
     const parsed = paginationSchema.safeParse(req.query);
@@ -1231,7 +1220,6 @@ router.get(
 
 router.get(
   '/:container/:name/history-hours',
-  auth,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
     const [client] = await db
@@ -1254,7 +1242,6 @@ router.get(
 
 router.get(
   '/:container/:name/config',
-  auth,
   asyncWrap(async (req, res) => {
     const { container, name } = req.params;
     const [client] = await db
@@ -1281,6 +1268,47 @@ router.get(
   })
 );
 
+// Lien d'import sécurisé : génère un jeton aléatoire (256 bits), n'en stocke
+// que le SHA-256, et renvoie une URL publique GET /api/import/<jeton> valable
+// IMPORT_LINK_TTL_MS et à usage unique. Regénérer un lien invalide le précédent.
+const IMPORT_LINK_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
+router.post(
+  '/:container/:name/import-link',
+  asyncWrap(async (req, res) => {
+    // Validation des identifiants et contrôle de propriété : assurés en amont
+    // par router.param('container'/'name') — cf. OBSIDIAN-HARDENING plus haut.
+    const { container, name } = req.params;
+    const [client] = await db
+      .select()
+      .from(schema.clients)
+      .where(and(eq(schema.clients.container, container), eq(schema.clients.name, name)))
+      .limit(1);
+    if (!client) return res.status(404).json(createError('Client not found', null, 'NOT_FOUND'));
+
+    const token = nodeCrypto.randomBytes(32).toString('base64url');
+    const tokenHash = nodeCrypto.createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + IMPORT_LINK_TTL_MS);
+    await db
+      .update(schema.clients)
+      .set({ importTokenHash: tokenHash, importTokenExpiry: expiresAt })
+      .where(eq(schema.clients.id, client.id));
+
+    await auditLog({
+      actor: req.user.username,
+      action: 'create_import_link',
+      targetType: 'client',
+      targetName: `${container}/${name}`,
+      ip: req.ip,
+    });
+
+    const base = (process.env.PLATFORM_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(
+      /\/+$/,
+      ''
+    );
+    res.json({ url: `${base}/api/import/${token}`, expiresAt: expiresAt.toISOString() });
+  })
+);
+
 // SQLite's SQLITE_MAX_VARIABLE_NUMBER is 32766 on modern versions but we use a
 // conservative batch size to avoid issues on older builds or very large arrays.
 const SQLITE_BATCH = 500;
@@ -1298,7 +1326,6 @@ const inArrayBatched = async (table, column, ids, selectFn) => {
 // Returns { [containerName]: { totalClients, activeClients, totalBytes, owner } }
 router.get(
   '/stats/by-container',
-  auth,
   asyncWrap(async (req, res) => {
     const allContainers = await db.select().from(schema.containers);
     const visible =
@@ -1427,7 +1454,6 @@ async function buildReconcileReport() {
 
 router.get(
   '/reconcile',
-  auth,
   requireManager,
   asyncWrap(async (req, res) => {
     if (req.serverId) {
@@ -1446,7 +1472,6 @@ router.get(
 // serveur — on ne supprime jamais sur la foi d'une liste envoyée par le client.
 router.post(
   '/reconcile',
-  auth,
   requireAdmin,
   asyncWrap(async (req, res) => {
     if (req.serverId) {

@@ -3,12 +3,12 @@ import {
   Plus,
   RefreshCw,
   Smartphone,
-  Laptop,
-  Globe,
-  Info,
   Clock,
   Database,
   Gauge,
+  Link2,
+  Copy,
+  CheckCircle2,
 } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
@@ -30,10 +30,37 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
   const [expiryDuration, setExpiryDuration] = useState({ value: 30, unit: 'days' });
   const [isUnlimited, setIsUnlimited] = useState(false);
   const [selectedContainer, setSelectedContainer] = useState(null);
+  // Étape post-création : peer créé + lien d'import sécurisé (usage unique, 24 h).
+  const [created, setCreated] = useState(null); // { name, container } | null
+  const [importLink, setImportLink] = useState(null); // { url, expiresAt } | null
+  const [linkLoading, setLinkLoading] = useState(false);
   // Sync guard: setLoading(true) only flips the disabled prop after a re-render,
   // so two clicks in the same frame both reach handleSubmit. This ref blocks
   // the second call instantly.
   const submittingRef = useRef(false);
+
+  const generateImportLink = async (container, clientName) => {
+    setLinkLoading(true);
+    try {
+      const res = await axiosInstance.post(`/clients/${container}/${clientName}/import-link`);
+      setImportLink(res.data);
+    } catch {
+      setImportLink(null);
+      addToast(t('import_link_err'), 'error');
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const copyImportLink = async () => {
+    if (!importLink?.url) return;
+    try {
+      await navigator.clipboard.writeText(importLink.url);
+      addToast(t('link_copied'), 'success');
+    } catch {
+      addToast(importLink.url, 'info');
+    }
+  };
 
   const generateSuggestion = (cnt) => {
     if (!cnt) return;
@@ -63,6 +90,8 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
       setExpiryDuration({ value: 30, unit: 'days' });
       setIsUnlimited(false);
       setSelectedContainer(null);
+      setCreated(null);
+      setImportLink(null);
       if (targetContainer) {
         generateSuggestion(targetContainer);
       }
@@ -97,7 +126,11 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
 
         await onCreate(name, activeContainer, expiry, quota, uploadLimit);
         addToast(`Peer ${name} ${t('peer_created_ok')}`, 'success');
-        onClose();
+        // Étape suivante DANS le modal : lien d'import sécurisé du .conf,
+        // généré automatiquement (usage unique, 24 h).
+        const createdName = name.trim();
+        setCreated({ name: createdName, container: activeContainer });
+        generateImportLink(activeContainer, createdName);
       } catch (error) {
         const status = error?.response?.status;
         const serverMsg = error?.response?.data?.error;
@@ -119,6 +152,77 @@ const CreateClientModal = ({ isOpen, onClose, onCreate, targetContainer, allCont
       }
     }
   };
+
+  if (created) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title={t('import_link_title')} maxWidth="max-w-xl">
+        <div className="space-y-8">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+              <CheckCircle2 className="text-emerald-400" size={24} />
+            </div>
+            <div>
+              <p className="font-black text-slate-900 dark:text-white">
+                {created.name}{' '}
+                <span className="text-slate-500 font-bold">({created.container})</span>
+              </p>
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                {t('peer_created_ok')}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+            <div className="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest">
+              <Link2 size={14} /> {t('import_link_label')}
+            </div>
+            {linkLoading ? (
+              <div className="flex items-center gap-3 text-slate-400 text-sm">
+                <RefreshCw className="animate-spin" size={16} /> {t('import_link_generating')}
+              </div>
+            ) : importLink ? (
+              <>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={importLink.url}
+                    onFocus={(e) => e.target.select()}
+                    className="flex-1 px-4 py-3 glass-input rounded-xl font-mono text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={copyImportLink}
+                    className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all"
+                    title={t('copy_link')}
+                  >
+                    <Copy size={16} />
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 italic">{t('import_link_hint')}</p>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => generateImportLink(created.container, created.name)}
+                className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-black uppercase tracking-widest transition-all"
+              >
+                {t('import_link_retry')}
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-4 bg-white/5 hover:bg-white/10 text-slate-400 font-black uppercase text-xs tracking-[0.2em] rounded-2xl border border-white/5 hover:border-white/10 transition-all"
+          >
+            {t('close')}
+          </button>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('peer_init_title')} maxWidth="max-w-xl">

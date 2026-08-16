@@ -182,10 +182,16 @@ const clients = sqliteTable(
       sql`(cast(strftime('%s','now') as int))`
     ),
     enabled: integer('enabled', { mode: 'boolean' }).default(true),
+    // Lien d'import sécurisé : on stocke le SHA-256 du jeton (jamais le jeton
+    // en clair) + son expiration. Usage unique : les deux champs sont remis à
+    // NULL au premier téléchargement.
+    importTokenHash: text('importTokenHash'),
+    importTokenExpiry: integer('importTokenExpiry', { mode: 'timestamp' }),
   },
   (table) => ({
     pubKeyIdx: uniqueIndex('pubkey_idx').on(table.publicKey),
     containerIdx: index('container_idx').on(table.container),
+    importTokenIdx: index('import_token_idx').on(table.importTokenHash),
   })
 );
 
