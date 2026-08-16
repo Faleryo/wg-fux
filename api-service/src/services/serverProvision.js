@@ -55,11 +55,30 @@ class ServerConflictError extends Error {}
 //     script est inspectable et le token passe par l'ENV, pas en argv.
 //   - `HISTFILE réinitialisé` dans le sous-shell : le token de provisioning ne
 //     fuit pas dans l'historique du shell appelant.
+// Encapsule une chaîne en guillemets simples POSIX. Chaque ' interne devient
+// '\'' (fermer / ' littéral / rouvrir) — sans quoi un guillemet simple dans le
+// corps referme la chaîne et `bash -c` ne reçoit qu'un FRAGMENT du script.
+// C'était le cas : `trap '...'`, `--proto '=https'` et `printf '...'` coupaient
+// le one-liner en 4 arguments, `bash -c` n'exécutant que le premier — il
+// s'arrêtait à `trap rm` (erreur « trap : utilisation »), sans jamais
+// télécharger ni installer quoi que ce soit.
+function shQuote(s) {
+  return `'${String(s).replace(/'/g, `'\\''`)}'`;
+}
+
 function buildOneLiner({ token, scriptSha256, base }) {
-  const tlsPin = (process.env.TLS_PINNED_PUBKEY || '').trim();
-  const pinFlag = tlsPin ? `--pinnedpubkey '${tlsPin}' ` : '';
-  // Corps exécuté par `bash -c`. Guillemets DOUBLES dans le corps uniquement
-  // (le corps est lui-même entre guillemets simples côté shell appelant).
+  // Le pin est repris tel quel dans le corps : on refuse tout caractère hors
+  // du format attendu (sha256//<base64>) plutôt que de risquer une injection.
+  const rawPin = (process.env.TLS_PINNED_PUBKEY || '').trim();
+  const tlsPin = /^[A-Za-z0-9+/=:;,\-_/]*$/.test(rawPin) ? rawPin : '';
+  if (rawPin && !tlsPin) {
+    log.warn('servers', 'TLS_PINNED_PUBKEY ignoré : format inattendu');
+  }
+  const pinFlag = tlsPin ? `--pinnedpubkey "${tlsPin}" ` : '';
+  // Corps exécuté par `bash -c`. On n'utilise QUE des guillemets doubles ici :
+  // le corps reste lisible une fois encapsulé (pas de '\'' dans la commande
+  // affichée au revendeur). shQuote() reste la garantie de correction si un
+  // guillemet simple réapparaît un jour.
   const body = [
     'set -euo pipefail',
     'umask 077',
@@ -67,14 +86,16 @@ function buildOneLiner({ token, scriptSha256, base }) {
     'command -v sha256sum >/dev/null 2>&1 || { echo "sha256sum requis" >&2; exit 1; }',
     '[ -n "$WG_H" ] || { echo "hash manquant" >&2; exit 1; }',
     'F=$(mktemp /tmp/wg-fux.XXXXXX.sh)',
-    'trap \'rm -f "$F"\' EXIT',
-    `curl --proto '=https' --tlsv1.2 ${pinFlag}-fsSL -o "$F" "${base}/provision/$WG_T/script"`,
-    'printf \'%s  %s\\n\' "$WG_H" "$F" | sha256sum -c - >/dev/null',
+    // \$F est échappé : l'action du trap doit être évaluée à la SORTIE, pas
+    // au moment où le trap est posé.
+    'trap "rm -f \\"\\$F\\"" EXIT',
+    `curl --proto =https --tlsv1.2 ${pinFlag}-fsSL -o "$F" "${base}/provision/$WG_T/script"`,
+    'printf "%s  %s\\n" "$WG_H" "$F" | sha256sum -c - >/dev/null',
     'bash "$F"',
   ].join('; ');
   // Le token passe par l'ENV du sous-shell (pas répété en argv d'exec) et
   // HISTFILE est neutralisé dans ce sous-shell.
-  return `WG_T=${token} WG_H=${scriptSha256} bash -c 'unset HISTFILE; ${body}'`;
+  return `WG_T=${token} WG_H=${scriptSha256} bash -c ${shQuote(`unset HISTFILE; ${body}`)}`;
 }
 
 function platformBase(req) {
@@ -208,4 +229,7 @@ module.exports = {
   PROVISION_TOKEN_TTL_MS,
   LICENSE_TRIAL_MS,
   LICENSE_REENROLL_MS,
+  // Exporté pour que les tests vérifient le QUOTING réel du one-liner
+  // (tokenisation shell), pas seulement la présence de sous-chaînes.
+  buildOneLiner,
 };
