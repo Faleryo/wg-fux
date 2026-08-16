@@ -15,9 +15,27 @@ const SENTINEL_INTERVAL = 15000;
 
 const HEAVY_SECTIONS = new Set(['dashboard', 'containers', 'topology']);
 
+// Les objets client sont plats (scalaires) : une égalité superficielle suffit
+// pour décider de réutiliser l'objet précédent (identité stable → memo() des
+// ClientCard efficace, seuls les clients dont les compteurs bougent re-rendent).
+const shallowEqual = (a, b) => {
+  if (a === b) return true;
+  const ka = Object.keys(a);
+  if (ka.length !== Object.keys(b).length) return false;
+  return ka.every((k) => Object.is(a[k], b[k]));
+};
+
+// Pour les petits objets/tableaux re-fetchés à chaque tick (stats, health,
+// interfaces…) : ne déclencher un re-render que si le contenu a changé.
+const jsonEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const setIfChanged = (setter, next) => setter((prev) => (jsonEqual(prev, next) ? prev : next));
+
 const useDashboardData = (session, activeSection = 'dashboard', selectedServerId = 'local') => {
   const { addToast } = useToast();
   const prevDataRef = useRef({ clients: [], timestamp: null });
+  // Derniers objets client rendus, indexés par publicKey — sert à réutiliser
+  // les références quand rien n'a changé (cf. clientsWithRates plus bas).
+  const renderedClientsRef = useRef({ byKey: new Map(), list: [] });
   const suppressWsUntilRef = useRef(0);
   const suppressWsToast = useCallback(() => {
     suppressWsUntilRef.current = Date.now() + 3000;
@@ -52,7 +70,7 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
     }
     try {
       const res = await axiosInstance.get('/system/adguard-status');
-      setAdguardStatus(res.data);
+      setIfChanged(setAdguardStatus, res.data);
     } catch {
       setAdguardStatus({ status: 'inactive' });
     }
@@ -63,7 +81,8 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
     onMessage: (data) => {
       if (!data || typeof data !== 'object') return;
       if (data.type === 'peer_status' && Array.isArray(data.onlinePeers)) {
-        setOnlinePeers(data.onlinePeers);
+        // Broadcast toutes les 5 s : ne re-rendre que si la liste a changé.
+        setIfChanged(setOnlinePeers, data.onlinePeers);
         return;
       }
       const isPeerEvent =
@@ -91,7 +110,7 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
   const fetchSentinel = useCallback(async () => {
     try {
       const res = await axiosInstance.get('/sentinel/status');
-      setSentinelStatus(res.data);
+      setIfChanged(setSentinelStatus, res.data);
     } catch {
       setSentinelStatus((prev) => ({ ...prev, status: 'error' }));
     }
@@ -162,18 +181,24 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
       if (signal.aborted) return;
 
       const fetchedInterfaces = interfacesRes.data || [];
-      setInterfaces(fetchedInterfaces);
+      setIfChanged(setInterfaces, fetchedInterfaces);
 
       const now = Date.now();
       const fetchedClients = clientsRes.data || [];
       const { clients: prevClients, timestamp: prevTimestamp } = prevDataRef.current;
       const timeDiff = prevTimestamp ? (now - prevTimestamp) / 1000 : 0;
 
-      setAllContainers(containersRes.data || []);
-      setUsers(usersRes.data || []);
+      setIfChanged(setAllContainers, containersRes.data || []);
+      setIfChanged(setUsers, usersRes.data || []);
 
+      // Index O(1) : prevClients.find() dans la boucle était O(n²) par poll
+      // (500 clients ≈ 250 000 comparaisons toutes les 5-15 s).
+      const prevByKey = new Map(prevClients.map((p) => [p.publicKey, p]));
+      const rendered = renderedClientsRef.current;
+      const nextRendered = new Map();
+      let allReused = fetchedClients.length === rendered.list.length;
       const clientsWithRates = fetchedClients.map((client) => {
-        const prevClient = prevClients.find((p) => p.publicKey === client.publicKey);
+        const prevClient = prevByKey.get(client.publicKey);
         const currentDown = Number(client.downloadBytes) || 0;
         const currentUp = Number(client.uploadBytes) || 0;
         const prevDown = prevClient ? Number(prevClient.downloadBytes) || 0 : 0;
@@ -184,16 +209,28 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
           downloadRate = Math.max(0, (currentDown - prevDown) / timeDiff);
           uploadRate = Math.max(0, (currentUp - prevUp) / timeDiff);
         }
-        return { ...client, downloadRate, uploadRate };
+        const next = { ...client, downloadRate, uploadRate };
+        const old = rendered.byKey.get(client.publicKey);
+        if (old && shallowEqual(old, next)) {
+          nextRendered.set(client.publicKey, old);
+          return old;
+        }
+        allReused = false;
+        nextRendered.set(client.publicKey, next);
+        return next;
       });
+      // Si aucun client n'a bougé, on garde l'identité du tableau : setClients
+      // reçoit la même référence et React saute le re-render complet.
+      const stableList = allReused ? rendered.list : clientsWithRates;
+      renderedClientsRef.current = { byKey: nextRendered, list: stableList };
 
-      setClients(clientsWithRates);
+      setClients(stableList);
       prevDataRef.current = { clients: fetchedClients, timestamp: now };
 
       let networkStats;
       if (isManager) {
         networkStats = statsRes.data?.network || {};
-        setSystemStats(statsRes.data?.system || { cpu: 0, memory: 0, disk: 0 });
+        setIfChanged(setSystemStats, statsRes.data?.system || { cpu: 0, memory: 0, disk: 0 });
       } else {
         const totalRx = fetchedClients.reduce((a, c) => a + (Number(c.downloadBytes) || 0), 0);
         const totalTx = fetchedClients.reduce((a, c) => a + (Number(c.uploadBytes) || 0), 0);
@@ -202,10 +239,10 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
           totalUpload: formatBytes(totalTx),
           connectedClients: fetchedClients.filter((c) => c.isOnline).length,
         };
-        setSystemStats({ cpu: 0, memory: 0, disk: 0 });
+        setIfChanged(setSystemStats, { cpu: 0, memory: 0, disk: 0 });
       }
-      setStats(networkStats);
-      setHealth({
+      setIfChanged(setStats, networkStats);
+      setIfChanged(setHealth, {
         ...(healthRes.data || { status: 'unknown' }),
         ready: readyCheckRes.data?.status === 'ready',
       });
@@ -263,6 +300,7 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
       return;
     }
     prevDataRef.current = { clients: [], timestamp: null };
+    renderedClientsRef.current = { byKey: new Map(), list: [] };
     setClients([]);
     setAllContainers([]);
     setLoading(true);
