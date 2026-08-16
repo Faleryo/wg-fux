@@ -1,6 +1,11 @@
 #!/bin/bash
 # Swap, SSL bootstrap & Let's Encrypt orchestration.
 
+# Espace disque à préserver pour les images Docker de la pile (api, ui, AdGuard,
+# nginx, certbot) et leur construction. En dessous, `docker build` meurt sur
+# « no space left on device ».
+DOCKER_RESERVE_MB="${DOCKER_RESERVE_MB:-4500}"
+
 setup_swap() {
     local target_mb=4096
     local ram_mb; ram_mb=$(($(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024))
@@ -20,6 +25,28 @@ setup_swap() {
         log_info "Re-enabling existing swap file."
         sudo swapon "$SWAP_FILE" 2>/dev/null || true
         return 0
+    fi
+
+    # BUG-FIX (constaté sur un VPS 8,7 Go) : la taille était figée à 4096 Mo,
+    # sans regarder le disque. Sur une petite machine le fichier d'échange
+    # avalait la moitié du volume, puis la construction Docker mourait sur
+    # « no space left on device » — l'installation échouait sans que la cause
+    # soit lisible. On dimensionne désormais sur la place RÉELLEMENT libre, en
+    # réservant de quoi construire les images.
+    local free_mb
+    free_mb=$(df -Pm / | awk 'NR==2 {print $4}')
+    free_mb="${free_mb:-0}"
+    local budget_mb=$(( free_mb - DOCKER_RESERVE_MB ))
+
+    if [ "$budget_mb" -lt 512 ]; then
+        log_warn "Disque trop juste pour un fichier d'échange (${free_mb}MB libres, ${DOCKER_RESERVE_MB}MB réservés aux images)."
+        log_warn "Poursuite SANS swap — sur une machine à faible RAM, la construction peut être lente ou échouer."
+        return 0
+    fi
+
+    if [ "$budget_mb" -lt "$target_mb" ]; then
+        log_info "Fichier d'échange réduit à ${budget_mb}MB (au lieu de ${target_mb}MB) : ${free_mb}MB libres sur le disque."
+        target_mb="$budget_mb"
     fi
 
     log_info "Creating ${target_mb}MB swap file at $SWAP_FILE…"

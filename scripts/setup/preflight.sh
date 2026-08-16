@@ -16,11 +16,16 @@ preflight_scan() {
         log_success "  ram           : ${ram_mb}MB"
     fi
 
+    # Seuil calibré sur une installation réelle : les images de la pile (api, ui,
+    # AdGuard, nginx, certbot) + leur construction occupent ~4,5 Go. En dessous
+    # de 6 Go libres, `docker build` échoue en cours de route sur « no space left
+    # on device » — mieux vaut le dire ICI que vingt minutes plus tard.
     local free_kb free_gb
     free_kb=$(df -k / | awk 'NR==2 {print $4}')
     free_gb=$((free_kb / 1024 / 1024))
-    if [ "$free_gb" -lt 5 ]; then
-        log_warn "  disk free /   : ${free_gb}GB (<5GB — may run out during build)"
+    if [ "$free_gb" -lt 6 ]; then
+        log_warn "  disk free /   : ${free_gb}GB (<6GB — la construction des images risque d'échouer ;"
+        log_warn "                  prévoir ~6GB libres, ou un disque de 15GB pour être confortable)"
     else
         log_success "  disk free /   : ${free_gb}GB"
     fi
