@@ -49,6 +49,8 @@ const NetworkSection = ({ userRole }) => {
   const isAdmin = userRole === 'admin';
 
   const [wallet, setWallet] = useState(null);
+  // Agrégats de revenus (CA / marge / meilleurs acheteurs) — GET /wallet/business.
+  const [business, setBusiness] = useState(null);
   const [network, setNetwork] = useState([]);
   const [brand, setBrand] = useState({ name: '', logoUrl: '', primaryColor: '', customDomain: '' });
   const [loading, setLoading] = useState(true);
@@ -79,12 +81,14 @@ const NetworkSection = ({ userRole }) => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [w, n, b] = await Promise.all([
+      const [w, n, b, biz] = await Promise.all([
         axiosInstance.get('/wallet').catch(() => ({ data: null })),
         axiosInstance.get('/resellers').catch(() => ({ data: [] })),
         axiosInstance.get('/brand').catch(() => ({ data: { own: null } })),
+        axiosInstance.get('/wallet/business').catch(() => ({ data: null })),
       ]);
       setWallet(w.data);
+      setBusiness(biz.data);
       setNetwork(Array.isArray(n.data) ? n.data : []);
       const own = b.data?.own || {};
       setBrand({
@@ -412,6 +416,79 @@ const NetworkSection = ({ userRole }) => {
           </div>
         </GlassCard>
       </div>
+
+      {/* Revenus : CA / marge (mois + total) et classement des acheteurs. */}
+      <GlassCard hover={false}>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
+            <TrendingUp size={18} /> {t('revenue_title')}
+          </h3>
+          <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+            {t('revenue_month_hint')}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: t('revenue_month'), value: euros(business?.month?.revenueCents), accent: 'text-white' },
+            {
+              label: t('margin_month'),
+              value: euros(business?.month?.marginCents),
+              accent: (business?.month?.marginCents ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400',
+            },
+            { label: t('revenue_total'), value: euros(business?.total?.revenueCents), accent: 'text-white' },
+            {
+              label: t('credits_sold'),
+              value: business?.total?.creditsSold ?? '—',
+              accent: 'text-indigo-300',
+            },
+          ].map((c) => (
+            <div key={c.label} className="p-4 rounded-2xl bg-white/5 border border-white/5">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                {c.label}
+              </div>
+              <div className={cn('text-2xl font-black', c.accent)}>{c.value}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-3">
+          {t('top_buyers')}
+        </div>
+        {!business || business.topBuyers.length === 0 ? (
+          <p className="text-[11px] text-slate-500 italic">{t('top_buyers_empty')}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[420px]">
+              <thead>
+                <tr className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <th className="pb-2">{t('reseller_word')}</th>
+                  <th className="pb-2 text-right">{t('credits_word')}</th>
+                  <th className="pb-2 text-right">{t('revenue_word')}</th>
+                  <th className="pb-2 text-right">{t('last_purchase')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {business.topBuyers.map((b, i) => (
+                  <tr key={b.id} className="border-t border-white/5">
+                    <td className="py-2.5 font-bold text-white">
+                      <span className="text-slate-600 font-mono mr-2">{i + 1}</span>
+                      {b.username}
+                    </td>
+                    <td className="py-2.5 text-right font-mono text-slate-300">{b.credits}</td>
+                    <td className="py-2.5 text-right font-mono font-black text-emerald-400">
+                      {euros(b.revenueCents)}
+                    </td>
+                    <td className="py-2.5 text-right text-[11px] text-slate-500">
+                      {b.lastAt ? new Date(b.lastAt * 1000).toLocaleDateString('fr-FR') : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </GlassCard>
 
       {/* Statistiques business (12 mois) */}
       <NetworkStats />

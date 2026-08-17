@@ -84,9 +84,111 @@ router.get(
   })
 );
 
+// Début du mois courant (UTC) — borne des agrégats « ce mois-ci ».
+function startOfMonthSec() {
+  const n = new Date();
+  return Math.floor(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), 1) / 1000);
+}
+
+/**
+ * Agrégats business d'un relevé. Fonction PURE (testable sans DB).
+ *
+ * Vocabulaire, pour lever l'ambiguïté du mot « marge » :
+ *   - CA (chiffre d'affaires) = ce que mes acheteurs m'ont payé
+ *                             = Σ(crédits transférés × MON prix de revente) ;
+ *   - coût d'acquisition      = ce que j'ai payé mes propres crédits ;
+ *   - marge                   = CA − coût d'acquisition.
+ * Un compte au sommet de la chaîne (admin) a un coût d'acquisition nul : sa
+ * marge égale son CA, ce qui est correct.
+ */
+function computeBusiness(entries, sinceSec) {
+  const zero = () => ({ revenueCents: 0, costCents: 0, marginCents: 0, creditsSold: 0 });
+  const all = zero();
+  const month = zero();
+
+  for (const e of entries) {
+    const price = e.priceCents || 0;
+    const qty = Math.abs(e.delta);
+    const inMonth = (e.createdAt || 0) >= sinceSec;
+
+    if (e.reason === 'transfer_out') {
+      all.revenueCents += qty * price;
+      all.creditsSold += qty;
+      if (inMonth) {
+        month.revenueCents += qty * price;
+        month.creditsSold += qty;
+      }
+    }
+    if (ACQUISITION_REASONS.includes(e.reason)) {
+      all.costCents += e.delta * price;
+      if (inMonth) month.costCents += e.delta * price;
+    }
+  }
+  all.marginCents = all.revenueCents - all.costCents;
+  month.marginCents = month.revenueCents - month.costCents;
+  return { all, month };
+}
+
+/**
+ * Classement des acheteurs (« top vendeurs ») depuis les transferts sortants.
+ * PURE : `names` mappe counterpartyId → username, résolu par l'appelant.
+ */
+function computeTopBuyers(entries, names = new Map(), limit = 10) {
+  const byId = new Map();
+  for (const e of entries) {
+    if (e.reason !== 'transfer_out' || !e.counterpartyId) continue;
+    const qty = Math.abs(e.delta);
+    const row = byId.get(e.counterpartyId) || {
+      id: e.counterpartyId,
+      username: names.get(e.counterpartyId) || `#${e.counterpartyId}`,
+      credits: 0,
+      revenueCents: 0,
+      lastAt: 0,
+    };
+    row.credits += qty;
+    row.revenueCents += qty * (e.priceCents || 0);
+    if ((e.createdAt || 0) > row.lastAt) row.lastAt = e.createdAt || 0;
+    byId.set(e.counterpartyId, row);
+  }
+  return [...byId.values()].sort((a, b) => b.revenueCents - a.revenueCents).slice(0, limit);
+}
+
+// GET /api/wallet/business — tableau de bord de revenus du compte courant :
+// CA, coût, marge (total + mois en cours) et classement de ses acheteurs.
+router.get(
+  '/business',
+  asyncWrap(async (req, res) => {
+    const { balance, entries } = wallet.statement(req.user.id, 5000);
+    const { all, month } = computeBusiness(entries, startOfMonthSec());
+
+    // Noms des contreparties : une seule requête, uniquement les ids présents.
+    const ids = [...new Set(entries.filter((e) => e.counterpartyId).map((e) => e.counterpartyId))];
+    const names = new Map();
+    if (ids.length > 0) {
+      const { db, schema } = require('../../db');
+      const { inArray } = require('drizzle-orm');
+      const rows = await db
+        .select({ id: schema.users.id, username: schema.users.username })
+        .from(schema.users)
+        .where(inArray(schema.users.id, ids));
+      rows.forEach((r) => names.set(r.id, r.username));
+    }
+
+    res.json({
+      balance,
+      total: all,
+      month: month,
+      topBuyers: computeTopBuyers(entries, names),
+      currency: 'EUR',
+    });
+  })
+);
+
 module.exports = router;
 // Exposées pour les tests : ce sont des fonctions pures d'agrégation, et c'est
 // exactement là que le motif 'topup_stripe' avait été oublié sans qu'aucun test
 // ne le voie (0 % de couverture de branches sur ce fichier).
 module.exports.computeMargin = computeMargin;
 module.exports.computeCredits = computeCredits;
+module.exports.computeBusiness = computeBusiness;
+module.exports.computeTopBuyers = computeTopBuyers;

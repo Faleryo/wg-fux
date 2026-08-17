@@ -641,10 +641,14 @@ const evaluateServerAlerts = async () => {
         if (breached && !_notifiedServerAlert.has(key)) {
           _notifiedServerAlert.add(key);
           await notify
-            .send('sre', `🔌 Serveur « ${s.label} » injoignable depuis plus de ${s.alertOfflineMin} min.`, {
-              serverId: s.id,
-              host: s.host,
-            })
+            .send(
+              'sre',
+              `🔌 Serveur « ${s.label} » injoignable depuis plus de ${s.alertOfflineMin} min.`,
+              {
+                serverId: s.id,
+                host: s.host,
+              }
+            )
             .catch(() => {});
         } else if (!breached) {
           _notifiedServerAlert.delete(key);
@@ -860,6 +864,59 @@ const rotateEnforcerLogs = async () => {
   }
 };
 
+// Répertoire des sauvegardes chiffrées (même valeur que wg-backup.sh).
+const BACKUP_DIR = process.env.BACKUP_DIR || '/app/data/backups';
+
+/**
+ * Copie HORS-SITE de la dernière sauvegarde vers le chat admin Telegram.
+ *
+ * Sans copie externe, les sauvegardes dorment sur la machine même qu'elles
+ * serviraient à restaurer : perdre le serveur, c'est perdre les deux. Telegram
+ * sert ici de dépôt distant gratuit — l'archive est déjà chiffrée en AES-256
+ * localement, le service ne voit donc que du binaire opaque.
+ *
+ * ⚠️ La restauration exige BACKUP_PASSPHRASE (api-service/.env). Cette
+ * passphrase n'est JAMAIS envoyée : elle doit être conservée ailleurs, sinon
+ * l'archive distante est inexploitable.
+ */
+const shipBackupToTelegram = async () => {
+  try {
+    const fsSync = require('fs');
+    const files = fsSync
+      .readdirSync(BACKUP_DIR)
+      .filter((f) => f.startsWith('wg_fux_backup_') && f.endsWith('.enc'))
+      .map((f) => ({ f, t: fsSync.statSync(path.join(BACKUP_DIR, f)).mtimeMs }))
+      .sort((a, b) => b.t - a.t);
+    if (files.length === 0) {
+      log.warn('jobs', 'Copie hors-site : aucune sauvegarde trouvée', { dir: BACKUP_DIR });
+      return;
+    }
+
+    const newest = files[0].f;
+    const { sendAdminDocument } = require('./telegramBot');
+    const caption =
+      `🗄️ Sauvegarde wg-fux — ${newest}\n` +
+      'Chiffrée AES-256. La restauration exige BACKUP_PASSPHRASE, ' +
+      'à conserver EN DEHORS de ce serveur.';
+
+    const r = await sendAdminDocument(path.join(BACKUP_DIR, newest), caption);
+    if (r.sent) {
+      log.info('jobs', 'Sauvegarde expédiée hors-site (Telegram)', {
+        file: newest,
+        sizeMB: (r.size / 1048576).toFixed(1),
+      });
+    } else if (r.reason === 'not_configured') {
+      log.info('jobs', 'Copie hors-site ignorée : bot Telegram non configuré');
+    } else {
+      log.error('jobs', 'Copie hors-site ÉCHOUÉE — la sauvegarde reste locale', {
+        reason: r.reason,
+      });
+    }
+  } catch (e) {
+    log.error('jobs', 'Copie hors-site échouée', { err: e.message });
+  }
+};
+
 const scheduleAutomaticBackup = () => {
   const rule = new schedule.RecurrenceRule();
   rule.hour = 3;
@@ -869,7 +926,11 @@ const scheduleAutomaticBackup = () => {
       success: false,
       error: e.message,
     }));
-    if (!result.success) log.error('jobs', 'Automatic backup failed', { err: result.error });
+    if (!result.success) {
+      log.error('jobs', 'Automatic backup failed', { err: result.error });
+      return; // rien de fiable à expédier
+    }
+    await shipBackupToTelegram();
   });
 };
 
@@ -899,5 +960,7 @@ module.exports = {
   checkClientExpirations,
   renewLicensesByCredits,
   invalidateSharedPeersCache,
+  // Expédition hors-site : réutilisée par la commande /sauvegarde du bot.
+  shipBackupToTelegram,
   SCHEDULE_FILE,
 };

@@ -55,9 +55,59 @@ async function sendAdminAlert(text) {
   }
 }
 
+// Telegram plafonne les documents envoyés par un bot à 50 Mo. Une sauvegarde
+// chiffrée pèse quelques Mo (≈6 Mo pour 48 clients), la marge est large — mais
+// on refuse proprement au-delà plutôt que de laisser l'API répondre en erreur.
+const TELEGRAM_DOC_MAX_BYTES = 50 * 1024 * 1024;
+
+/**
+ * Envoie un FICHIER au chat admin (sauvegarde chiffrée hors-site, export…).
+ * No-op si le bot n'est pas configuré. Ne lève jamais.
+ * @returns {Promise<{sent:boolean, reason?:string, size?:number}>}
+ */
+async function sendAdminDocument(filePath, caption) {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const { getSetting } = require('./settings');
+    const [token, chatId] = await Promise.all([
+      getSetting('telegram_bot_token'),
+      getSetting('telegram_chat_id'),
+    ]);
+    if (!token || !chatId) return { sent: false, reason: 'not_configured' };
+
+    const size = fs.statSync(filePath).size;
+    if (size > TELEGRAM_DOC_MAX_BYTES) {
+      log.warn('telegram', 'Document trop volumineux pour Telegram', { size, filePath });
+      return { sent: false, reason: 'too_large', size };
+    }
+
+    const form = new FormData();
+    form.append('chat_id', String(chatId));
+    if (caption) form.append('caption', caption);
+    form.append('document', new Blob([fs.readFileSync(filePath)]), path.basename(filePath));
+
+    const res = await fetch(api(token, 'sendDocument'), {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(180000),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      log.warn('telegram', 'sendDocument refusé', { status: res.status, body: body.slice(0, 200) });
+      return { sent: false, reason: `http_${res.status}`, size };
+    }
+    return { sent: true, size };
+  } catch (e) {
+    log.warn('telegram', 'sendAdminDocument échoué', { err: e.message });
+    return { sent: false, reason: e.message };
+  }
+}
+
 const HELP =
   '<b>wg-fux — bot admin</b>\n\n' +
   '/nouveauvps <code>&lt;label&gt; &lt;host&gt; [port]</code> — créer un serveur et obtenir le one-liner\n' +
+  '/sauvegarde — sauvegarde chiffrée immédiate, envoyée ici\n' +
   '/aide — afficher cette aide';
 
 // Résout l'id du propriétaire admin (les serveurs créés via le bot lui appartiennent).
@@ -116,6 +166,34 @@ async function handleNewVps(token, chatId, args) {
   }
 }
 
+// /sauvegarde — fabrique une sauvegarde chiffrée MAINTENANT et l'expédie ici.
+// Utile avant une opération risquée, ou simplement pour vérifier que la copie
+// hors-site fonctionne sans attendre le passage de 3 h.
+async function handleBackupNow(token, chatId) {
+  await sendMessage(token, chatId, '⏳ Sauvegarde en cours…');
+  try {
+    const { runSystemCommand } = require('./shell');
+    const { getScriptPath } = require('./config');
+    const r = await runSystemCommand(getScriptPath('wg-backup.sh'), []).catch((e) => ({
+      success: false,
+      error: e.message,
+    }));
+    if (!r.success) {
+      return sendMessage(
+        token,
+        chatId,
+        `❌ Sauvegarde échouée : ${escapeHtml(String(r.error || 'erreur inconnue').slice(0, 300))}`
+      );
+    }
+    // Réutilise l'expédition du job planifié (mêmes garde-fous, même légende).
+    const { shipBackupToTelegram } = require('./jobs');
+    await shipBackupToTelegram();
+  } catch (e) {
+    log.error('telegram', 'Sauvegarde à la demande échouée', { err: e.message });
+    await sendMessage(token, chatId, '❌ Erreur pendant la sauvegarde.');
+  }
+}
+
 async function processUpdate(token, adminChatId, update) {
   const msg = update.message;
   if (!msg || !msg.text) return;
@@ -130,6 +208,9 @@ async function processUpdate(token, adminChatId, update) {
     case '/nouveauvps':
     case '/newvps':
       return handleNewVps(token, msg.chat.id, args);
+    case '/sauvegarde':
+    case '/backup':
+      return handleBackupNow(token, msg.chat.id);
     case '/start':
     case '/aide':
     case '/help':
@@ -190,4 +271,11 @@ function startTelegramBot() {
   loop().catch((e) => log.error('telegram', 'Boucle bot arrêtée', { err: e.message }));
 }
 
-module.exports = { startTelegramBot, processUpdate, escapeHtml, sendAdminAlert };
+module.exports = {
+  startTelegramBot,
+  processUpdate,
+  escapeHtml,
+  sendAdminAlert,
+  sendAdminDocument,
+  TELEGRAM_DOC_MAX_BYTES,
+};
