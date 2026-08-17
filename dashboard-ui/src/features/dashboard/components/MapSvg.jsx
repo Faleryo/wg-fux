@@ -44,8 +44,16 @@ const MapSvg = ({
         ></div>
       </div>
 
-      {/* Orbital Rings */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center">
+      {/* Orbital Rings — ancrés sur centerX/centerY, PAS sur top-1/2 : les peers
+          et les liens sont positionnés avec ces mêmes coordonnées mesurées. Un
+          centrage CSS ici recréait deux référentiels, qui divergeaient dès que
+          le panneau se décalait sans redimensionnement de fenêtre (apparition
+          d'un bandeau licence/mise à jour) — anneaux et noyau au milieu réel,
+          peers et liens autour d'un centre périmé. */}
+      <div
+        className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center"
+        style={{ left: centerX, top: centerY }}
+      >
         <div
           className={cn(
             'absolute rounded-full border transition-colors',
@@ -81,8 +89,11 @@ const MapSvg = ({
         getContainerColor={getContainerColor}
       />
 
-      {/* Hub */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center group/hub">
+      {/* Hub — même ancrage que les anneaux, les peers et les liens. */}
+      <div
+        className="absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center group/hub"
+        style={{ left: centerX, top: centerY }}
+      >
         <div
           className={cn(
             'rounded-[2rem] shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] flex items-center justify-center relative z-10 transition-all duration-700 group-hover/hub:scale-110 border-4',

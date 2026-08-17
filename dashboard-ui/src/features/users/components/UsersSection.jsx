@@ -110,6 +110,7 @@ const UsersSection = ({
                 <th className="px-6 py-4">{t('col_identity')}</th>
                 <th className="px-6 py-4">{t('col_role')}</th>
                 <th className="px-6 py-4">{t('col_status')}</th>
+                <th className="px-6 py-4">{t('col_expiry')}</th>
                 <th className="px-6 py-4 text-right">{t('col_action')}</th>
               </tr>
             </thead>
@@ -230,6 +231,37 @@ const UsersSection = ({
                           >
                             <div className={cn('h-1.5 w-1.5 rounded-full', dotClass)} />
                             {label}
+                          </div>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-6 py-4">
+                      {(() => {
+                        // La date était renvoyée par l'API mais jamais affichée :
+                        // seul le badge de statut l'utilisait, donc impossible de
+                        // savoir QUAND un compte arrive à échéance.
+                        if (!user.expiry) {
+                          return <span className="text-[11px] text-slate-600 italic">{t('unlimited')}</span>;
+                        }
+                        const days = Math.ceil(
+                          (new Date(user.expiry).getTime() - Date.now()) / 86400000
+                        );
+                        const tone =
+                          days < 0
+                            ? 'text-red-400'
+                            : days <= 7
+                              ? 'text-amber-400'
+                              : 'text-slate-300';
+                        return (
+                          <div className="leading-tight">
+                            <div className={cn('text-[13px] font-bold font-mono', tone)}>
+                              {new Date(user.expiry).toLocaleDateString('fr-FR')}
+                            </div>
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                              {days < 0
+                                ? `${t('expired_since')} ${Math.abs(days)} j`
+                                : `${days} ${t('days_left')}`}
+                            </div>
                           </div>
                         );
                       })()}

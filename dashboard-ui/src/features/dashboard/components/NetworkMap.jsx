@@ -53,6 +53,9 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
   const [mapHeight, setMapHeight] = useState(560);
 
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return undefined;
+
     const updateDimensions = () => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
@@ -60,26 +63,27 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
       const absoluteTop = rect.top + window.scrollY;
       const BOTTOM_GAP = 24;
       setMapHeight(Math.max(420, window.innerHeight - absoluteTop - BOTTOM_GAP));
-      setDimensions({
-        width: containerRef.current.offsetWidth,
-        height: containerRef.current.offsetHeight,
-      });
+      // On mesure la boîte RENDUE (getBoundingClientRect), pas offsetWidth/Height
+      // qui arrondit à l'entier et inclut les bordures : le centre des peers
+      // doit coller au pixel près à celui du noyau et des anneaux.
+      setDimensions({ width: rect.width, height: rect.height });
     };
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
-  }, []);
 
-  // Re-mesurer une fois la hauteur appliquée (la 1ère passe lit offsetHeight
-  // avant que style.height ne soit posé).
-  useEffect(() => {
-    if (containerRef.current) {
-      setDimensions({
-        width: containerRef.current.offsetWidth,
-        height: containerRef.current.offsetHeight,
-      });
-    }
-  }, [mapHeight]);
+    updateDimensions();
+
+    // ResizeObserver plutôt que l'événement `resize` de la fenêtre : le panneau
+    // change aussi de taille SANS redimensionnement (bandeau licence ou mise à
+    // jour qui apparaît, sidebar repliée, police chargée). L'ancienne écoute
+    // laissait alors une mesure périmée → peers et liens décentrés par rapport
+    // au noyau, sans qu'aucun événement ne le corrige.
+    const ro = new ResizeObserver(updateDimensions);
+    ro.observe(el);
+    window.addEventListener('resize', updateDimensions);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateDimensions);
+    };
+  }, []);
 
   const handleMouseDown = (e) => {
     if (e.target.closest('button')) return;
