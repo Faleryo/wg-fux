@@ -22,6 +22,11 @@ PROFILE="${1:-}"
 LOG_FILE="/var/log/wg-optimize.log"
 STATE_FILE="/etc/wireguard/active_profile"
 QOS_PROFILE_FILE="/etc/wireguard/qos.profile"
+# Pont conteneur → hôte pour les réglages noyau (voir wg-host-sysctl.sh).
+# /app/data est le volume partagé ; l'hôte le lit via `docker volume inspect`.
+HOST_REQUEST_DIR="${WGFUX_DATA_DIR:-/app/data}"
+HOST_REQUEST_TMP="$HOST_REQUEST_DIR/.sysctl-request.tmp"
+HOST_REQUEST_FILE="$HOST_REQUEST_DIR/sysctl-request.conf"
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 # shellcheck source=./wg-common.sh
 source "$SCRIPT_DIR/wg-common.sh"
@@ -74,13 +79,28 @@ apply_sysctl() {
  local key=$1 val=$2
  local SYSCTL_CONF="/etc/sysctl.d/99-wg-fux.conf"
 
- # 1. Apply to memory
- if sysctl -w "$key=$val" > /dev/null 2>&1; then
+ # 1. Apply to memory — VÉRIFIÉ PAR RELECTURE.
+ # `sysctl -w` sort en code 0 même quand il échoue (« permission refusée »
+ # part sur stderr, le code reste 0). Se fier au code de retour faisait
+ # compter comme appliqués des réglages qui n'avaient jamais bougé.
+ sysctl -w "$key=$val" > /dev/null 2>&1 || true
+ local got want
+ got="$(sysctl -n "$key" 2>/dev/null | tr -s '[:space:]' ' ')"
+ want="$(echo "$val" | tr -s '[:space:]' ' ')"
+ if [ "$got" = "$want" ]; then
  log "✓ sysctl $key = $val"
  SYSCTL_OK=$((SYSCTL_OK + 1))
  else
  log "⚠ Skip sysctl $key (permission/absent)"
  SYSCTL_SKIPPED=$((SYSCTL_SKIPPED + 1))
+ fi
+
+ # 1bis. DEMANDE À L'HÔTE — le conteneur ne peut pas écrire /proc/sys. On
+ # dépose la valeur souhaitée dans le volume de données, où un service
+ # systemd de l'hôte (wg-host-sysctl.sh) la relit, la valide et l'applique.
+ # Sans ce pont, le profil restait purement cosmétique hors installation.
+ if [ -d "$HOST_REQUEST_DIR" ]; then
+ echo "$key=$val" >> "$HOST_REQUEST_TMP" 2>/dev/null || true
  fi
 
  # 2. Apply to persistent file
@@ -215,6 +235,7 @@ if [ -z "${PROFILE:-}" ]; then
  exit 1
 fi
 
+rm -f "$HOST_REQUEST_TMP" 2>/dev/null || true
 log "=== Starting Network Optimization: Profile → $PROFILE ==="
 # SRE Fix: State writing moved inside respective profile blocks to avoid false-positives
 
@@ -516,6 +537,14 @@ if [ "$SYSCTL_OK" -eq 0 ] && [ "$SYSCTL_SKIPPED" -gt 0 ]; then
  log "  La QoS et le MTU restent effectifs ; le reste du profil est SANS EFFET."
 else
  log "Réglages noyau : $SYSCTL_OK appliqués, $SYSCTL_SKIPPED ignorés."
+fi
+
+# Publication ATOMIQUE : l'hôte surveille sysctl-request.conf ; écrire
+# directement dedans le ferait réagir sur un fichier incomplet.
+if [ -s "$HOST_REQUEST_TMP" ]; then
+ mv -f "$HOST_REQUEST_TMP" "$HOST_REQUEST_FILE" 2>/dev/null \
+ && log "→ Demande de réglages noyau transmise à l'hôte ($(wc -l < "$HOST_REQUEST_FILE") clés)" \
+ || log "⚠ Impossible de transmettre la demande à l'hôte"
 fi
 
 log "=== Optimization complete. Profile: $PROFILE ==="

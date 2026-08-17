@@ -1,0 +1,14 @@
+[Unit]
+Description=WG-FUX — surveille les demandes de réglages noyau émises par l'API
+Documentation=file:///opt/wg-fux/core-vpn/scripts/wg-host-sysctl.sh
+
+[Path]
+# Le conteneur publie sa demande de façon ATOMIQUE (écriture dans un fichier
+# temporaire puis renommage) : on réagit donc à un fichier toujours complet.
+# Le chemin est celui du volume Docker `wg-fux_wg_fux_data`, résolu à
+# l'installation par setup.sh.
+PathChanged=__DATA_DIR__/sysctl-request.conf
+Unit=wg-fux-sysctl.service
+
+[Install]
+WantedBy=multi-user.target

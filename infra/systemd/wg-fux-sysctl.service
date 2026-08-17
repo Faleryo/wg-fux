@@ -1,0 +1,15 @@
+[Unit]
+Description=WG-FUX — applique sur l'hôte les réglages noyau demandés par l'API
+Documentation=file://__INSTALL_DIR__/core-vpn/scripts/wg-host-sysctl.sh
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# __DATA_DIR__ et __INSTALL_DIR__ sont substitués à l'installation : le point de
+# montage du volume Docker et le répertoire d'installation diffèrent entre la
+# plateforme mère (/root/wg-fux) et une instance revendeur (/opt/wg-fux).
+ExecStart=__INSTALL_DIR__/core-vpn/scripts/wg-host-sysctl.sh __DATA_DIR__/sysctl-request.conf
+# Ces réglages sont des ajustements de performance réseau : leur échec ne doit
+# jamais empêcher le reste du système de fonctionner.
+SuccessExitStatus=0 2
