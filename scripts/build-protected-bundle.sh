@@ -99,7 +99,16 @@ JSON
       javascript-obfuscator "$WORK/api-service/$d" --output "$WORK/api-service/$d.obf" --config "$CFG"
       rm -rf "$WORK/api-service/$d" && mv "$WORK/api-service/$d.obf" "$WORK/api-service/$d"
     done
-    javascript-obfuscator "$WORK/api-service/server.js" --output "$WORK/api-service/server.js" --config "$CFG"
+    # Points d entree AUTONOMES : lances directement par `node <fichier>`, donc
+    # ils restent des .js (require.main === module) et recoivent chacun le
+    # preambule bytenode. reset-admin.js en fait partie : sans preambule il
+    # echouait sur « Cannot find module ./db » sur une instance durcie, ou db/
+    # n existe qu en .jsc (constate le 2026-08-17 via setup.sh --reset-password).
+    ENTRYPOINTS="server.js reset-admin.js"
+    for f in $ENTRYPOINTS; do
+      [ -f "$WORK/api-service/$f" ] || continue
+      javascript-obfuscator "$WORK/api-service/$f" --output "$WORK/api-service/$f" --config "$CFG"
+    done
 
     echo "[4/5] Compilation bytecode V8 (bytenode) par-dessus l obfuscation …"
     # SURCOUCHE : le JS obfusqué de src/ et db/ est compilé en .jsc (bytecode V8),
@@ -110,11 +119,14 @@ JSON
     npm i -g bytenode@1.5.7 --silent
     NODE_PATH="$(npm root -g)" node /src/scripts/bytenode-compile.js \
       "$WORK/api-service/src" "$WORK/api-service/db"
-    # server.js reste un .js (garde require.main === module → node server.js démarre) :
-    # on lui préfixe le préambule qui enregistre le handler .jsc + le patch de résolution.
-    cat /src/scripts/bytenode-loader-preamble.js "$WORK/api-service/server.js" \
-      > "$WORK/api-service/server.js.new"
-    mv "$WORK/api-service/server.js.new" "$WORK/api-service/server.js"
+    # Chaque point d entree reste un .js (garde require.main === module) : on lui
+    # prefixe le preambule qui enregistre le handler .jsc + le patch de resolution.
+    for f in $ENTRYPOINTS; do
+      [ -f "$WORK/api-service/$f" ] || continue
+      cat /src/scripts/bytenode-loader-preamble.js "$WORK/api-service/$f" \
+        > "$WORK/api-service/$f.new"
+      mv "$WORK/api-service/$f.new" "$WORK/api-service/$f"
+    done
 
     echo "[5/5] Empaquetage …"
     tar -czf "/out/$OUT_BASE" -C "$WORK" .
