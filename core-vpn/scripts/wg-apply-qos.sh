@@ -74,13 +74,21 @@ measure_path_rtt() {
  echo "${median}ms"
 }
 
-# `auto` dans le profil (ou RTT figé très bas alors que les peers sont loin)
-# → on mesure. Sinon on respecte la valeur explicite de l'opérateur.
-if [ "${CAKE_RTT:-}" = "auto" ] || [ "${WG_QOS_RTT_AUTO:-1}" = "1" ]; then
+# ⚠ L'auto-mesure n'est PAS activée par défaut, et c'est délibéré.
+#
+# Mesuré sur cette plateforme : l'ICMP vers les peers donne min 142 ms, moyenne
+# 263 ms, pointes à 742 ms — alors que l'utilisateur joue réellement à ~50 ms.
+# L'écart vient de la DÉPRIORISATION de l'ICMP par les routeurs et les mobiles :
+# ping n'est pas un proxy fiable de la latence de transport. S'y fier conduisait
+# à régler CAKE sur ~300 ms, donc à un AQM trop laxiste qui laisse les files
+# grossir — l'erreur inverse du `rtt 20ms` d'origine, tout aussi nuisible.
+#
+# On ne l'active donc que si l'opérateur le demande EXPLICITEMENT, en connaissance
+# de cause (WG_QOS_RTT_AUTO=1).
+if [ "${CAKE_RTT:-}" = "auto" ] || [ "${WG_QOS_RTT_AUTO:-0}" = "1" ]; then
  MEASURED_RTT="$(measure_path_rtt || true)"
  if [ -n "${MEASURED_RTT:-}" ]; then
-  [ "$MEASURED_RTT" != "$CAKE_RTT" ] && \
-   log_info "QoS: RTT mesuré sur le chemin = $MEASURED_RTT (profil annonçait ${CAKE_RTT:-n/a})"
+  log_info "QoS: RTT mesuré (ICMP, peu fiable) = $MEASURED_RTT"
   CAKE_RTT="$MEASURED_RTT"
  fi
 fi

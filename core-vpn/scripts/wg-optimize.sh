@@ -342,9 +342,14 @@ if [ "$PROFILE" = "gaming" ]; then
  # ----------------------------------------------------------
  # We do NOT touch the qdisc tree directly. wg-apply-qos.sh owns it.
  # We persist CAKE params here and trigger a rebuild.
+# `rtt` = latence ATTENDUE du chemin, pas un objectif à atteindre. 20 ms
+ # correspond à un réseau local ; sur un trajet Internet réel (50-150 ms) cette
+ # valeur rend l'AQM trop agressif — il jette des paquets simplement en vol sur
+ # la distance, ce qui AUGMENTE la latence utile. 100 ms est le préréglage
+ # « internet » de CAKE, sûr de 30 à 200 ms.
  write_qos_profile "gaming" \
  "${UPSTREAM_BANDWIDTH:-1gbit}" \
- "20ms" \
+ "${CAKE_RTT_OVERRIDE:-100ms}" \
  "diffserv4" \
  "nat wash ack-filter overhead 80" \
  "2ms"
