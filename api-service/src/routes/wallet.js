@@ -78,7 +78,9 @@ router.get(
     for (let i = 11; i >= 0; i--) {
       const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
       const k = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-      series.push(months.get(k) || { month: k, acquired: 0, resold: 0, consumed: 0, marginCents: 0 });
+      series.push(
+        months.get(k) || { month: k, acquired: 0, resold: 0, consumed: 0, marginCents: 0 }
+      );
     }
     res.json({ series });
   })
@@ -159,10 +161,40 @@ router.get(
   '/business',
   asyncWrap(async (req, res) => {
     const { balance, entries } = wallet.statement(req.user.id, 5000);
-    const { all, month } = computeBusiness(entries, startOfMonthSec());
+
+    // Ventes par CRÉDIT MANUEL : elles vivent sur le registre de l'ACHETEUR
+    // (une seule ligne 'topup'), pas sur celui du vendeur — invisibles d'un
+    // simple statement(). On les récupère par counterpartyId et on les
+    // normalise en 'transfer_out' pour que les agrégats les comptent comme
+    // n'importe quelle revente. Sans ça, un opérateur qui encaisse hors
+    // plateforme (virement, espèces) voyait un chiffre d'affaires nul.
+    const { db, schema } = require('../../db');
+    const { and, eq } = require('drizzle-orm');
+    const manualSales = await db
+      .select({
+        delta: schema.ledger.delta,
+        priceCents: schema.ledger.priceCents,
+        createdAt: schema.ledger.createdAt,
+        counterpartyId: schema.ledger.userId, // l'acheteur, vu du vendeur
+      })
+      .from(schema.ledger)
+      .where(and(eq(schema.ledger.reason, 'topup'), eq(schema.ledger.counterpartyId, req.user.id)));
+
+    const salesAsOut = manualSales.map((s) => ({
+      reason: 'transfer_out',
+      delta: -Math.abs(s.delta),
+      priceCents: s.priceCents,
+      counterpartyId: s.counterpartyId,
+      createdAt: s.createdAt ? Math.floor(new Date(s.createdAt).getTime() / 1000) : 0,
+    }));
+    const allEntries = [...entries, ...salesAsOut];
+
+    const { all, month } = computeBusiness(allEntries, startOfMonthSec());
 
     // Noms des contreparties : une seule requête, uniquement les ids présents.
-    const ids = [...new Set(entries.filter((e) => e.counterpartyId).map((e) => e.counterpartyId))];
+    const ids = [
+      ...new Set(allEntries.filter((e) => e.counterpartyId).map((e) => e.counterpartyId)),
+    ];
     const names = new Map();
     if (ids.length > 0) {
       const { db, schema } = require('../../db');
@@ -178,7 +210,7 @@ router.get(
       balance,
       total: all,
       month: month,
-      topBuyers: computeTopBuyers(entries, names),
+      topBuyers: computeTopBuyers(allEntries, names),
       currency: 'EUR',
     });
   })

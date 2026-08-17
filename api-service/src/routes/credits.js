@@ -61,7 +61,14 @@ router.post(
       .limit(1);
     if (!target) return res.status(404).json(createError('Compte introuvable', null, 'NOT_FOUND'));
 
-    const balance = wallet.credit(userId, credits, 'topup', { priceCents });
+    // counterpartyId = le VENDEUR (celui qui encaisse). Sans lui, un top-up
+    // n'écrivait qu'une ligne sur le registre de l'acheteur et la vente était
+    // invisible du tableau de bord Revenus — or c'est le seul canal de vente
+    // tant que Stripe n'est pas branché, donc le CA affiché restait à zéro.
+    const balance = wallet.credit(userId, credits, 'topup', {
+      priceCents,
+      counterpartyId: req.user.id,
+    });
     await auditLog({
       actor: req.user.username,
       action: 'topup',
