@@ -60,9 +60,7 @@ router.get(
     const consumed = await db
       .update(schema.clients)
       .set({ importTokenHash: null, importTokenExpiry: null })
-      .where(
-        and(eq(schema.clients.id, client.id), eq(schema.clients.importTokenHash, tokenHash))
-      );
+      .where(and(eq(schema.clients.id, client.id), eq(schema.clients.importTokenHash, tokenHash)));
     if (!consumed || consumed.changes === 0) return notFound();
 
     // Exécuteur local ou SSH selon le serveur du conteneur (VPS revendeur).
@@ -73,7 +71,10 @@ router.get(
       .limit(1);
     const executor = await resolveExecutor({ serverId: containerRow?.serverId || null });
 
-    const configPath = path.join(getClientDir(client.container, client.name), `${client.name}.conf`);
+    const configPath = path.join(
+      getClientDir(client.container, client.name),
+      `${client.name}.conf`
+    );
     const { success, content } = await readFileAsRoot(configPath, { executor });
     if (!success || !content) return notFound();
 

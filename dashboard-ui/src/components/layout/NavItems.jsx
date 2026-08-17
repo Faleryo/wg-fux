@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Home,
+  UserCircle,
   Package,
   BadgeDollarSign,
   Users,
@@ -43,6 +44,9 @@ const NavItems = ({
   // confusion chez le client.
   const navItems = [
     { id: 'dashboard', icon: <Home size={20} />, label: t('dashboard') },
+    // « Mon compte » : visible par TOUS les rôles, y compris un simple viewer —
+    // c'est le seul endroit où il voit sa propre échéance et celle de ses peers.
+    { id: 'account', icon: <UserCircle size={20} />, label: t('my_account') },
     { id: 'containers', icon: <Package size={20} />, label: t('containers') },
     {
       // Le comptoir du vendeur : abonnements, renouvellements payants, crédits.

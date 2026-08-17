@@ -203,25 +203,20 @@ function buildBundleTarball({ fresh = false } = {}) {
     ...BUNDLE_GIT_EXCLUDES,
   ];
   return new Promise((resolve, reject) => {
-    execFile(
-      'git',
-      args,
-      { encoding: 'buffer', maxBuffer: 512 * 1024 * 1024 },
-      (err, stdout) => {
-        if (err) {
-          log.error('provision', 'Construction du bundle échouée', { err: err.message });
-          return reject(err);
-        }
-        const buffer = zlib.gzipSync(stdout, { level: 9 });
-        const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
-        _bundleCache = { buffer, sha256, builtAt: Date.now() };
-        log.info('provision', 'Bundle produit construit (git archive HEAD)', {
-          sizeMB: (buffer.length / 1048576).toFixed(1),
-          sha256: sha256.slice(0, 12),
-        });
-        resolve(_bundleCache);
+    execFile('git', args, { encoding: 'buffer', maxBuffer: 512 * 1024 * 1024 }, (err, stdout) => {
+      if (err) {
+        log.error('provision', 'Construction du bundle échouée', { err: err.message });
+        return reject(err);
       }
-    );
+      const buffer = zlib.gzipSync(stdout, { level: 9 });
+      const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+      _bundleCache = { buffer, sha256, builtAt: Date.now() };
+      log.info('provision', 'Bundle produit construit (git archive HEAD)', {
+        sizeMB: (buffer.length / 1048576).toFixed(1),
+        sha256: sha256.slice(0, 12),
+      });
+      resolve(_bundleCache);
+    });
   });
 }
 
@@ -400,7 +395,12 @@ router.post('/:token/ready', express.json(), async (req, res, next) => {
     // valeur arbitraire dans cette colonne via le callback de provisioning.
     const HOST_RE =
       /^(\d{1,3}(\.\d{1,3}){3}|[a-fA-F0-9:]+|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)$/;
-    if (host && typeof host === 'string' && HOST_RE.test(host.trim()) && host.trim().length <= 255) {
+    if (
+      host &&
+      typeof host === 'string' &&
+      HOST_RE.test(host.trim()) &&
+      host.trim().length <= 255
+    ) {
       updateData.host = host.trim();
     }
 
@@ -411,7 +411,7 @@ router.post('/:token/ready', express.json(), async (req, res, next) => {
       action: 'server_online',
       targetType: 'server',
       targetName: server.label,
-      details: { serverId: server.id, host: (host || server.host) },
+      details: { serverId: server.id, host: host || server.host },
     });
 
     log.info('provision', 'Serveur promu online (callback reçu)', {

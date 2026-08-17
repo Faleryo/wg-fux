@@ -190,6 +190,9 @@ app.use('/api/import', require('./src/routes/import'));
 // que /api/settings restent volontairement hors de cette liste.
 app.use('/api/clients', auth, requireOnboardedReseller, resolveServer, clientRoutes);
 app.use('/api/system', auth, requireOnboardedReseller, systemRoutes);
+// « Mon compte » : ouvert à TOUS les rôles connectés (un viewer doit pouvoir
+// consulter sa propre échéance). Le cloisonnement des peers est fait dans la route.
+app.use('/api/me', auth, require('./src/routes/me'));
 app.use('/api/users', auth, requireAdmin, userRoutes);
 app.use('/api/sentinel', auth, requireOnboardedReseller, sentinelRoutes);
 app.use('/api/dns', auth, requireOnboardedReseller, dnsRoutes); // individual dns routes carry their own requireAdmin/requireManager

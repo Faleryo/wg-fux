@@ -44,9 +44,10 @@ router.put(
   requireReseller,
   asyncWrap(async (req, res) => {
     const parsed = brandSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json(createError(parsed.error, 'Validation échouée'));
+    if (!parsed.success)
+      return res.status(400).json(createError(parsed.error, 'Validation échouée'));
     // Normalise les chaînes vides en null.
-    const norm = (v) => (v === '' ? null : v ?? null);
+    const norm = (v) => (v === '' ? null : (v ?? null));
     const saved = await brand.setBrand(req.user.id, {
       name: norm(parsed.data.name),
       logoUrl: norm(parsed.data.logoUrl),

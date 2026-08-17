@@ -338,11 +338,7 @@ router.delete(
   asyncWrap(async (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id)) return res.status(400).json(createError('Identifiant invalide'));
-    const [inv] = await db
-      .select()
-      .from(schema.invites)
-      .where(eq(schema.invites.id, id))
-      .limit(1);
+    const [inv] = await db.select().from(schema.invites).where(eq(schema.invites.id, id)).limit(1);
     if (!inv) return res.status(404).json(createError('Invitation introuvable', null, 'NOT_FOUND'));
     if (req.user.role !== 'admin' && inv.inviterId !== req.user.id) {
       return res.status(403).json(createError('Hors de votre réseau', null, 'FORBIDDEN'));

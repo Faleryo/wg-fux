@@ -126,14 +126,14 @@ router.post(
 
     // Télémétrie machine (optionnelle : agents antérieurs ne l'envoient pas).
     // Bornée à [0,100] pour les pourcentages, entier ≥ 0 pour l'uptime.
-    const pct = (v) => (typeof v === 'number' && v >= 0 && v <= 100 ? Math.round(v * 10) / 10 : null);
+    const pct = (v) =>
+      typeof v === 'number' && v >= 0 && v <= 100 ? Math.round(v * 10) / 10 : null;
     const cpuPct = pct(cpu);
     const memPct = pct(mem);
     const diskPct = pct(disk);
     const uptimeSec = Number.isInteger(uptime) && uptime >= 0 ? uptime : null;
     const now = new Date();
-    const clientCount =
-      Number.isInteger(clients) && clients >= 0 ? clients : server.clientCount;
+    const clientCount = Number.isInteger(clients) && clients >= 0 ? clients : server.clientCount;
 
     await db
       .update(schema.servers)
@@ -154,7 +154,15 @@ router.post(
 
     // Point d'historique de santé (courbe uptime + charge). Best-effort.
     db.insert(schema.serverHealthHistory)
-      .values({ serverId: server.id, ts: now, status: 'online', cpuPct, memPct, diskPct, clientCount })
+      .values({
+        serverId: server.id,
+        ts: now,
+        status: 'online',
+        cpuPct,
+        memPct,
+        diskPct,
+        clientCount,
+      })
       .catch(() => {});
 
     // ── Détection basique de falsification (NON-BLOQUANTE) ──────────────────

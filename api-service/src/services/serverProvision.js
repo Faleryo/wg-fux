@@ -63,7 +63,7 @@ class ServerConflictError extends Error {}
 // s'arrêtait à `trap rm` (erreur « trap : utilisation »), sans jamais
 // télécharger ni installer quoi que ce soit.
 function shQuote(s) {
-  return `'${String(s).replace(/'/g, `'\\''`)}'`;
+  return `'${String(s).replace(/'/g, "'\\''")}'`;
 }
 
 function buildOneLiner({ token, scriptSha256, base }) {

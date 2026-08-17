@@ -25,9 +25,13 @@ const getScriptPath = (scriptName) => {
   // Si le script commence déjà par un chemin absolu, valider qu'il pointe
   // vers un répertoire autorisé pour éviter l'injection de chemins arbitraires.
   if (scriptName.startsWith('/')) {
-    const allowed = ALLOWED_SCRIPT_PREFIXES.some((prefix) => scriptName.startsWith(prefix + '/') || scriptName === prefix);
+    const allowed = ALLOWED_SCRIPT_PREFIXES.some(
+      (prefix) => scriptName.startsWith(prefix + '/') || scriptName === prefix
+    );
     if (!allowed) {
-      throw new Error(`Forbidden script path: ${scriptName}. Must be under ${ALLOWED_SCRIPT_PREFIXES.join(' or ')}.`);
+      throw new Error(
+        `Forbidden script path: ${scriptName}. Must be under ${ALLOWED_SCRIPT_PREFIXES.join(' or ')}.`
+      );
     }
     return scriptName;
   }

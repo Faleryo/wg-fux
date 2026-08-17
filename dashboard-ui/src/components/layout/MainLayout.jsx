@@ -42,6 +42,7 @@ import useUserActions from './hooks/useUserActions';
 
 // Features Components
 import DashboardSection from '../../features/dashboard/components/DashboardSection';
+import AccountSection from '../../features/account/components/AccountSection';
 import NetworkMap from '../../features/dashboard/components/NetworkMap';
 import ContainersSection from '../../features/clients/components/ClientList';
 import ClientDetail from '../../features/clients/components/ClientDetail';
@@ -665,6 +666,8 @@ const MainLayout = ({ session, onLogout }) => {
             onBulkDelete={handleBulkDelete}
           />
         );
+      case 'account':
+        return <AccountSection />;
       case 'topology':
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
