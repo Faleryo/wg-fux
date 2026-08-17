@@ -50,6 +50,10 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
   // Vue hiérarchique : niveau 0 = les conteneurs, niveau 1 = les peers de celui
   // qu'on a ouvert. Afficher toute la flotte d'un coup devenait illisible.
   const [focusedContainer, setFocusedContainer] = useState(null);
+  // La carte ne montre QUE les peers connectés par défaut : afficher toute la
+  // flotte noie l'information utile (qui est en ligne maintenant). Bascule
+  // possible pour revoir l'ensemble.
+  const [onlineOnly, setOnlineOnly] = useState(true);
 
   // Un conteneur disparu (peer supprimé, changement de serveur) ne doit pas
   // laisser la carte vide sur un niveau qui n'existe plus.
@@ -63,8 +67,17 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
   // débits) pour que la couche de liens fonctionne sans distinction de type.
   const containerGroups = useMemo(
     () =>
-      uniqueContainers.map((name) => {
-        const members = enrichedClients.filter((c) => c.container === name);
+      uniqueContainers
+        // En mode « connectés », un conteneur sans aucun peer en ligne n'a rien
+        // à montrer : on l'écarte plutôt que d'offrir un niveau vide au clic.
+        .filter(
+          (name) =>
+            !onlineOnly || enrichedClients.some((c) => c.container === name && c.isOnline)
+        )
+        .map((name) => {
+        const members = enrichedClients.filter(
+          (c) => c.container === name && (!onlineOnly || c.isOnline)
+        );
         const online = members.filter((c) => c.isOnline).length;
         return {
           id: `container:${name}`,
@@ -77,14 +90,20 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
           uploadRate: members.reduce((a, c) => a + (c.uploadRate || 0), 0),
         };
       }),
-    [uniqueContainers, enrichedClients]
+    [uniqueContainers, enrichedClients, onlineOnly]
   );
 
-  // Peers du conteneur ouvert uniquement.
+  // Peers du conteneur ouvert, filtrés par l'état de connexion comme le niveau
+  // au-dessus : sans ça, descendre dans un conteneur ré-affichait les peers
+  // hors ligne que le filtre venait justement d'écarter.
   const visibleClients = useMemo(
     () =>
-      focusedContainer ? sortedClients.filter((c) => c.container === focusedContainer) : [],
-    [focusedContainer, sortedClients]
+      focusedContainer
+        ? sortedClients.filter(
+            (c) => c.container === focusedContainer && (!onlineOnly || c.isOnline)
+          )
+        : [],
+    [focusedContainer, sortedClients, onlineOnly]
   );
 
   // Hauteur adaptée à l'espace RÉELLEMENT disponible : l'ancien
@@ -261,6 +280,28 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
             </p>
           </div>
 
+          {/* Connectés / Tous — le filtre par défaut masque les peers hors
+              ligne ; la bascule évite de croire la flotte disparue. */}
+          <div className="pointer-events-auto ml-2 flex rounded-2xl border border-white/10 overflow-hidden">
+            {[
+              { id: true, label: t('only_connected') },
+              { id: false, label: t('show_all') },
+            ].map((opt) => (
+              <button
+                key={String(opt.id)}
+                onClick={() => setOnlineOnly(opt.id)}
+                className={cn(
+                  'px-3 py-2 text-[11px] font-black uppercase tracking-widest transition-colors',
+                  onlineOnly === opt.id
+                    ? 'bg-indigo-500/30 text-white'
+                    : 'text-slate-500 hover:text-slate-300'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
           {/* Fil d'Ariane : sans lui, on descend dans un conteneur sans pouvoir
               remonter (le clic sur le fond sert au déplacement de la carte). */}
           {focusedContainer && (
@@ -279,6 +320,13 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
         </div>
         {!focusedContainer && containerGroups.length > 0 && (
           <p className="mt-3 ml-2 text-[11px] text-slate-500 italic">{t('topology_hint')}</p>
+        )}
+        {/* Sans ce message, un filtre « connectés » sans aucun peer en ligne
+            donne une carte vide et inexplicable. */}
+        {containerGroups.length === 0 && (
+          <p className="mt-3 ml-2 text-[11px] text-amber-400/80 italic">
+            {onlineOnly ? t('topology_none_online') : t('topology_empty')}
+          </p>
         )}
       </div>
 

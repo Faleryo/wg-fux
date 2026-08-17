@@ -1,9 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, Key, Shield, Eye, EyeOff, RefreshCw, Plus, Calendar } from 'lucide-react';
+import { Users, Key, Shield, Eye, EyeOff, RefreshCw, Plus, Calendar, Clock } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
 import { useLang } from '../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../lib/utils';
+
+// Durée proposée par défaut à la création d'un compte.
+const DEFAULT_DAYS = 30;
+
+// Date de fin correspondant à N jours à partir d'aujourd'hui (format AAAA-MM-JJ).
+const dateInDays = (n) => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+};
 
 const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
   const { theme } = useTheme();
@@ -12,7 +22,20 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('viewer');
-  const [expiry, setExpiry] = useState('');
+  const [expiry, setExpiry] = useState(() => dateInDays(DEFAULT_DAYS));
+  // Durée en jours : c'est la façon naturelle de vendre un abonnement. On la
+  // convertit en date de fin, seul format que stocke l'API.
+  const [days, setDays] = useState(String(DEFAULT_DAYS));
+
+  const applyDays = (value) => {
+    setDays(value);
+    const n = parseInt(value, 10);
+    if (!Number.isInteger(n) || n <= 0) {
+      setExpiry('');
+      return;
+    }
+    setExpiry(dateInDays(n));
+  };
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -25,7 +48,8 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
     setPassword('');
     setConfirmPassword('');
     setRole('viewer');
-    setExpiry('');
+    setExpiry(dateInDays(DEFAULT_DAYS));
+    setDays(String(DEFAULT_DAYS));
     setError('');
   }, [isOpen]);
 
@@ -188,28 +212,87 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
           </div>
         </div>
 
-        {/* Date d'expiration — l'API l'acceptait déjà à la création, seul le
-            champ manquait : il fallait créer le compte puis le rouvrir pour la
-            poser. Pas de `min` : un admin doit pouvoir dater dans le passé
-            (suspendre immédiatement) sans que le navigateur bloque en silence. */}
+        {/* Durée d'abonnement — on raisonne en JOURS (« 30 jours »), pas en date
+            de fin : c'est ainsi qu'on vend un abonnement. Le calendrier reste
+            disponible pour une échéance précise. Pas de `min` sur la date : un
+            admin doit pouvoir dater dans le passé (suspendre immédiatement)
+            sans que la validation HTML bloque la soumission en silence. */}
         <div>
           <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
-            {t('expiry_date')}
+            {t('subscription_duration')}
             <span className="ml-2 text-emerald-500/60">{t('optional')}</span>
           </label>
-          <div className="relative group">
-            <Calendar
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
-              size={18}
-            />
-            <input
-              type="date"
-              value={expiry}
-              onChange={(e) => setExpiry(e.target.value)}
-              className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono text-sm text-white"
-            />
+
+          <div className="flex flex-wrap gap-2 mb-3">
+            {[7, 30, 90, 365].map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => applyDays(d)}
+                className={cn(
+                  'px-3 py-2 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-all',
+                  Number(days) === d
+                    ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                    : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:border-white/10'
+                )}
+              >
+                {d} {t('days_word')}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setDays('');
+                setExpiry('');
+              }}
+              className={cn(
+                'px-3 py-2 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-all',
+                !expiry
+                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                  : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
+              )}
+            >
+              {t('unlimited')}
+            </button>
           </div>
-          <p className="mt-2 text-[11px] text-slate-500 italic">{t('expiry_create_hint')}</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="relative group">
+              <Clock
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+                size={18}
+              />
+              <input
+                type="number"
+                min="1"
+                value={days}
+                onChange={(e) => applyDays(e.target.value)}
+                placeholder={t('ph_days')}
+                className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono text-sm"
+              />
+            </div>
+            <div className="relative group">
+              <Calendar
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+                size={18}
+              />
+              <input
+                type="date"
+                value={expiry}
+                onChange={(e) => {
+                  setExpiry(e.target.value);
+                  setDays(''); // date choisie à la main → la durée n'a plus de sens
+                }}
+                className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono text-sm text-white"
+              />
+            </div>
+          </div>
+
+          <p className="mt-2 text-[11px] text-slate-500 italic">
+            {expiry
+              ? `${t('expires_on')} ${new Date(expiry).toLocaleDateString('fr-FR')}`
+              : t('expiry_create_hint')}
+          </p>
         </div>
 
         {/* Error */}
