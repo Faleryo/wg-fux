@@ -351,7 +351,7 @@ if [ "$PROFILE" = "gaming" ]; then
  "${UPSTREAM_BANDWIDTH:-1gbit}" \
  "${CAKE_RTT_OVERRIDE:-100ms}" \
  "diffserv4" \
- "nat wash ack-filter overhead 80" \
+ "nat nowash no-ack-filter dual-dsthost split-gso overhead 80" \
  "2ms"
 
  # ----------------------------------------------------------
