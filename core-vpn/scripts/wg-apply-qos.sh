@@ -106,17 +106,47 @@ fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # BANDE PASSANTE — CAKE ne combat le bufferbloat que s'il EST le goulot
-# d'étranglement. À `10gbit` (valeur par défaut jamais ajustée), son limiteur
-# ne s'active jamais : aucune protection. On déduit la capacité réelle du lien
-# physique quand elle est lisible, et on garde 90 % de marge.
+# d'étranglement. À `10gbit`, son limiteur ne s'active jamais : aucune
+# protection.
+#
+# La déduction depuis /sys/class/net/<if>/speed est un DERNIER RECOURS, pas une
+# source fiable : la vitesse du lien n'est pas la capacité du lien montant (une
+# carte 1 Gb/s derrière une ligne à 50 Mb/s annonce 1000). Et surtout, elle
+# mentait franchement en conteneur.
+#
+# Mesuré en production le 2026-08-17 : la route par défaut du conteneur sort par
+# un veth, qui annonce TOUJOURS 10000 Mb/s. On en déduisait `bandwidth 9Gbit` —
+# un shaper qui ne s'active jamais. Les compteurs le prouvaient : `overlimits 0`
+# sur 975 453 paquets et 1,19 Go. Pire, comme la valeur trouvée paraissait
+# « plausible », l'avertissement prévu pour le cas illisible ne se déclenchait
+# jamais : la QoS était inerte EN SILENCE. Un client sans limite par client
+# encaissait alors +261 ms au p99 sous charge (mesuré au banc).
+#
+# On ne déduit donc plus que depuis une interface PHYSIQUE. Le test : un lien
+# `device` vers le périphérique PCI/USB dans sysfs, que veth/bridge/tun/dummy
+# n'ont pas. Faute de quoi on n'invente RIEN — inventer une valeur brimerait de
+# vrais clients — et on le dit fort.
+lien_physique() {
+ [ -n "${1:-}" ] && [ -e "/sys/class/net/$1/device" ]
+}
+
 if [ "$CAKE_BANDWIDTH" = "10gbit" ] || [ -z "$CAKE_BANDWIDTH" ]; then
  ETH=$(ip route show default 2>/dev/null | awk '/default/{print $5; exit}')
- LINK_MBIT=$(cat "/sys/class/net/${ETH:-eth0}/speed" 2>/dev/null || echo "")
- if [ -n "$LINK_MBIT" ] && [ "$LINK_MBIT" -gt 0 ] 2>/dev/null; then
+ LINK_MBIT=$(cat "/sys/class/net/${ETH:-}/speed" 2>/dev/null || echo "")
+ if lien_physique "$ETH" && [ -n "$LINK_MBIT" ] && [ "$LINK_MBIT" -gt 0 ] 2>/dev/null; then
   CAKE_BANDWIDTH="$(( LINK_MBIT * 90 / 100 ))mbit"
-  log_info "QoS: bande passante déduite du lien ${ETH} (${LINK_MBIT}Mb/s) → $CAKE_BANDWIDTH"
+  log_info "QoS: bande passante déduite du lien physique ${ETH} (${LINK_MBIT}Mb/s) → $CAKE_BANDWIDTH"
+  log_warn "QoS: valeur déduite de la VITESSE DU LIEN, qui n'est pas la capacité du lien montant. Renseignez UPSTREAM_BANDWIDTH (~90% du débit réel mesuré) pour un réglage juste."
  else
-  log_warn "QoS: bande passante à 10gbit — le limiteur NE s'active PAS. Renseignez UPSTREAM_BANDWIDTH (~90% du débit réel) pour activer l'anti-bufferbloat."
+  if [ -z "$ETH" ]; then
+   RAISON="aucune route par défaut"
+  elif ! lien_physique "$ETH"; then
+   RAISON="'${ETH}' est une interface virtuelle (veth/bridge) : sa vitesse annoncée (${LINK_MBIT:-?}Mb/s) est fictive"
+  else
+   RAISON="vitesse de '${ETH}' illisible (pilote sans attribut speed : virtio, WiFi…)"
+  fi
+  log_warn "QoS: ANTI-BUFFERBLOAT INACTIF — $RAISON. CAKE reste à $CAKE_BANDWIDTH, son limiteur ne s'activera JAMAIS."
+  log_warn "QoS: renseignez UPSTREAM_BANDWIDTH (~90% du débit montant réel) dans manager.conf. Sans ça, seuls les clients ayant un upload_limit sont protégés."
  fi
 fi
 
