@@ -116,13 +116,20 @@ let _bundleCache = null; // { buffer: Buffer, sha256: string, builtAt: number }
  * @returns {Promise<{ buffer: Buffer, sha256: string }>}
  */
 function buildBundleTarball({ fresh = false } = {}) {
-  if (_bundleCache && !fresh) return Promise.resolve(_bundleCache);
-
   // Bundle DURCI pré-fabriqué (interface pré-buildée + JS API obfusqué), produit
   // par scripts/build-protected-bundle.sh et monté en lecture seule. S'il existe,
   // il est servi tel quel — le client ne reçoit jamais le code source propre.
   // Sinon on retombe sur `git archive HEAD` (dev / instance non durcie).
   const protectedPath = (process.env.PROTECTED_BUNDLE_PATH || '').trim();
+
+  // BUG-FIX : ce raccourci se trouvait AVANT la lecture du mtime plus bas, ce
+  // qui rendait l'invalidation par mtime inatteignable. Après chaque
+  // régénération du bundle, l'API continuait donc de servir l'ANCIEN sha256
+  // jusqu'à un redémarrage : le bootstrap annonçait un bundle périmé et le VPS
+  // refusait l'installation (« checksum did NOT match »). Avec un bundle
+  // pré-fabriqué, la validité du cache dépend du fichier — on ne peut pas
+  // court-circuiter ici, il faut aller jusqu'au stat().
+  if (_bundleCache && !fresh && !protectedPath) return Promise.resolve(_bundleCache);
 
   // FAIL-CLOSED (opt-in) : quand REQUIRE_PROTECTED_BUNDLE est actif, on REFUSE de
   // fabriquer le bundle depuis `git archive HEAD` (= code source PROPRE) si le
