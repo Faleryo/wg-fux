@@ -74,7 +74,12 @@ function publicServer(s, ownerUsername) {
     // Métadonnées de flotte (descriptif).
     region: s.region || null,
     provider: s.provider || null,
-    tags: s.tags ? s.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+    tags: s.tags
+      ? s.tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : [],
     notes: s.notes || null,
     // Télémétrie machine (dernier heartbeat) — null tant que l'instance ne l'a
     // pas encore remontée (agent antérieur à la télémétrie).
@@ -288,7 +293,15 @@ router.patch(
 
     const d = parsed.data;
     const updates = {};
-    for (const k of ['label', 'host', 'region', 'provider', 'notes', 'alertOfflineMin', 'alertLicenseDays']) {
+    for (const k of [
+      'label',
+      'host',
+      'region',
+      'provider',
+      'notes',
+      'alertOfflineMin',
+      'alertLicenseDays',
+    ]) {
       if (d[k] !== undefined) updates[k] = d[k];
     }
     if (d.port !== undefined) updates.port = d.port;
@@ -302,7 +315,9 @@ router.patch(
       await db.update(schema.servers).set(updates).where(eq(schema.servers.id, id));
     } catch (dbErr) {
       if (dbErr.code === 'SQLITE_CONSTRAINT_UNIQUE' || dbErr.message?.includes('UNIQUE')) {
-        return res.status(409).json(createError('Ce host:port est déjà enregistré', null, 'CONFLICT'));
+        return res
+          .status(409)
+          .json(createError('Ce host:port est déjà enregistré', null, 'CONFLICT'));
       }
       throw dbErr;
     }
@@ -316,7 +331,11 @@ router.patch(
       ip: req.ip,
     });
 
-    const [updated] = await db.select().from(schema.servers).where(eq(schema.servers.id, id)).limit(1);
+    const [updated] = await db
+      .select()
+      .from(schema.servers)
+      .where(eq(schema.servers.id, id))
+      .limit(1);
     res.json(publicServer(updated));
   })
 );
@@ -356,9 +375,44 @@ router.get(
   })
 );
 
+// Fenêtre de fraîcheur du phone-home : le cron de l'instance sonde
+// /license/update-check chaque minute, qui rafraîchit lastHeartbeat. Au-delà,
+// on considère l'instance silencieuse.
+const HEARTBEAT_FRESH_MS = 5 * 60 * 1000;
+
+// Sonde active d'une instance autonome : son panneau public répond sur /api/health.
+// Certificat auto-signé toléré (une instance sans domaine en a un par défaut) —
+// on ne cherche pas à authentifier l'hôte ici, seulement à savoir s'il répond.
+async function probeInstanceHttp(host) {
+  const https = require('https');
+  const axios = require('axios');
+  const agent = new https.Agent({ rejectUnauthorized: false });
+  for (const url of [`https://${host}/api/health`, `http://${host}/api/health`]) {
+    try {
+      const r = await axios.get(url, { timeout: 6000, httpsAgent: agent, validateStatus: null });
+      if (r.status === 200 && r.data && r.data.status) {
+        return { ok: true, version: r.data.version || null };
+      }
+    } catch {
+      /* on essaie le schéma suivant */
+    }
+  }
+  return { ok: false };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /api/servers/:id/healthcheck — sonde SSH à la demande (wg-health.sh) et
-// rafraîchit status/lastError/lastChecked sans attendre le heartbeat passif.
+// POST /api/servers/:id/healthcheck — vérification à la demande.
+//
+// BUG-FIX (signalé depuis l'UI : « All configured authentication methods
+// failed ») : cette route sondait TOUJOURS en SSH. Depuis le pivot vers des
+// instances autonomes, le VPS n'héberge plus de compte SSH `wg-fux` avec la clé
+// de la plateforme — le bouton échouait donc systématiquement, et pire, il
+// écrasait le statut en 'error' alors que le phone-home venait d'avoir lieu
+// (« dernier contact il y a 15 s » avec un badge ERREUR : état contradictoire).
+// On aligne désormais la logique sur celle du heartbeat de fond :
+//   - instance autonome (pas de hostKey) → sonde HTTP du panneau, avec repli
+//     sur la fraîcheur du phone-home ;
+//   - instance héritée pilotée en SSH (hostKey pinnée) → sonde SSH dédiée.
 // ─────────────────────────────────────────────────────────────────────────────
 router.post(
   '/:id/healthcheck',
@@ -375,10 +429,38 @@ router.post(
         .status(404)
         .json(createError('Serveur introuvable ou non autorisé', null, 'NOT_FOUND'));
     }
-    const executor = await getExecutorForServer(server.id);
-    const result = await executor.run('wg-health.sh', []);
+
     const now = new Date();
-    if (result.success) {
+    let ok = false;
+    let errMsg = null;
+
+    if (!server.hostKey) {
+      const probe = await probeInstanceHttp(server.host);
+      if (probe.ok) {
+        ok = true;
+      } else {
+        const last = server.lastHeartbeat ? new Date(server.lastHeartbeat).getTime() : 0;
+        if (last && Date.now() - last < HEARTBEAT_FRESH_MS) {
+          // Le panneau n'est pas joignable depuis la plateforme (pare-feu,
+          // domaine non résolu, proxy) mais l'instance a téléphoné il y a peu :
+          // elle est vivante. On ne la déclare pas en erreur pour autant.
+          ok = true;
+        } else {
+          errMsg = last
+            ? `Panneau injoignable et aucun contact depuis ${Math.round((Date.now() - last) / 60000)} min.`
+            : 'Panneau injoignable et aucun phone-home reçu à ce jour.';
+        }
+      }
+    } else {
+      const executor = await getExecutorForServer(server.id);
+      // wg-fux-verify.sh : sonde dédiée, remplaçante de wg-health.sh (diagnostic
+      // matériel trop fragile, qui rendait la vérification faussement négative).
+      const result = await executor.run('wg-fux-verify.sh', []);
+      ok = !!result.success;
+      if (!ok) errMsg = result.error || 'Sonde SSH échouée';
+    }
+
+    if (ok) {
       await db
         .update(schema.servers)
         .set({ status: 'online', lastChecked: now, lastError: null, consecutiveFailures: 0 })
@@ -386,15 +468,15 @@ router.post(
     } else {
       await db
         .update(schema.servers)
-        .set({
-          status: 'error',
-          lastChecked: now,
-          lastError: (result.error || 'Sonde SSH échouée').slice(0, 500),
-        })
+        .set({ status: 'error', lastChecked: now, lastError: String(errMsg).slice(0, 500) })
         .where(eq(schema.servers.id, id));
     }
-    const [updated] = await db.select().from(schema.servers).where(eq(schema.servers.id, id)).limit(1);
-    res.json({ success: result.success, server: publicServer(updated) });
+    const [updated] = await db
+      .select()
+      .from(schema.servers)
+      .where(eq(schema.servers.id, id))
+      .limit(1);
+    res.json({ success: ok, server: publicServer(updated) });
   })
 );
 
@@ -413,7 +495,10 @@ router.post(
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json(createError('ids (liste) requis'));
     }
-    const cleanIds = ids.map((n) => parseInt(n, 10)).filter(Number.isInteger).slice(0, 500);
+    const cleanIds = ids
+      .map((n) => parseInt(n, 10))
+      .filter(Number.isInteger)
+      .slice(0, 500);
     if (cleanIds.length === 0) return res.status(400).json(createError('ids invalides'));
 
     let affected = 0;
@@ -426,14 +511,20 @@ router.post(
       }
     } else if (action === 'renew') {
       if (req.user.role !== 'admin') {
-        return res.status(403).json(createError('Renouvellement réservé à l’admin', null, 'FORBIDDEN'));
+        return res
+          .status(403)
+          .json(createError('Renouvellement réservé à l’admin', null, 'FORBIDDEN'));
       }
       const days = parseInt(extendDays, 10);
       if (!Number.isInteger(days) || days < 1 || days > 3650) {
         return res.status(400).json(createError('extendDays (1-3650) requis pour renew'));
       }
       for (const id of cleanIds) {
-        const [server] = await db.select().from(schema.servers).where(eq(schema.servers.id, id)).limit(1);
+        const [server] = await db
+          .select()
+          .from(schema.servers)
+          .where(eq(schema.servers.id, id))
+          .limit(1);
         if (!server) continue;
         const base = Math.max(
           Date.now(),
@@ -488,16 +579,38 @@ router.post(
         .json(createError('Serveur introuvable ou non autorisé', null, 'NOT_FOUND'));
     }
 
+    // BUG-FIX (signalé depuis l'UI) : cette route passait TOUJOURS par SSH.
+    // Une instance autonome n'expose aucun compte SSH à la plateforme — la
+    // désinstallation distante y est structurellement impossible. Plutôt que
+    // d'échouer sur « All configured authentication methods failed », on dit
+    // clairement quoi faire, et on ne supprime PAS l'enregistrement en douce
+    // (ce qui laisserait un VPS installé mais invisible de la plateforme).
+    if (!server.hostKey) {
+      return res
+        .status(409)
+        .json(
+          createError(
+            "Cette instance est autonome : la plateforme n'a pas d'accès SSH pour la désinstaller à distance. " +
+              `Lancez sur le VPS : ssh -t root@${server.host} 'cd /opt/wg-fux && sudo ./setup.sh --uninstall' ` +
+              '— puis supprimez la fiche ici pour la retirer de la flotte.',
+            null,
+            'UNINSTALL_REQUIRES_SSH'
+          )
+        );
+    }
+
     const executor = await getExecutorForServer(server.id);
     const result = await executor.run('wg-uninstall.sh', []);
     if (!result.success) {
-      return res.status(502).json(
-        createError(
-          `Désinstallation distante échouée : ${result.error || 'erreur inconnue'}`,
-          null,
-          'UNINSTALL_FAILED'
-        )
-      );
+      return res
+        .status(502)
+        .json(
+          createError(
+            `Désinstallation distante échouée : ${result.error || 'erreur inconnue'}`,
+            null,
+            'UNINSTALL_FAILED'
+          )
+        );
     }
 
     await db.delete(schema.servers).where(eq(schema.servers.id, server.id));
