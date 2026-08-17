@@ -62,6 +62,8 @@ is_allowed() {
 APPLIED=0
 REFUSED=0
 FAILED=0
+# Seules les valeurs VÉRIFIÉES sont persistées.
+APPLIED_ENTRIES=()
 
 log "=== Application des réglages hôte depuis $REQUEST_FILE ==="
 
@@ -78,7 +80,7 @@ while IFS= read -r line || [ -n "$line" ]; do
   [ -n "$key" ] && [ -n "$val" ] || continue
 
   # Format attendu : clé pointée alphanumérique, valeur sans métacaractère shell.
-  if ! [[ "$key" =~ ^[a-z0-9_.]+$ ]]; then
+  if ! [[ "$key" =~ ^[a-z0-9_.-]+$ ]]; then
     log "✗ Clé au format inattendu, ignorée : $key"
     REFUSED=$((REFUSED + 1)); continue
   fi
@@ -105,6 +107,7 @@ while IFS= read -r line || [ -n "$line" ]; do
 
   if [ "$norm_got" = "$norm_want" ]; then
     log "✓ $key = $val"
+    APPLIED_ENTRIES+=("$key=$val")
     APPLIED=$((APPLIED + 1))
   elif [ "$readback" = "__ABSENT__" ]; then
     log "⚠ Clé absente de ce noyau : $key"
@@ -114,6 +117,22 @@ while IFS= read -r line || [ -n "$line" ]; do
     FAILED=$((FAILED + 1))
   fi
 done < "$REQUEST_FILE"
+
+# PERSISTANCE — `sysctl -w` ne vit qu'en mémoire : sans ce fichier, tout
+# repartait aux valeurs par défaut au prochain redémarrage de la machine.
+# Fichier DISTINCT de 99-wg-fux.conf, qui porte les réglages de sécurité posés
+# par setup.sh : on ne veut pas les écraser depuis ce chemin.
+PERSIST_FILE="/etc/sysctl.d/98-wg-fux-perf.conf"
+if [ "$APPLIED" -gt 0 ]; then
+  {
+    echo "# Généré par wg-host-sysctl.sh — profil de performance réseau wg-fux."
+    echo "# NE PAS ÉDITER : réécrit à chaque application d'un profil."
+    echo "# Réglages de SÉCURITÉ : voir 99-wg-fux.conf (posé par setup.sh)."
+    for entry in "${APPLIED_ENTRIES[@]}"; do echo "$entry"; done
+  } > "$PERSIST_FILE" 2>/dev/null \
+    && log "✓ Persisté dans $PERSIST_FILE (survit au redémarrage)" \
+    || log "⚠ Impossible d'écrire $PERSIST_FILE — réglages actifs mais NON persistés"
+fi
 
 log "=== Terminé : $APPLIED appliqués, $REFUSED refusés, $FAILED en échec ==="
 
