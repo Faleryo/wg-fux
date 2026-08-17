@@ -266,28 +266,39 @@ if [ "$PROFILE" = "gaming" ]; then
  apply_sysctl net.ipv4.udp_wmem_min 16384
 
  # ----------------------------------------------------------
- # 2. TCP LOW LATENCY (pour le trafic non-WG et le contrôle)
+ # 2. TCP — sockets LOCALES du serveur uniquement (API, SSH, apt)
  # ----------------------------------------------------------
+ # ⚠ Aucun effet sur la latence de jeu. Le trafic des joueurs est ROUTÉ
+ # (forwardé) : il ne traverse aucune socket TCP du noyau hôte. Ces réglages
+ # n'agissent que sur les connexions que le serveur ouvre lui-même.
+ # Conservés parce qu'ils profitent à l'API et au plan de contrôle — pas
+ # parce qu'ils font gagner des millisecondes en jeu.
  apply_sysctl net.ipv4.tcp_fastopen 3 # TFO client+server
  apply_sysctl net.ipv4.tcp_autocorking 0 # Désactive le regroupement de paquets → latence réduite
  # NOTE: net.ipv4.tcp_low_latency is a no-op since kernel 4.14 — removed.
  apply_sysctl net.ipv4.tcp_no_metrics_save 1 # Oublie les métriques entre connexions
- apply_sysctl net.ipv4.tcp_thin_linear_timeouts 1 # Connexions thin stream (gaming)
+ apply_sysctl net.ipv4.tcp_thin_linear_timeouts 1 # Thin streams TCP locaux (pas le trafic de jeu, qui est UDP)
  apply_sysctl net.ipv4.tcp_notsent_lowat 16384 # Reduce send buffer pre-fill
  apply_sysctl net.ipv4.tcp_timestamps 1 # RTT measurement précis (RTTM)
  apply_sysctl net.ipv4.tcp_sack 1 # SACK = retransmission ciblée uniquement
  apply_sysctl net.ipv4.tcp_dsack 1 # Duplicate SACK
 
  # ----------------------------------------------------------
- # 2b. BUSY POLL — Réduit la latence d'interruption kernel
+ # 2b. BUSY POLL — DÉSACTIVÉ ACTIVEMENT
  # ----------------------------------------------------------
- # Le noyau tourne activement pendant 10µs avant de bloquer sur recv.
- # Économise 50-200µs par paquet sans saturer un vCPU de VPS.
- # (machines dédiées peuvent monter à 50-100µs)
- apply_sysctl net.core.busy_poll 10
- apply_sysctl net.core.busy_read 10
+ # net.core.busy_poll / busy_read ne concernent QUE les lectures de socket
+ # faites par une application locale (cf. Documentation/networking/napi.rst :
+ # « setting SO_BUSY_POLL on selected sockets » ou ces sysctls globaux).
+ # Le trafic des joueurs est forwardé — il ne passe par aucune socket. On
+ # brûlait donc des cycles CPU sur un VPS pour zéro milliseconde gagnée.
+ #
+ # On écrit 0 au lieu de simplement retirer l'appel : la valeur précédente (10)
+ # est PERSISTÉE dans /etc/sysctl.d/99-wg-fux.conf et rejouée au boot. Sans
+ # remise à zéro explicite, toute la flotte déjà déployée la garderait à vie.
+ apply_sysctl net.core.busy_poll 0
+ apply_sysctl net.core.busy_read 0
 
- # TCP buffers réduits pour gaming (évite bufferbloat kernel avant CAKE)
+ # TCP buffers réduits (évite bufferbloat kernel avant CAKE)
  # Les jeux tournent en UDP ; réduire les buffers TCP élimine la
  # pré-occupation des files d'attente par les téléchargements concurrents.
  apply_sysctl net.ipv4.tcp_rmem "4096 16384 4194304"
@@ -303,10 +314,12 @@ if [ "$PROFILE" = "gaming" ]; then
  apply_sysctl net.ipv4.tcp_max_syn_backlog 4096
 
  # ----------------------------------------------------------
- # 4. CONGESTION CONTROL — BBR v2 pour gaming UDP
+ # 4. CONGESTION CONTROL — TCP local du serveur
  # ----------------------------------------------------------
- # BBR = Bottleneck Bandwidth and RTT (Google 2016)
- # Avantage gaming : pas de slow-start agressif, RTT-aware
+ # BBR = Bottleneck Bandwidth and RTT (Google 2016). Il ne s'applique QU'AUX
+ # sockets TCP ouvertes par cet hôte : le trafic de jeu est de l'UDP forwardé,
+ # BBR ne le touche pas. Activé pour l'API et le plan de contrôle.
+ # `fq` ci-dessous, en revanche, agit bien sur la sortie physique.
  if grep -q "bbr" /proc/sys/net/ipv4/tcp_available_congestion_control 2>/dev/null; then
  apply_sysctl net.ipv4.tcp_congestion_control bbr
  log "✓ BBR congestion control activé"
@@ -347,11 +360,16 @@ if [ "$PROFILE" = "gaming" ]; then
  # valeur rend l'AQM trop agressif — il jette des paquets simplement en vol sur
  # la distance, ce qui AUGMENTE la latence utile. 100 ms est le préréglage
  # « internet » de CAKE, sûr de 30 à 200 ms.
+ # `besteffort` : sur wg0 les paquets internes arrivent tous en DSCP 0, donc les
+ # tins de diffserv4 étaient vides sauf un. Pire, un flux qui se marque EF de
+ # lui-même passait devant le trafic de jeu non marqué. La priorité réelle vient
+ # de l'isolation par flux (dual-dsthost), qui sert les flux clairsemés — profil
+ # exact d'un flux de jeu — avant les flux gourmands, sans classification.
  write_qos_profile "gaming" \
  "${UPSTREAM_BANDWIDTH:-1gbit}" \
  "${CAKE_RTT_OVERRIDE:-100ms}" \
- "diffserv4" \
- "nat nowash no-ack-filter dual-dsthost split-gso overhead 80" \
+ "besteffort" \
+ "nowash no-ack-filter dual-dsthost split-gso overhead 80" \
  "2ms"
 
  # ----------------------------------------------------------
@@ -443,11 +461,13 @@ elif [ "$PROFILE" = "streaming" ]; then
 
  # CAKE en mode streaming (priorise le throughput) — params seulement,
  # l'arbre est rebuild par wg-apply-qos.sh.
+ # Même raison qu'en gaming : DSCP nul sur les paquets internes, `nat` inutile
+ # sur wg0. Voir le commentaire du profil gaming.
  write_qos_profile "streaming" \
  "${UPSTREAM_BANDWIDTH:-1gbit}" \
  "100ms" \
- "diffserv4" \
- "nat overhead 80" \
+ "besteffort" \
+ "overhead 80" \
  "10ms"
 
  apply_common_system_tuning

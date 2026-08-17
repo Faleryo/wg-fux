@@ -14,12 +14,19 @@ if [ -n "$IFACE" ] && [ "$IFACE" != "unknown" ]; then
  fi
 
  echo ""
- echo "--- Latency Tuning (Busy Polling) ---"
+ # Busy polling ne concerne que les sockets lues par une application locale ;
+ # le trafic VPN est forwardé et n'en bénéficie pas. On l'affiche donc comme
+ # une anomalie à corriger, pas comme un réglage de latence.
+ echo "--- Busy Polling (doit rester à 0 sur un relais) ---"
  BUSY_READ=$(sysctl -n net.core.busy_read 2>/dev/null || echo 0)
  BUSY_POLL=$(sysctl -n net.core.busy_poll 2>/dev/null || echo 0)
  echo "Busy Read: $BUSY_READ us"
  echo "Busy Poll: $BUSY_POLL us"
- if [ "$BUSY_POLL" -gt 0 ]; then echo "STATUS: ACTIVÉ (Attention à la charge CPU %sy)"; else echo "STATUS: DÉSACTIVÉ"; fi
+ if [ "$BUSY_POLL" -gt 0 ] || [ "$BUSY_READ" -gt 0 ]; then
+  echo "STATUS: ACTIVÉ — sans effet sur du trafic forwardé, coûte du CPU. À remettre à 0."
+ else
+  echo "STATUS: DÉSACTIVÉ (attendu)"
+ fi
 
  echo ""
  echo "--- Statistiques OS ---"

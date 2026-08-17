@@ -31,8 +31,19 @@ flock -n 9 || { log_warn "QoS: autre instance en cours, skip."; exit 0; }
 # Default-class leaf qdisc params (overridden by wg-optimize profile if active)
 CAKE_BANDWIDTH="${UPSTREAM_BANDWIDTH:-10gbit}"
 CAKE_RTT="20ms"
-CAKE_DIFFSERV="diffserv4"
-CAKE_EXTRA="nat wash ack-filter overhead 80"
+# `besteffort` et non `diffserv4` : sur wg0 on voit les paquets INTERNES, qui
+# arrivent tous en DSCP 0 (les jeux mobiles ne marquent pas, les transits
+# blanchissent). Les quatre tins de diffserv4 se réduisaient donc à un seul —
+# sauf pour un flux qui MENT en se marquant EF, lequel passait alors devant le
+# trafic de jeu. La priorité utile vient de l'isolation par flux de CAKE : un
+# flux clairsemé (jeu : petits paquets, 20-60/s) est servi avant un flux gourmand
+# sans qu'aucune règle ne soit écrite.
+CAKE_DIFFSERV="besteffort"
+# Sans `nat` : sur wg0 les adresses sont déjà les IP réelles des clients VPN
+# (le MASQUERADE a lieu plus loin, sur l'interface physique). Le lookup
+# conntrack par paquet ne corrigeait donc rien.
+# Sans `ack-filter` : utile seulement sur un lien fortement asymétrique.
+CAKE_EXTRA="nowash no-ack-filter overhead 80"
 FQ_TARGET="2ms"
 PROFILE="default"
 # shellcheck source=/dev/null

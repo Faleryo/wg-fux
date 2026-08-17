@@ -83,7 +83,14 @@ if [ -n "$IP6TABLES_BIN" ]; then
 fi
 
 # 6. DSCP EF marking for WireGuard UDP egress (gaming profile only).
-# CAKE diffserv4 prioritises EF (DSCP 46) → better latency at the bottleneck.
+#
+# ⚠ Ce marquage ne parle PAS à notre CAKE : il pose EF sur les paquets EXTERNES
+# sortant de l'interface physique, alors que CAKE tourne sur wg0 (paquets
+# internes). Il ne sert donc qu'aux équipements EN AMONT qui honorent le DSCP —
+# beaucoup d'opérateurs le blanchissent ou le policent. On le garde car c'est
+# gratuit et parfois utile, mais il ne faut rien en attendre par défaut.
+# Note : WireGuard ne recopie jamais le DSCP interne vers l'en-tête externe
+# (choix amont, anti-fuite) — seul l'ECN est propagé. D'où ce marquage explicite.
 if [ "${PROFILE:-default}" = "gaming" ] && [ -n "$SERVER_INTERFACE" ]; then
  SERVER_PORT_MARK="${SERVER_PORT:-51820}"
  _add_rule "$IPTABLES_BIN" -t mangle POSTROUTING -o "$SERVER_INTERFACE" \
