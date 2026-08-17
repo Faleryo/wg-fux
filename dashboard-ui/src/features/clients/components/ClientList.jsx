@@ -51,17 +51,31 @@ export const ClientList = ({
     if (cName && !containerGroups[cName]) containerGroups[cName] = [];
   });
 
-  const containerEntries = Object.entries(containerGroups);
+  // Ordre alphabétique, insensible à la casse et aux accents (`localeCompare`
+  // avec `numeric` pour que client-2 précède client-10 au lieu de le suivre).
+  const byName = (a, b) =>
+    String(a?.name || '').localeCompare(String(b?.name || ''), 'fr', {
+      numeric: true,
+      sensitivity: 'base',
+    });
+
+  Object.values(containerGroups).forEach((list) => list.sort(byName));
+
+  const containerEntries = Object.entries(containerGroups).sort((a, b) =>
+    a[0].localeCompare(b[0], 'fr', { numeric: true, sensitivity: 'base' })
+  );
 
   const containerClients = activeContainer
-    ? (containerGroups[activeContainer] || []).filter(
-        (c) =>
-          !search ||
-          String(c?.name || '')
-            .toLowerCase()
-            .includes(search.toLowerCase()) ||
-          String(c?.ip || '').includes(search)
-      )
+    ? (containerGroups[activeContainer] || [])
+        .filter(
+          (c) =>
+            !search ||
+            String(c?.name || '')
+              .toLowerCase()
+              .includes(search.toLowerCase()) ||
+            String(c?.ip || '').includes(search)
+        )
+        .sort(byName)
     : [];
 
   const selectedColor = activeContainer ? getContainerColor(activeContainer) : theme;

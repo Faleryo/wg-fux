@@ -6,11 +6,8 @@ import { useLang } from '../../../context/LanguageContext';
 
 const NetworkNode = ({
   client,
-  index,
-  total,
-  centerX,
-  centerY,
-  radius,
+  position,
+  index = 0,
   isDark,
   isMobile,
   selectedNodeId,
@@ -18,10 +15,12 @@ const NetworkNode = ({
   onNodeClick,
   getContainerColor,
 }) => {
-  const angle = (index * (2 * Math.PI)) / total - Math.PI / 2;
   const { t } = useLang();
-  const x = centerX + radius * Math.cos(angle);
-  const y = centerY + radius * Math.sin(angle);
+  // Position calculée en amont (topologyLayout) et PARTAGÉE avec les liens :
+  // chaque composant recalculait sa propre trigonométrie, donc toute divergence
+  // décalait les traits par rapport aux icônes.
+  const x = position?.x ?? 0;
+  const y = position?.y ?? 0;
   const isOnline = client.isOnline;
   const color = getContainerColor(client.container);
 

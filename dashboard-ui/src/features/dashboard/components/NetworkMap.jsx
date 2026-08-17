@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Activity, Plus, Minus, RefreshCw } from 'lucide-react';
+import { Activity, Plus, Minus, RefreshCw, ChevronLeft } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useLang } from '../../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
@@ -45,6 +45,46 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
   const uniqueContainers = useMemo(
     () => [...new Set(enrichedClients.map((c) => c.container))].sort(),
     [enrichedClients]
+  );
+
+  // Vue hiérarchique : niveau 0 = les conteneurs, niveau 1 = les peers de celui
+  // qu'on a ouvert. Afficher toute la flotte d'un coup devenait illisible.
+  const [focusedContainer, setFocusedContainer] = useState(null);
+
+  // Un conteneur disparu (peer supprimé, changement de serveur) ne doit pas
+  // laisser la carte vide sur un niveau qui n'existe plus.
+  useEffect(() => {
+    if (focusedContainer && !uniqueContainers.includes(focusedContainer)) {
+      setFocusedContainer(null);
+    }
+  }, [focusedContainer, uniqueContainers]);
+
+  // Agrégat par conteneur. On lui donne la même forme qu'un peer (id, isOnline,
+  // débits) pour que la couche de liens fonctionne sans distinction de type.
+  const containerGroups = useMemo(
+    () =>
+      uniqueContainers.map((name) => {
+        const members = enrichedClients.filter((c) => c.container === name);
+        const online = members.filter((c) => c.isOnline).length;
+        return {
+          id: `container:${name}`,
+          name,
+          container: name,
+          total: members.length,
+          online,
+          isOnline: online > 0,
+          downloadRate: members.reduce((a, c) => a + (c.downloadRate || 0), 0),
+          uploadRate: members.reduce((a, c) => a + (c.uploadRate || 0), 0),
+        };
+      }),
+    [uniqueContainers, enrichedClients]
+  );
+
+  // Peers du conteneur ouvert uniquement.
+  const visibleClients = useMemo(
+    () =>
+      focusedContainer ? sortedClients.filter((c) => c.container === focusedContainer) : [],
+    [focusedContainer, sortedClients]
   );
 
   // Hauteur adaptée à l'espace RÉELLEMENT disponible : l'ancien
@@ -178,7 +218,10 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
         isDark={isDark}
         isMobile={isMobile}
         theme={theme}
-        sortedClients={sortedClients}
+        sortedClients={visibleClients}
+        containerGroups={containerGroups}
+        focusedContainer={focusedContainer}
+        onSelectContainer={setFocusedContainer}
         selectedNodeId={selectedNodeId}
         nowSec={nowSec}
         handleNodeClick={handleNodeClick}
@@ -212,10 +255,31 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
               className="text-[11px] font-black tracking-widest uppercase opacity-60"
               style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
             >
-              Deep Space Network Monitoring
+              {focusedContainer
+                ? `${focusedContainer} — ${visibleClients.length} ${t('peers_word')}`
+                : `${containerGroups.length} ${t('containers_word')}`}
             </p>
           </div>
+
+          {/* Fil d'Ariane : sans lui, on descend dans un conteneur sans pouvoir
+              remonter (le clic sur le fond sert au déplacement de la carte). */}
+          {focusedContainer && (
+            <button
+              onClick={() => setFocusedContainer(null)}
+              className={cn(
+                'pointer-events-auto ml-2 flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all',
+                isDark
+                  ? 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10'
+                  : 'bg-black/5 border-black/10 text-slate-600 hover:text-slate-900'
+              )}
+            >
+              <ChevronLeft size={14} /> {t('all_containers')}
+            </button>
+          )}
         </div>
+        {!focusedContainer && containerGroups.length > 0 && (
+          <p className="mt-3 ml-2 text-[11px] text-slate-500 italic">{t('topology_hint')}</p>
+        )}
       </div>
 
       {/* Zoom Controls */}

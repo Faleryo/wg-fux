@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, Key, Shield, Eye, EyeOff, RefreshCw, Plus } from 'lucide-react';
+import { Users, Key, Shield, Eye, EyeOff, RefreshCw, Plus, Calendar } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
 import { useLang } from '../../context/LanguageContext';
@@ -12,6 +12,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('viewer');
+  const [expiry, setExpiry] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,6 +25,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
     setPassword('');
     setConfirmPassword('');
     setRole('viewer');
+    setExpiry('');
     setError('');
   }, [isOpen]);
 
@@ -52,7 +54,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
     submittingRef.current = true;
     setLoading(true);
     try {
-      await onCreate(username.trim(), password, role);
+      await onCreate(username.trim(), password, role, expiry || null);
       setUsername('');
       setPassword('');
       setConfirmPassword('');
@@ -184,6 +186,30 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Date d'expiration — l'API l'acceptait déjà à la création, seul le
+            champ manquait : il fallait créer le compte puis le rouvrir pour la
+            poser. Pas de `min` : un admin doit pouvoir dater dans le passé
+            (suspendre immédiatement) sans que le navigateur bloque en silence. */}
+        <div>
+          <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+            {t('expiry_date')}
+            <span className="ml-2 text-emerald-500/60">{t('optional')}</span>
+          </label>
+          <div className="relative group">
+            <Calendar
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+              size={18}
+            />
+            <input
+              type="date"
+              value={expiry}
+              onChange={(e) => setExpiry(e.target.value)}
+              className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono text-sm text-white"
+            />
+          </div>
+          <p className="mt-2 text-[11px] text-slate-500 italic">{t('expiry_create_hint')}</p>
         </div>
 
         {/* Error */}

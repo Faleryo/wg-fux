@@ -17,6 +17,7 @@ import {
   Network,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { prefetchSection } from './prefetchSection';
 import { cn, COLOR_MAP } from '../../lib/utils';
 
 const NavItems = ({
@@ -105,6 +106,10 @@ const NavItems = ({
                 setActiveSection(item.id);
                 onClose();
               }}
+              // Le code de l'onglet part au survol : au clic il est déjà là.
+              onMouseEnter={() => prefetchSection(item.id)}
+              onFocus={() => prefetchSection(item.id)}
+              onTouchStart={() => prefetchSection(item.id)}
               title={collapsed ? item.label : undefined}
               className={cn(
                 'group relative w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300',

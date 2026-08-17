@@ -155,7 +155,11 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
               type="date"
               value={expiry}
               onChange={(e) => setExpiry(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
+              // PAS de `min` : il bloquait toute date passée via la validation
+              // HTML native, qui empêche la soumission en n'affichant qu'une
+              // bulle discrète — l'admin croyait avoir enregistré alors
+              // qu'AUCUNE requête n'était envoyée. Dater dans le passé est un
+              // usage légitime : suspendre un compte immédiatement.
               className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono text-sm text-white"
             />
           </div>

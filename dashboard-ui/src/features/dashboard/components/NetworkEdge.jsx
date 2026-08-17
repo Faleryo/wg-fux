@@ -2,16 +2,18 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../../../lib/utils';
 
-const NetworkEdge = ({ clients, centerX, centerY, radius, isDark, getContainerColor }) => {
+const NetworkEdge = ({ clients, positions, centerX, centerY, isDark, getContainerColor }) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       className="absolute inset-0 w-full h-full pointer-events-none drop-shadow-2xl"
     >
       {clients.map((client, i) => {
-        const angle = (i * (2 * Math.PI)) / clients.length - Math.PI / 2;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
+        // Mêmes coordonnées que les nœuds (topologyLayout) : plus de double
+        // calcul, donc plus de risque de traits désalignés des icônes.
+        const pos = positions?.[i];
+        if (!pos) return null;
+        const { x, y } = pos;
         const isOnline = client.isOnline;
         const hasTraffic = client.downloadRate + client.uploadRate > 1024;
         const color = getContainerColor(client.container);

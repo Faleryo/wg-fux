@@ -4,6 +4,8 @@ import { Server } from 'lucide-react';
 import { cn, COLOR_MAP } from '../../../lib/utils';
 import NetworkEdge from './NetworkEdge';
 import NetworkNode from './NetworkNode';
+import ContainerNode from './ContainerNode';
+import { computeTopologyLayout } from './topologyLayout';
 
 const MapSvg = ({
   view,
@@ -19,7 +21,25 @@ const MapSvg = ({
   nowSec,
   handleNodeClick,
   getContainerColor,
+  // Navigation hiérarchique : au premier niveau on montre les CONTENEURS ;
+  // en cliquant sur l'un d'eux on descend sur ses seuls peers.
+  containerGroups = [],
+  focusedContainer = null,
+  onSelectContainer,
 }) => {
+  const showingContainers = !focusedContainer;
+  const items = showingContainers ? containerGroups : sortedClients;
+  // UNE seule source de position pour les nœuds ET les liens. Au-delà de ce que
+  // peut contenir un cercle, les peers sont répartis sur plusieurs anneaux —
+  // sinon ils se chevauchent (47 peers ne tiennent pas sur une couronne).
+  const nodeSize = isMobile ? 40 : 64;
+  const positions = computeTopologyLayout(
+    items.length,
+    centerX,
+    centerY,
+    radius,
+    showingContainers ? nodeSize * 1.25 : nodeSize
+  );
   return (
     <motion.div
       animate={{ x: view.x, y: view.y, scale: view.zoom }}
@@ -81,10 +101,10 @@ const MapSvg = ({
 
       {/* Connections Layer */}
       <NetworkEdge
-        clients={sortedClients}
+        clients={items}
+        positions={positions}
         centerX={centerX}
         centerY={centerY}
-        radius={radius}
         isDark={isDark}
         getContainerColor={getContainerColor}
       />
@@ -127,24 +147,34 @@ const MapSvg = ({
         </div>
       </div>
 
-      {/* Nodes */}
-      {sortedClients.map((client, i) => (
-        <NetworkNode
-          key={client.id}
-          client={client}
-          index={i}
-          total={sortedClients.length}
-          centerX={centerX}
-          centerY={centerY}
-          radius={radius}
-          isDark={isDark}
-          isMobile={isMobile}
-          selectedNodeId={selectedNodeId}
-          nowSec={nowSec}
-          onNodeClick={handleNodeClick}
-          getContainerColor={getContainerColor}
-        />
-      ))}
+      {/* Nodes — conteneurs au niveau 0, peers du conteneur choisi au niveau 1 */}
+      {showingContainers
+        ? containerGroups.map((group, i) => (
+            <ContainerNode
+              key={group.name}
+              group={group}
+              position={positions[i]}
+              index={i}
+              isDark={isDark}
+              isMobile={isMobile}
+              color={getContainerColor(group.name)}
+              onSelect={onSelectContainer}
+            />
+          ))
+        : sortedClients.map((client, i) => (
+            <NetworkNode
+              key={client.id}
+              client={client}
+              position={positions[i]}
+              index={i}
+              isDark={isDark}
+              isMobile={isMobile}
+              selectedNodeId={selectedNodeId}
+              nowSec={nowSec}
+              onNodeClick={handleNodeClick}
+              getContainerColor={getContainerColor}
+            />
+          ))}
     </motion.div>
   );
 };
