@@ -84,9 +84,12 @@ apply_sysctl() {
  # part sur stderr, le code reste 0). Se fier au code de retour faisait
  # compter comme appliqués des réglages qui n'avaient jamais bougé.
  sysctl -w "$key=$val" > /dev/null 2>&1 || true
+ # `|| true` INDISPENSABLE : pour une clé absente du conteneur, `sysctl -n`
+ # échoue ; sous `set -euo pipefail` le pipeline renvoie non-zéro et
+ # l'affectation tue le script entier (constaté : arrêt dès le 1er réglage).
  local got want
- got="$(sysctl -n "$key" 2>/dev/null | tr -s '[:space:]' ' ')"
- want="$(echo "$val" | tr -s '[:space:]' ' ')"
+ got="$(sysctl -n "$key" 2>/dev/null | tr -s '[:space:]' ' ' || true)"
+ want="$(echo "$val" | tr -s '[:space:]' ' ' || true)"
  if [ "$got" = "$want" ]; then
  log "✓ sysctl $key = $val"
  SYSCTL_OK=$((SYSCTL_OK + 1))
