@@ -38,6 +38,69 @@ PROFILE="default"
 # shellcheck source=/dev/null
 [ -f /etc/wireguard/qos.profile ] && source /etc/wireguard/qos.profile
 
+# ─────────────────────────────────────────────────────────────────────────────
+# RTT ADAPTATIF — mesure le trajet RÉEL vers les peers connectés.
+#
+# POURQUOI : le paramètre `rtt` de CAKE lui indique la latence ATTENDUE du
+# chemin, pour dimensionner son AQM (COBALT). Le profil gaming le figeait à
+# 20 ms. Mesuré sur cette plateforme : les peers sont à 149, 231 et 349 ms
+# (Lomé ↔ Francfort). Annoncer 20 ms sur un trajet de 150 ms rend l'AQM
+# BEAUCOUP trop agressif : il marque et jette des paquets simplement « en vol »
+# sur la distance, ce qui provoque des retransmissions — donc AUGMENTE la
+# latence utile au lieu de la réduire.
+#
+# On mesure quelques peers actifs et on retient la MÉDIANE (robuste aux
+# valeurs aberrantes d'un mobile en veille), bornée pour rester saine.
+measure_path_rtt() {
+ command -v ping >/dev/null 2>&1 || return 1
+ local ips rtts=() ip r
+ # Peers ayant échangé récemment (handshake < 5 min), 5 au maximum : la mesure
+ # doit rester rapide, elle tourne à chaque reconstruction de l'arbre.
+ ips=$(wg show "$WG_INTERFACE" allowed-ips 2>/dev/null | awk '{print $2}' | cut -d/ -f1 | head -5)
+ [ -n "$ips" ] || return 1
+ for ip in $ips; do
+  r=$(ping -c 2 -i 0.2 -W 1 "$ip" 2>/dev/null | awk -F/ '/rtt|round-trip/{printf "%.0f", $5}')
+  [ -n "$r" ] && [ "$r" -gt 0 ] 2>/dev/null && rtts+=("$r")
+ done
+ [ "${#rtts[@]}" -gt 0 ] || return 1
+ # Médiane
+ local sorted median
+ sorted=$(printf '%s\n' "${rtts[@]}" | sort -n)
+ median=$(echo "$sorted" | awk '{a[NR]=$1} END{print (NR%2)? a[(NR+1)/2] : int((a[NR/2]+a[NR/2+1])/2)}')
+ # Bornes : en deçà de 20 ms l'AQM devient inutilement nerveux, au-delà de
+ # 400 ms il ne réagirait plus assez vite.
+ [ "$median" -lt 20 ] && median=20
+ [ "$median" -gt 400 ] && median=400
+ echo "${median}ms"
+}
+
+# `auto` dans le profil (ou RTT figé très bas alors que les peers sont loin)
+# → on mesure. Sinon on respecte la valeur explicite de l'opérateur.
+if [ "${CAKE_RTT:-}" = "auto" ] || [ "${WG_QOS_RTT_AUTO:-1}" = "1" ]; then
+ MEASURED_RTT="$(measure_path_rtt || true)"
+ if [ -n "${MEASURED_RTT:-}" ]; then
+  [ "$MEASURED_RTT" != "$CAKE_RTT" ] && \
+   log_info "QoS: RTT mesuré sur le chemin = $MEASURED_RTT (profil annonçait ${CAKE_RTT:-n/a})"
+  CAKE_RTT="$MEASURED_RTT"
+ fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BANDE PASSANTE — CAKE ne combat le bufferbloat que s'il EST le goulot
+# d'étranglement. À `10gbit` (valeur par défaut jamais ajustée), son limiteur
+# ne s'active jamais : aucune protection. On déduit la capacité réelle du lien
+# physique quand elle est lisible, et on garde 90 % de marge.
+if [ "$CAKE_BANDWIDTH" = "10gbit" ] || [ -z "$CAKE_BANDWIDTH" ]; then
+ ETH=$(ip route show default 2>/dev/null | awk '/default/{print $5; exit}')
+ LINK_MBIT=$(cat "/sys/class/net/${ETH:-eth0}/speed" 2>/dev/null || echo "")
+ if [ -n "$LINK_MBIT" ] && [ "$LINK_MBIT" -gt 0 ] 2>/dev/null; then
+  CAKE_BANDWIDTH="$(( LINK_MBIT * 90 / 100 ))mbit"
+  log_info "QoS: bande passante déduite du lien ${ETH} (${LINK_MBIT}Mb/s) → $CAKE_BANDWIDTH"
+ else
+  log_warn "QoS: bande passante à 10gbit — le limiteur NE s'active PAS. Renseignez UPSTREAM_BANDWIDTH (~90% du débit réel) pour activer l'anti-bufferbloat."
+ fi
+fi
+
 # Check if interface exists (to avoid errors in manual tests or containers)
 if ! ip link show "$WG_INTERFACE" > /dev/null 2>&1; then
  log_warn "QoS: Interface $WG_INTERFACE introuvable. Skip."
