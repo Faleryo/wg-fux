@@ -44,7 +44,11 @@ const ServerSelector = () => {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  const onlineServers = servers.filter((s) => s.status === 'online');
+  // Un serveur n'est une CIBLE valide que s'il est pilotable à distance
+  // (ancien socle SSH). Les instances autonomes se gèrent depuis LEUR propre
+  // panneau : les proposer ici ne produisait que des erreurs SSH à la première
+  // écriture. Sans aucune cible distante, le sélecteur n'a plus lieu d'être.
+  const onlineServers = servers.filter((s) => s.status === 'online' && s.remoteManageable);
 
   // Une sélection persistée (localStorage) qui ne correspond plus à rien —
   // serveur supprimé, base réinstallée — est ramenée sur 'local' au lieu de
@@ -65,6 +69,11 @@ const ServerSelector = () => {
   const current = options.find((o) => String(o.id) === String(selectedServerId)) || options[0];
 
   const isLocal = String(current.id) === 'local';
+
+  // Aucune cible distante pilotable → le menu ne proposerait que « Local »,
+  // c'est-à-dire un choix unique. On le masque plutôt que d'occuper la barre
+  // avec un contrôle sans effet (place précieuse sur mobile).
+  if (loaded && onlineServers.length === 0) return null;
 
   return (
     <div ref={ref} className="relative">

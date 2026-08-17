@@ -247,31 +247,34 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
         getContainerColor={getContainerColor}
       />
 
-      {/* Control Overlay */}
-      <div className="absolute top-8 left-8 z-30 pointer-events-none transition-all">
+      {/* Control Overlay — sur mobile il occupait une seule rangée non
+          sécable avec des marges de 32 px : le titre passait à la ligne et la
+          bascule sortait de l'écran. Il est désormais borné à la largeur
+          disponible (left+right) et les éléments passent à la ligne. */}
+      <div className="absolute top-3 left-3 right-3 md:top-8 md:left-8 md:right-auto z-30 pointer-events-none transition-all">
         <div
           className={cn(
-            'flex items-center gap-4 p-4 backdrop-blur-2xl border rounded-3xl',
+            'flex flex-wrap items-center gap-x-3 gap-y-2 p-3 md:p-4 md:gap-4 backdrop-blur-2xl border rounded-2xl md:rounded-3xl',
             isDark ? 'bg-slate-950/40 border-white/5' : 'bg-white/80 border-black/5 shadow-sm'
           )}
         >
           <div
-            className="p-3 rounded-2xl shadow-2xl animate-pulse text-white"
+            className="p-2 md:p-3 rounded-xl md:rounded-2xl shadow-2xl animate-pulse text-white flex-shrink-0"
             style={{ backgroundColor: COLOR_MAP[theme]?.[600] || '#4f46e5' }}
           >
-            <Activity size={24} />
+            <Activity size={isMobile ? 18 : 24} />
           </div>
-          <div>
+          <div className="min-w-0">
             <h3
               className={cn(
-                'text-xl font-black tracking-tight transition-colors',
+                'text-base md:text-xl font-black tracking-tight transition-colors whitespace-nowrap',
                 isDark ? 'text-white' : 'text-slate-900'
               )}
             >
               Tactical Radar
             </h3>
             <p
-              className="text-[11px] font-black tracking-widest uppercase opacity-60"
+              className="text-[10px] md:text-[11px] font-black tracking-widest uppercase opacity-60 truncate"
               style={{ color: COLOR_MAP[theme]?.[400] || '#818cf8' }}
             >
               {focusedContainer
@@ -282,7 +285,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
 
           {/* Connectés / Tous — le filtre par défaut masque les peers hors
               ligne ; la bascule évite de croire la flotte disparue. */}
-          <div className="pointer-events-auto ml-2 flex rounded-2xl border border-white/10 overflow-hidden">
+          <div className="pointer-events-auto flex rounded-xl md:rounded-2xl border border-white/10 overflow-hidden flex-shrink-0">
             {[
               { id: true, label: t('only_connected') },
               { id: false, label: t('show_all') },
@@ -291,7 +294,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
                 key={String(opt.id)}
                 onClick={() => setOnlineOnly(opt.id)}
                 className={cn(
-                  'px-3 py-2 text-[11px] font-black uppercase tracking-widest transition-colors',
+                  'px-2.5 md:px-3 py-1.5 md:py-2 text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-colors',
                   onlineOnly === opt.id
                     ? 'bg-indigo-500/30 text-white'
                     : 'text-slate-500 hover:text-slate-300'
@@ -308,7 +311,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
             <button
               onClick={() => setFocusedContainer(null)}
               className={cn(
-                'pointer-events-auto ml-2 flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all',
+                'pointer-events-auto flex items-center gap-1.5 px-2.5 md:px-4 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl border text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all flex-shrink-0',
                 isDark
                   ? 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10'
                   : 'bg-black/5 border-black/10 text-slate-600 hover:text-slate-900'
@@ -331,11 +334,11 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
       </div>
 
       {/* Zoom Controls */}
-      <div className="absolute bottom-8 right-8 flex flex-col gap-3 z-30">
+      <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 flex flex-col gap-2 md:gap-3 z-30">
         <button
           onClick={() => setView((v) => ({ ...v, zoom: Math.min(v.zoom + 0.2, 4) }))}
           className={cn(
-            'p-3 rounded-2xl border shadow-2xl transition-all',
+            'p-2.5 md:p-3 rounded-xl md:rounded-2xl border shadow-2xl transition-all',
             isDark
               ? 'bg-slate-900/90 hover:bg-slate-800 text-white border-white/10'
               : 'bg-white hover:bg-slate-50 text-slate-900 border-black/10'
@@ -346,7 +349,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
         <button
           onClick={() => setView((v) => ({ ...v, zoom: Math.max(v.zoom - 0.2, 0.5) }))}
           className={cn(
-            'p-3 rounded-2xl border shadow-2xl transition-all',
+            'p-2.5 md:p-3 rounded-xl md:rounded-2xl border shadow-2xl transition-all',
             isDark
               ? 'bg-slate-900/90 hover:bg-slate-800 text-white border-white/10'
               : 'bg-white hover:bg-slate-50 text-slate-900 border-black/10'
@@ -357,7 +360,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
         <button
           onClick={() => setView({ x: 0, y: 0, zoom: 1 })}
           className={cn(
-            'p-3 rounded-2xl border shadow-2xl transition-all',
+            'p-2.5 md:p-3 rounded-xl md:rounded-2xl border shadow-2xl transition-all',
             isDark
               ? 'bg-slate-900/90 hover:bg-slate-800 text-white border-white/10'
               : 'bg-white hover:bg-slate-50 text-slate-900 border-black/10'
@@ -370,7 +373,7 @@ const NetworkMap = ({ clients, onSelectClient, onlinePeers = [] }) => {
       {/* Container Groups Legend */}
       <div
         className={cn(
-          'absolute bottom-8 left-8 hidden md:flex flex-col gap-3 p-6 backdrop-blur-2xl border rounded-[2rem] z-20 transition-all',
+          'absolute bottom-6 left-6 hidden md:flex flex-col gap-3 p-6 backdrop-blur-2xl border rounded-[2rem] z-20 transition-all',
           isDark ? 'bg-slate-950/40 border-white/5' : 'bg-white/80 border-black/5 shadow-sm'
         )}
       >

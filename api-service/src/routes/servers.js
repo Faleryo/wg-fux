@@ -71,6 +71,12 @@ function publicServer(s, ownerUsername) {
     // est caduque et affichée comme absente)
     updateApproved: s.targetVersion === PLATFORM_VERSION,
     updateMode: s.updateMode || 'auto',
+    // Pilotable À DISTANCE ? Seules les instances de l'ancien socle SSH (host
+    // key épinglée) le sont. Une instance autonome n'expose aucun compte SSH à
+    // la plateforme : la proposer comme « serveur cible » n'aboutirait qu'à des
+    // « All configured authentication methods failed » à la première écriture.
+    // On expose le booléen, jamais la host key elle-même.
+    remoteManageable: Boolean(s.hostKey),
     // Métadonnées de flotte (descriptif).
     region: s.region || null,
     provider: s.provider || null,
