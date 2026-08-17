@@ -39,13 +39,31 @@ ALLOWED_PREFIXES=(
   "net.netfilter.nf_conntrack_"
 )
 
-# Clés explicitement INTERDITES même si elles matchent un préfixe : ce sont des
-# garde-fous de sécurité, pas des réglages de performance.
+# Clés hors réseau autorisées NOMMÉMENT. Le profil Gaming en a besoin pour la
+# latence (ordonnanceur, mémoire) et elles étaient refusées à tort. On les liste
+# une par une : un préfixe `kernel.` ouvrirait la porte à des clés d'évasion de
+# conteneur (kernel.core_pattern, kernel.modprobe…).
+ALLOWED_EXACT=(
+  "fs.file-max"
+  "kernel.sched_migration_cost_ns"
+  "kernel.timer_migration"
+  "vm.swappiness"
+  "vm.dirty_ratio"
+  "vm.dirty_background_ratio"
+  "vm.min_free_kbytes"
+)
+
+# Clés explicitement INTERDITES même si elles matchent un préfixe : garde-fous
+# de sécurité et vecteurs connus d'évasion de conteneur. Le durcissement reste
+# la décision de l'opérateur (setup.sh), jamais celle d'un conteneur.
 DENIED_KEYS=(
   "net.ipv4.tcp_syncookies"
   "net.ipv4.conf.all.rp_filter"
   "net.ipv4.conf.default.rp_filter"
   "net.ipv4.ip_forward"
+  "kernel.core_pattern"
+  "kernel.modprobe"
+  "kernel.core_uses_pid"
 )
 
 is_allowed() {
@@ -53,6 +71,12 @@ is_allowed() {
   for d in "${DENIED_KEYS[@]}"; do
     [ "$key" = "$d" ] && return 1
   done
+  for e in "${ALLOWED_EXACT[@]}"; do
+    [ "$key" = "$e" ] && return 0
+  done
+  # Un rp_filter par interface (net.ipv4.conf.<if>.rp_filter) est un
+  # assouplissement de sécurité : refusé quel que soit le nom d'interface.
+  case "$key" in *.rp_filter) return 1 ;; esac
   for p in "${ALLOWED_PREFIXES[@]}"; do
     case "$key" in "$p"*) return 0 ;; esac
   done
