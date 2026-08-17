@@ -228,6 +228,20 @@ find /etc/wireguard/clients -name "upload_limit" -print0 2>/dev/null | while IFS
  "$TC" class add dev "$WG_INTERFACE" parent 1: classid "$CLASSID" htb rate "${LIMIT}mbit" ceil "${LIMIT}mbit" 2>/dev/null || \
  "$TC" class change dev "$WG_INTERFACE" parent 1: classid "$CLASSID" htb rate "${LIMIT}mbit" ceil "${LIMIT}mbit"
 
+ # --- GESTION DE FILE PAR CLIENT (indispensable) ---
+ # Sans ce qdisc, une classe HTB utilise la FIFO par défaut (pfifo_fast) :
+ # limiter un client à 10 Mbit/s créait donc une file NON GÉRÉE ici même. Le
+ # bufferbloat n'était pas supprimé, seulement DÉPLACÉ de l'opérateur vers ce
+ # serveur — la latence de jeu montait pareillement dès que le client saturait
+ # son débit. fq_codel isole chaque flux et maintient le délai bas : les petits
+ # paquets de jeu passent devant un téléchargement du même client.
+ # fq_codel plutôt que cake ici : ~40 instances sur un VPS 1-2 cœurs, il faut
+ # que ça reste léger (cake reste sur la classe par défaut, qui porte le
+ # classement DiffServ global).
+ QID="${CLASSID#1:}"
+ "$TC" qdisc add dev "$WG_INTERFACE" parent "$CLASSID" handle "1${QID}:" fq_codel \
+  limit 1000 flows 1024 quantum 1514 target 5ms interval 100ms ecn 2>/dev/null || true
+
  # Filter IPv4
  "$TC" filter add dev "$WG_INTERFACE" protocol ip parent 1:0 prio 1 u32 match ip dst "$IPV4" flowid "$CLASSID" 2>/dev/null || true
 
