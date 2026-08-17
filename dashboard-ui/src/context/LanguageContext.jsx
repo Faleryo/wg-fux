@@ -426,6 +426,10 @@ const translations = {
     cancel_deployment_title:
       "Retire l'approbation : ces instances ne recevront plus la mise à jour",
     close: 'Fermer',
+    select_account: '— Choisir un compte —',
+    topup_account_desc:
+      'Créditez un compte après avoir encaissé hors plateforme (virement, espèces, mobile money). Le prix par crédit sert au calcul de votre marge — laissez vide si le crédit est offert.',
+    topup_no_account: 'Aucun compte revendeur : créez-en un ou envoyez une invitation ci-dessous.',
     revenue_title: 'Revenus',
     revenue_month_hint: 'Mois en cours',
     revenue_month: 'CA du mois',
@@ -1289,6 +1293,10 @@ const translations = {
     cancel_deployment: 'Cancel deployment',
     cancel_deployment_title: 'Removes approval: these instances will no longer get the update',
     close: 'Close',
+    select_account: '— Select an account —',
+    topup_account_desc:
+      'Credit an account after collecting payment outside the platform (transfer, cash, mobile money). The price per credit feeds your margin — leave empty if the credit is free.',
+    topup_no_account: 'No reseller account yet: create one or send an invitation below.',
     revenue_title: 'Revenue',
     revenue_month_hint: 'Current month',
     revenue_month: 'Revenue this month',

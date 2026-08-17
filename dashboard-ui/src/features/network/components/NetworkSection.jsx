@@ -551,13 +551,23 @@ const NetworkSection = ({ userRole }) => {
           <h3 className="text-lg font-black text-white tracking-tight mb-4 flex items-center gap-2">
             <Plus size={18} /> {t('topup_account')}
           </h3>
+          <p className="text-[11px] text-slate-500 mb-4">{t('topup_account_desc')}</p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <input
+            {/* Choix du compte par NOM : le champ demandait auparavant un
+                « userId » numérique, que l'admin devait deviner en base. */}
+            <select
               className={inputCls}
-              placeholder="userId"
               value={topupForm.userId}
               onChange={(e) => setTopupForm({ ...topupForm, userId: e.target.value })}
-            />
+            >
+              <option value="">{t('select_account')}</option>
+              {network.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.username}
+                  {u.balance != null ? ` — ${u.balance} ${t('credits_word')}` : ''}
+                </option>
+              ))}
+            </select>
             <input
               className={inputCls}
               placeholder={t('ph_credits')}
@@ -570,10 +580,18 @@ const NetworkSection = ({ userRole }) => {
               value={topupForm.priceCents}
               onChange={(e) => setTopupForm({ ...topupForm, priceCents: e.target.value })}
             />
-            <VibeButton variant="primary" icon={Plus} onClick={doTopup} disabled={busy}>
+            <VibeButton
+              variant="primary"
+              icon={Plus}
+              onClick={doTopup}
+              disabled={busy || !topupForm.userId || !Number(topupForm.credits)}
+            >
               {t('credit_btn')}
             </VibeButton>
           </div>
+          {network.length === 0 && (
+            <p className="mt-3 text-[11px] text-amber-400 italic">{t('topup_no_account')}</p>
+          )}
         </GlassCard>
       )}
 
