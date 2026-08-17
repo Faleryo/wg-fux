@@ -61,6 +61,14 @@ log() {
  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$PROFILE] $1" | tee -a "$LOG_FILE"
 }
 
+# Compteurs de bilan. Les échecs de sysctl étaient jusqu'ici avalés : le script
+# annonçait « DONE » même quand AUCUN réglage noyau n'avait pu être écrit, et
+# l'interface affichait un succès. On les compte pour pouvoir dire la vérité.
+SYSCTL_OK=0
+SYSCTL_SKIPPED=0
+SYSFS_OK=0
+SYSFS_SKIPPED=0
+
 # Safe sysctl applicator — idempotent, logged, PERSISTENT
 apply_sysctl() {
  local key=$1 val=$2
@@ -69,8 +77,10 @@ apply_sysctl() {
  # 1. Apply to memory
  if sysctl -w "$key=$val" > /dev/null 2>&1; then
  log "✓ sysctl $key = $val"
+ SYSCTL_OK=$((SYSCTL_OK + 1))
  else
  log "⚠ Skip sysctl $key (permission/absent)"
+ SYSCTL_SKIPPED=$((SYSCTL_SKIPPED + 1))
  fi
 
  # 2. Apply to persistent file
@@ -90,12 +100,36 @@ apply_sysfs() {
  if [ -w "$path" ]; then
  if echo "$val" > "$path" 2>/dev/null; then
  log "✓ sysfs $path = $val"
+ SYSFS_OK=$((SYSFS_OK + 1))
  else
  log "✗ Failed sysfs $path"
+ SYSFS_SKIPPED=$((SYSFS_SKIPPED + 1))
  fi
  else
  log "⚠ Skip sysfs $path (ro/absent)"
+ SYSFS_SKIPPED=$((SYSFS_SKIPPED + 1))
  fi
+}
+
+# Bilan lisible par l'API : une ligne JSON en toute fin de sortie standard.
+# Sans elle, la route ne peut pas distinguer « tout appliqué » de « rien
+# appliqué mais script terminé sans erreur » — c'est ce qui produisait un
+# faux succès dans l'interface.
+emit_summary() {
+ local qos_state="unknown"
+ if tc qdisc show dev "$INTERFACE" 2>/dev/null | grep -q cake; then
+ qos_state="active"
+ else
+ qos_state="absent"
+ fi
+ # BBR réellement chargeable sur cette machine ?
+ local bbr="false"
+ if sysctl -n net.ipv4.tcp_available_congestion_control 2>/dev/null | grep -qw bbr; then
+ bbr="true"
+ fi
+ printf 'WGFUX_SUMMARY {"profile":"%s","sysctlApplied":%d,"sysctlSkipped":%d,"sysfsApplied":%d,"sysfsSkipped":%d,"kernelTunable":%s,"bbrAvailable":%s,"qos":"%s"}\n' \
+ "$PROFILE" "$SYSCTL_OK" "$SYSCTL_SKIPPED" "$SYSFS_OK" "$SYSFS_SKIPPED" \
+ "$([ "$SYSCTL_OK" -gt 0 ] && echo true || echo false)" "$bbr" "$qos_state"
 }
 
 # Safe tc wrapper
@@ -468,4 +502,12 @@ fi
 # Rebuild qdisc tree via the sole owner. Picks up the new profile params.
 apply_qos
 
+if [ "$SYSCTL_OK" -eq 0 ] && [ "$SYSCTL_SKIPPED" -gt 0 ]; then
+ log "⚠ AUCUN réglage noyau appliqué ($SYSCTL_SKIPPED refusés) — /proc/sys en lecture seule ?"
+ log "  La QoS et le MTU restent effectifs ; le reste du profil est SANS EFFET."
+else
+ log "Réglages noyau : $SYSCTL_OK appliqués, $SYSCTL_SKIPPED ignorés."
+fi
+
 log "=== Optimization complete. Profile: $PROFILE ==="
+emit_summary

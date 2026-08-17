@@ -449,6 +449,25 @@ router.get(
   })
 );
 
+/**
+ * Extrait le bilan émis par wg-optimize.sh (dernière ligne `WGFUX_SUMMARY {…}`).
+ * Renvoie null si absent — script plus ancien, ou interrompu avant la fin.
+ * PURE : testée directement, sans exécuter le script.
+ */
+function parseOptimizeSummary(stdout) {
+  if (!stdout || typeof stdout !== 'string') return null;
+  const line = stdout
+    .split('\n')
+    .reverse()
+    .find((l) => l.startsWith('WGFUX_SUMMARY '));
+  if (!line) return null;
+  try {
+    return JSON.parse(line.slice('WGFUX_SUMMARY '.length));
+  } catch {
+    return null;
+  }
+}
+
 router.post(
   '/optimize',
   auth,
@@ -468,7 +487,25 @@ router.post(
       });
       throw createError(null, `Optimization failed: ${cmdResult.error}`, 'SYSTEM_ERROR');
     }
-    res.json({ success: true, profile, message: `Profile ${profile} applied` });
+    // Le script ne peut PAS écrire les sysctl depuis le conteneur (/proc/sys en
+    // lecture seule) : il l'a toujours fait en silence, et cette route
+    // répondait « applied » quoi qu'il arrive. On remonte désormais son bilan
+    // pour que l'interface distingue « profil appliqué » de « QoS appliquée,
+    // réglages noyau sans effet ».
+    const summary = parseOptimizeSummary(cmdResult.stdout);
+    if (summary && !summary.kernelTunable) {
+      log.warn('optimize', 'Réglages noyau non applicables — QoS seule effective', {
+        profile,
+        sysctlSkipped: summary.sysctlSkipped,
+      });
+    }
+    res.json({
+      success: true,
+      profile,
+      message: `Profile ${profile} applied`,
+      // null si le script est antérieur à ce bilan (instance pas encore à jour).
+      applied: summary,
+    });
   })
 );
 
@@ -725,3 +762,6 @@ router.get(
 );
 
 module.exports = router;
+// Exporté pour les tests : c'est ce parseur qui décide si l'interface annonce
+// un vrai succès ou un « QoS seule ».
+module.exports.parseOptimizeSummary = parseOptimizeSummary;

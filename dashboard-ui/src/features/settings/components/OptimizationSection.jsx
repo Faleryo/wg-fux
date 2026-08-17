@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gauge, Gamepad2, Film, BarChart3 } from 'lucide-react';
+import { Gauge, Gamepad2, Film, BarChart3, AlertTriangle } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
 import { useLang } from '../../../context/LanguageContext';
@@ -24,6 +24,9 @@ const OptimizationSection = ({ systemStats }) => {
   const { t } = useLang();
   const [loading, setLoading] = useState(false);
   const [currentProfile, setCurrentProfile] = useState('');
+  // Bilan réel de la dernière application (renvoyé par l'API). null tant
+  // qu'aucun profil n'a été appliqué depuis l'ouverture de la page.
+  const [lastApplied, setLastApplied] = useState(null);
   const [cpuHistory, setCpuHistory] = useState([]);
   const [isEnabled, setIsEnabled] = useState(false);
   const [telemetry, setTelemetry] = useState({ jitter: '...', mtu: '...', bufferbloat: '...' });
@@ -101,9 +104,22 @@ const OptimizationSection = ({ systemStats }) => {
     if (!isEnabled) return;
     setLoading(true);
     try {
-      await axiosInstance.post('/system/optimize', { profile });
+      const res = await axiosInstance.post('/system/optimize', { profile });
       setCurrentProfile(profile);
-      addToast(`${t('optim_profile_prefix')} ${profile.toUpperCase()} ${t('optim_profile_activated')}`, 'success');
+      // Le script rapporte ce qu'il a RÉELLEMENT pu appliquer. Dans un
+      // déploiement Docker, /proc/sys est en lecture seule : aucun réglage
+      // noyau ne passe. On annonçait pourtant un succès complet — l'opérateur
+      // croyait BBR et les tampons actifs alors que rien n'avait changé.
+      const applied = res.data?.applied || null;
+      setLastApplied(applied);
+      if (applied && !applied.kernelTunable) {
+        addToast(t('optim_partial'), 'info');
+      } else {
+        addToast(
+          `${t('optim_profile_prefix')} ${profile.toUpperCase()} ${t('optim_profile_activated')}`,
+          'success'
+        );
+      }
     } catch (e) {
       addToast(t('optim_sync_err'), 'error');
     } finally {
@@ -115,7 +131,7 @@ const OptimizationSection = ({ systemStats }) => {
     {
       id: 'gaming',
       label: 'E-Sport / Gaming',
-      desc: 'Latency Zero. BBR v2 + CAKE + UDP Buffer Tuning.',
+      desc: t('optim_gaming_desc'),
       icon: Gamepad2,
       color: 'indigo',
     },
@@ -138,6 +154,23 @@ const OptimizationSection = ({ systemStats }) => {
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700">
       <OptimizationSummary isEnabled={isEnabled} handleToggleSync={handleToggleSync} />
+
+      {/* Bandeau de franchise : sans lui, l'écran affiche un profil « actif »
+          alors que la moitié de ses réglages n'a jamais pu être écrite. */}
+      {lastApplied && !lastApplied.kernelTunable && (
+        <div className="flex items-start gap-4 px-5 py-4 rounded-2xl border bg-amber-500/10 border-amber-500/20 text-amber-300">
+          <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="font-black text-sm">{t('optim_partial_title')}</p>
+            <p className="text-[12px] opacity-90 mt-0.5">{t('optim_partial_desc')}</p>
+            <p className="text-[11px] opacity-70 mt-2 font-mono">
+              QoS&nbsp;: {lastApplied.qos === 'active' ? '✓' : '✗'} · BBR&nbsp;:{' '}
+              {lastApplied.bbrAvailable ? '✓' : '✗'} · {t('optim_kernel_skipped')}&nbsp;:{' '}
+              {lastApplied.sysctlSkipped}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-6">
