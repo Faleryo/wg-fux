@@ -116,20 +116,29 @@ apply_sysfs() {
 # appliqué mais script terminé sans erreur » — c'est ce qui produisait un
 # faux succès dans l'interface.
 emit_summary() {
- local qos_state="unknown"
- if tc qdisc show dev "$INTERFACE" 2>/dev/null | grep -q cake; then
- qos_state="active"
- else
- qos_state="absent"
- fi
+ # On CAPTURE la sortie avant de la filtrer : `cmd | grep -q` sort dès la
+ # première correspondance et envoie un SIGPIPE à `cmd`, ce qui — sous
+ # `set -o pipefail` — fait échouer tout le pipeline. La QoS était ainsi
+ # rapportée « absente » alors que l'arbre CAKE était bien monté.
+ local qdisc_out cc_out
+ qdisc_out=$(tc qdisc show dev "$INTERFACE" 2>/dev/null || true)
+ local qos_state="absent"
+ case "$qdisc_out" in *cake*) qos_state="active" ;; esac
+
  # BBR réellement chargeable sur cette machine ?
+ cc_out=$(sysctl -n net.ipv4.tcp_available_congestion_control 2>/dev/null || true)
  local bbr="false"
- if sysctl -n net.ipv4.tcp_available_congestion_control 2>/dev/null | grep -qw bbr; then
- bbr="true"
- fi
+ case " $cc_out " in *" bbr "*) bbr="true" ;; esac
+
+ # « Ajustable » = TOUS les réglages sont passés. Un seul refus signifie que
+ # le profil n'est pas appliqué tel qu'annoncé : sur cette plateforme, 2
+ # sysctl sur 22 aboutissent (les compteurs conntrack, seuls namespacés).
+ local tunable="false"
+ [ "$SYSCTL_SKIPPED" -eq 0 ] && [ "$SYSCTL_OK" -gt 0 ] && tunable="true"
+
  printf 'WGFUX_SUMMARY {"profile":"%s","sysctlApplied":%d,"sysctlSkipped":%d,"sysfsApplied":%d,"sysfsSkipped":%d,"kernelTunable":%s,"bbrAvailable":%s,"qos":"%s"}\n' \
  "$PROFILE" "$SYSCTL_OK" "$SYSCTL_SKIPPED" "$SYSFS_OK" "$SYSFS_SKIPPED" \
- "$([ "$SYSCTL_OK" -gt 0 ] && echo true || echo false)" "$bbr" "$qos_state"
+ "$tunable" "$bbr" "$qos_state"
 }
 
 # Safe tc wrapper
