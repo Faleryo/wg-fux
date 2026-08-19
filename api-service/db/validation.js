@@ -104,6 +104,16 @@ const containerSchema = z.object({
   name: z.string().min(1).max(64).regex(identifierRegex, 'Format de nom invalide'),
 });
 
+// Quota de conteneurs d'un utilisateur : entier >= 0, ou null (illimité).
+const maxContainersSchema = z
+  .union([z.number(), z.string(), z.null()])
+  .transform((v) => (v === null || v === '' ? null : parseInt(v, 10)))
+  .refine(
+    (n) => n === null || (Number.isInteger(n) && n >= 0),
+    'maxContainers doit être un entier positif ou null'
+  )
+  .optional();
+
 const userSchema = z
   .object({
     username: z
@@ -114,6 +124,7 @@ const userSchema = z
     role: z.enum(['admin', 'manager', 'viewer', 'reseller']).default('viewer'),
     expiry: z.string().regex(dateRegex).or(z.null()).optional(),
     email: z.string().email('Email invalide').max(255).or(z.null()).optional(),
+    maxContainers: maxContainersSchema,
   })
   .strict();
 
@@ -171,6 +182,7 @@ const userUpdateSchema = z
     expiry: z.string().regex(dateRegex).or(z.null()).optional(),
     enabled: z.boolean().optional(),
     email: z.string().email('Email invalide').max(255).or(z.null()).optional(),
+    maxContainers: maxContainersSchema,
   })
   .strict();
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Plus, Shield, Search, Trash2, UserCheck, RefreshCw } from 'lucide-react';
+import { Users, Plus, Shield, Search, Trash2, UserCheck, RefreshCw, Box } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useLang } from '../../../context/LanguageContext';
 import { cn, COLOR_MAP } from '../../../lib/utils';
@@ -110,6 +110,7 @@ const UsersSection = ({
                 <th className="px-6 py-4">{t('col_identity')}</th>
                 <th className="px-6 py-4">{t('col_role')}</th>
                 <th className="px-6 py-4">{t('col_status')}</th>
+                <th className="px-6 py-4">{t('col_containers')}</th>
                 <th className="px-6 py-4">{t('col_expiry')}</th>
                 <th className="px-6 py-4 text-right">{t('col_action')}</th>
               </tr>
@@ -234,6 +235,13 @@ const UsersSection = ({
                           </div>
                         );
                       })()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
+                        <Box size={12} className="text-slate-500" />
+                        {user.containerCount ?? 0}
+                        {user.maxContainers != null ? ` / ${user.maxContainers}` : ''}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       {(() => {

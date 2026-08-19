@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, Key, Shield, Eye, EyeOff, RefreshCw, Plus, Calendar, Clock } from 'lucide-react';
+import { Users, Key, Shield, Eye, EyeOff, RefreshCw, Plus, Calendar, Clock, Box } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
 import { useLang } from '../../context/LanguageContext';
@@ -37,6 +37,8 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
     setExpiry(dateInDays(n));
   };
   const [showPassword, setShowPassword] = useState(false);
+  // Quota de conteneurs que ce compte pourra créer (vide = illimité).
+  const [maxContainers, setMaxContainers] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const submittingRef = useRef(false);
@@ -50,6 +52,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
     setRole('viewer');
     setExpiry(dateInDays(DEFAULT_DAYS));
     setDays(String(DEFAULT_DAYS));
+    setMaxContainers('');
     setError('');
   }, [isOpen]);
 
@@ -78,11 +81,13 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
     submittingRef.current = true;
     setLoading(true);
     try {
-      await onCreate(username.trim(), password, role, expiry || null);
+      const maxContainersValue = maxContainers.trim() === '' ? null : Number(maxContainers);
+      await onCreate(username.trim(), password, role, expiry || null, maxContainersValue);
       setUsername('');
       setPassword('');
       setConfirmPassword('');
       setRole('viewer');
+      setMaxContainers('');
       onClose();
     } catch (err) {
       setError(err?.response?.data?.error || t('create_error'));
@@ -293,6 +298,28 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
               ? `${t('expires_on')} ${new Date(expiry).toLocaleDateString('fr-FR')}`
               : t('expiry_create_hint')}
           </p>
+        </div>
+
+        {/* Quota de conteneurs — plafonne combien de conteneurs ce compte peut
+            créer (chaque conteneur reste lui-même plafonné à 30 peers). */}
+        <div>
+          <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+            {t('field_max_containers')}
+          </label>
+          <div className="relative group">
+            <Box
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors"
+              size={18}
+            />
+            <input
+              type="number"
+              min="0"
+              value={maxContainers}
+              onChange={(e) => setMaxContainers(e.target.value)}
+              placeholder={t('ph_unlimited')}
+              className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono text-sm"
+            />
+          </div>
         </div>
 
         {/* Error */}

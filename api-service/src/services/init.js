@@ -395,6 +395,14 @@ async function initializeDatabase() {
         sql: 'CREATE INDEX IF NOT EXISTS import_token_idx ON clients(importTokenHash)',
         label: 'import_token_idx index',
       },
+      // Phase 43 — quota de conteneurs par utilisateur, choisi par l'admin à la
+      // création/édition du compte (NULL = illimité, même convention que
+      // servers.maxClients).
+      {
+        version: 43,
+        sql: 'ALTER TABLE users ADD COLUMN maxContainers INTEGER',
+        label: 'users.maxContainers',
+      },
     ];
 
     for (const m of migrations) {

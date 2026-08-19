@@ -46,6 +46,10 @@ const creationLimiter = rateLimit({
 });
 const identifierRegex = /^[a-zA-Z0-9_-]+$/;
 
+// Plafond dur : nombre max de peers par conteneur. Indépendant du palier de
+// licence (celui-ci plafonne le TOTAL de l'instance, pas par conteneur).
+const MAX_PEERS_PER_CONTAINER = 30;
+
 // Gate de licence (instances revendeurs uniquement — no-op sans clé configurée).
 // Bloque SEULEMENT la création : les clients existants ne sont jamais coupés.
 const requireLicense = (req, res, next) => {
@@ -85,6 +89,24 @@ const requireClientCapacity = async (req, res, next) => {
     return next(e);
   }
 };
+
+// Quota de conteneurs par utilisateur (choisi par l'admin à la création du
+// compte — schema.users.maxContainers, NULL = illimité). Vérifié UNIQUEMENT à
+// la création d'un nouveau conteneur, jamais rétroactif sur l'existant.
+// Renvoie le plafond si atteint (donc à bloquer), sinon null.
+async function containerQuotaReached(username) {
+  const [owner] = await db
+    .select({ maxContainers: schema.users.maxContainers })
+    .from(schema.users)
+    .where(eq(schema.users.username, username))
+    .limit(1);
+  if (!owner || owner.maxContainers == null) return null;
+  const [row] = await db
+    .select({ n: sql`count(*)` })
+    .from(schema.containers)
+    .where(eq(schema.containers.owner, username));
+  return (Number(row?.n) || 0) >= owner.maxContainers ? owner.maxContainers : null;
+}
 
 // 🛡️ OBSIDIAN-HARDENING: Global parameter validation and RBAC
 router.param('container', async (req, res, next, val) => {
@@ -201,6 +223,20 @@ router.post(
       return res.status(400).json(createError(parsed.error, 'Validation error for container name'));
     }
     const { name } = parsed.data;
+
+    const quotaLimit = await containerQuotaReached(req.user.username);
+    if (quotaLimit != null) {
+      return res
+        .status(403)
+        .json(
+          createError(
+            `Quota de conteneurs atteint (${quotaLimit}) — contactez votre fournisseur pour en créer davantage.`,
+            null,
+            'CONTAINER_LIMIT_REACHED'
+          )
+        );
+    }
+
     const executor = await resolveExecutor(req);
     const { success, error } = await runSystemCommand(
       getScriptPath('wg-create-container.sh'),
@@ -453,6 +489,25 @@ router.post(
       }
     }
 
+    // Plafond dur de peers par conteneur (indépendant du palier de licence, qui
+    // plafonne le TOTAL de l'instance). Marche aussi pour un conteneur encore
+    // inexistant : le count vaut alors simplement 0.
+    const [peerCountRow] = await db
+      .select({ n: sql`count(*)` })
+      .from(schema.clients)
+      .where(eq(schema.clients.container, container));
+    if ((Number(peerCountRow?.n) || 0) >= MAX_PEERS_PER_CONTAINER) {
+      return res
+        .status(403)
+        .json(
+          createError(
+            `Plafond de peers atteint pour ce conteneur (${MAX_PEERS_PER_CONTAINER}).`,
+            null,
+            'CONTAINER_PEER_LIMIT_REACHED'
+          )
+        );
+    }
+
     // Early duplicate check — avoids running the WG script unnecessarily and
     // gives a clear French error message instead of a raw SQLITE_CONSTRAINT later.
     const [existingClient] = await db
@@ -489,6 +544,18 @@ router.post(
       }
     }
     if (!containerExists) {
+      const quotaLimit = await containerQuotaReached(req.user.username);
+      if (quotaLimit != null) {
+        return res
+          .status(403)
+          .json(
+            createError(
+              `Quota de conteneurs atteint (${quotaLimit}) — contactez votre fournisseur pour en créer davantage.`,
+              null,
+              'CONTAINER_LIMIT_REACHED'
+            )
+          );
+      }
       const { success, error } = await runSystemCommand(
         getScriptPath('wg-create-container.sh'),
         [container],

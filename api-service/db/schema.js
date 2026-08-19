@@ -21,6 +21,9 @@ const users = sqliteTable(
     email: text('email'),
     // Horodatage d'acceptation des CGU (exigée à l'inscription si terms_url configuré).
     acceptedTermsAt: integer('acceptedTermsAt', { mode: 'timestamp' }),
+    // Quota de conteneurs que cet utilisateur (revendeur) a le droit de créer,
+    // choisi par l'admin à la création du compte. NULL = illimité.
+    maxContainers: integer('maxContainers'),
   },
   (table) => ({
     usernameIdx: uniqueIndex('username_idx').on(table.username),

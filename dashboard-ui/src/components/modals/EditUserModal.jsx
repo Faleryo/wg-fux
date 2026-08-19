@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Key, Shield, Eye, EyeOff, RefreshCw, Save, Calendar, Power } from 'lucide-react';
+import { Key, Shield, Eye, EyeOff, RefreshCw, Save, Calendar, Power, Box } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../context/ThemeContext';
 import { useLang } from '../../context/LanguageContext';
@@ -15,6 +15,8 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
   const [expiry, setExpiry] = useState('');
   const [enabled, setEnabled] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  // Quota de conteneurs que ce compte peut créer (vide = illimité).
+  const [maxContainers, setMaxContainers] = useState('');
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState('');
@@ -25,6 +27,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
       setRole(user.role || 'viewer');
       setExpiry(user.expiry ? new Date(user.expiry).toISOString().split('T')[0] : '');
       setEnabled(user.enabled !== false);
+      setMaxContainers(user.maxContainers != null ? String(user.maxContainers) : '');
       setPassword('');
       setConfirmPassword('');
       setError('');
@@ -54,6 +57,10 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
       const currentExpiry = user.expiry ? new Date(user.expiry).toISOString().split('T')[0] : '';
       if (expiry !== currentExpiry) updateData.expiry = expiry || null;
       if (enabled !== (user.enabled !== false)) updateData.enabled = enabled;
+      const currentMaxContainers = user.maxContainers != null ? String(user.maxContainers) : '';
+      if (maxContainers !== currentMaxContainers) {
+        updateData.maxContainers = maxContainers.trim() === '' ? null : Number(maxContainers);
+      }
 
       await onSave(user.username, updateData);
       setPassword('');
@@ -212,6 +219,24 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
               {t('suspended_hint')}
             </p>
           )}
+        </div>
+
+        {/* Container Quota */}
+        <div>
+          <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+            {t('field_max_containers')}
+          </label>
+          <div className="relative group">
+            <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <input
+              type="number"
+              min="0"
+              value={maxContainers}
+              onChange={(e) => setMaxContainers(e.target.value)}
+              placeholder={t('ph_unlimited')}
+              className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono text-sm text-white"
+            />
+          </div>
         </div>
 
         {/* Change Password (Optional) */}

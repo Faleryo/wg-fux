@@ -5,7 +5,7 @@ import { axiosInstance } from '../../../lib/api';
  * Delete is in useDeleteActions (needs confirmModal).
  */
 const useUserActions = ({ fetchData, addToast }) => {
-  const handleCreateUser = async (username, password, role, expiry = null) => {
+  const handleCreateUser = async (username, password, role, expiry = null, maxContainers = null) => {
     // `expiry` n'est transmis que s'il est renseigné : le schéma est `.strict()`
     // et refuse une clé inattendue, ce qui ferait échouer TOUTE la création.
     await axiosInstance.post('/users', {
@@ -13,6 +13,7 @@ const useUserActions = ({ fetchData, addToast }) => {
       password,
       role,
       ...(expiry ? { expiry } : {}),
+      maxContainers,
     });
     addToast(`Opérateur ${username} créé avec succès`, 'success');
     fetchData();

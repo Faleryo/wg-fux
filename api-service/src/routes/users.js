@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db, schema } = require('../../db');
-const { eq, inArray, and, gt, desc } = require('drizzle-orm');
+const { eq, inArray, and, gt, desc, sql } = require('drizzle-orm');
 const { userSchema, userUpdateSchema } = require('../../db/validation');
 const { auth, requireAdmin, invalidateUserCache } = require('../middleware/auth');
 const { hashPassword } = require('../services/auth');
@@ -29,9 +29,19 @@ router.get(
         enabled: schema.users.enabled,
         email: schema.users.email,
         parentId: schema.users.parentId,
+        maxContainers: schema.users.maxContainers,
       })
       .from(schema.users);
-    res.json(users);
+
+    // Nombre de conteneurs actuellement possédés, pour afficher "X / quota"
+    // à côté du plafond choisi par l'admin (users.maxContainers).
+    const containerCounts = await db
+      .select({ owner: schema.containers.owner, n: sql`count(*)` })
+      .from(schema.containers)
+      .groupBy(schema.containers.owner);
+    const countByOwner = Object.fromEntries(containerCounts.map((c) => [c.owner, Number(c.n)]));
+
+    res.json(users.map((u) => ({ ...u, containerCount: countByOwner[u.username] || 0 })));
   })
 );
 
@@ -45,7 +55,7 @@ router.post(
       return res.status(400).json(createError(result.error, 'Validation failed'));
     }
 
-    const { username, password, role, expiry, email } = result.data;
+    const { username, password, role, expiry, email, maxContainers } = result.data;
 
     const [existing] = await db
       .select()
@@ -65,6 +75,7 @@ router.post(
       role: role || 'viewer',
       expiry: expiry || null,
       email: email || null,
+      maxContainers: maxContainers ?? null,
     });
     res.status(201).json({ success: true });
   })
@@ -81,7 +92,7 @@ router.patch(
       return res.status(400).json(createError(result.error, 'Validation failed'));
     }
 
-    const { password, role, expiry, enabled, email } = result.data;
+    const { password, role, expiry, enabled, email, maxContainers } = result.data;
 
     const [existing] = await db
       .select()
@@ -102,6 +113,7 @@ router.patch(
     if (expiry !== undefined) updateData.expiry = expiry;
     if (enabled !== undefined) updateData.enabled = enabled;
     if (email !== undefined) updateData.email = email;
+    if (maxContainers !== undefined) updateData.maxContainers = maxContainers;
 
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json(createError('No fields to update', null, 'BAD_REQUEST'));
