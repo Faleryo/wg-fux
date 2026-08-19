@@ -103,7 +103,23 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
       title={`${t('edit')}: ${user.username}`}
       maxWidth="max-w-md"
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+        {/* Champ caché : aide les gestionnaires de mots de passe du navigateur à
+            comprendre que ce n'est PAS un formulaire de connexion — sans lui,
+            Chrome/Firefox associent parfois le champ "Nouveau mot de passe"
+            ci-dessous au mot de passe déjà enregistré pour ce site et le
+            pré-remplissent silencieusement, ce qui déclenche à tort la demande
+            de confirmation alors que l'admin ne voulait modifier que le quota. */}
+        <input
+          type="text"
+          name="username"
+          value={user.username}
+          readOnly
+          autoComplete="username"
+          className="hidden"
+          tabIndex={-1}
+          aria-hidden="true"
+        />
         {/* Identity Info (ReadOnly) */}
         <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4">
           <div
@@ -226,6 +242,35 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
           <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
             {t('field_max_containers')}
           </label>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {[1, 2, 3, 5, 10].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setMaxContainers(String(n))}
+                className={cn(
+                  'px-3 py-2 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-all',
+                  Number(maxContainers) === n && maxContainers !== ''
+                    ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                    : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:border-white/10'
+                )}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setMaxContainers('')}
+              className={cn(
+                'px-3 py-2 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-all',
+                maxContainers === ''
+                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                  : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
+              )}
+            >
+              {t('unlimited')}
+            </button>
+          </div>
           <div className="relative group">
             <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input
@@ -255,6 +300,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
               className="w-full pl-12 pr-12 py-4 glass-input rounded-2xl font-mono text-sm"
               placeholder={t('password_leave_empty')}
             />
@@ -274,6 +320,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave, onReset2FA }) => {
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
                 className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono text-sm"
                 placeholder={t('confirm_new_password')}
               />

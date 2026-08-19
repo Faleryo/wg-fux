@@ -125,6 +125,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
               className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
               placeholder={t('placeholder_username')}
               autoFocus
@@ -146,6 +147,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
               className="w-full pl-12 pr-12 py-4 glass-input rounded-2xl font-mono"
               placeholder="••••••••"
             />
@@ -173,6 +175,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
               type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
               className="w-full pl-12 pr-6 py-4 glass-input rounded-2xl font-mono"
               placeholder="••••••••"
             />
@@ -306,6 +309,35 @@ const CreateUserModal = ({ isOpen, onClose, onCreate }) => {
           <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest">
             {t('field_max_containers')}
           </label>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {[1, 2, 3, 5, 10].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setMaxContainers(String(n))}
+                className={cn(
+                  'px-3 py-2 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-all',
+                  Number(maxContainers) === n && maxContainers !== ''
+                    ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                    : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:border-white/10'
+                )}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setMaxContainers('')}
+              className={cn(
+                'px-3 py-2 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-all',
+                maxContainers === ''
+                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                  : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
+              )}
+            >
+              {t('unlimited')}
+            </button>
+          </div>
           <div className="relative group">
             <Box
               className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors"
