@@ -137,12 +137,20 @@ log "Lancement de la séquence de déploiement sur l'hôte…"
 REMOTE_HOTFIXES="${HOTFIX_PATHS[*]}"
 REMOTE_APP_SERVICES="${APP_SERVICES[*]}"
 
-# shellcheck disable=SC2087
-ssh "${DEPLOY_HOST}" \
-  REMOTE_REPO="${REMOTE_REPO}" \
-  REMOTE_HOTFIXES="${REMOTE_HOTFIXES}" \
-  REMOTE_APP_SERVICES="${REMOTE_APP_SERVICES}" \
-  bash -s <<'REMOTE_SCRIPT'
+# `ssh host VAR=val ... cmd` NE positionne PAS un environnement comme le
+# ferait `env` localement : ssh concatène tous les arguments après l'hôte en
+# UNE SEULE ligne de commande, reparsée par mots par le shell distant. Comme
+# REMOTE_HOTFIXES/REMOTE_APP_SERVICES contiennent chacun PLUSIEURS chemins
+# séparés par un espace, le 2e mot de chaque valeur (ex. "infra/nginx/default.conf")
+# se retrouvait interprété comme une commande distincte au lieu de faire partie
+# de la valeur → "bash: line 1: infra/nginx/default.conf: No such file or directory".
+# Fix : %q échappe chaque valeur individuellement (espaces internes protégés
+# par un backslash), puis on passe la ligne de commande ENTIÈRE comme un seul
+# argument à ssh — le shell distant la reparse correctement.
+REMOTE_CMD=$(printf 'REMOTE_REPO=%q REMOTE_HOTFIXES=%q REMOTE_APP_SERVICES=%q bash -s' \
+  "${REMOTE_REPO}" "${REMOTE_HOTFIXES}" "${REMOTE_APP_SERVICES}")
+
+ssh "${DEPLOY_HOST}" "${REMOTE_CMD}" <<'REMOTE_SCRIPT'
 set -euo pipefail
 
 rlog()  { printf '\033[1;36m[remote]\033[0m %s\n' "$*"; }
