@@ -3,9 +3,9 @@ const fsPromises = require('fs').promises;
 const schedule = require('node-schedule');
 const { db, schema, sqlite } = require('../../db');
 const { eq, and, lt, lte, gte } = require('drizzle-orm');
-const { runCommand, runSystemCommand, appendFileAsRoot } = require('./shell');
+const { runCommand, runSystemCommand, appendFileAsRoot, writeFileAsRoot } = require('./shell');
 const { getExecutorForServer } = require('./executors');
-const { getWireGuardStats } = require('./system');
+const { getWireGuardStats, getClientDir } = require('./system');
 const log = require('./logger');
 const { getScriptPath } = require('./config');
 const { auditLog } = require('./audit');
@@ -528,6 +528,84 @@ const checkClientExpirations = async () => {
   }
 };
 
+const EXPIRY_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Auto-désactive (DB + fichier `disabled` + retrait du peer noyau) les clients
+// dont l'expiry est déjà passée.
+//
+// wg-enforcer.sh (cron côté hôte) retire déjà le peer du noyau à l'échéance en
+// lisant le fichier `expiry` sur disque, mais n'a pas accès à la DB : sans ce
+// job, `clients.enabled` reste bloqué à `true` indéfiniment après expiration.
+// Conséquence visible : le bandeau de réconciliation (routes/clients.js,
+// buildReconcileReport) classe alors ces clients en "missingPeers" ("OK files
+// but missing from tunnel") en continu, alors qu'il s'agit d'une expiration
+// normale déjà traitée côté noyau — pas d'un vrai incident.
+//
+// Reproduit exactement la séquence du toggle manuel (POST /:container/:name/toggle
+// dans routes/clients.js) pour rester cohérent avec elle : fichier `disabled`
+// écrit AVANT le retrait kernel, puis DB, puis audit log (actor: 'system').
+// Comparaison de dates en chaîne "YYYY-MM-DD" (comme checkClientExpirations
+// ci-dessus) : lexicographique = chronologique pour ce format à largeur fixe.
+const disableExpiredClients = async () => {
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const allClients = await db.select().from(schema.clients);
+    const expired = allClients.filter(
+      (c) => c.enabled !== false && c.expiry && EXPIRY_DATE_RE.test(c.expiry) && c.expiry < todayStr
+    );
+    if (expired.length === 0) return;
+
+    const allContainers = await db.select().from(schema.containers);
+    const serverIdByContainer = new Map(allContainers.map((c) => [c.name, c.serverId]));
+    const localExecutor = require('./executors/local');
+
+    for (const client of expired) {
+      try {
+        const serverId = serverIdByContainer.get(client.container);
+        const executor = serverId != null ? await getExecutorForServer(serverId) : localExecutor;
+        const clientDir = getClientDir(client.container, client.name);
+
+        await writeFileAsRoot(path.join(clientDir, 'disabled'), new Date().toISOString(), {
+          executor,
+        });
+        if (client.publicKey) {
+          await runSystemCommand(
+            getScriptPath('wg-toggle.sh'),
+            [process.env.WG_INTERFACE || 'wg0', 'peer', client.publicKey, 'remove'],
+            null,
+            { executor }
+          );
+        }
+
+        await db
+          .update(schema.clients)
+          .set({ enabled: false })
+          .where(eq(schema.clients.id, client.id));
+
+        await auditLog({
+          actor: 'system',
+          action: 'toggle',
+          targetType: 'client',
+          targetName: `${client.container}/${client.name}`,
+          details: { enabled: false, reason: 'expired', expiry: client.expiry },
+        });
+
+        log.info('jobs', `Client expiré auto-désactivé : ${client.container}/${client.name}`, {
+          expiry: client.expiry,
+        });
+      } catch (e) {
+        log.error(
+          'jobs',
+          `Échec auto-désactivation client expiré ${client.container}/${client.name}`,
+          { err: e.message }
+        );
+      }
+    }
+  } catch (e) {
+    log.error('jobs', 'Auto-disable expired clients error', { err: e.message });
+  }
+};
+
 // Heartbeat des VPS revendeurs. Deux modes de liveness :
 //  - Instances AUTONOMES (nouveau flow, pas de hostKey SSH pinnée) : c'est le
 //    phone-home de licence (lastHeartbeat, toutes les 6h) qui prouve la vie —
@@ -807,10 +885,12 @@ const startJobs = () => {
   setInterval(vacuumDatabase, 86400000 * 7); // Weekly maintenance
   setInterval(reconcileContainers, 86400000); // Daily filesystem↔DB reconciliation
   setInterval(checkClientExpirations, 6 * 3600000); // Every 6h
+  setInterval(disableExpiredClients, 6 * 3600000); // Every 6h
   setInterval(pruneNotificationSets, 3600000); // Hourly pruning of notification sets
   setInterval(renewLicensesByCredits, 6 * 3600000); // Renouvellement licences par crédits
   reconcileContainers(); // Run once at startup
   checkClientExpirations(); // Check expirations at startup
+  disableExpiredClients(); // Disable already-expired clients at startup
   scheduleAutomaticBackup();
 
   // Phone-home de licence (instances revendeurs uniquement — no-op sans clé).
@@ -958,6 +1038,7 @@ module.exports = {
   rotateEnforcerLogs,
   pruneSeenStats,
   checkClientExpirations,
+  disableExpiredClients,
   renewLicensesByCredits,
   invalidateSharedPeersCache,
   // Expédition hors-site : réutilisée par la commande /sauvegarde du bot.
