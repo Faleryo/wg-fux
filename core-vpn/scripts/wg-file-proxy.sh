@@ -54,7 +54,7 @@ fi
 
 # Final check: ensure no ".." appears in any component
 case "$TARGET_RAW" in
- *"/../"* | */".." | ".."* | "../"*)
+ *"/../"* | */".." | ".."*)
   echo "ERROR: Path traversal is forbidden."
   exit 1
   ;;

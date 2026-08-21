@@ -44,16 +44,16 @@ _ensure_docker_dns() {
     sudo mkdir -p /etc/docker
     if [ -f "$daemon_json" ]; then
         # Merge dns key into the existing JSON without destroying other settings
-        python3 - "$daemon_json" <<'PYEOF' | sudo tee "$daemon_json.tmp" >/dev/null && \
+        python3 - "$daemon_json" <<PYEOF | sudo tee "$daemon_json.tmp" >/dev/null && \
             sudo mv "$daemon_json.tmp" "$daemon_json"
 import json, sys
 with open(sys.argv[1]) as f:
     d = json.load(f)
-d["dns"] = ["8.8.8.8", "1.1.1.1"]
+d["dns"] = $dns_servers
 print(json.dumps(d, indent=2))
 PYEOF
     else
-        printf '{\n  "dns": ["8.8.8.8", "1.1.1.1"]\n}\n' | sudo tee "$daemon_json" >/dev/null
+        printf '{\n  "dns": %s\n}\n' "$dns_servers" | sudo tee "$daemon_json" >/dev/null
     fi
 
     log_info "Docker DNS set to 8.8.8.8 / 1.1.1.1 — restarting daemon…"

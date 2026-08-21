@@ -44,13 +44,13 @@ check_api() {
  # Verify both connectivity AND SRE health check (scripts availability)
  if ! HEALTH_RESP=$(curl -sf --max-time 10 "$API_URL"); then
  log_event "⚠️ WARNING: API connection failed. Restarting..."
- cd "$PROJECT_ROOT" && docker compose restart api
+ $DOCKER_COMPOSE_CMD restart api
  else
  STATUS=$(echo "$HEALTH_RESP" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
  if [ "$STATUS" != "healthy" ]; then
   log_event "🚨 CRITICAL: API is $STATUS (Script integrity failure). Investigating..."
   # For now, just restart to attempt recovery
-  cd "$PROJECT_ROOT" && docker compose restart api
+  $DOCKER_COMPOSE_CMD restart api
  fi
  fi
 }
@@ -58,7 +58,7 @@ check_api() {
 check_adguard() {
  if ! curl -sf --max-time 10 "$ADGUARD_URL" > /dev/null; then
   log_event "⚠️ WARNING: AdGuard UI is unresponsive. Restarting..."
-  cd "$PROJECT_ROOT" && docker compose restart adguard
+  $DOCKER_COMPOSE_CMD restart adguard
  fi
 }
 

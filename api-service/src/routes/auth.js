@@ -6,7 +6,7 @@ const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
 const { rateLimit } = require('express-rate-limit');
 const { db, schema } = require('../../db');
-const { eq, desc, and, gt, count } = require('drizzle-orm');
+const { eq, desc, and, gt, count, isNull } = require('drizzle-orm');
 const { loginSchema } = require('../../db/validation');
 const { auth, requireAdmin, requireManager, blacklistToken } = require('../middleware/auth');
 const { verifyPassword, logLoginAttempt } = require('../services/auth');
@@ -365,6 +365,19 @@ router.post(
         .json(createError('Vous devez accepter les CGU', null, 'TERMS_REQUIRED'));
     }
 
+    // Consomme l'invitation AVANT de créer le compte, atomiquement (WHERE
+    // usedAt IS NULL) : deux /register concurrents avec le même token ne
+    // peuvent pas passer tous les deux — le perdant voit 0 ligne affectée.
+    const consumed = await db
+      .update(schema.invites)
+      .set({ usedAt: new Date() })
+      .where(and(eq(schema.invites.id, resolved.invite.id), isNull(schema.invites.usedAt)));
+    if (!consumed || consumed.changes === 0) {
+      return res
+        .status(403)
+        .json(createError('Invitation invalide ou expirée', null, 'INVALID_INVITE'));
+    }
+
     const { hashPassword } = require('../services/auth');
     const { hash, salt } = await hashPassword(password);
     // Hiérarchie : invité par l'admin → top-level (parentId NULL, peut revendre) ;
@@ -387,6 +400,12 @@ router.post(
         })
         .returning({ id: schema.users.id, username: schema.users.username });
     } catch (dbErr) {
+      // Le nom était pris : rendre l'invitation (elle n'a servi à rien) pour
+      // que l'invité puisse réessayer avec un autre nom sans nouveau lien.
+      await db
+        .update(schema.invites)
+        .set({ usedAt: null })
+        .where(eq(schema.invites.id, resolved.invite.id));
       if (
         dbErr.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
         dbErr.message?.includes('UNIQUE constraint')
@@ -396,10 +415,10 @@ router.post(
       throw dbErr;
     }
 
-    // Consomme l'invitation (usage unique) + ouvre le wallet.
+    // Rattache l'invitation consommée au compte créé + ouvre le wallet.
     await db
       .update(schema.invites)
-      .set({ usedAt: new Date(), usedByUserId: created.id })
+      .set({ usedByUserId: created.id })
       .where(eq(schema.invites.id, resolved.invite.id));
     require('../services/wallet').ensureWallet(created.id);
 

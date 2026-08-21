@@ -22,12 +22,25 @@ const log = require('../services/logger');
 // paresseuse — la table stripe_events est créée par la migration v18, après le
 // chargement des routes). Renvoie true si l'event est NOUVEAU (à traiter).
 let _stmtMarkEvent = null;
+let _stmtUnmarkEvent = null;
 function markEventNew(eventId) {
   if (!eventId) return true; // pas d'id → on ne peut pas dédupliquer, on traite
   if (!_stmtMarkEvent) {
     _stmtMarkEvent = sqlite.prepare('INSERT OR IGNORE INTO stripe_events (id) VALUES (?)');
   }
   return _stmtMarkEvent.run(eventId).changes > 0;
+}
+// Retire la marque « traité » : appelé quand creditWallet/extendLicense a
+// échoué APRÈS le markEventNew ci-dessus. Sans ça, le crédit/la prolongation
+// est définitivement perdue — Stripe rejoue l'event sur code != 2xx, mais le
+// replay serait vu comme "déjà traité" (marqué avant que le traitement ait
+// réellement réussi) et court-circuité à `duplicate: true` sans jamais créditer.
+function unmarkEvent(eventId) {
+  if (!eventId) return;
+  if (!_stmtUnmarkEvent) {
+    _stmtUnmarkEvent = sqlite.prepare('DELETE FROM stripe_events WHERE id = ?');
+  }
+  _stmtUnmarkEvent.run(eventId);
 }
 
 // Vérifie la signature Stripe (header "Stripe-Signature: t=...,v1=...").
@@ -186,23 +199,32 @@ router.post('/webhook', async (req, res) => {
       return res.json({ received: true, duplicate: true });
     }
 
-    if (event.type === 'checkout.session.completed' || event.type === 'invoice.paid') {
-      // Flux principal : achat de crédits (metadata.type='credits'). Flux legacy
-      // conservé : prolongation directe de licence via metadata.serverId (anciens
-      // Payment Links déjà distribués).
-      const creditsTarget = parseCreditsTarget(obj);
-      if (creditsTarget) {
-        await creditWallet(creditsTarget, obj, event.id, event.type);
-      } else {
-        const { serverId, days } = parseTarget(obj);
-        if (serverId) {
-          await extendLicense(serverId, days, event.type);
+    try {
+      if (event.type === 'checkout.session.completed' || event.type === 'invoice.paid') {
+        // Flux principal : achat de crédits (metadata.type='credits'). Flux legacy
+        // conservé : prolongation directe de licence via metadata.serverId (anciens
+        // Payment Links déjà distribués).
+        const creditsTarget = parseCreditsTarget(obj);
+        if (creditsTarget) {
+          await creditWallet(creditsTarget, obj, event.id, event.type);
         } else {
-          log.warn('stripe', 'Paiement sans cible exploitable (ni credits ni serverId)', {
-            type: event.type,
-          });
+          const { serverId, days } = parseTarget(obj);
+          if (serverId) {
+            await extendLicense(serverId, days, event.type);
+          } else {
+            log.warn('stripe', 'Paiement sans cible exploitable (ni credits ni serverId)', {
+              type: event.type,
+            });
+          }
         }
       }
+    } catch (processErr) {
+      // Le crédit/la prolongation a échoué APRÈS avoir marqué l'event : on
+      // retire la marque pour qu'un rejeu Stripe (déclenché par le status
+      // non-2xx ci-dessous) retraite réellement, au lieu d'être vu comme
+      // "déjà traité" et silencieusement ignoré (perte du paiement).
+      unmarkEvent(event.id);
+      throw processErr;
     }
 
     // Toujours 200 pour les événements traités/ignorés (sinon Stripe rejoue).

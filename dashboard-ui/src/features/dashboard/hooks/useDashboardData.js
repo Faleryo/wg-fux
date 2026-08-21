@@ -225,7 +225,15 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
       renderedClientsRef.current = { byKey: nextRendered, list: stableList };
 
       setClients(stableList);
-      prevDataRef.current = { clients: fetchedClients, timestamp: now };
+      // Ne mémoriser (clients, timestamp) que si fetchedClients vient d'un VRAI
+      // fetch /clients (needsHeavy) — sinon fetchedClients === clientsRef.current
+      // (compteurs figés d'un poll précédent) : avancer quand même le timestamp
+      // ferait calculer downloadRate/uploadRate sur un intervalle beaucoup plus
+      // long que timeDiff au prochain fetch heavy, produisant un pic de débit
+      // fictif (et une entrée corrompue dans le graphe de trafic).
+      if (needsHeavy) {
+        prevDataRef.current = { clients: fetchedClients, timestamp: now };
+      }
 
       let networkStats;
       if (isManager) {
@@ -265,7 +273,9 @@ const useDashboardData = (session, activeSection = 'dashboard', selectedServerId
         const clientSig =
           fetchedClients.length +
           ':' +
-          fetchedClients.reduce((s, c) => s + (Number(c.downloadBytes) || 0), 0);
+          fetchedClients.reduce((s, c) => s + (Number(c.downloadBytes) || 0), 0) +
+          ':' +
+          fetchedClients.reduce((s, c) => s + (Number(c.uploadBytes) || 0), 0);
         const prevCache = sessionStorage.getItem(CACHE_KEY);
         if (!prevCache || JSON.parse(prevCache).sig !== clientSig) {
           sessionStorage.setItem(

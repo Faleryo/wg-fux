@@ -438,8 +438,6 @@ SCORE=$(( PASSED * 100 / (TOTAL_CHECKS > 0 ? TOTAL_CHECKS : 1) ))
 
 if [ "$MODE_JSON" -eq 1 ]; then
  # Sortie JSON structurée pour CI/monitoring/alerting
- ISSUES_JSON=$(printf '"%s",' "${ISSUES[@]:-}" | sed 's/,$//')
- FIXES_JSON=$(printf '"%s",' "${FIXES_APPLIED[@]:-}" | sed 's/,$//')
  python3 - <<EOF
 import json, sys
 data = {

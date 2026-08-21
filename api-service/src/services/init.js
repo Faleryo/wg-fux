@@ -487,14 +487,29 @@ async function initializeDatabase() {
 
       if (!existing) {
         logger.info('db', `👤 Seeding initial admin user: ${adminUser}`);
-        await db.insert(schema.users).values({
-          username: adminUser,
-          hash: adminHash,
-          salt: adminSalt,
-          role: 'admin',
-        });
-        rememberFingerprint();
-        logger.info('db', '✅ Admin user seeded successfully.');
+        try {
+          await db.insert(schema.users).values({
+            username: adminUser,
+            hash: adminHash,
+            salt: adminSalt,
+            role: 'admin',
+          });
+          rememberFingerprint();
+          logger.info('db', '✅ Admin user seeded successfully.');
+        } catch (seedErr) {
+          // Un autre process a gagné la course (deux instances démarrant en même
+          // temps sur la même DB — rolling deploy, etc.) : `existing` était null
+          // pour les deux avant que l'un des deux INSERT ne commite. Pas une
+          // vraie erreur — l'admin existe désormais, on ne fait rien de plus ici.
+          if (
+            seedErr.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+            seedErr.message?.includes('UNIQUE constraint')
+          ) {
+            logger.info('db', 'ℹ️ Admin user already seeded by a concurrent startup — skipping.');
+          } else {
+            throw seedErr;
+          }
+        }
       } else if (existing.hash !== adminHash || existing.salt !== adminSalt) {
         if (storedFingerprint === envFingerprint) {
           logger.info(

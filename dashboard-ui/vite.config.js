@@ -7,9 +7,18 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          'ui-libs': ['framer-motion', 'lucide-react', 'axios', 'recharts'],
+        manualChunks(id) {
+          if (id.includes('node_modules/react-dom/') || id.includes('node_modules/react/')) {
+            return 'vendor';
+          }
+          if (
+            id.includes('node_modules/framer-motion/') ||
+            id.includes('node_modules/lucide-react/') ||
+            id.includes('node_modules/axios/') ||
+            id.includes('node_modules/recharts/')
+          ) {
+            return 'ui-libs';
+          }
         },
       },
     },
