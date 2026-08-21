@@ -942,7 +942,7 @@ const MainLayout = ({ session, onLogout }) => {
           <footer className="pt-10 pb-6 border-t border-white/5 opacity-40 hover:opacity-100 transition-opacity duration-500">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-4 text-[11px] font-medium tracking-widest uppercase">
-                <span className="text-indigo-500">WG-FUX Enterprise</span>
+                <span className="text-indigo-500">{window.APP_TITLE || 'WG-FUX'} Enterprise</span>
                 <span className="w-1 h-1 rounded-full bg-white/20" />
                 <span>v{health?.version || '…'}</span>
               </div>
