@@ -558,3 +558,122 @@ describe('verifyServer : la confiance vient du SSH (executor mocké)', () => {
     expect(after.provisionTokenHash).toBe('somehash'); // token PAS consommé → retry possible
   });
 });
+
+describe('POST /provision/:token/ready — pinning anti-MITM (executor mocké)', () => {
+  const executors = require('../src/services/executors');
+  const { hashToken } = require('../src/services/sshKeys');
+  let request, app, runMock;
+
+  beforeAll(() => {
+    request = require('supertest');
+    ({ app } = require('../server'));
+  });
+
+  beforeEach(() => {
+    runMock = vi.fn();
+    vi.spyOn(executors, 'getExecutorForServer').mockResolvedValue({ run: runMock });
+  });
+
+  async function seedPending(token) {
+    const { encryptPrivateKey } = require('../src/services/crypto');
+    const enc = encryptPrivateKey('-----BEGIN OPENSSH PRIVATE KEY-----\nfake\n-----END-----');
+    const [row] = await db
+      .insert(schema.servers)
+      .values({
+        ownerId: 4242,
+        label: 'ready-' + Math.random().toString(36).slice(2),
+        host: 'ready-' + Math.random().toString(36).slice(2),
+        port: 22,
+        encPrivateKey: enc.encPrivateKey,
+        encKeyIv: enc.encKeyIv,
+        encKeyAuth: enc.encKeyAuth,
+        status: 'pending',
+        provisionTokenHash: hashToken(token),
+        provisionTokenExpiry: new Date(Date.now() + 60000),
+      })
+      .returning();
+    return row;
+  }
+
+  it('rejette sans hostKey (bootstrap obsolète)', async () => {
+    const token = 'tok-' + crypto.randomBytes(16).toString('hex');
+    const row = await seedPending(token);
+
+    const res = await request(app)
+      .post(`/provision/${token}/ready`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ host: '203.0.113.9' });
+
+    expect(res.status).toBe(400);
+    const [after] = await db
+      .select()
+      .from(schema.servers)
+      .where(eq(schema.servers.id, row.id))
+      .limit(1);
+    expect(after.status).toBe('pending'); // pas touché
+    expect(after.provisionTokenHash).not.toBeNull(); // token toujours utilisable
+  });
+
+  it('rejette un format de hostKey invalide', async () => {
+    const token = 'tok-' + crypto.randomBytes(16).toString('hex');
+    await seedPending(token);
+
+    const res = await request(app)
+      .post(`/provision/${token}/ready`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ host: '203.0.113.9', hostKey: 'ssh-rsa AAAA' }); // pas ed25519
+
+    expect(res.status).toBe(400);
+  });
+
+  it('hostKey valide + SSH réussi → online, host key pinnée, token consommé', async () => {
+    runMock.mockResolvedValue({ success: true, stdout: 'healthy', stderr: '', code: 0 });
+    const token = 'tok-' + crypto.randomBytes(16).toString('hex');
+    const row = await seedPending(token);
+
+    const res = await request(app)
+      .post(`/provision/${token}/ready`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ host: '203.0.113.9', hostKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIready' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('online');
+
+    const [after] = await db
+      .select()
+      .from(schema.servers)
+      .where(eq(schema.servers.id, row.id))
+      .limit(1);
+    expect(after.status).toBe('online');
+    expect(after.hostKey).toBe('ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIready');
+    expect(after.pendingHostKey).toBeNull();
+    expect(after.provisionTokenHash).toBeNull();
+  });
+
+  it('hostKey valide + SSH échoué (MITM/réseau) → PAS online, token réutilisable', async () => {
+    runMock.mockResolvedValue({ success: false, stderr: 'host key mismatch', code: 1 });
+    const token = 'tok-' + crypto.randomBytes(16).toString('hex');
+    const row = await seedPending(token);
+
+    const res = await request(app)
+      .post(`/provision/${token}/ready`)
+      // IP distincte du test précédent : la contrainte UNIQUE(ownerId, host, port)
+      // collisionnerait sinon avec la ligne déjà promue online sur .9.
+      .set('Authorization', `Bearer ${token}`)
+      .send({ host: '203.0.113.10', hostKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIready' });
+
+    expect(res.status).toBe(502);
+
+    const [after] = await db
+      .select()
+      .from(schema.servers)
+      .where(eq(schema.servers.id, row.id))
+      .limit(1);
+    expect(after.status).toBe('error');
+    expect(after.hostKey).toBeNull();
+    // Le claim atomique ne touche que pendingHostKey/status, jamais
+    // provisionTokenHash : seul verifyServer() le consomme, et seulement en
+    // cas de succès prouvé. Un échec SSH laisse donc le token intact pour retry.
+    expect(after.provisionTokenHash).toBe(hashToken(token));
+  });
+});

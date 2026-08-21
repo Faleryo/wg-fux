@@ -35,6 +35,11 @@ const EVICT_INTERVAL_MS = 10 * 60 * 1000; // balayage toutes les 10 min
 
 // serverId → { executor, lastUsed }
 const sshPool = new Map();
+// serverId → Promise<SshExecutor> en cours de création (dédoublonnage des
+// accès concurrents sans entrée en cache — sinon deux requêtes simultanées
+// construisent chacune leur propre connexion et la 2e écrase la 1re dans
+// sshPool, qui fuit alors (jamais évincée, jamais fermée avant closeAll()).
+const pendingCreations = new Map();
 
 /**
  * Résout l'exécuteur pour une requête.
@@ -63,38 +68,53 @@ async function getExecutorForServer(serverId) {
     entry.lastUsed = Date.now();
     return entry.executor;
   }
-  // Entrée expirée → on ferme l'ancienne connexion avant de recréer.
-  if (entry && entry.executor && typeof entry.executor._close === 'function') {
-    entry.executor._close();
-    sshPool.delete(serverId);
+
+  // Une création est déjà en cours pour ce serveur (accès concurrents sans
+  // entrée en cache) : on s'y raccroche au lieu d'en lancer une 2e en parallèle.
+  const pending = pendingCreations.get(serverId);
+  if (pending) return pending;
+
+  const creation = (async () => {
+    // Entrée expirée → on ferme l'ancienne connexion avant de recréer.
+    if (entry && entry.executor && typeof entry.executor._close === 'function') {
+      entry.executor._close();
+      sshPool.delete(serverId);
+    }
+
+    // require paresseux pour éviter les cycles et faciliter le mock en test.
+    const { db, schema } = require('../../../db');
+    const { eq } = require('drizzle-orm');
+    const { decryptPrivateKey } = require('../crypto');
+
+    const [server] = await db
+      .select()
+      .from(schema.servers)
+      .where(eq(schema.servers.id, serverId))
+      .limit(1);
+
+    if (!server) {
+      const e = new Error(`Server ${serverId} not found`);
+      e.code = 'SERVER_NOT_FOUND';
+      throw e;
+    }
+
+    const executor = new SshExecutor({
+      host: server.host,
+      port: server.port,
+      username: server.sshUsername,
+      privateKey: decryptPrivateKey(server),
+      hostKey: server.hostKey,
+    });
+    sshPool.set(serverId, { executor, lastUsed: Date.now() });
+    return executor;
+  })();
+
+  pendingCreations.set(serverId, creation);
+  try {
+    return await creation;
+  } finally {
+    pendingCreations.delete(serverId);
   }
-
-  // require paresseux pour éviter les cycles et faciliter le mock en test.
-  const { db, schema } = require('../../../db');
-  const { eq } = require('drizzle-orm');
-  const { decryptPrivateKey } = require('../crypto');
-
-  const [server] = await db
-    .select()
-    .from(schema.servers)
-    .where(eq(schema.servers.id, serverId))
-    .limit(1);
-
-  if (!server) {
-    const e = new Error(`Server ${serverId} not found`);
-    e.code = 'SERVER_NOT_FOUND';
-    throw e;
-  }
-
-  const executor = new SshExecutor({
-    host: server.host,
-    port: server.port,
-    username: server.sshUsername,
-    privateKey: decryptPrivateKey(server),
-    hostKey: server.hostKey,
-  });
-  sshPool.set(serverId, { executor, lastUsed: Date.now() });
-  return executor;
 }
 
 /**

@@ -85,26 +85,47 @@ class SshExecutor extends BaseExecutor {
         if (this.conn === conn) this.conn = null;
       });
 
+      // FAIL-CLOSED : pas de host key pinnée = serveur jamais vérifié (ou
+      // vérification précédente en échec, rollback à NULL par verifyServer) →
+      // on refuse de se connecter plutôt que de le faire sans anti-MITM. Le
+      // seul chemin légitime pour obtenir une hostKey est verifyServer().
+      if (!this.hostKey) {
+        done(
+          reject,
+          Object.assign(
+            new Error(`Aucune host key pinnée pour ${this.host} — connexion refusée.`),
+            {
+              code: 'NO_PINNED_HOST_KEY',
+            }
+          )
+        );
+        return;
+      }
+
       const config = {
         host: this.host,
         port: this.port,
         username: this.username,
         privateKey: this.privateKey,
         readyTimeout: READY_TIMEOUT_MS,
+        // Négociation restreinte à ed25519 : c'est le seul type de clé que la
+        // plateforme scanne/pin (bootstrap + sshKeys.js) — fixer l'algorithme
+        // rend la comparaison déterministe (sinon un serveur exposant aussi
+        // RSA pourrait négocier un type différent de celui pinné et déclencher
+        // un faux positif MITM selon l'ordre de préférence du client SSH).
+        algorithms: { serverHostKey: ['ssh-ed25519'] },
       };
 
       // Vérification stricte de la host key (anti-MITM). hostVerifier reçoit la
       // clé publique brute du serveur (Buffer) puisqu'on ne fixe pas hostHash.
-      if (this.hostKey) {
-        config.hostVerifier = (key) => {
-          const presented = Buffer.isBuffer(key) ? key.toString('base64') : String(key);
-          if (!this._hostKeyMatches(presented)) {
-            log.error('ssh', `Host key mismatch pour ${this.host} — connexion refusée (MITM ?)`);
-            return false; // refuse le handshake
-          }
-          return true;
-        };
-      }
+      config.hostVerifier = (key) => {
+        const presented = Buffer.isBuffer(key) ? key.toString('base64') : String(key);
+        if (!this._hostKeyMatches(presented)) {
+          log.error('ssh', `Host key mismatch pour ${this.host} — connexion refusée (MITM ?)`);
+          return false; // refuse le handshake
+        }
+        return true;
+      };
 
       try {
         conn.connect(config);
@@ -169,13 +190,23 @@ class SshExecutor extends BaseExecutor {
   }
 
   _exec(conn, command, stdinData) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       let settled = false;
       const settle = (result) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
         resolve(result);
+      };
+      // Erreur de connexion (pas d'échec de commande) : on rejette pour que
+      // run() déclenche sa reconnexion transparente au lieu de la résoudre en
+      // faux échec silencieux — sinon une connexion pool morte reste cassée
+      // pendant jusqu'à POOL_IDLE_MS.
+      const fail = (err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(err);
       };
 
       const timer = setTimeout(() => {
@@ -188,7 +219,11 @@ class SshExecutor extends BaseExecutor {
 
       conn.exec(command, (err, stream) => {
         if (err) {
-          settle({ success: false, error: err.message, code: err.code || 'ESSH' });
+          if (this._isConnectionError(err)) {
+            fail(err);
+          } else {
+            settle({ success: false, error: err.message, code: err.code || 'ESSH' });
+          }
           return;
         }
         let stdout = '';

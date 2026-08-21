@@ -18,7 +18,7 @@ const tar = require('tar-stream');
 const router = express.Router();
 
 const { db, schema } = require('../../db');
-const { eq } = require('drizzle-orm');
+const { eq, and } = require('drizzle-orm');
 const { SCRIPT_DIR } = require('../services/config');
 const { hashToken } = require('../services/sshKeys');
 const { auditLog } = require('../services/audit');
@@ -356,10 +356,15 @@ router.get('/:token/script', async (req, res, next) => {
   }
 });
 
+// Format known_hosts / brut d'une clé publique ed25519 : "ssh-ed25519 AAAA...".
+const HOST_KEY_RE = /^ssh-ed25519 [A-Za-z0-9+/]+=*$/;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /provision/:token/ready — callback du VPS. Bearer = token.
-// NE PASSE PAS online : stocke la host key candidate, passe 'provisioning',
-// puis DÉCLENCHE la vérification SSH (source de vérité).
+// NE PASSE PAS online : stocke la host key candidate, puis DÉCLENCHE la
+// vérification SSH (verifyServer, source de vérité — voir plus bas) avant de
+// promouvoir. Un VPS provisionné par un ancien bootstrap (sans hostKey) est
+// refusé — le champ est requis depuis l'introduction du pinning anti-MITM.
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/:token/ready', express.json(), async (req, res, next) => {
   try {
@@ -378,18 +383,33 @@ router.post('/:token/ready', express.json(), async (req, res, next) => {
       return res.status(404).json({ error: 'Token de provisioning invalide ou expiré' });
     }
 
-    // Le bootstrap envoie l'IP publique du VPS détectée après setup.sh.
-    const { host } = req.body || {};
+    // Le bootstrap envoie l'IP publique du VPS et sa clé hôte SSH ed25519.
+    const { host, hostKey } = req.body || {};
+    if (!hostKey || typeof hostKey !== 'string' || !HOST_KEY_RE.test(hostKey.trim())) {
+      return res.status(400).json({
+        error:
+          'hostKey manquante ou invalide (attendu "ssh-ed25519 AAAA...") — bootstrap obsolète ?',
+      });
+    }
 
-    const updateData = {
-      status: 'online',
-      consecutiveFailures: 0,
-      lastChecked: new Date(),
-      lastError: null,
-      // Consomme le token (usage unique).
-      provisionTokenHash: null,
-      provisionTokenExpiry: null,
-    };
+    // Réclame le token atomiquement (WHERE provisionTokenHash = hash actuel) :
+    // deux callbacks concurrents avec le même token (retry réseau du bootstrap,
+    // rejeu) ne peuvent pas tous les deux passer — le perdant voit 0 ligne et
+    // ressert la réponse 404 uniforme, sans déclencher deux vérifications SSH.
+    // Le token n'est PAS encore consommé ici (provisionTokenHash non vidé) :
+    // verifyServer() le consomme seulement après avoir prouvé la connexion —
+    // un échec de vérification laisse le token valide pour un nouveau callback.
+    const tokenHash = hashToken(urlToken);
+    const claimed = await db
+      .update(schema.servers)
+      .set({ pendingHostKey: hostKey.trim(), status: 'provisioning' })
+      .where(
+        and(eq(schema.servers.id, server.id), eq(schema.servers.provisionTokenHash, tokenHash))
+      );
+    if (!claimed || claimed.changes === 0) {
+      return res.status(404).json({ error: 'Token de provisioning invalide ou expiré' });
+    }
+
     // Met à jour l'IP si le VPS la rapporte et qu'elle est valide (IPv4, IPv6
     // ou hostname RFC1123) — un VPS compromis ne doit pas pouvoir injecter une
     // valeur arbitraire dans cette colonne via le callback de provisioning.
@@ -401,23 +421,24 @@ router.post('/:token/ready', express.json(), async (req, res, next) => {
       HOST_RE.test(host.trim()) &&
       host.trim().length <= 255
     ) {
-      updateData.host = host.trim();
+      await db
+        .update(schema.servers)
+        .set({ host: host.trim() })
+        .where(eq(schema.servers.id, server.id));
     }
 
-    await db.update(schema.servers).set(updateData).where(eq(schema.servers.id, server.id));
-
-    await auditLog({
-      actor: 'system',
-      action: 'server_online',
-      targetType: 'server',
-      targetName: server.label,
-      details: { serverId: server.id, host: host || server.host },
-    });
-
-    log.info('provision', 'Serveur promu online (callback reçu)', {
+    log.info('provision', 'Callback reçu — vérification SSH en cours', {
       serverId: server.id,
       host: host || server.host,
     });
+
+    // Source de vérité : ouvre une VRAIE connexion SSH avec la host key
+    // candidate pinnée. Succès → online + token consommé. Échec (MITM, réseau,
+    // clé privée invalide…) → status='error', token NON consommé (retry OK).
+    const result = await verifyServer(server.id);
+    if (!result.online) {
+      return res.status(502).json({ error: result.error || 'Vérification SSH échouée' });
+    }
 
     return res.json({ status: 'online', serverId: server.id });
   } catch (err) {

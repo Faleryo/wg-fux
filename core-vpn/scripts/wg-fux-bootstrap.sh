@@ -129,10 +129,32 @@ if ! [[ "$SERVER_IP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ || "$SERVER_IP" =~ ^[a-fA-
   SERVER_IP=""
 fi
 
+# Clé hôte SSH ed25519 de CE VPS (générée par sshd au premier boot, jamais
+# transmise sur le réseau jusqu'ici) : envoyée en clair dans le callback HTTPS
+# authentifié par le token, pour que la plateforme puisse la PINNER avant sa
+# toute première connexion SSH réelle (anti-MITM — voir verifyServer côté API).
+HOST_PUBKEY_FILE="/etc/ssh/ssh_host_ed25519_key.pub"
+if [ -r "$HOST_PUBKEY_FILE" ]; then
+  # On ne garde que "ssh-ed25519 AAAA..." (2 premiers champs), sans le commentaire.
+  SSH_HOST_KEY=$(awk '{print $1, $2}' "$HOST_PUBKEY_FILE" 2>/dev/null || echo "")
+else
+  log "Clé hôte ed25519 introuvable (${HOST_PUBKEY_FILE}) — callback envoyé sans hostKey."
+  SSH_HOST_KEY=""
+fi
+# Validation stricte de forme avant interpolation JSON (même raison que pour
+# SERVER_IP ci-dessus : le base64 ed25519 ne contient jamais de guillemet, mais
+# on ne fait confiance à un fichier système qu'après l'avoir shape-checké).
+if ! [[ "$SSH_HOST_KEY" =~ ^ssh-ed25519\ [A-Za-z0-9+/]+=*$ ]]; then
+  [ -n "$SSH_HOST_KEY" ] && log "Format de clé hôte inattendu — callback envoyé sans hostKey."
+  SSH_HOST_KEY=""
+fi
+
+CALLBACK_PAYLOAD=$(printf '{"host":"%s","hostKey":"%s"}' "$SERVER_IP" "$SSH_HOST_KEY")
+
 curl "${CURL_SECURE[@]}" -fsSL -X POST \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer ${TOKEN}" \
-  --data "{\"host\":\"${SERVER_IP}\"}" \
+  --data "$CALLBACK_PAYLOAD" \
   "${PLATFORM_BASE}/provision/${TOKEN}/ready" \
   || log "Callback échoué — vérifiez la connectivité vers ${PLATFORM_BASE}."
 

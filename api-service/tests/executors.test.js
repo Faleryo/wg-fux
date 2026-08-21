@@ -120,7 +120,17 @@ describe('SshExecutor', () => {
   });
 
   function newExec() {
-    return new SshExecutor({ host: '10.0.0.9', port: 22, username: 'wg-fux', privateKey: 'KEY' });
+    return new SshExecutor({
+      host: '10.0.0.9',
+      port: 22,
+      username: 'wg-fux',
+      privateKey: 'KEY',
+      // FAIL-CLOSED (anti-MITM) : SshExecutor refuse désormais de se connecter
+      // sans host key pinnée — le mock FakeClient n'appelle jamais réellement
+      // hostVerifier (ce n'est pas ce qui est testé ici), donc n'importe quelle
+      // valeur non vide suffit à passer le garde-fou.
+      hostKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIabc',
+    });
   }
 
   it('encode le payload `wg-fux <base64>` (basename + JSON) et réussit', async () => {
